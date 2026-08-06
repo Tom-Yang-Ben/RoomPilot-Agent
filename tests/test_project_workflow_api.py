@@ -386,7 +386,9 @@ def test_rerunning_floorplan_analysis_invalidates_stale_structure_confirmation()
 def test_dxf_analysis_returns_canonical_centimeter_geometry_and_room_regions() -> None:
     project = _create_project()
     project_id = project["project_id"]
-    sample = next((Path(__file__).resolve().parents[1] / "testdata" / "dxf").glob("*.dxf"))
+    # glob 順序依檔案系統而異（WSL 9P 不是字母序，會挑到解析不出房間的圖）；
+    # 固定字母序第一個，跨機器行為一致。
+    sample = sorted((Path(__file__).resolve().parents[1] / "testdata" / "dxf").glob("*.dxf"))[0]
     uploaded = client.post(
         f"/api/projects/{project_id}/floorplan",
         files={"file": (sample.name, sample.read_bytes(), "application/dxf")},
@@ -458,6 +460,39 @@ def test_scene_generation_keeps_user_confirmed_furniture_when_glb_is_unavailable
     assert payload["scene_objects"][0]["model_url"] is None
     assert payload["scene_objects"][0]["position_cm"] == {"x": -50, "z": 0}
     assert payload["scene_objects"][0]["position_locked"] is True
+
+
+def test_scene_generation_carries_questionnaire_light_style_into_design_choices() -> None:
+    response = client.post(
+        "/api/scene/generate",
+        json={
+            "space_type": "living_room",
+            "style_preference": "japanese",
+            "room_width_cm": 400,
+            "room_depth_cm": 300,
+            "selected_furniture": [],
+            "questionnaire": {"finishes": {"lightStyle": "paper"}},
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["scene_json"]["design_choices"]["light_style"] == "paper"
+
+
+def test_scene_generation_without_questionnaire_light_style_keeps_lights_off() -> None:
+    response = client.post(
+        "/api/scene/generate",
+        json={
+            "space_type": "living_room",
+            "style_preference": "japanese",
+            "room_width_cm": 400,
+            "room_depth_cm": 300,
+            "selected_furniture": [],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["scene_json"]["design_choices"]["light_style"] == ""
 
 
 def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometry() -> None:

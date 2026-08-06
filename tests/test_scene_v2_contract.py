@@ -46,7 +46,7 @@ def test_requirements_step_has_first_meeting_demo_shortcut() -> None:
     # scene_questionnaire_flow.js 工廠；Demo 內容改掃新檔，綁定呼叫點留在 scene_v2.js。
     flow = (STATIC_DIR / "scene_questionnaire_flow.js").read_text(encoding="utf-8")
 
-    assert 'id="randomize-requirements"' in html
+    assert 'id="randomize-requirements" type="button" class="secondary-action">' in html
     assert "async function randomizeRequirementsForTesting" in flow
     assert 'state.firstMeetingStep = "summary"' in flow
     assert 'goalIds: ["circulation", "storage", "daylight"]' in flow
@@ -171,23 +171,37 @@ def test_circulation_style_inherits_living_room_until_user_confirms_override() -
     assert "走道目前沿用" in source
 
 
-def test_interior_walls_butt_against_exterior_inner_face_without_a_visible_gap() -> None:
+def test_interior_walls_keep_confirmed_endpoints_without_retraction() -> None:
+    """第 4 步確認的牆端點就是真實交界（bella-test1 路線）：任何內縮都會在
+    連續牆之間留出白縫；共線 OCR 小縫由 buildConfirmedWallJunctionFills 橋接。"""
     source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     junction_helper = source.split("function interiorWallJunctionInsets", 1)[1].split(
         "function polygonShape", 1
     )[0]
-    assert "Number(wallThickness) / 2, 0" in junction_helper
-    assert "Number(wallThickness) / 2 + 1" not in junction_helper
+    assert "const insetCm = 0;" in junction_helper
+    assert "Number(wallThickness) / 2, 0" not in junction_helper
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildOpeningAssembly", 1
+    )[0]
+    assert "function buildConfirmedWallJunctionFills()" in wall_builder
+    assert "buildConfirmedWallJunctionFills();" in wall_builder
+    assert '"confirmed-wall-junction-fill"' in wall_builder
+    # 橋接只補共線小縫，且不得蓋到確認過的門洞（closed_segment）與窗跨距。
+    assert "sharesWallAxis" in wall_builder
+    assert "bridgeTouchesProtectedOpening" in wall_builder
+    assert "opening?.closed_segment || opening" in wall_builder
 
 
-def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation() -> None:
+def test_whole_house_wall_finish_shows_the_questionnaire_colour_untinted() -> None:
+    """全屋同一種牆面時，色以問卷選的顏色為準（bella-test1 作法）：
+    tintOnly 讓型錄貼圖不把它疊暗成另一個色；逐房混色時才吃貼圖。"""
     source = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function createWallMaterial(wallOption, surfaceCatalog, { tintOnly = false } = {})" in source
     assert "const usesOneWholeHouseWall" in source
     assert "map: material.map || null," in source
-    assert "{ tintOnly: false }" in source
+    assert "{ tintOnly: usesOneWholeHouseWall }" in source
     assert "function stabilizeWholeHouseWallAppearance(material)" in source
     assert "new THREE.MeshBasicMaterial" in source
     assert "toneMapped: false" in source
@@ -929,21 +943,17 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
     assert "windowOpeningMetrics" in viewer
 
 
-def test_accurate_floorplan_walks_wall_mass_when_backend_cut_the_openings() -> None:
-    """第 4 步確認的 wall_polys 已在後端把門窗洞開槽，帶著開口也走連續牆體；
-    DXF 的 wall_polys 沒開槽，維持「無開口才走 mass」，其餘退回逐段牆。"""
+def test_confirmed_wall_segments_walk_segment_walls_not_wall_mass() -> None:
+    """第 4 步確認的牆段永遠優先走逐段 BoxGeometry（bella-test1 路線）：
+    UV 正確、六面材質槽乾淨；ExtrudeGeometry 連續牆體的 UV 是平面公分座標，
+    型錄貼圖會糊成雜色，只留給完全沒有 wall_segments 的來源當後路。"""
     viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
 
-    assert (
-        "const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;"
-        in viewer
-    )
-    assert (
-        "const wallPolysOpeningsCut = sceneData.floorplan?.wall_polys_openings_cut === true;"
-        in viewer
-    )
     assert "const builtWallMass = !singleRoomMode && hasAccurateFloorplan" in viewer
-    assert "&& (!hasWallOpenings || wallPolysOpeningsCut)" in viewer
+    assert "&& !wallSegments.length" in viewer
+    assert "&& (!hasWallOpenings || wallPolysOpeningsCut)" not in viewer
+    # 牆段一律用第 4 步確認的原始跨距，不做任何延長。
+    assert "wallSegmentsExtendedForOpenings" not in viewer
     assert "buildSegmentWalls(" in viewer
     assert "const mullionPositions = [0];" in viewer
 
@@ -2594,6 +2604,67 @@ def test_2d_automatic_and_manual_positions_are_validated_by_the_engine() -> None
     assert "floorplan_editor: confirmedFloorplanEditor()" in source
 
 
+def test_floor_material_cards_reuse_the_exact_catalog_surface_shown_in_3d() -> None:
+    """bella-test1 不變式：地板材質卡縮圖必須沿用 3D 實際載入的同一筆 catalog surface。
+
+    縮圖與貼圖一旦脫鉤（例如霧面微水泥的卡片曾顯示暖木色磁磚 CAL288001，3D 卻載
+    CCI12610），使用者就會覺得「選的材質沒有貼進 3D」。這裡以真實 surface_catalog
+    驗證每個地板精選選項對齊後，卡片縮圖等於解析出的 surface 的 preview_url。
+    """
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    assert (
+        'alignOptionWithCatalogSurface(state.sceneData?.surface_catalog, "floor", option)'
+        in source
+    )
+
+    module_uri = (STATIC_DIR / "scene_surface_materials.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ readFileSync }} from "node:fs";
+        import {{
+          alignOptionWithCatalogSurface,
+          resolveSurfaceOption,
+        }} from {json.dumps(module_uri)};
+
+        const catalog = JSON.parse(readFileSync(
+          "backend/catalog/data/surface_catalog.json",
+          "utf-8",
+        ));
+        const surfaces = new Map(catalog.surfaces.map((item) => [item.surface_id, item]));
+        const floorIds = [
+          "auto", "light_oak", "herringbone_oak", "walnut",
+          "stone_gray", "marble", "microcement",
+        ];
+        const checks = floorIds.map((id) => {{
+          const aligned = alignOptionWithCatalogSurface(
+            catalog, "floor", {{ id, label: id, color: "#dddddd" }},
+          );
+          const surface = surfaces.get(resolveSurfaceOption(catalog, "floor", id));
+          return {{
+            id,
+            resolvedInCatalog: Boolean(surface?.texture_url && surface?.preview_url),
+            previewMatches: Boolean(surface) && aligned.materialPreview === surface.preview_url,
+            curatedColorKept: aligned.color === "#dddddd",
+          }};
+        }});
+        const withoutCatalog = alignOptionWithCatalogSurface(
+          null, "floor", {{ id: "light_oak", materialPreview: "/static/fallback.jpg", color: "#abcabc" }},
+        );
+        console.log(JSON.stringify({{
+          checks,
+          fallbackKeepsOriginal: withoutCatalog.materialPreview === "/static/fallback.jpg"
+            && withoutCatalog.color === "#abcabc",
+        }}));
+        """
+    )
+
+    assert result["fallbackKeepsOriginal"] is True
+    for check in result["checks"]:
+        assert check["resolvedInCatalog"], check
+        assert check["previewMatches"], check
+        assert check["curatedColorKept"], check
+
+
 def test_all_18_style_cards_build_complete_four_colour_pbr_style_packs() -> None:
     module_uri = (STATIC_DIR / "scene_style_packs.js").as_uri()
     result = run_workflow_script(
@@ -2715,6 +2786,18 @@ def test_style_switch_changes_unlocked_models_and_material_surface_types() -> No
     assert 'id="material-boundary-position"' in html
     assert 'id="material-boundary-direction"' in html
     assert "function removeMaterialBoundary()" in controller
+
+
+def test_white_model_light_style_flows_from_questionnaire_to_viewer() -> None:
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+
+    # 生產端：restore 路徑的 design_choices 帶問卷燈光；generate 路徑由後端
+    # build_scene_payload 帶（tests/test_project_workflow_api.py 綁住）。
+    assert 'light_style: state.questionnaireFinishes.lightStyle || ""' in controller
+    # 消費端：檢視器只在 light_style 非空時建燈。
+    assert "sceneData.design_choices?.light_style" in viewer
+    assert "createStyleLights(" in viewer
 
 
 def test_step_six_locks_specified_furniture_from_3d_controls() -> None:

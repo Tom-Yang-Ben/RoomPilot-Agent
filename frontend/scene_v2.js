@@ -3,7 +3,10 @@
 import { authorizedObjectUrl, requireSignedIn } from "./auth_client.js?v=sha256-b35a4ff11b37";
 import { createSceneViewer } from "./scene_viewer.js?v=sha256-9b1e3ae114f0";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
-import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
+import {
+  alignOptionWithCatalogSurface,
+  resolveSurfaceOption,
+} from "./scene_surface_materials.js?v=sha256-76c03a72e265";
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
@@ -171,10 +174,10 @@ import {
 } from "./scene_questionnaire_data.js?v=sha256-17c7e0ecc752";
 import {
   createQuestionnaireFlow,
-} from "./scene_questionnaire_flow.js?v=sha256-f7f1caf89abb";
+} from "./scene_questionnaire_flow.js?v=sha256-f1af96bb6f74";
 import {
   createFurnitureOffers,
-} from "./scene_furniture_offers.js?v=sha256-13ffbc8244c1";
+} from "./scene_furniture_offers.js?v=sha256-2876d8a296a7";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -483,7 +486,6 @@ const element = {
   questionnaireWallOptions: $("#questionnaire-wall-options"),
   questionnaireFloorOptions: $("#questionnaire-floor-options"),
   questionnaireWallColor: $("#questionnaire-wall-color"),
-  questionnaireFloorColor: $("#questionnaire-floor-color"),
   questionnaireWallPreference: $("#questionnaire-wall-preference"),
   questionnaireFloorPreference: $("#questionnaire-floor-preference"),
   questionnaireCeilingMaterial: $("#questionnaire-ceiling-material"),
@@ -563,7 +565,7 @@ const element = {
   questionnaireCatalogSpaceGroups: $("#questionnaire-catalog-space-groups"),
   questionnaireCatalogPurposeGroups: $("#questionnaire-catalog-purpose-groups"),
   realisticStatus: $("#realistic-status"),
-  styleTabs: $("#style-pack-tabs"),
+  styleFamilyNote: $("#style-pack-family"),
   styleGrid: $("#style-pack-grid"),
   wallMaterialGrouped: $("#wall-material-grouped"),
   floorMaterialGrouped: $("#floor-material-grouped"),
@@ -1447,15 +1449,21 @@ async function renderRestoredStep() {
     renderSceneObjectList();
     loadSelectedSceneAppearance();
     if (state.surfaceState.wall?.color) $("#wall-color").value = state.surfaceState.wall.color;
-    if (state.surfaceState.floor?.color) $("#floor-color").value = state.surfaceState.floor.color;
     if (state.surfaceState.wall?.material) $("#wall-material").value = state.surfaceState.wall.material;
     if (state.surfaceState.floor?.material) $("#floor-material").value = state.surfaceState.floor.material;
+    // 套用範圍跟著存檔走：不還原的話重載後會退回「選取房間」，
+    // 使用者以為改全屋，實際只改到第一個房間。
+    const savedSurfaceScope = state.surfaceState.floor?.scope || state.surfaceState.wall?.scope;
+    if (savedSurfaceScope) $("#surface-scope").value = savedSurfaceScope;
     if (state.materialBoundary) {
       const boundaryRoom = state.rooms.find((room) => room.id === state.materialBoundary.roomId);
       $("#material-boundary-direction").value = state.materialBoundary.direction || "vertical";
       $("#material-boundary-position").value = Math.round(
         Number(state.materialBoundary.ratio ?? 0.5) * 100,
       );
+      if (state.materialBoundary.secondary_floor_id) {
+        $("#material-boundary-secondary").value = state.materialBoundary.secondary_floor_id;
+      }
       $("#material-boundary-status").textContent =
         `已在${boundaryRoom?.label || "目前房間"}建立可調整的兩材質界線。`;
     }
@@ -9845,7 +9853,11 @@ async function confirmWhiteModel() {
     },
     floor: {
       material: state.questionnaireFinishes.floorMaterial || preferredPack.floor.surfaceOption,
-      color: state.questionnaireFinishes.floorColor || preferredPack.floor.color,
+      // 地板不開放手動調色，染色一律取材質代表色，材質更換才看得出差異。
+      color: surfaceOptionColor(
+        "floor",
+        state.questionnaireFinishes.floorMaterial || preferredPack.floor.surfaceOption,
+      ) || preferredPack.floor.color,
     },
     furniture: state.sceneData.scene_objects.map((item) => ({
       id: item.furniture_id,
@@ -9873,8 +9885,6 @@ async function confirmWhiteModel() {
     state.questionnaireFinishes.wallColor || wallFinish?.color || preferredPack.wall.color;
   $("#wall-material").value =
     state.questionnaireFinishes.wallMaterial || wallFinish?.id || preferredPack.wall.surfaceOption;
-  $("#floor-color").value =
-    state.questionnaireFinishes.floorColor || floorFinish?.color || preferredPack.floor.color;
   $("#floor-material").value =
     state.questionnaireFinishes.floorMaterial || floorFinish?.id || preferredPack.floor.surfaceOption;
   await applySurfaceOverrides();
@@ -9888,16 +9898,24 @@ async function confirmWhiteModel() {
     state.questionnaireFinishes.ceilingColor;
   await evaluateCeilingConflicts();
   setStatus(expectedFurnitureCount
-    ? "家具可見性已通過。現在可即時切換 18 組完整寫實風格方案。"
-    : "純結構配置已確認。現在可即時切換 18 組完整寫實風格方案。");
+    ? "家具可見性已通過。現在可即時切換問卷主風格的 3 張色卡。"
+    : "純結構配置已確認。現在可即時切換問卷主風格的 3 張色卡。");
   scheduleSave("realistic_3d");
 }
 
 function renderStyleControls() {
-  const styles = [...new Map(STYLE_PACKS.map((pack) => [pack.styleId, pack.styleLabel])).entries()];
-  element.styleTabs.innerHTML = styles.map(([id, label]) =>
-    `<button type="button" data-style-tab="${escapeHtml(id)}" class="${id === state.activeStyleId ? "is-active" : ""}">${escapeHtml(label)}</button>`
-  ).join("");
+  // 主風格已在第 5 步問卷選定，這裡不再提供跨風格切換，只保留同風格三張色卡。
+  const questionnairePack = STYLE_PACKS.find(
+    (pack) => pack.id === state.questionnaireFinishes.stylePackId,
+  );
+  if (questionnairePack) state.activeStyleId = questionnairePack.styleId;
+  const familyLabel =
+    STYLE_FAMILIES.find((item) => item.id === state.activeStyleId)?.label
+    || questionnairePack?.styleLabel
+    || "";
+  element.styleFamilyNote.textContent = questionnairePack
+    ? `已依需求問卷鎖定「${familyLabel}」，以下為同風格的 3 張色卡。`
+    : `尚未在第 5 步問卷選定全屋主風格，先以「${familyLabel}」示範；回問卷選定後這裡只保留該風格的色卡。`;
   const packs = STYLE_PACKS.filter((pack) => pack.styleId === state.activeStyleId);
   element.styleGrid.innerHTML = packs.map((pack) => `
     <button type="button" data-style-pack="${escapeHtml(pack.id)}" class="${pack.id === state.activeStylePackId ? "is-active" : ""}">
@@ -9929,7 +9947,6 @@ function renderStyleControls() {
       $("#wall-material").value = activePack.wall.surfaceOption;
     }
     if (!state.surfaceState.floor?.styleLocked) {
-      $("#floor-color").value = activePack.floor.color;
       $("#floor-material").value = activePack.floor.surfaceOption;
     }
     renderGroupedMaterialOptions(activePack);
@@ -9939,10 +9956,15 @@ function renderStyleControls() {
 function syncSurfaceMaterialSelect(kind, items, current) {
   const select = $(`#${kind}-material`);
   if (!select) return "";
-  select.innerHTML = items.map((item) =>
+  // 使用者已選的材質不因風格清單過濾而被丟棄：清單裡沒有就以「自選」保留，
+  // 否則 change 事件裡先重建清單會把選擇還原成推薦值，套用的不是使用者挑的。
+  const listed = !current || items.some((item) => item.id === current)
+    ? items
+    : [...items, { id: current, label: `${surfaceMaterialLabel(kind, current)}（自選）` }];
+  select.innerHTML = listed.map((item) =>
     `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`
   ).join("");
-  const materialId = items.some((item) => item.id === current)
+  const materialId = current && listed.some((item) => item.id === current)
     ? current
     : items[0]?.id || "";
   select.value = materialId;
@@ -10024,7 +10046,27 @@ function materialOptionsForStyle(styleId, kind, baseOptions) {
   for (const item of SURFACE_VARIANT_OPTIONS[styleId]?.[kind] || []) {
     merged.set(item.id, { ...(merged.get(item.id) || {}), ...item });
   }
-  return [...merged.values()];
+  const options = [...merged.values()];
+  if (kind !== "floor") return options;
+  // 地板卡縮圖對齊 3D 實際載入的貼圖，卡片與 3D 才是同一張圖（bella-test1 不變式）。
+  return options.map((option) =>
+    alignOptionWithCatalogSurface(state.sceneData?.surface_catalog, "floor", option),
+  );
+}
+
+function surfaceOptionColor(kind, materialId) {
+  if (!materialId) return null;
+  const styleOptions = materialOptionsForStyle(
+    state.activeStyleId,
+    kind,
+    (STYLE_MATERIAL_OPTIONS[state.activeStyleId] || {})[kind],
+  );
+  const styled = styleOptions.find((item) => item.id === materialId);
+  if (styled?.color) return styled.color;
+  const resolved = resolveSurfaceOption(state.sceneData?.surface_catalog, kind, materialId);
+  const surface = (state.sceneData?.surface_catalog?.surfaces || [])
+    .find((item) => item.surface_id === resolved);
+  return surface?.color_hex || null;
 }
 
 function renderGroupedMaterialOptions(activePack) {
@@ -10040,7 +10082,10 @@ function renderGroupedMaterialOptions(activePack) {
     );
     const current = $(`#${kind}-material`)?.value;
     const selectedMaterial = syncSurfaceMaterialSelect(kind, items, current);
-    host.innerHTML = items.map((item) => {
+    const listedItems = !selectedMaterial || items.some((item) => item.id === selectedMaterial)
+      ? items
+      : [...items, { id: selectedMaterial, label: `${surfaceMaterialLabel(kind, selectedMaterial)}（自選）` }];
+    host.innerHTML = listedItems.map((item) => {
       const isActive = item.id === selectedMaterial;
       const isRecommended = item.id === recommendedId;
       return `
@@ -10186,7 +10231,7 @@ async function applyStylePackToScene(pack) {
   element.realisticStatus.textContent = `正在套用「${pack.styleLabel}／${pack.name}」的牆面、地板與燈光…`;
   await realisticViewer.loadScene(state.sceneData);
   if (revision !== styleApplyRevision) return;
-  realisticViewer.setViewMode("orbit");
+  realisticViewer.setViewMode(currentRealViewMode());
   element.realisticStatus.textContent = `已套用「${pack.styleLabel}／${pack.name}」的牆面、地板、寫實材質與燈光；家具搭配更新中。`;
   scheduleSave("realistic_3d");
 
@@ -10202,7 +10247,7 @@ async function applyStylePackToScene(pack) {
     loadSelectedSceneAppearance();
     await realisticViewer.loadScene(state.sceneData);
     if (revision !== styleApplyRevision) return;
-    realisticViewer.setViewMode("orbit");
+    realisticViewer.setViewMode(currentRealViewMode());
   } catch (error) {
     console.warn(error);
     element.realisticStatus.textContent = `牆面、地板與燈光已套用；家具或軟裝更新失敗：${errorMessage(error)}`;
@@ -10213,6 +10258,14 @@ async function applyStylePackToScene(pack) {
   element.realisticStatus.textContent = `${pack.styleLabel}／${pack.name}：牆、地板、未鎖定家具與環境光已同步；軟裝與擺放規則已載入，新增物件仍須通過家具引擎配置。`;
   element.realisticStatus.textContent = `已完成「${pack.styleLabel}／${pack.name}」：牆面、地板、寫實材質、燈光與未鎖定家具均已同步。`;
   scheduleSave("realistic_3d");
+}
+
+// 套用材質、色卡或天花方案會重載場景；鏡頭要停在使用者目前的視角，
+// 不硬跳回自由旋轉，否則工具列高亮與實際鏡頭會不一致。
+function currentRealViewMode() {
+  return $$("[data-real-view-mode]").find(
+    (button) => button.classList.contains("is-active"),
+  )?.dataset.realViewMode || "orbit";
 }
 
 async function applySurfaceOverrides({ userInitiated = false } = {}) {
@@ -10238,10 +10291,14 @@ async function applySurfaceOverrides({ userInitiated = false } = {}) {
     styleLocked: true,
     scope,
   };
+  // 地板不開放手動調色：染色一律採用所選材質的代表色，換材質才看得出差異。
+  const floorMaterialId = $("#floor-material").value;
   state.surfaceState.floor = {
     ...(state.surfaceState.floor || {}),
-    color: $("#floor-color").value,
-    material: $("#floor-material").value,
+    color: surfaceOptionColor("floor", floorMaterialId)
+      || stylePackByIdSafe(state.activeStylePackId)?.floor.color
+      || "#ffffff",
+    material: floorMaterialId,
     styleLocked: true,
     scope,
   };
@@ -10299,7 +10356,7 @@ async function applySurfaceOverrides({ userInitiated = false } = {}) {
     ];
   }
   await realisticViewer.loadScene(state.sceneData);
-  realisticViewer.setViewMode("orbit");
+  realisticViewer.setViewMode(currentRealViewMode());
   element.realisticStatus.textContent = `已套用並鎖定${$("#surface-scope option:checked").textContent}的牆面與地板材質。`;
   scheduleSave("realistic_3d");
 }
@@ -10316,6 +10373,10 @@ function toggleMaterialBoundary() {
   };
   const direction = $("#material-boundary-direction").value;
   const ratio = Number($("#material-boundary-position").value) / 100;
+  // 兩側各帶實際地材與其代表色（bella-test1 作法）；viewer 據此各建材質，
+  // 不再只用 palette 染色。地板不開放手動調色，色一律取材質代表色。
+  const primaryFloorId = $("#floor-material").value;
+  const secondaryFloorId = $("#material-boundary-secondary")?.value || primaryFloorId;
   const splitX = bounds.minX + (bounds.maxX - bounds.minX) * ratio;
   const splitZ = bounds.minZ + (bounds.maxZ - bounds.minZ) * ratio;
   state.materialBoundary = {
@@ -10334,6 +10395,19 @@ function toggleMaterialBoundary() {
         ],
     room_bounds_cm: bounds,
     materials: ["current-floor", "secondary-floor"],
+    secondary_floor_id: secondaryFloorId,
+    primary_floor_option: resolveSurfaceOption(
+      state.sceneData?.surface_catalog,
+      "floor",
+      primaryFloorId,
+    ),
+    secondary_floor_option: resolveSurfaceOption(
+      state.sceneData?.surface_catalog,
+      "floor",
+      secondaryFloorId,
+    ),
+    primary_floor_color_hex: surfaceOptionColor("floor", primaryFloorId) || null,
+    secondary_floor_color_hex: surfaceOptionColor("floor", secondaryFloorId) || null,
   };
   if (state.sceneData) state.sceneData.material_boundary = state.materialBoundary;
   $("#material-boundary-status").textContent =
@@ -10435,7 +10509,7 @@ async function evaluateCeilingConflicts() {
     : `<p>完成天花高度 ${result.finishedHeightCm} cm，目前未偵測到樑、櫃體或燈具衝突。</p>`;
   if (state.sceneData && state.workflow?.currentStep === "realistic_3d") {
     await realisticViewer.loadScene(state.sceneData);
-    realisticViewer.setViewMode("orbit");
+    realisticViewer.setViewMode(currentRealViewMode());
   }
 }
 
@@ -10939,6 +11013,27 @@ function saveSelectedRoomView() {
   scheduleSave("ai_render");
   const nextRoom = state.rooms.find((item) => !state.proposalReview.roomViews[item.id]);
   if (nextRoom) selectRenderRoom(nextRoom.id);
+}
+
+async function downloadViewerGlb(viewer, prefix) {
+  try {
+    setStatus("正在匯出 GLB……");
+    const buffer = await viewer.exportGlb();
+    const blob = new Blob([buffer], { type: "model/gltf-binary" });
+    const url = URL.createObjectURL(blob);
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${prefix}-${stamp}.glb`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // 不 revoke：大場景寫盤可能超過任何固定秒數，提前 revoke 會讓下載斷在
+    // .tmp（實測 254MB 場景卡死）。Blob 記憶體本來就存在，頁面卸載時自動回收。
+    setStatus("已匯出目前 3D 場景 GLB。");
+  } catch (error) {
+    setStatus(errorMessage(error), "error");
+  }
 }
 
 function downloadViewerPng(viewer, prefix) {
@@ -12019,7 +12114,6 @@ function bindEvents() {
   });
   [
     [element.questionnaireWallColor, "wallColor"],
-    [element.questionnaireFloorColor, "floorColor"],
     [element.questionnaireCeilingMaterial, "ceilingMaterial"],
     [element.questionnaireCeilingStyle, "ceilingStyle"],
     [element.questionnaireLightStyle, "lightStyle"],
@@ -12485,6 +12579,9 @@ function bindEvents() {
     state.showFurnitureNumbers = !state.showFurnitureNumbers;
     syncFurnitureNumberVisibility();
   });
+  $("#export-scene-glb")?.addEventListener("click", () => {
+    void downloadViewerGlb(whiteViewer, "RoomPilot-3D場景");
+  });
   $$("[data-scene-sidebar-tab]").forEach((button) => {
     button.addEventListener("click", () => setSceneSidebarTab(button.dataset.sceneSidebarTab));
   });
@@ -12553,12 +12650,6 @@ function bindEvents() {
     });
   });
   $("#confirm-white-model").addEventListener("click", confirmWhiteModel);
-  element.styleTabs.addEventListener("pointerdown", (event) => {
-    const button = event.target.closest("[data-style-tab]");
-    if (!button) return;
-    state.activeStyleId = button.dataset.styleTab;
-    renderStyleControls();
-  });
   element.styleGrid.addEventListener("click", (event) => {
     const button = event.target.closest("[data-style-pack]");
     const pack = STYLE_PACKS.find((item) => item.id === button?.dataset.stylePack);
@@ -12650,8 +12741,17 @@ function bindEvents() {
       await applySurfaceOverrides({ userInitiated: true });
     });
   });
-  ["wall-color", "floor-color", "wall-material", "floor-material"].forEach((id) => {
+  ["wall-color", "wall-material", "floor-material"].forEach((id) => {
     $(`#${id}`)?.addEventListener("change", async () => {
+      // 快速選單與材質卡片同一套行為：換材質時色彩欄位跟著換成該材質原色，
+      // 否則舊 tint 會把新貼圖染回原本的色調，看起來像沒換材質。
+      // 地板沒有色彩欄位，染色在 applySurfaceOverrides 直接取材質代表色。
+      const kindMatch = id.match(/^(wall|floor)-material$/);
+      if (kindMatch) {
+        const colorInput = $(`#${kindMatch[1]}-color`);
+        const color = surfaceOptionColor(kindMatch[1], $(`#${id}`).value);
+        if (color && colorInput) colorInput.value = color;
+      }
       renderGroupedMaterialOptions(stylePackByIdSafe(state.activeStylePackId));
       markRealisticSceneEdited();
       await applySurfaceOverrides({ userInitiated: true });
@@ -12663,6 +12763,9 @@ function bindEvents() {
     if (state.materialBoundary) toggleMaterialBoundary();
   });
   $("#material-boundary-direction").addEventListener("change", () => {
+    if (state.materialBoundary) toggleMaterialBoundary();
+  });
+  $("#material-boundary-secondary").addEventListener("change", () => {
     if (state.materialBoundary) toggleMaterialBoundary();
   });
   element.ceilingStyle.addEventListener("change", () => {
@@ -12769,6 +12872,7 @@ async function recoverSceneDataFromSavedLayout() {
       ceiling_material: state.questionnaireFinishes.ceilingMaterial || "flat-paint",
       ceiling_style: state.questionnaireFinishes.ceilingStyle || "exposed",
       ceiling_color_hex: state.questionnaireFinishes.ceilingColor || "#f4f1eb",
+      light_style: state.questionnaireFinishes.lightStyle || "",
       exterior_wall_option: "auto",
       exterior_wall_color_hex: "#e7e3dc",
     },

@@ -3034,6 +3034,14 @@ def build_scene_payload(
             "style_card_id": questionnaire.get("style_card_id"),
             "wall_option": questionnaire.get("wall_option", "auto"),
             "floor_option": questionnaire.get("floor_option", "auto"),
+            # 燈具幾何的唯一開關：檢視器 createStyleLights 只在此值非空時建燈。
+            # 問卷 finishes 由 /api/scene/generate 白名單收進 test2_questionnaire。
+            "light_style": (
+                ((questionnaire.get("test2_questionnaire") or {}).get("finishes") or {}).get(
+                    "lightStyle"
+                )
+                or ""
+            ),
             "single_room_mode": not bool(parsed_floorplan),
             "accurate_dxf_mode": bool(parsed_floorplan),
         },

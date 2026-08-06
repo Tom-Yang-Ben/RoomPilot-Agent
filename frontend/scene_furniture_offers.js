@@ -253,8 +253,6 @@ function renderQuestionnaireFinishes() {
   renderQuestionnaireMaterialPairs(pack);
   element.questionnaireWallColor.value =
     draft.wallColor || pack.wall.color;
-  element.questionnaireFloorColor.value =
-    draft.floorColor || pack.floor.color;
   if (element.questionnaireWallPreference) {
     element.questionnaireWallPreference.value = draft.wallPreference || "";
   }
@@ -299,7 +297,6 @@ function renderQuestionnaireFinishes() {
     element.questionnaireWallOptions,
     element.questionnaireFloorOptions,
     element.questionnaireWallColor,
-    element.questionnaireFloorColor,
     element.questionnaireWallPreference,
     element.questionnaireFloorPreference,
     element.questionnaireCeilingMaterial,

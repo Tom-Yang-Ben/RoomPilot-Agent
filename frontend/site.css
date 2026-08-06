@@ -30,7 +30,12 @@ body.rp-workflow-page #space-step {
   display: flex;
   flex-direction: column;
   padding: 0;
-  overflow: hidden;
+  /* 圖面欄的最小內容（標題 ~110px + 工具列 54px + #space-plan-stage 的
+     min-height 340px + caption ~40px）約 545px，超過固定版面配給的高度時
+     原本的 overflow: hidden 會把圖面下緣和 caption 直接裁掉且捲不到。
+     改成自己捲，橫向仍然裁切以保住 border-radius。 */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 #space-step .rp-space-review-workspace > .rp-space-controls {
@@ -79,10 +84,11 @@ body.rp-workflow-page #space-step {
     scrollbar-gutter: stable;
   }
 
-  #space-step #space-plan-stage {
-    height: auto;
-    min-height: 0;
-  }
+  /* 這裡原本有 #space-step #space-plan-stage { height: auto; min-height: 0 }，
+     想讓圖面在高度不足時收縮避免溢出。但同特異度 (2,0,0) 的
+     `#space-step #space-plan-stage`（見下方「圖面舞台」那條）在原始碼後面，
+     media query 不影響特異度，所以那條規則從來沒生效過。移除以免誤導；
+     高度不足改由 .rp-plan-pane 自捲與下方 max-height fallback 處理。 */
 
   #space-step .rp-space-completion-bar {
     position: static;
@@ -94,6 +100,49 @@ body.rp-workflow-page #space-step {
   body.rp-workflow-page[data-workflow-step="space_confirmation"] {
     --rp-step-four-topbar-height: 72px;
     --rp-step-four-chrome-height: 209px;
+  }
+}
+
+/* 視窗高度不足以裝下固定版面時，退回一般文件捲動。
+   #space-step 的高度是 100dvh 扣掉硬編碼的 --rp-step-four-chrome-height
+   （194px／1025-1180px 是 209px），而圖面欄最小內容約 545px、加上 workspace
+   上下 padding 46px 與完成列，100dvh 大約要 780px 以上才裝得下。筆電瀏覽器
+   可視高度常常只有 700-760px，此時鎖住 body 會讓被裁掉的內容完全捲不到。 */
+@media (min-width: 1025px) and (max-height: 820px) {
+  body.rp-workflow-page[data-workflow-step="space_confirmation"] {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body.rp-workflow-page[data-workflow-step="space_confirmation"] .rp-workflow-shell,
+  body.rp-workflow-page[data-workflow-step="space_confirmation"] #space-step {
+    height: auto;
+    overflow: visible;
+  }
+
+  #space-step .rp-space-review-workspace {
+    grid-template-rows: auto auto;
+    height: auto;
+    align-items: start;
+    overflow: visible;
+  }
+
+  #space-step .rp-space-review-workspace > .rp-plan-pane,
+  #space-step .rp-space-review-workspace > .rp-space-controls {
+    height: auto;
+  }
+
+  /* 整頁一起捲，右側控制列不再需要自己的捲動軸與 gutter 預留。 */
+  #space-step .rp-space-review-workspace > .rp-space-controls {
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+
+  /* 回到 site.css 基礎規則的 sticky：完成列在文件捲動時仍釘在視窗底部，
+     使用者才找得到「還缺幾個勾選」的提示與下一步按鈕。 */
+  #space-step .rp-space-completion-bar {
+    position: sticky;
+    bottom: 12px;
   }
 }
 

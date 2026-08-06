@@ -2,6 +2,17 @@
 
 ## 狀態
 
+**2026-08-06 更新：顯示路線改回逐段牆（bella-test1 同款），本文的 wall_polys
+連續牆體僅剩無 wall_segments 來源的後路。** 原因：ExtrudeGeometry 的 UV 是
+平面公分座標，型錄貼圖糊成雜色；逐三角形材質採樣在轉角出現拼布。Ben 實測
+牆與地板材質「一直修不好」，而 bella-test1 的逐段 BoxGeometry 畫面正確。
+本輪已移植：接縫補牆（buildConfirmedWallJunctionFills，護開口）、外牆繼承
+相鄰房間材質（fd75fda3）、全屋同色 tintOnly、混搭界線每側真實地材、門片嵌
+洞尺寸；並移除牆段延長（wallSegmentsExtendedForOpenings）與端點內縮。後端
+`wall_polys` 產出與開槽契約不動（`refreshRestoredFloorplanStructure` 仍消
+費 `wall_polys_openings_cut`）。契約測試已同步（`test_confirmed_wall_
+segments_walk_segment_walls_not_wall_mass` 等）。以下 8/3 記錄保留為歷史。
+
 **主體已修（2026-08-03），待瀏覽器目視驗收。** 修法照本文「修的方向」：
 
 - `floorplan_from_editor_payload()` 依各牆 `thickness_cm` 把中線 buffer 成

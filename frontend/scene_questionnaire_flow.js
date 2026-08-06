@@ -7,7 +7,7 @@
 // const，呼叫端零改動。這裡收四群：全屋表面一致性、初談流程、材質草稿層、
 // renderDetailChoices。
 
-import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-65c914d00995";
+import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-76c03a72e265";
 import {
   FIRST_MEETING_BUDGETS,
   FIRST_MEETING_GOALS,
@@ -508,7 +508,8 @@ function confirmQuestionnaireFinishes() {
     wallMaterial: draft.wallMaterial || pack.wall.surfaceOption,
     wallColor: element.questionnaireWallColor.value,
     floorMaterial: draft.floorMaterial || pack.floor.surfaceOption,
-    floorColor: element.questionnaireFloorColor.value,
+    // 地板不提供手動調色；點選材質時已寫入該材質代表色，未點選則用色卡預設。
+    floorColor: draft.floorColor || pack.floor.color,
     ceilingMaterial: element.questionnaireCeilingMaterial.value,
     ceilingStyle: element.questionnaireCeilingStyle.value,
     lightStyle: element.questionnaireLightStyle.value,

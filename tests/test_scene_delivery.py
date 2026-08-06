@@ -23,6 +23,20 @@ def test_scene_page_exposes_real_viewer_and_delivery_controls_without_image_gene
     assert "generative image" not in flow_source.text.lower()
 
 
+def test_step6_toolbar_exposes_glb_export_wired_to_white_viewer() -> None:
+    client = TestClient(app)
+
+    page = client.get("/scene")
+    flow_source = client.get("/static/scene_v2.js")
+
+    assert page.status_code == flow_source.status_code == 200
+    assert 'id="export-scene-glb"' in page.text
+    assert "匯出 GLB" in page.text
+    assert "async function downloadViewerGlb(viewer, prefix)" in flow_source.text
+    assert 'downloadViewerGlb(whiteViewer, "RoomPilot-3D場景")' in flow_source.text
+    assert 'type: "model/gltf-binary"' in flow_source.text
+
+
 def test_dxf_white_model_does_not_duplicate_walls_as_floor_overlay_lines() -> None:
     client = TestClient(app)
     viewer_source = client.get("/static/scene_viewer.js")

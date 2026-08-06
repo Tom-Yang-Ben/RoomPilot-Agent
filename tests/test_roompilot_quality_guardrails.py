@@ -28,7 +28,8 @@ def test_scene_starts_with_project_creation_and_exposes_the_strict_upload_contra
 
 
 def test_dxf_parser_exposes_frontend_preview_contract():
-    sample = next((ROOT / "testdata" / "dxf").glob("*.dxf"))
+    # glob 順序依檔案系統而異（WSL 9P 非字母序，會挑到結構壞掉的樣張）；固定字母序。
+    sample = sorted((ROOT / "testdata" / "dxf").glob("*.dxf"))[0]
     parsed = parse_dxf_file(str(sample))
 
     assert parsed["width_cm"] > 0

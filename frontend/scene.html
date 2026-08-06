@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-a18229a3370f" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-79bae8c5bc01" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -596,7 +596,6 @@
                     <fieldset>
                       <legend>地板材質</legend>
                       <div id="questionnaire-floor-options" class="rp-questionnaire-material-options"></div>
-                      <label><span>地板顏色</span><input id="questionnaire-floor-color" type="color" value="#b99b78" /></label>
                       <label><span>地板偏好（選填）</span><textarea id="questionnaire-floor-preference" rows="2" placeholder="例如：耐髒灰色磁磚、淺木地板；此描述會帶入生圖需求。"></textarea></label>
                     </fieldset>
                     <fieldset>
@@ -737,6 +736,7 @@
               <button id="open-furniture-catalog" type="button" class="secondary-action">
                 ＋ 新增家具
               </button>
+              <button id="export-scene-glb" type="button" class="secondary-action" title="匯出目前 3D 場景為 GLB 檔">匯出 GLB</button>
             </div>
             <div id="white-model-viewer" class="rp-three-viewer" aria-label="3D 資料庫家具配置"></div>
             <p id="white-model-status" class="rp-viewer-status">正在準備資料庫家具配置。</p>
@@ -836,14 +836,14 @@
             <p id="realistic-status" class="rp-viewer-status">選擇色卡後會立即同步牆面、地板、家具、材質與燈光。</p>
           </div>
           <aside class="rp-control-pane rp-style-sidebar">
-            <span class="eyebrow">6 種風格 · 18 張色卡</span>
-            <h2>風格方案即時切換</h2>
+            <span class="eyebrow">同風格 · 3 張色卡</span>
+            <h2>風格色卡即時切換</h2>
             <section class="rp-editor-box">
               <h3>寫實家具</h3>
               <div id="realistic-scene-object-list" class="rp-object-list"></div>
               <button id="delete-realistic-furniture" type="button" class="danger-action">刪除選取家具</button>
             </section>
-            <div id="style-pack-tabs" class="rp-style-tabs"></div>
+            <p id="style-pack-family" class="rp-control-hint"></p>
             <div id="style-pack-grid" class="rp-style-pack-grid"></div>
             <section class="rp-surface-editor">
               <div class="rp-surface-editor-heading">
@@ -854,9 +854,8 @@
                 <label class="rp-surface-scope"><span>套用範圍</span><select id="surface-scope"><option value="room">選取房間</option><option value="house">全屋</option></select></label>
               </div>
               <p class="rp-control-hint">選取材質後會立即同步到 3D；確認整體搭配後再鎖定。</p>
-              <div class="rp-surface-color-grid" aria-label="牆面與地板色彩">
+              <div class="rp-surface-color-grid" aria-label="牆面色彩">
                 <label><span><strong>牆面色彩</strong><small>影響空間明亮度</small></span><input id="wall-color" type="color" value="#f4efe4" /></label>
-                <label><span><strong>地板色彩</strong><small>決定整體冷暖基調</small></span><input id="floor-color" type="color" value="#c9a77d" /></label>
               </div>
               <div class="rp-surface-material-groups">
                 <section class="rp-surface-material-group" aria-labelledby="wall-material-title">
@@ -891,6 +890,13 @@
                 <div class="rp-inline-fields">
                   <label><span>混搭界線方向</span><select id="material-boundary-direction"><option value="vertical">垂直</option><option value="horizontal">水平</option></select></label>
                   <label><span>界線位置</span><input id="material-boundary-position" type="range" min="15" max="85" value="50" /></label>
+                  <label><span>另一側地板材質</span><select id="material-boundary-secondary">
+                    <option value="light_oak">淺色木地板</option>
+                    <option value="walnut">胡桃木地板</option>
+                    <option value="stone_gray">灰石材</option>
+                    <option value="marble">大理石</option>
+                    <option value="microcement">微水泥</option>
+                  </select></label>
                 </div>
                 <div class="rp-inline-actions">
                   <button id="draw-material-boundary" type="button" class="secondary-action">建立或更新界線</button>

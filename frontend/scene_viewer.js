@@ -137,50 +137,6 @@ function architecturalOpeningScore(opening = {}, wallSegments = [], wallThicknes
     - Math.min(30, centerOffset * 0.25);
 }
 
-// 辨識層給的門常常超出它自己給的牆段（實測 7 個門有 6 個如此，溢出 19–62cm）。
-// openingWallInterval 會把開口區間夾進 [0, wall.length]，而門片放在區間中心，
-// 所以截斷等於把門沿著牆平移——這就是「門不在第 3 步定的位置」的成因。
-// 以門為準：把宿主牆沿自身方向延長到足以容納整個開口，夾取就變成無作用。
-function wallSegmentsExtendedForOpenings(wallSegments = [], openings = [], wallThickness = 12) {
-  if (!openings.length) return wallSegments;
-  return wallSegments.map((segment) => {
-    const start = segment?.start || {};
-    const end = segment?.end || {};
-    const startX = Number(start.x || 0);
-    const startZ = Number(start.z || 0);
-    const length = Math.hypot(Number(end.x || 0) - startX, Number(end.z || 0) - startZ);
-    if (length < 4) return segment;
-    const unitX = (Number(end.x || 0) - startX) / length;
-    const unitZ = (Number(end.z || 0) - startZ) / length;
-
-    let minAlong = 0;
-    let maxAlong = length;
-    openings.forEach((opening) => {
-      if (!opening || !openingBelongsToWall(segment, opening, wallThickness)) return;
-      const openingStart = opening.start || {};
-      const openingEnd = opening.end || {};
-      const centerX = (Number(openingStart.x || 0) + Number(openingEnd.x || 0)) / 2;
-      const centerZ = (Number(openingStart.z || 0) + Number(openingEnd.z || 0)) / 2;
-      const along = (centerX - startX) * unitX + (centerZ - startZ) * unitZ;
-      const width = Number(opening.width_cm || opening.width)
-        || Math.hypot(
-          Number(openingEnd.x || 0) - Number(openingStart.x || 0),
-          Number(openingEnd.z || 0) - Number(openingStart.z || 0),
-        );
-      minAlong = Math.min(minAlong, along - width / 2);
-      maxAlong = Math.max(maxAlong, along + width / 2);
-    });
-    if (minAlong >= -0.5 && maxAlong <= length + 0.5) return segment;
-
-    return {
-      ...segment,
-      start: { ...start, x: startX + unitX * minAlong, z: startZ + unitZ * minAlong },
-      end: { ...end, x: startX + unitX * maxAlong, z: startZ + unitZ * maxAlong },
-      roompilot_extended_for_openings: true,
-    };
-  });
-}
-
 function dedupeArchitecturalOpeningsFor3d(openings = [], wallSegments = [], wallThickness = 12) {
   const result = [];
   openings.filter(Boolean).forEach((opening) => {
@@ -1584,6 +1540,117 @@ export function createSceneViewer(
     const exteriorSegments = segments.filter((segment) => (
       isExteriorWallSegment(segment, floorplan, wallThickness)
     ));
+    // 門洞（closed_segment）與窗跨距是確認過的開口，接縫橋接不得蓋到它們。
+    const protectedOpenings = [
+      ...doorSegments.map((opening) => opening?.closed_segment || opening),
+      ...windowSegments,
+    ].filter((opening) => opening?.start && opening?.end);
+
+    // 移植自 bella-test1：只橋接「共線的小縫」（OCR 端點誤差），相鄰的垂直
+    // 端點是轉角不是缺牆；縫上限為一個牆厚 + 4cm，確認過的開口一律保護。
+    function buildConfirmedWallJunctionFills() {
+      const junctionToleranceCm = Math.max(36, Number(wallThickness) * 2);
+      const maximumCollinearGapCm = Math.min(
+        junctionToleranceCm,
+        Number(wallThickness) + 4,
+      );
+      const endpoints = segments.flatMap((segment, segmentIndex) => (
+        ["start", "end"].flatMap((key) => {
+          const endpoint = wallSegmentPoint(segment, key);
+          return endpoint
+            ? [{
+              key: `${segment.id || segmentIndex}:${key}`,
+              segment,
+              point: endpoint,
+            }]
+            : [];
+        })
+      ));
+      const usedEndpoints = new Set();
+      const bridgeTouchesProtectedOpening = (start, end) => {
+        const midpoint = {
+          x: (start.x + end.x) / 2,
+          z: (start.z + end.z) / 2,
+        };
+        const toleranceCm = Math.max(Number(wallThickness) * 0.6, 7);
+        return protectedOpenings.some((opening) => {
+          const openingSegment = { start: opening.start, end: opening.end };
+          return pointToWallSegmentDistance(midpoint, openingSegment) <= toleranceCm
+            && (
+              pointToWallSegmentDistance(start, openingSegment) <= toleranceCm
+              || pointToWallSegmentDistance(end, openingSegment) <= toleranceCm
+            );
+        });
+      };
+      const sharesWallAxis = (left, right) => {
+        const leftStart = wallSegmentPoint(left, "start");
+        const leftEnd = wallSegmentPoint(left, "end");
+        const rightStart = wallSegmentPoint(right, "start");
+        const rightEnd = wallSegmentPoint(right, "end");
+        if (!leftStart || !leftEnd || !rightStart || !rightEnd) return false;
+        const leftLength = Math.hypot(leftEnd.x - leftStart.x, leftEnd.z - leftStart.z);
+        const rightLength = Math.hypot(rightEnd.x - rightStart.x, rightEnd.z - rightStart.z);
+        if (leftLength < 0.8 || rightLength < 0.8) return false;
+        const alignment = Math.abs(
+          ((leftEnd.x - leftStart.x) * (rightEnd.x - rightStart.x)
+            + (leftEnd.z - leftStart.z) * (rightEnd.z - rightStart.z))
+            / (leftLength * rightLength),
+        );
+        return alignment >= 0.995;
+      };
+
+      endpoints.forEach((endpoint, index) => {
+        if (usedEndpoints.has(endpoint.key)) return;
+        const neighbor = endpoints
+          .slice(index + 1)
+          .filter((candidate) => (
+            candidate.segment !== endpoint.segment
+            && !usedEndpoints.has(candidate.key)
+          ))
+          .map((candidate) => ({
+            candidate,
+            distance: Math.hypot(
+              candidate.point.x - endpoint.point.x,
+              candidate.point.z - endpoint.point.z,
+            ),
+          }))
+          .filter(({ distance }) => distance > 0.8 && distance <= junctionToleranceCm)
+          .filter(({ candidate, distance }) => (
+            distance <= maximumCollinearGapCm
+            && sharesWallAxis(endpoint.segment, candidate.segment)
+          ))
+          .sort((left, right) => left.distance - right.distance)[0];
+        if (!neighbor) return;
+
+        const start = endpoint.point;
+        const end = neighbor.candidate.point;
+        if (bridgeTouchesProtectedOpening(start, end)) return;
+        const dx = end.x - start.x;
+        const dz = end.z - start.z;
+        const length = Math.hypot(dx, dz);
+        if (length < 0.8) return;
+        const bridgeSegment = { start, end };
+        const bridgeMaterial = typeof wallMaterial === "function"
+          ? (wallMaterial.faceMaterials?.(bridgeSegment, 0) || wallMaterial(bridgeSegment))
+          : wallMaterial.clone();
+        const bridge = new THREE.Mesh(
+          new THREE.BoxGeometry(length, wallHeight, wallThickness),
+          bridgeMaterial,
+        );
+        bridge.position.set(
+          (start.x + end.x) / 2,
+          wallHeight / 2,
+          (start.z + end.z) / 2,
+        );
+        bridge.rotation.y = Math.atan2(-dz, dx);
+        bridge.castShadow = true;
+        bridge.receiveShadow = true;
+        bridge.userData.roompilotArchitecturalDetail = "confirmed-wall-junction-fill";
+        roomGroupRef.add(registerWall(bridge));
+        usedEndpoints.add(endpoint.key);
+        usedEndpoints.add(neighbor.candidate.key);
+      });
+    }
 
     segments.forEach((segment, segmentIndex) => {
       const start = segment.start;
@@ -1742,9 +1809,12 @@ export function createSceneViewer(
 
       const capLength = sectionMax - sectionMin;
       const capCenter = (sectionMin + sectionMax) / 2;
+      const topCapMaterials = typeof wallMaterial.faceMaterials === "function"
+        ? wallMaterial.faceMaterials(segment, exteriorSideSign)
+        : material.clone();
       const topCap = new THREE.Mesh(
         new THREE.BoxGeometry(capLength, 2.5, wallThickness),
-        material.clone(),
+        topCapMaterials || material.clone(),
       );
       topCap.position.set(
         Number(start.x) + unitX * capCenter,
@@ -1758,6 +1828,8 @@ export function createSceneViewer(
       wallAccessoryMeshes.push(topCap);
       roomGroupRef.add(topCap);
     });
+
+    buildConfirmedWallJunctionFills();
 
     // A door may have a valid closed segment but no recognised wall span yet.
     // It must still be rendered once at that closed position; otherwise a
@@ -1860,8 +1932,16 @@ export function createSceneViewer(
       sill.userData.roompilotArchitecturalDetail = "flush-window-sill";
       assembly.add(sill);
     } else {
+      // 門片嵌在確認過的開口內（bella-test1 尺寸）：比開口窄 0.6cm、厚度略小
+      // 於牆厚，型錄尺寸不得把門片撐出開口。
+      const doorLeafInsetCm = 0.6;
+      const leafWidth = Math.max(interval.width - doorLeafInsetCm, 60);
+      const leafDepth = Math.max(
+        Math.min(Number(anchor.wallThickness || 12) - 1.2, 5),
+        2,
+      );
       const leaf = new THREE.Mesh(
-        new THREE.BoxGeometry(Math.max(interval.width * 0.94, 60), height, 4.5),
+        new THREE.BoxGeometry(leafWidth, height, leafDepth),
         frameMaterial,
       );
       leaf.position.set(0, centerY, 0);
@@ -1904,10 +1984,9 @@ export function createSceneViewer(
       const dz = Number(end.z || 0) - Number(start.z || 0);
       const measuredWidth = Math.hypot(dx, dz);
       if (measuredWidth < 4) return;
-      const openingWidth = Math.max(
-        Number(opening.width_cm || opening.width || measuredWidth),
-        kind === "door" ? 68 : 50,
-      );
+      // 獨立開口沒有宿主牆區間可夾取，一律用它自己的偵測跨距（bella-test1
+      // 作法）：型錄寬度可能比實洞寬，撐大會蓋到旁邊的牆或槽外。
+      const openingWidth = measuredWidth;
       const windowMetrics = kind === "window"
         ? windowOpeningMetrics(opening, wallHeight)
         : null;
@@ -2346,10 +2425,6 @@ export function createSceneViewer(
     const split = vertical
       ? Math.max(minX, Math.min(maxX, (Number(line[0].x) + Number(line[1].x)) / 2))
       : Math.max(minZ, Math.min(maxZ, (Number(line[0].y) + Number(line[1].y)) / 2));
-    const palette = sceneData.style_card?.palette_hex || sceneData.style?.palette_hex || [];
-    const materials = [floorMaterial.clone(), floorMaterial.clone()];
-    applySurfaceTint(materials[0], palette[1] || "#c9a77d");
-    applySurfaceTint(materials[1], palette[3] || "#8b684b");
     const parts = vertical
       ? [
           { width: split - minX, depth: maxZ - minZ, x: (minX + split) / 2, z: (minZ + maxZ) / 2 },
@@ -2361,9 +2436,24 @@ export function createSceneViewer(
         ];
     parts.forEach((part, index) => {
       if (part.width < 2 || part.depth < 2) return;
+      // 每側用使用者實際選的地板材質（bella-test1 作法）；缺選項才退回主地材，
+      // 只染 palette 會讓「兩種地材」看起來只是兩塊色差。
+      const floorOption = index === 0
+        ? boundary.primary_floor_option
+        : boundary.secondary_floor_option;
+      const material = floorOption
+        ? createFloorMaterial(floorOption, sceneData.surface_catalog, {
+            widthCm: part.width,
+            depthCm: part.depth,
+          })
+        : floorMaterial.clone();
+      applySurfaceTint(
+        material,
+        index === 0 ? boundary.primary_floor_color_hex : boundary.secondary_floor_color_hex,
+      );
       const surface = new THREE.Mesh(
         new THREE.PlaneGeometry(part.width, part.depth),
-        materials[index],
+        material,
       );
       surface.rotation.x = -Math.PI / 2;
       surface.position.set(part.x, 0.6 + index * 0.1, part.z);
@@ -2534,7 +2624,9 @@ export function createSceneViewer(
           override.wall_option
             || "auto",
           sceneData.surface_catalog,
-          { tintOnly: false },
+          // 全屋同一種牆面時，色一律以問卷選的顏色為準：不讓型錄貼圖把它
+          // 疊暗成另一個色（bella-test1 作法）。逐房混色時才吃貼圖。
+          { tintOnly: usesOneWholeHouseWall },
         );
         applySurfaceTint(
           material,
@@ -2547,10 +2639,6 @@ export function createSceneViewer(
       return cache.get(cacheKey);
     };
     const resolveWallMaterial = (segment) => {
-      if (isExteriorWallSegment(segment, sceneData.floorplan)) {
-        exteriorMaterial.userData.roompilotWallSurfaceRole = "exterior";
-        return exteriorMaterial;
-      }
       const midpoint = {
         x: (Number(segment.start?.x || 0) + Number(segment.end?.x || 0)) / 2,
         z: (Number(segment.start?.z || 0) + Number(segment.end?.z || 0)) / 2,
@@ -2569,17 +2657,22 @@ export function createSceneViewer(
         z: (Number(start.z || 0) + Number(end.z || 0)) / 2,
       };
       const normal = { x: -dz / length, z: dx / length };
-      const exterior = isExteriorWallSegment(segment, sceneData.floorplan);
       const materialForSide = (side) => {
-        if (exterior && side === exteriorSideSign) return exteriorMaterial;
         const sample = {
           x: midpoint.x + normal.x * side * 16,
           z: midpoint.z + normal.z * side * 16,
         };
         return materialForOverride(overrideAtPoint(sample));
       };
-      const positiveSide = materialForSide(1);
-      const negativeSide = materialForSide(-1);
+      let positiveSide = materialForSide(1);
+      let negativeSide = materialForSide(-1);
+      // 外牆外側沒有房間多邊形可採樣，會落回泛用材質而與室內色差一條；
+      // 改繼承對側（室內）房間的材質（bella-test1 fd75fda3）。
+      if (exteriorSideSign && isExteriorWallSegment(segment, sceneData.floorplan)) {
+        const adjacentInteriorMaterial = materialForSide(-exteriorSideSign);
+        if (exteriorSideSign > 0) positiveSide = adjacentInteriorMaterial;
+        else negativeSide = adjacentInteriorMaterial;
+      }
       const interior = resolveWallMaterial(segment);
       // BoxGeometry 的 slots 0/1 是牆的兩個端帽；留在中點材質會在房角露出
       // 一條淡色接縫，帶相鄰側面的材質讓連續牆讀起來是同一個面。
@@ -2810,8 +2903,9 @@ export function createSceneViewer(
   }
 
   function interiorWallJunctionInsets(segment, exteriorSegments, wallThickness) {
-    // 內牆應貼齊外牆的內側面；先前多退 1 cm 會在每個交界留下可見縫隙。
-    const insetCm = Math.max(Number(wallThickness) / 2, 0);
+    // 第 4 步確認的端點就是真實交界（bella-test1 作法）：再內縮半個牆厚會在
+    // 連續牆之間留出白縫。端帽方形重疊由 BoxGeometry 自然蓋住，不需退讓。
+    const insetCm = 0;
     const toleranceCm = Math.max(Number(wallThickness) / 2 + 2, 8);
     const endpointTouchesExterior = (key) => {
       const point = wallSegmentPoint(segment, key);
@@ -3080,12 +3174,10 @@ export function createSceneViewer(
     const wallThickness = 12;
     const rawDoorSegments = sceneData.floorplan?.door_segments || [];
     const rawWindowSegments = sceneData.floorplan?.window_segments || [];
-    // 先把牆延伸到容納開口，之後的比對與建構全部用延伸後的牆。
-    const wallSegments = wallSegmentsExtendedForOpenings(
-      sceneData.floorplan?.wall_segments || [],
-      [...rawDoorSegments, ...rawWindowSegments],
-      wallThickness,
-    );
+    // 第 4 步確認的牆段就是牆的最終位置，不做任何延長（bella-test1 路線）：
+    // 門位於牆段間隙（topology_gap）不切牆，窗已由後端貼回牆身，
+    // 延長只會在使用者沒畫牆的地方長出牆。
+    const wallSegments = sceneData.floorplan?.wall_segments || [];
     const doorSegments = dedupeArchitecturalOpeningsFor3d(
       rawDoorSegments.map(
         (door) => doorOpeningForWallTopology(wallSegments, door, wallThickness),
@@ -3128,16 +3220,15 @@ export function createSceneViewer(
     ceilingGroup.visible = false;
 
     // 12 cm 接近住宅隔間牆；原先 4 cm 會讓雙線牆與轉角看起來像中空。
-    const hasWallOpenings = doorSegments.length > 0 || windowSegments.length > 0;
-    // 第 4 步確認的 wall_polys 在後端已把門窗洞全高開槽，帶著開口也能直接
-    // 擠出連續牆體，開口上下的牆由 door-wall-header／window-wall-* 補回；
-    // DXF 的 wall_polys 沒開槽，維持「無開口才走 mass」的舊閘門。
-    const wallPolysOpeningsCut = sceneData.floorplan?.wall_polys_openings_cut === true;
+    // 第 4 步確認的牆段永遠優先走逐段 BoxGeometry（bella-test1 路線）：
+    // UV 正確、六面材質槽乾淨，貼圖與逐房牆色才會像選的樣子。
+    // ExtrudeGeometry 連續牆體的 UV 是平面公分座標，型錄貼圖會糊成雜色，
+    // 只留給完全沒有 wall_segments 的來源當後路。
     // 逐房牆材質對三條路徑都要生效：連續牆體、門窗補牆、逐段 fallback。
     // 只建一次，材質快取（每房一份）才會被共用。
     const roomWallMaterial = wallMaterialResolver(sceneData, wallMaterial, exteriorWallMaterial);
     const builtWallMass = !singleRoomMode && hasAccurateFloorplan
-      && (!hasWallOpenings || wallPolysOpeningsCut)
+      && !wallSegments.length
       ? buildWallMass(
         roomGroup,
         sceneData.floorplan,
@@ -3952,7 +4043,13 @@ export function createSceneViewer(
     exportRoot.scale.setScalar(exportScale);
     exportRoot.updateMatrixWorld(true);
     const exporter = new GLTFExporter();
-    return exporter.parseAsync(exportRoot, { binary: true, onlyVisible: true });
+    // maxTextureSize：型錄照片貼圖原檔很大，GLTFExporter 又以 PNG 重編碼，
+    // 不限制的話整戶場景會匯出數百 MB；1024 在外部檢視器已足夠。
+    return exporter.parseAsync(exportRoot, {
+      binary: true,
+      onlyVisible: true,
+      maxTextureSize: 1024,
+    });
   }
 
   function createNumberMarker(label) {

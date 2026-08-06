@@ -4,3 +4,13 @@ JSON/RAG/furniture_embeddings_bge_m3.jsonl filter=lfs diff=lfs merge=lfs -text
 # 若讓 core.autocrlf 在 Windows 檢出 CRLF，同一份檔案在不同平台會得到不同雜湊，
 # 使 cache key 測試只能在單一平台通過。強制 LF 讓工作區位元組與 git 儲存內容一致。
 frontend/** text eol=lf
+
+# 但二進位資產不可套用換行規則。圖片與 wasm 的位元組裡本來就會出現 CRLF 序列，
+# 被上面的 text 規則清成 LF 會真的損毀檔案，且讓 git status 常態誤報已修改。
+# 註：.gitattributes 不支援 {a,b} 大括號展開，一個副檔名一行。
+frontend/**/*.png binary
+frontend/**/*.jpg binary
+frontend/**/*.jpeg binary
+frontend/**/*.wasm binary
+frontend/**/*.glb binary
+frontend/**/*.gltf binary

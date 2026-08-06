@@ -265,7 +265,9 @@ def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
     assert "Math.max(0, sillHeight - frameAllowanceCm)" in standalone_builder
 
 
-def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protrude() -> None:
+def test_exterior_walls_inherit_adjacent_room_finish_and_interior_junctions_do_not_protrude() -> None:
+    """外牆外側沒有房間多邊形可採樣，落回泛用材質會與室內色差一條；
+    改繼承對側（室內）房間的材質（bella-test1 fd75fda3）。"""
     source = (STATIC_DIR / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
@@ -287,7 +289,7 @@ def test_exterior_walls_keep_fixed_material_and_interior_junctions_do_not_protru
     assert "const overrideAtPoint" in resolver
     assert "resolveWallMaterial.faceMaterials" in resolver
     assert "const materialForSide = (side)" in resolver
-    assert "roompilotWallSurfaceRole = \"exterior\"" in resolver
+    assert "materialForSide(-exteriorSideSign)" in resolver
     assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
     assert "exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)" in wall_builder
     assert "wallSectionFaceMaterials(sectionMaterial, exteriorSurfaceMaterial, exteriorSideSign)" in wall_builder
@@ -414,7 +416,8 @@ def test_view_mode_hint_is_part_of_viewer_and_adjacent_to_canvas() -> None:
 
     assert hint_index < canvas_index
     # 工具列保留了依檢視與操作分組的語意結構，仍必須緊鄰主畫布。
-    assert canvas_index - hint_index < 1400
+    # 2026-08-06 工具列新增「匯出 GLB」控件，預算由 1400 調到 1600。
+    assert canvas_index - hint_index < 1600
 
 
 def test_catalog_does_not_merge_same_named_bed_and_cabinet_models() -> None:

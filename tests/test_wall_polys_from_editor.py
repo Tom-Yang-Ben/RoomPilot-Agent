@@ -117,6 +117,7 @@ def test_opening_cut_flag_key_matches_between_backend_and_viewer() -> None:
     # build_scene_payload 重組 floorplan 區塊時必須透傳，否則存檔再讀回就退化。
     assert 'bool(parsed_floorplan.get("wall_polys_openings_cut"))' in source
 
-    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
-    # 消費端的鍵名不能和生產端漂開。
-    assert "wall_polys_openings_cut === true" in viewer
+    # 消費端的鍵名不能和生產端漂開。牆體改走逐段路線後，viewer 不再讀這個
+    # 旗標；剩下的消費端是 scene_v2 的舊存檔結構刷新（refreshRestoredFloorplanStructure）。
+    controller = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    assert "wall_polys_openings_cut === true" in controller

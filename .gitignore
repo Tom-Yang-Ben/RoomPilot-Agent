@@ -70,6 +70,9 @@ AGENTS.md
 # 已清洗、可在網站直接使用的 PBR 紋理必須提交版本控制。
 *.glb
 *.gltf
+# 例外：第 6 步自動軟裝的固定布簾資產（8KB 程序化模型，
+# scene_api._curtain_catalog_item 缺檔時窗簾整條路徑停用）。
+!frontend/models/roompilot-curtain.glb
 *.bin
 *.ktx2
 *.hdr
