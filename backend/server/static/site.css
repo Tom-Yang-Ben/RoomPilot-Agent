@@ -13397,6 +13397,12 @@ body.rp-workflow-page #space-step {
 }
 
 /* Keep the plan visible while the Step 4 review rail scrolls independently. */
+/* 注意：以下三條 body[data-workflow-step="space_confirmation"] 規則目前是
+   inert —— 全站沒有任何程式碼寫入 body 的 data-workflow-step（scene_v2.js 只
+   切 .rp-step-panel 的 is-active/hidden）。所以「鎖住整頁、只讓右欄自己捲」
+   這半邊從未生效，第 4 步實際上是一般會捲動的頁面。
+   右欄因此**不可以**攔截滾輪：overscroll-behavior 只有在整頁真的被鎖住時
+   才成立，頁面會捲的情況下它會讓游標停在右欄時整頁卡住不動。 */
 @media (min-width: 1025px) {
   body.rp-workflow-page[data-workflow-step="space_confirmation"] {
     --rp-step-four-topbar-height: 58px;
@@ -13432,8 +13438,19 @@ body.rp-workflow-page #space-step {
   #space-step .rp-space-review-workspace > .rp-space-controls {
     overflow-x: hidden;
     overflow-y: auto;
-    overscroll-behavior-y: contain;
+    /* 捲到底就把滾輪交還給頁面。整頁沒有被鎖住（見上方註解），改成 contain
+       會讓游標停在這一欄時整頁完全捲不動。 */
+    overscroll-behavior-y: auto;
     scrollbar-gutter: stable;
+  }
+
+  /* 上面那條只有在整頁真的鎖住時才需要自成捲動容器；頁面會捲時讓右欄
+     跟著頁面長，避免「內層捲軸捲完、頁面還沒動」的兩段式捲動。 */
+  body.rp-workflow-page:not([data-workflow-step="space_confirmation"])
+    #space-step .rp-space-review-workspace > .rp-space-controls {
+    height: auto;
+    overflow-y: visible;
+    overflow-x: clip;
   }
 
   #space-step #space-plan-stage {
