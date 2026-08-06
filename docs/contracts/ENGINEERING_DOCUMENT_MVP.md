@@ -107,10 +107,15 @@ Content-Type: application/json
 
 ## 對外文件
 
-- `design_engineering_proposal.html`：專案／revision、逐房尺寸與面積、生圖、家具、
-  材料、MEP／空調建議、風險、待確認、摘要、假設與排除。
-- `estimate_and_schedule.xlsx`：只含「工程估價」「初步排程」兩張工作表；由
-  `@oai/artifact-tool` 生成。
+- `design_engineering_proposal.html`：專案／revision、逐房尺寸與面積、生圖
+  （內嵌 base64，離線可讀）、逐圖設計理念、家具、材料、MEP／空調建議、風險、
+  待確認、摘要、假設與排除。
+- `estimate_and_schedule.xlsx`：四張工作表——「工程估價」「初步排程」
+  「家具採購」「設計語彙」（2026-08-03 起，58e11c55）。由
+  `backend/server/engineering/workbook_builder.mjs` 經 `@oai/artifact-tool`
+  介面生成；真品為私有套件，無法取得的機器使用
+  `tools/artifact_tool_local/` 的 exceljs 本機相容層（同一介面、builder
+  不變），內容契約測試不綁 writer 實作。
 - `report_payload.json`：除錯與前端預覽，不列為對外正式文件。
 
 三份檔案由同一 `ReportPayload` 寫出並共享 `snapshot_hash`。
