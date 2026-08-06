@@ -3,10 +3,10 @@
 > 本文件由 VibeCoding 模板 12_frontend_architecture_specification.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 已發布(依現行程式碼逐條核對整理)
-> **相關文檔:** [API 設計規範 (06)](./06_api_design_specification.md)、[專案結構指南 (08)](./08_project_structure_guide.md)、[前端資訊架構 (17)](./17_frontend_information_architecture_template.md)(已導入)
+> **相關文檔:** [API 設計規範 (06)](../04_design/api_spec.md)、[專案結構指南 (08)](../04_design/lld_project_structure.md)、[前端資訊架構 (17)](information_architecture.md)(已導入)
 >
 > **MECE 邊界**:本文件**只談技術視角**(stack / 分層 / 量化指標 / 工程化)。
-> 使用者視角(頁面職責、旅程、導航、路由內容)依模板約定屬 17 號文件,已導入:[17_frontend_information_architecture_template.md](./17_frontend_information_architecture_template.md)。
+> 使用者視角(頁面職責、旅程、導航、路由內容)依模板約定屬 17 號文件,已導入:[17_frontend_information_architecture_template.md](information_architecture.md)。
 >
 > | 你想找的 | 看這份 |
 > |---|---|
@@ -17,7 +17,7 @@
 > | 專案 file 組織、測試現況 | 12(本檔)§6 |
 > | 與後端的資料流、API 呼叫點 | 12(本檔)§7 |
 > | 全部 44 條 API 端點規格 | 06 |
-> | 哪些**頁面**存在、頁面職責、旅程 | [17](./17_frontend_information_architecture_template.md) |
+> | 哪些**頁面**存在、頁面職責、旅程 | [17](information_architecture.md) |
 
 ---
 

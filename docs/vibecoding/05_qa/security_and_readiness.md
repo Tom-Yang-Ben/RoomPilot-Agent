@@ -158,7 +158,7 @@
 
 ## 交叉引用
 
-- API 端點全表與錯誤碼:`docs/vibecoding/06_api_design_specification.md`
-- 目錄結構與 gitignore 白名單陷阱:`docs/vibecoding/08_project_structure_guide.md`
+- API 端點全表與錯誤碼:`docs/vibecoding/04_design/api_spec.md`
+- 目錄結構與 gitignore 白名單陷阱:`docs/vibecoding/04_design/lld_project_structure.md`
 - 遠端渲染的隱私剝除與 503 契約:`docs/contracts/REMOTE_RENDER_CONTRACT.md`
 - CloudFront 信任邊界與 410 政策:`docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md`

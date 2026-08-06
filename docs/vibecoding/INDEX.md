@@ -2,9 +2,31 @@
 
 > 本索引由 VibeCoding_Workflow_Templates/INDEX.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
-> **版本:** v1.0 | **更新:** 2026-07-26
+> **版本:** v1.1 | **更新:** 2026-08-07
 
 本資料夾為 `VibeCoding_Workflow_Templates/` 全套模板(01–17 + output_style)套用 RoomPilot-Agent 實況後的導入版:每份文件的路由、常數、數量、流程順序均以基準分支工作區程式碼實查填寫,查不到依據者標「(未查證)」或「待補」。跨文件共同事實(主流程 11 內部步驟/10 顆 UI 按鈕、六目錄負責人表、44 條路由、port 8002、公分制、6 風格 × 3 色卡 = 18 張、型錄 9,350 件)已於 2026-07-26 收尾時逐項對程式碼複核並統一。
+
+---
+
+## 目錄結構(2026-08-07 重整)
+
+本資料夾已由「01–17 平鋪編號檔」改為對齊 `VibeCoding_Workflow_Templates/` 的六階段資料夾分類:
+
+```text
+docs/vibecoding/
+├── _meta/            工作流、審查、文檔維護、Output Styles 導入(01、11、15、output_style)
+├── 01_requirements/  PRD、BDD、WBS(02、03、16)
+├── 02_ux_ui/         資訊架構、前端技術設計(17、12)
+├── 03_architecture/  SAD、ADR(05、04)
+├── 04_design/        API 規格、LLD 三件、模組規格(06、08、09、10、07)
+├── 05_qa/            安全與生產準備(13)
+├── 06_ops/           部署與運維(14)
+└── INDEX.md
+```
+
+**編號 01–17 保留為穩定文件 ID,不隨檔名改變。** 各文件內文與本索引大量以編號互相指涉(例如「見 05 第 8 部分」「13 行動項 4」「16 3.2.3」),這些簡稱在重整後仍然有效;要由編號查實際路徑,以下方文件清單為準。
+
+檔名沿用 `VibeCoding_Workflow_Templates/` 的模板詞彙(`prd`、`sad`、`adr`、`api_spec`、`lld_*`),與模板庫對照時以檔名為準,與既有討論對照時以編號為準。
 
 ---
 
@@ -14,59 +36,59 @@
 
 | # | 檔名 | 用途 |
 | :---: | :--- | :--- |
-| 01 | [workflow_manual.md](./01_workflow_manual.md) | 開發流程使用說明書:模式 B(MVP)判定、主流程程式碼權威序、合併 Gate 與檢查清單 |
+| 01 | [workflow_manual.md](_meta/workflow_manual.md) | 開發流程使用說明書:模式 B(MVP)判定、主流程程式碼權威序、合併 Gate 與檢查清單 |
 
 ### 階段 1: 規劃 (02-03)
 
 | # | 檔名 | 用途 |
 | :---: | :--- | :--- |
-| 02 | [project_brief_and_prd.md](./02_project_brief_and_prd.md) | 專案簡報與 PRD:KPI、使用者故事與允收標準、待辦問題與既成決策 |
-| 03 | [behavior_driven_development_guide.md](./03_behavior_driven_development_guide.md) | BDD 指南:Gherkin 範本、主流程情境集、與 `tests/` 的落地對照表 |
+| 02 | [prd.md](01_requirements/prd.md) | 專案簡報與 PRD:KPI、使用者故事與允收標準、待辦問題與既成決策 |
+| 03 | [bdd_guide.md](01_requirements/bdd_guide.md) | BDD 指南:Gherkin 範本、主流程情境集、與 `tests/` 的落地對照表 |
 
 ### 階段 2: 架構與設計 (04-06)
 
 | # | 檔名 | 用途 |
 | :---: | :--- | :--- |
-| 04 | [architecture_decision_record_template.md](./04_architecture_decision_record_template.md) | ADR 空白模板 + 5 則已查證的既成決策(目錄統一、公分制、CloudFront、9,350 母集合、匯入硬化) |
-| 05 | [architecture_and_design_document.md](./05_architecture_and_design_document.md) | 架構與設計文檔:C4(L1–L3)、DDD 戰略+戰術、Sequence、ER、部署視圖、風險登記 |
-| 06 | [api_design_specification.md](./06_api_design_specification.md) | API 設計規範:44 條路由逐條核對、錯誤碼一覽、資料模型、座標與單位約定 |
+| 04 | [adr.md](03_architecture/adr.md) | ADR 空白模板 + 5 則已查證的既成決策(目錄統一、公分制、CloudFront、9,350 母集合、匯入硬化) |
+| 05 | [sad.md](03_architecture/sad.md) | 架構與設計文檔:C4(L1–L3)、DDD 戰略+戰術、Sequence、ER、部署視圖、風險登記 |
+| 06 | [api_spec.md](04_design/api_spec.md) | API 設計規範:44 條路由逐條核對、錯誤碼一覽、資料模型、座標與單位約定 |
 
 ### 階段 3: 詳細設計 (07-10)
 
 | # | 檔名 | 用途 |
 | :---: | :--- | :--- |
-| 07 | [module_specification_and_tests.md](./07_module_specification_and_tests.md) | 模組規格與測試案例(DbC):現況聚焦 `backend/engine` 碰撞與淨空檢查,含 9 個待補測試 |
-| 08 | [project_structure_guide.md](./08_project_structure_guide.md) | 專案結構指南:目錄樹、負責人表、命名慣例、`.gitignore` 白名單陷阱 |
-| 09 | [file_dependencies_template.md](./09_file_dependencies_template.md) | 模組依賴關係分析:import 邊清單、DAG 證明、外部依賴與風險 |
-| 10 | [class_relationships_template.md](./10_class_relationships_template.md) | 類別/元件關係文檔:dataclass 與例外類別 UML、模組依賴圖、介面契約 |
+| 07 | [module_spec_engine.md](04_design/module_spec_engine.md) | 模組規格與測試案例(DbC):現況聚焦 `backend/engine` 碰撞與淨空檢查,含 9 個待補測試 |
+| 08 | [lld_project_structure.md](04_design/lld_project_structure.md) | 專案結構指南:目錄樹、負責人表、命名慣例、`.gitignore` 白名單陷阱 |
+| 09 | [lld_dependencies.md](04_design/lld_dependencies.md) | 模組依賴關係分析:import 邊清單、DAG 證明、外部依賴與風險 |
+| 10 | [lld_class_relationships.md](04_design/lld_class_relationships.md) | 類別/元件關係文檔:dataclass 與例外類別 UML、模組依賴圖、介面契約 |
 
 ### 階段 4: 開發與品質 (11-12, 17)
 
 | # | 檔名 | 用途 |
 | :---: | :--- | :--- |
-| 11 | [code_review_and_refactoring_guide.md](./11_code_review_and_refactoring_guide.md) | 程式碼審查與重構指南:審查檢查點、commit 慣例、技術債 D-01~D-12 |
-| 12 | [frontend_architecture_specification.md](./12_frontend_architecture_specification.md) | 前端架構規範(技術視角):兩套前端現況、分層、效能/快取、前後端協作 |
-| 17 | [frontend_information_architecture_template.md](./17_frontend_information_architecture_template.md) | 前端資訊架構規範(使用者視角):頁面職責、十步驟旅程映射、URL、跨頁資料模型 |
+| 11 | [code_review_guide.md](_meta/code_review_guide.md) | 程式碼審查與重構指南:審查檢查點、commit 慣例、技術債 D-01~D-12 |
+| 12 | [frontend_technical_design.md](02_ux_ui/frontend_technical_design.md) | 前端架構規範(技術視角):兩套前端現況、分層、效能/快取、前後端協作 |
+| 17 | [information_architecture.md](02_ux_ui/information_architecture.md) | 前端資訊架構規範(使用者視角):頁面職責、十步驟旅程映射、URL、跨頁資料模型 |
 
 ### 階段 5: 安全與部署 (13-14)
 
 | # | 檔名 | 用途 |
 | :---: | :--- | :--- |
-| 13 | [security_and_readiness_checklists.md](./13_security_and_readiness_checklists.md) | 安全與生產準備檢查清單:逐項程式碼實查、7 條行動項、生產就緒盤點 |
-| 14 | [deployment_and_operations_guide.md](./14_deployment_and_operations_guide.md) | 部署與運維指南:啟動指令、環境變數全表、備份現況、Runbook 與故障排除 |
+| 13 | [security_and_readiness.md](05_qa/security_and_readiness.md) | 安全與生產準備檢查清單:逐項程式碼實查、7 條行動項、生產就緒盤點 |
+| 14 | [deployment_and_operations.md](06_ops/deployment_and_operations.md) | 部署與運維指南:啟動指令、環境變數全表、備份現況、Runbook 與故障排除 |
 
 ### 階段 6: 維護與管理 (15-16)
 
 | # | 檔名 | 用途 |
 | :---: | :--- | :--- |
-| 15 | [documentation_and_maintenance_guide.md](./15_documentation_and_maintenance_guide.md) | 文檔與維護指南:各文件 SSOT 角色、更新時機、已知待修文件清單 |
-| 16 | [wbs_development_plan_template.md](./16_wbs_development_plan_template.md) | WBS 開發計劃:按六模組負責人分解的任務、風險管理、里程碑 |
+| 15 | [documentation_and_maintenance.md](_meta/documentation_and_maintenance.md) | 文檔與維護指南:各文件 SSOT 角色、更新時機、已知待修文件清單 |
+| 16 | [wbs_development_plan.md](01_requirements/wbs_development_plan.md) | WBS 開發計劃:按六模組負責人分解的任務、風險管理、里程碑 |
 
 ### 輔助
 
 | 檔名 | 用途 |
 | :--- | :--- |
-| [output_style.md](./output_style.md) | Claude Code Output Styles 導入指南:`.claude/output-styles/` 15 個樣式檔與模板對照 |
+| [output_style_guide.md](_meta/output_style_guide.md) | Claude Code Output Styles 導入指南:`.claude/output-styles/` 15 個樣式檔與模板對照 |
 
 ---
 

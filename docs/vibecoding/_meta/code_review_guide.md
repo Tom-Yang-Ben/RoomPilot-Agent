@@ -4,7 +4,7 @@
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 活躍
 
-本指南保留模板的審查方法論,慣例段落全部換成本專案現實(指令、分支規則、commit 慣例、技術債均逐項以工具查證;查不到的標「(未查證)」或「待補」)。相關文件:`docs/vibecoding/01_workflow_manual.md`(Gate 與合併流程)、`docs/vibecoding/06_api_design_specification.md`(API 變更審查依據)、`docs/vibecoding/07_module_specification_and_tests.md`(契約式審查範例)。
+本指南保留模板的審查方法論,慣例段落全部換成本專案現實(指令、分支規則、commit 慣例、技術債均逐項以工具查證;查不到的標「(未查證)」或「待補」)。相關文件:`docs/vibecoding/_meta/workflow_manual.md`(Gate 與合併流程)、`docs/vibecoding/04_design/api_spec.md`(API 變更審查依據)、`docs/vibecoding/04_design/module_spec_engine.md`(契約式審查範例)。
 
 ---
 
@@ -70,7 +70,7 @@ RoomPilot 的「關注點分離」有明文規則(README 團隊目錄表與共�
 
 - **座標紀律**:家具座標只能由 `backend/engine/` 計算(README 共同規則 3);`backend/agent/` 只決定選品、順序與失敗修復策略(`backend/agent/__init__.py` docstring)。審查時看到 agent 層或前端出現座標運算即退回。
 - **串接不複製**:Bella 可在 `backend/server/` 串接模組,但不複製其他人的演算法(README 共同規則 2)。
-- **API 變更**:新端點對照 `docs/vibecoding/06_api_design_specification.md` 與 `docs/contracts/`。現況 44 條路由全部定義在 `backend/server/main.py`(45 個 `@app.` 裝飾器 = 44 路由 + 1 個 `on_event`,無 APIRouter 拆分,grep 實測);新增路由要注意路徑匹配順序,例如 `GET /api/furniture/{name}`(main.py:2787)與 `GET /api/furniture/{furniture_id}/model` 並存,依定義順序匹配。
+- **API 變更**:新端點對照 `docs/vibecoding/04_design/api_spec.md` 與 `docs/contracts/`。現況 44 條路由全部定義在 `backend/server/main.py`(45 個 `@app.` 裝飾器 = 44 路由 + 1 個 `on_event`,無 APIRouter 拆分,grep 實測);新增路由要注意路徑匹配順序,例如 `GET /api/furniture/{name}`(main.py:2787)與 `GET /api/furniture/{furniture_id}/model` 並存,依定義順序匹配。
 - **主流程步驟序以程式碼為準**:唯一有序來源是 `frontend/scene_workflow.js` 的 `WORKFLOW_STEPS`(11 個內部步驟,UI 顯示 10 顆按鈕);伺服器端 `backend/server/main.py:113` 的 `WORKFLOW_STEPS` 是 set,只驗名稱不驗順序。審查涉及流程的變更時,不要沿用任何舊文件的步驟順序(舊文件有「八個步驟」殘留,見 D-08)。
 
 ### 3. 效能與安全
@@ -225,7 +225,7 @@ git log --oneline bella..origin/<member-branch>
 - [ ] `git diff --check`、`git status --short` 乾淨
 - [ ] 整合者逐 commit 檢視(`git diff --name-status bella...origin/<member-branch>`、`git log --oneline bella..origin/<member-branch>`),只挑責任範圍內變更
 - [ ] 目錄責任、公分契約、隔離區三條規則逐項核對(見審查重點第 2、3 節)
-- [ ] 同儕審核:無工具強制,依賴整合分支上的人工檢視;安全/生產準備專項檢查依 `docs/vibecoding/13_security_and_readiness_checklists.md`(2026-07-26 與本檔同批導入,基於程式碼實查);效能專項審查仍無既定流程(待補)
+- [ ] 同儕審核:無工具強制,依賴整合分支上的人工檢視;安全/生產準備專項檢查依 `docs/vibecoding/05_qa/security_and_readiness.md`(2026-07-26 與本檔同批導入,基於程式碼實查);效能專項審查仍無既定流程(待補)
 
 ### 合併後(本專案無部署,對應現實 = 組員驗收)
 

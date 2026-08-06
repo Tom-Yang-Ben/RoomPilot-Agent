@@ -4,8 +4,8 @@
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 已完成(規格對照現行程式碼;測試於本日實測 28 passed)
 
-**對應架構文件**: `docs/contracts/FURNITURE_ENGINEERING_RULES.md`(鐵律第 4 條:「家具座標、碰撞與淨空是否合法，只能由 `backend.engine` 判定。」);`docs/vibecoding/05_architecture_and_design_document.md`
-**對應 BDD Feature**: `docs/vibecoding/03_behavior_driven_development_guide.md`(其測試對照表已引用 `tests/test_placement.py` 18 個測試與 `tests/test_clearance.py` 10 個測試)
+**對應架構文件**: `docs/contracts/FURNITURE_ENGINEERING_RULES.md`(鐵律第 4 條:「家具座標、碰撞與淨空是否合法，只能由 `backend.engine` 判定。」);`docs/vibecoding/03_architecture/sad.md`
+**對應 BDD Feature**: `docs/vibecoding/01_requirements/bdd_guide.md`(其測試對照表已引用 `tests/test_placement.py` 18 個測試與 `tests/test_clearance.py` 10 個測試)
 
 ---
 
@@ -317,4 +317,4 @@
 | 其中直接測本篇四個規格函式 | 15 個(TC-001~005、TC-101~103、TC-201~204、TC-301~303) |
 | 待補測試 | 9 個:TC-006(邊界重合)、TC-007(零尺寸)、TC-008(退化牆)、TC-009(斜角旋轉)、TC-104(無效 side)、TC-105(back/left/right 淨空)、TC-106(depth ≤ 0)、TC-205(淨空檢查次序)、TC-206(同 id 跳過)——其中 TC-007、TC-104、TC-106 需先裁決契約(防禦 vs 釘死現況)再寫測試 |
 
-另註:`check_placement_with_clearance` 在 `backend/server/scene_service.py` 的整合行為(拖曳驗證、2D 佈局)由 `tests/test_project_workflow_api.py` 與 `tests/test_scene_layout_regions.py` 等場景測試覆蓋(見 `docs/vibecoding/03_behavior_driven_development_guide.md` 測試對照表),不在本篇單元規格範圍內重列;該批測試已於 2026-07-26 全量 pytest(389 通過/2 失敗/1 跳過,失敗均為快取鍵紅燈)中通過。
+另註:`check_placement_with_clearance` 在 `backend/server/scene_service.py` 的整合行為(拖曳驗證、2D 佈局)由 `tests/test_project_workflow_api.py` 與 `tests/test_scene_layout_regions.py` 等場景測試覆蓋(見 `docs/vibecoding/01_requirements/bdd_guide.md` 測試對照表),不在本篇單元規格範圍內重列;該批測試已於 2026-07-26 全量 pytest(389 通過/2 失敗/1 跳過,失敗均為快取鍵紅燈)中通過。

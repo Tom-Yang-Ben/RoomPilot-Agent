@@ -30,14 +30,14 @@
 
 | repo 樣式檔(可直接 `/output-style` 切換) | 對應本文件模板 | 開發階段 |
 | :--- | :--- | :--- |
-| `01-prd-product-spec` | (無;PRD 屬 `docs/vibecoding/02_project_brief_and_prd.md` 範疇) | 規劃 |
+| `01-prd-product-spec` | (無;PRD 屬 `docs/vibecoding/01_requirements/prd.md` 範疇) | 規劃 |
 | `02-bdd-scenario-spec` | §2.6 BDD 可執行規格 | 規劃 |
 | `03-architecture-design-doc` | §2.1 SDD 系統設計說明 | 架構 |
 | `04-ddd-aggregate-spec` | §2.2 DDD 聚合與界限脈絡 | 架構 |
 | `05-api-contract-spec` | §2.5 API First 合約 | 架構 |
 | `06-tdd-unit-spec` | §2.7 TDD 函式級單元 | 開發 |
 | `07-code-review-checklist` | §2.11 架構/程式碼審查守門 | 品質 |
-| `08-security-checklist` | (無;安全清單屬 `docs/vibecoding/13_security_and_readiness_checklists.md` 範疇) | 上線 |
+| `08-security-checklist` | (無;安全清單屬 `docs/vibecoding/05_qa/security_and_readiness.md` 範疇) | 上線 |
 | `09-database-schema-spec` | §2.3 資料庫綱要 | 架構 |
 | `10-backend-python-impl` | §2.4 後端實作 Python/FastAPI | 開發 |
 | `11-frontend-component-bdd` | §2.8 前端元件 | 開發 |

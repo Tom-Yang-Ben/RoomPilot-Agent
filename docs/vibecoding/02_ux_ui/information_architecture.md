@@ -3,10 +3,10 @@
 > 本文件由 VibeCoding 模板 17_frontend_information_architecture_template.md 導入 RoomPilot-Agent 生成 | 基準分支 bella-local-20260726 | 2026-07-26
 
 > **版本:** v1.0 | **更新:** 2026-07-26 | **狀態:** 已發布(依現行程式碼逐條核對整理)
-> **相關文檔:** [PRD](./02_project_brief_and_prd.md) | [API 設計規範 (06)](./06_api_design_specification.md) | [前端架構 (12)](./12_frontend_architecture_specification.md)
+> **相關文檔:** [PRD](../01_requirements/prd.md) | [API 設計規範 (06)](../04_design/api_spec.md) | [前端架構 (12)](frontend_technical_design.md)
 >
 > **MECE 邊界**:本文件**只談使用者/內容視角**(旅程、導航、頁面職責、URL、跨頁資料模型)。
-> 技術視角(框架選型、效能數字、a11y 標準、檔案組織)→ [12_frontend_architecture_specification.md](./12_frontend_architecture_specification.md)(已導入)。
+> 技術視角(框架選型、效能數字、a11y 標準、檔案組織)→ [12_frontend_architecture_specification.md](frontend_technical_design.md)(已導入)。
 >
 > | 你想找的 | 看這份 |
 > |---|---|

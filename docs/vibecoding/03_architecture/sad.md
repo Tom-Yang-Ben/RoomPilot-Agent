@@ -299,7 +299,7 @@ flowchart TD
 
 #### L4 — Code
 
-省略。類別／函式層級請直接讀 `backend/engine/models.py`（座標契約 docstring）與 `docs/contracts/` 六份契約；類別關係文件見 `docs/vibecoding/10_class_relationships_template.md` 導入版。
+省略。類別／函式層級請直接讀 `backend/engine/models.py`（座標契約 docstring）與 `docs/contracts/` 六份契約；類別關係文件見 `docs/vibecoding/04_design/lld_class_relationships.md` 導入版。
 
 #### 1.1.3 C4 審查 Checklist（PR / milestone gate）
 
@@ -896,7 +896,7 @@ flowchart TB
 
 ## 第 8 部分：模組詳細設計
 
-模板 07 導入版已產出：`docs/vibecoding/07_module_specification_and_tests.md`（現況聚焦 backend/engine 碰撞與淨空檢查）。其餘模組的權威規格：
+模板 07 導入版已產出：`docs/vibecoding/04_design/module_spec_engine.md`（現況聚焦 backend/engine 碰撞與淨空檢查）。其餘模組的權威規格：
 
 - 引擎與擺位紀律：`docs/contracts/FURNITURE_ENGINEERING_RULES.md`
 - Agent 介面與 fallback：`docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md`

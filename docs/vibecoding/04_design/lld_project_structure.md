@@ -46,7 +46,7 @@ RoomPilot-Agent/
 │   ├── backlog/                  # 待辦文件(現有 1 檔)
 │   ├── contracts/                # 6 份正式契約
 │   ├── moodboard_assets/         # 文件用圖片資產
-│   ├── vibecoding/               # VibeCoding 模板導入文件(本檔所在)
+│   ├── vibecoding/               # VibeCoding 模板導入文件(六階段資料夾;本檔在 04_design/)
 │   └── RoomPilot_現行版本總覽.md  # 跨模組協作總覽
 ├── examples/                     # demo_agent_flow.py + demo_app/(已退役示範)
 ├── frontend3d/                   # React Three Fiber DXF 檢視器(Vite 子專案,11 檔)
@@ -217,10 +217,21 @@ docs/
 ├── backlog/                    # 待辦(現有 FLOORPLAN_DATASET_TUNING.md 1 檔)
 ├── moodboard_assets/           # 文件圖片資產;/docs-assets 掛載的是
 │                               #   frontend/moodboard_assets/ 的同內容副本,非本目錄
-└── vibecoding/                 # VibeCoding 模板導入文件(01–17 全套 + output_style.md,共 18 檔)
+└── vibecoding/                 # VibeCoding 模板導入文件,共 19 檔
+    │                           #   2026-08-07 重整為六階段資料夾;編號 01–17 保留為文件 ID
+    ├── _meta/                  # 01 工作流、11 審查、15 文檔維護、output_style
+    ├── 01_requirements/        # 02 PRD、03 BDD、16 WBS
+    ├── 02_ux_ui/               # 17 資訊架構、12 前端技術設計
+    ├── 03_architecture/        # 05 SAD、04 ADR
+    ├── 04_design/              # 06 API、08/09/10 LLD、07 模組規格(本檔所在)
+    ├── 05_qa/                  # 13 安全與生產準備
+    ├── 06_ops/                 # 14 部署與運維
+    └── INDEX.md                # 編號 → 路徑對照表
 ```
 
 ⚠️ `.gitignore` 陷阱:`docs/*` 與 `scripts/*` 預設全忽略,僅白名單豁免(`docs/*.md`、`docs/backlog/*.md`、`docs/contracts/*.md`、`docs/moodboard_assets/**`、`docs/vibecoding/` 與 `docs/vibecoding/*.md`、`scripts/verify_ikea_offline_backup.py`、`scripts/sql/**`)。在 docs/ 或 scripts/ 下新增子目錄或非 .md 檔前,先確認 `.gitignore` 有對應豁免,否則檔案不會進版控。
+
+補充(2026-08-07 以 `git check-ignore` 實測):`docs/*` 只匹配 `docs/` 底下第一層,`!docs/vibecoding/` 豁免該目錄後,其子目錄(`_meta/`、`01_requirements/` 等)內的檔案不再受 `docs/*` 約束,因此重整後的 19 檔全數可追蹤,無需再加白名單。此結論僅適用於已被 `!` 豁免的目錄;在 `docs/` 第一層新增其他子目錄仍會被忽略。
 
 ---
 

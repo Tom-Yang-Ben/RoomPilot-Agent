@@ -58,11 +58,11 @@ graph LR
 | 階段 | 目標 | 產出 | Gate | RoomPilot 對應現況 |
 | :--- | :--- | :--- | :--- | :--- |
 | A0 啟動 | 對齊目標、邊界、風險 | 啟動簡報、里程碑 | 利益相關者共識 | 以 `README.md` 開頭的團隊目錄與合併規則代替 |
-| A1 PRD | 定義問題、受眾、範圍、KPI | `02_prd.md` | PRD 簽核、KPI 可量測 | `docs/vibecoding/02_project_brief_and_prd.md` 已產出(v1.0 草稿) |
-| A2 架構 | 系統邊界、技術選型、NFR | `05_architecture.md` + `04_adr.md` | ADR 齊備、NFR 可驗證 | `docs/RoomPilot_現行版本總覽.md` 已有;ADR 已產出(`docs/vibecoding/04_architecture_decision_record_template.md`,含 5 則既成決策) |
+| A1 PRD | 定義問題、受眾、範圍、KPI | `02_prd.md` | PRD 簽核、KPI 可量測 | `docs/vibecoding/01_requirements/prd.md` 已產出(v1.0 草稿) |
+| A2 架構 | 系統邊界、技術選型、NFR | `05_architecture.md` + `04_adr.md` | ADR 齊備、NFR 可驗證 | `docs/RoomPilot_現行版本總覽.md` 已有;ADR 已產出(`docs/vibecoding/03_architecture/adr.md`,含 5 則既成決策) |
 | A3 詳細設計 | 可實作規格與契約 | `07_module.md` + `06_api.md` + `08_structure.md` | 契約穩定、測試策略完整 | `docs/contracts/` 6 份正式契約已有(見第 5 節) |
 | A4 開發 | 增量交付 | 程式碼、測試、建置產物 | 測試綠燈、覆蓋率達標 | `uv run pytest tests/ -q`;無覆蓋率門檻 |
-| A5 品質 | 消除高風險弱點 | `13_security.md` | 高/中風險已整改 | 安全檢查清單已產出(`docs/vibecoding/13_security_and_readiness_checklists.md`,尚未經人工安全審查) |
+| A5 品質 | 消除高風險弱點 | `13_security.md` | 高/中風險已整改 | 安全檢查清單已產出(`docs/vibecoding/05_qa/security_and_readiness.md`,尚未經人工安全審查) |
 | A6 上線 | 可靠性、可觀測性就緒 | Go/No-Go 簽核 | SLO/Alert 就緒、回滾演練通過 | 無上線流程;repo 無 `.github/`、無 CI(2026-07-26 實測) |
 
 **跨階段**: 變更需更新契約與相依文檔;欄位或行為變更須同步 `docs/contracts/` 對應契約。
@@ -117,7 +117,7 @@ graph LR
 
 ### MVP 上線 Gate(本專案語境 = 發表前 Gate)
 
-- [ ] 最小可運營 Runbook:`README.md` 已有安裝/啟動/組員驗收段(`uv sync --extra server` → `uv run uvicorn backend.server.main:app --port 8002`;驗收基準:同版程式上傳 `floor04.png` 應辨識出 19 面牆、5 扇門、5 扇窗、7 個房間);部署與運維指南已產出(`docs/vibecoding/14_deployment_and_operations_guide.md`)
+- [ ] 最小可運營 Runbook:`README.md` 已有安裝/啟動/組員驗收段(`uv sync --extra server` → `uv run uvicorn backend.server.main:app --port 8002`;驗收基準:同版程式上傳 `floor04.png` 應辨識出 19 面牆、5 扇門、5 扇窗、7 個房間);部署與運維指南已產出(`docs/vibecoding/06_ops/deployment_and_operations.md`)
 - [ ] 資料備份:專案資料在各機本地 `.runtime/projects.sqlite3`(`project_store.py`),無備份機制,待辦;家具 GLB 離線備援 zip 已有驗證流程(`scripts/verify_ikea_offline_backup.py`,SHA-256 驗證,1,517 GLB/1,508 件可用)
 - [ ] 風險與債務列入 Backlog:`docs/backlog/` 現有 1 筆(`FLOORPLAN_DATASET_TUNING.md`);其餘已知債務記於總覽「尚未接入」段,待整併
 
@@ -127,11 +127,11 @@ graph LR
 
 | 階段 | 完整流程 | MVP | RoomPilot 現況 |
 | :--- | :--- | :--- | :--- |
-| 規劃 | `02_prd.md` | Tech Spec PRD 區塊 | `README.md` 產品描述;`docs/vibecoding/02_project_brief_and_prd.md` 已產出(v1.0 草稿) |
-| 架構 | `05_architecture.md` + `04_adr.md` | Tech Spec SA/ADR 區塊 | `docs/RoomPilot_現行版本總覽.md`;`docs/vibecoding/05_architecture_and_design_document.md` 與 ADR(`docs/vibecoding/04_architecture_decision_record_template.md`)已產出 |
+| 規劃 | `02_prd.md` | Tech Spec PRD 區塊 | `README.md` 產品描述;`docs/vibecoding/01_requirements/prd.md` 已產出(v1.0 草稿) |
+| 架構 | `05_architecture.md` + `04_adr.md` | Tech Spec SA/ADR 區塊 | `docs/RoomPilot_現行版本總覽.md`;`docs/vibecoding/03_architecture/sad.md` 與 ADR(`docs/vibecoding/03_architecture/adr.md`)已產出 |
 | 規格 | `07_module.md` + `06_api.md` | Tech Spec SDD/API 區塊 | `docs/contracts/` 6 份:`AGENT_FRONTEND_BACKEND_CONTRACT.md`、`CATALOG_MODEL_DELIVERY_CONTRACT.md`、`FURNITURE_ENGINEERING_RULES.md`、`LAYOUT_EVALUATION_SCHEMA.md`、`REMOTE_RENDER_CONTRACT.md`、`STYLEPACK_RENDERING_CONTRACT.md`(ls 實數) |
-| 品質 | `13_security.md` | 簡化安全檢查 | `tests/` 47 個測試檔、pytest 392 條(2026-07-26 實跑:389 通過、2 失敗、1 skip);安全檢查清單已產出(`docs/vibecoding/13_security_and_readiness_checklists.md`) |
-| 結構 | `08_structure.md` | Tech Spec 結構區塊 | `README.md` 目錄負責人表與路徑規則;`docs/vibecoding/08_project_structure_guide.md` 已產出 |
+| 品質 | `13_security.md` | 簡化安全檢查 | `tests/` 47 個測試檔、pytest 392 條(2026-07-26 實跑:389 通過、2 失敗、1 skip);安全檢查清單已產出(`docs/vibecoding/05_qa/security_and_readiness.md`) |
+| 結構 | `08_structure.md` | Tech Spec 結構區塊 | `README.md` 目錄負責人表與路徑規則;`docs/vibecoding/04_design/lld_project_structure.md` 已產出 |
 
 ---
 

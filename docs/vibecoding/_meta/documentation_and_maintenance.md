@@ -12,8 +12,8 @@
 
 | 類型 | RoomPilot 實際載體 | 格式 |
 | :--- | :--- | :--- |
-| **API 文檔** | `docs/vibecoding/06_api_design_specification.md`(540 行);API 實體為 `backend/server/main.py` 44 條路由(grep `@app.get/post/put` 實數,無 APIRouter 拆分)。無手寫 OpenAPI YAML;`main.py:144` 建立 `FastAPI(title=...)` 時未覆寫 `docs_url`,依 FastAPI 預設提供 `/docs` 與 `/openapi.json` 自動文件(2026-07-26 以 TestClient 實測兩端點均回 200;未另行啟動真實伺服器) | Markdown;OpenAPI 為執行期自動生成 |
-| **架構文檔** | `docs/RoomPilot_現行版本總覽.md`(193 行,跨模組協作的導航)、`docs/vibecoding/05_architecture_and_design_document.md`(934 行)、`docs/vibecoding/09`/`10`(依賴與類別關係) | Markdown + Mermaid |
+| **API 文檔** | `docs/vibecoding/04_design/api_spec.md`(540 行);API 實體為 `backend/server/main.py` 44 條路由(grep `@app.get/post/put` 實數,無 APIRouter 拆分)。無手寫 OpenAPI YAML;`main.py:144` 建立 `FastAPI(title=...)` 時未覆寫 `docs_url`,依 FastAPI 預設提供 `/docs` 與 `/openapi.json` 自動文件(2026-07-26 以 TestClient 實測兩端點均回 200;未另行啟動真實伺服器) | Markdown;OpenAPI 為執行期自動生成 |
+| **架構文檔** | `docs/RoomPilot_現行版本總覽.md`(193 行,跨模組協作的導航)、`docs/vibecoding/03_architecture/sad.md`(934 行)、`docs/vibecoding/09`/`10`(依賴與類別關係) | Markdown + Mermaid |
 | **契約文檔** | `docs/contracts/` 6 份正式契約(見第 2 節表格)——模板原無此類型,RoomPilot 以契約取代零散的介面說明 | Markdown |
 | **使用者/操作文檔** | `README.md`(270 行):安裝、啟動(`uv run uvicorn backend.server.main:app --port 8002`)、組員同步 Bella、驗收基準(`floor04.png` → 19 牆/5 門/5 窗/7 房)、離線備援驗證 | Markdown |
 | **開發者文檔** | `README.md`「團隊目錄與合併規則」「版本控制規則」段、`docs/vibecoding/` 全套、各模組 `README.md`(`backend/engine/`、`backend/catalog/data/`、`scripts/sql/` 等) | Markdown |
@@ -37,7 +37,16 @@ docs/
 ├── backlog/                       # 已確認要追蹤但尚未完成的工作
 │   └── FLOORPLAN_DATASET_TUNING.md          ( 41 行,狀態:待執行)
 ├── moodboard_assets/              # 13 張舊風格 moodboard PNG + representative_furniture/
-└── vibecoding/                    # 本套件:VibeCoding 模板導入文件(01–17 + output_style.md 全數入庫,commit d88b707)
+└── vibecoding/                    # 本套件:VibeCoding 模板導入文件(19 檔全數入庫,commit d88b707)
+    │                               #   2026-08-07 重整為六階段資料夾;編號 01–17 保留為文件 ID
+    ├── _meta/                     # 01 工作流、11 審查、15 本檔、output_style
+    ├── 01_requirements/           # 02 PRD、03 BDD、16 WBS
+    ├── 02_ux_ui/                  # 17 資訊架構、12 前端技術設計
+    ├── 03_architecture/           # 05 SAD、04 ADR
+    ├── 04_design/                 # 06 API、08/09/10 LLD、07 模組規格
+    ├── 05_qa/                     # 13 安全與生產準備
+    ├── 06_ops/                    # 14 部署與運維
+    └── INDEX.md                   # 編號 → 路徑對照表
 ```
 
 模組層文件(docs/ 之外):
@@ -58,7 +67,7 @@ docs/
 | `docs/contracts/REMOTE_RENDER_CONTRACT.md` | 第 10 步遠端渲染:mode 白名單、私人欄位剝除、503 行為、環境變數 | `render_service.py` 行為變更時 |
 | `docs/contracts/STYLEPACK_RENDERING_CONTRACT.md` | 6 風格 × 3 色卡 = 18 張的 ID 體系與渲染資料來源清單;具體色碼以程式資料為準(該檔自述) | 風格/色卡/燈光 profile 增減時 |
 | `docs/backlog/*.md` | 已確認要做但未完成的工作(現有 1 筆) | 新債務確認時新增一檔;完成時移除或併入契約 |
-| `docs/vibecoding/01–17`(另含 `output_style.md`) | 模板導入的流程/規格/結構文件;每份檔頭帶基準分支與日期 | 對應主題有重大變更時重新對齊;新導入模板時新增(01–17 已於 commit d88b707 全數入庫;模板目錄 `VibeCoding_Workflow_Templates/` 本身仍未入版控) |
+| `docs/vibecoding/`(六階段資料夾,文件 ID 01–17 另含 `output_style`) | 模板導入的流程/規格/結構文件;每份檔頭帶基準分支與日期 | 對應主題有重大變更時重新對齊;新導入模板時新增(19 檔已於 commit d88b707 全數入庫,2026-08-07 重整目錄結構;模板目錄 `VibeCoding_Workflow_Templates/` 已置於 repo 但被 `.gitignore` 排除,不入版控) |
 | `backend/catalog/data/README.md` | 正式家具集合規則:9,350 件由 cloud catalog + Manifest 一對一決定;quarantine 禁用規則(規則本文在 `quarantine/*/README.md`,不在本檔) | 型錄檔或映射規則變更時(有 `tests/test_cloud_quarantine.py` 等測試背書) |
 | `scripts/sql/README.md` | PostgreSQL 匯入器用法與 dry-run 期望診斷數字(9350/9021/329/1514) | 匯入器 CLI 或 schema 變更時 |
 | `backend/engine/README.md` | engine 模組結構與職責表 | 引擎模組增刪時。注意:檔內「對應 SSOT:第 4 節」所指的 SSOT 文件不存在於本分支(find 實測無 SSOT 檔;本地與 origin 全部 15 個分支 git ls-tree 亦無),屬過時引用,待修 |
@@ -95,9 +104,9 @@ docs/*
 | `docs/` 根層 | 中文描述性檔名,唯一一份總覽 | `RoomPilot_現行版本總覽.md` |
 | `docs/contracts/` | 全大寫蛇形英文 + `.md`,名稱含 CONTRACT/RULES/SCHEMA 類型字尾 | `REMOTE_RENDER_CONTRACT.md` |
 | `docs/backlog/` | 全大寫蛇形英文,一項追蹤工作一檔 | `FLOORPLAN_DATASET_TUNING.md` |
-| `docs/vibecoding/` | 兩位數編號 + 小寫蛇形英文,編號對齊 `VibeCoding_Workflow_Templates/` 模板序號(另有一份無編號的 `output_style.md`) | `15_documentation_and_maintenance_guide.md` |
+| `docs/vibecoding/` | 六階段資料夾(`_meta`、`01_requirements`…`06_ops`)+ 小寫蛇形英文檔名,檔名沿用 `VibeCoding_Workflow_Templates/` 的模板詞彙(`prd`、`sad`、`adr`、`api_spec`、`lld_*`)。原兩位數編號 01–17 不再出現在檔名,改由 `INDEX.md` 維護「編號 → 路徑」對照,編號仍是各文件內文互相指涉的穩定 ID | `_meta/documentation_and_maintenance.md`(文件 ID 15) |
 | 模組目錄 | 一律 `README.md` 就地放在被說明的目錄內 | `backend/catalog/data/README.md` |
-| vibecoding 檔頭 | 首兩行固定:H1 標題 + 引用註記,格式統一為「本文件由 VibeCoding 模板 … 導入 RoomPilot-Agent 生成 \| 基準分支 bella-local-20260726 \| 2026-07-26」,多數檔再接版本行 | 見 `01_workflow_manual.md` 第 1–5 行 |
+| vibecoding 檔頭 | 首兩行固定:H1 標題 + 引用註記,格式統一為「本文件由 VibeCoding 模板 … 導入 RoomPilot-Agent 生成 \| 基準分支 bella-local-20260726 \| 2026-07-26」,多數檔再接版本行 | 見 `_meta/workflow_manual.md` 第 1–5 行 |
 
 ### 撰寫規範
 
@@ -136,7 +145,7 @@ RoomPilot 是課程專題,無月/季營運節奏;模板的「每月/每季」對
 | `frontend3d/README.md` | port 寫 8000、路徑寫 `app/backend/`/`app/frontend/`、DXF 來源寫 `pic/temp/`,與 `vite.config.js`(proxy 8002)及根 README 啟動指令矛盾 | 兩檔實測比對 |
 | `examples/demo_app/README.md` | 自述 demo 已退役,仍引用已廢除的 ControlNet 計畫 | 該檔與 `examples/demo_app/main.py` 註解 |
 | `backend/engine/README.md` | 「對應 SSOT:第 4 節」所指 SSOT 文件不存在於本分支 | find 實測無 SSOT 檔;本地+origin 全部 15 個分支 git ls-tree 亦無 |
-| `VibeCoding_Workflow_Templates/` | 模板 01–17 已全數導入 `docs/vibecoding/`(commit d88b707),此模板目錄本身仍 untracked,去留待裁決 | ls / git status 實測 |
+| `VibeCoding_Workflow_Templates/` | 模板已全數導入 `docs/vibecoding/`(commit d88b707)。2026-08-07 自模板庫更新為六階段結構版(空白模板,含三本 xlsx 追蹤簿),置於 repo 根目錄供對照;`.gitignore:111` 排除,不入版控 | ls / git check-ignore 實測 |
 
 ---
 
