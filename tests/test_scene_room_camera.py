@@ -78,6 +78,66 @@ def test_missing_polygon_falls_back_without_throwing() -> None:
     assert all(isinstance(value, (int, float)) for value in suggestion["target_cm"])
 
 
+def test_narrow_room_candidates_are_clamped_into_lockable_space() -> None:
+    """陽台級窄房間（80×300）：外接框比例推的候選鏡頭貼牆或出牆，
+    三個候選一起死在 validateRoomCamera，第 7 步逐房視角卡死（floor04 實測）。
+    clampRoomCamera 必須把它們夾回房內合法區。"""
+    module_uri = CAMERA_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{
+          clampRoomCamera, roomCameraSuggestion, validateRoomCamera,
+        }} from {json.dumps(module_uri)};
+        const floorplan = {{ width_cm: 400, depth_cm: 400 }};
+        const room = {{ polygon_cm: [
+          {{ x: 100, y: 50 }}, {{ x: 180, y: 50 }},
+          {{ x: 180, y: 350 }}, {{ x: 100, y: 350 }},
+        ] }};
+        const base = roomCameraSuggestion(room, floorplan);
+        const [x, y, z] = base.position_cm;
+        const [tx, ty, tz] = base.target_cm;
+        // scene_v2 的「活動視角」公式：把水平偏移旋轉 90 度。80cm 寬的房間會
+        // 直接把鏡頭轉出牆外。
+        const rotated = {{ ...base, position_cm: [tx + (z - tz), y, tz - (x - tx)] }};
+        console.log(JSON.stringify({{
+          rotated_raw: validateRoomCamera(rotated, room, floorplan),
+          rotated_clamped: validateRoomCamera(
+            clampRoomCamera(rotated, room, floorplan), room, floorplan),
+          base_clamped: validateRoomCamera(
+            clampRoomCamera(base, room, floorplan), room, floorplan),
+        }}));
+        """
+    )
+
+    assert result["rotated_raw"]["valid"] is False, "夾回前必須真的是壞鏡頭，測試才有意義"
+    assert result["rotated_clamped"]["valid"] is True
+    assert result["base_clamped"]["valid"] is True
+
+
+def test_clamp_keeps_already_valid_cameras_untouched() -> None:
+    module_uri = CAMERA_MODULE.as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ clampRoomCamera, roomCameraSuggestion }} from {json.dumps(module_uri)};
+        const floorplan = {{ width_cm: 400, depth_cm: 400 }};
+        const room = {{ polygon_cm: [
+          {{ x: 100, y: 100 }}, {{ x: 300, y: 100 }},
+          {{ x: 300, y: 300 }}, {{ x: 100, y: 300 }},
+        ] }};
+        const base = roomCameraSuggestion(room, floorplan);
+        const clamped = clampRoomCamera(base, room, floorplan);
+        console.log(JSON.stringify({{
+          position_same: clamped.position_cm.every(
+            (value, index) => Math.abs(value - base.position_cm[index]) < 1e-6),
+          target_same: clamped.target_cm.every(
+            (value, index) => Math.abs(value - base.target_cm[index]) < 1e-6),
+        }}));
+        """
+    )
+
+    assert result == {"position_same": True, "target_same": True}
+
+
 def test_room_camera_validation_rejects_views_behind_room_walls() -> None:
     module_uri = CAMERA_MODULE.as_uri()
     result = run_workflow_script(

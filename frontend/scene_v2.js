@@ -93,9 +93,10 @@ import {
   reloadViewerPreservingState,
 } from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
 import {
+  clampRoomCamera,
   roomCameraSuggestion as roomCameraSuggestionCm,
   validateRoomCamera,
-} from "./scene_camera.js?v=sha256-68a3c55e23d5";
+} from "./scene_camera.js?v=sha256-e8adcedc1a87";
 import {
   buildRoomRequirementsPayload,
   conditionalOptionId,
@@ -10744,17 +10745,20 @@ function proposalRoomCameraCandidates(room) {
   const base = roomCameraSuggestion(room);
   const [x, y, z] = base.position_cm;
   const [targetX, targetY, targetZ] = base.target_cm;
+  // 外接框比例推的鏡頭在窄房間（走道、陽台）會貼牆或出牆，三個候選一起
+  // 死在 validateRoomCamera，第 7 步就過不去；夾回房內合法區再交給使用者微調。
+  const clamp = (camera) => clampRoomCamera(camera, room, state.sceneData?.floorplan);
   return [
-    { label: "入口視角", note: "從主要進入方向觀看", camera: base },
+    { label: "入口視角", note: "從主要進入方向觀看", camera: clamp(base) },
     {
       label: "對角視角",
       note: "完整呈現空間深度",
-      camera: { ...base, position_cm: [targetX - (x - targetX), y, targetZ - (z - targetZ)] },
+      camera: clamp({ ...base, position_cm: [targetX - (x - targetX), y, targetZ - (z - targetZ)] }),
     },
     {
       label: "活動視角",
       note: "聚焦主要使用區域",
-      camera: { ...base, position_cm: [targetX + (z - targetZ), y, targetZ - (x - targetX)] },
+      camera: clamp({ ...base, position_cm: [targetX + (z - targetZ), y, targetZ - (x - targetX)] }),
     },
   ];
 }
