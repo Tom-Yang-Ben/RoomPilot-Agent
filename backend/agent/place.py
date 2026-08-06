@@ -1,23 +1,39 @@
-"""選件結果的擺位紀律：主件先行、副件成組、放不下寧缺勿亂。
+"""選件 → 擺位紀律:基礎家具先行、副件成組、寧缺勿亂(自 room_pilot2 移植)。
 
-``placement_hints`` 只產生順序與成組語意；``resolve_placements`` 讀取
-引擎回傳的 ``placement_failed``，再決定換小、移除或升級人工處理。
-每次重擺都必須經由呼叫端注入的 ``engine_place_fn``，正式流程必須
-使用 :mod:`backend.engine` adapter。本模組本身絕不計算或修改座標。
+room_pilot2 的 place.py 直接驅動自家柵格引擎;本專案的座標權威是
+backend.engine(Shapely、公分),所以移植的是「紀律」而非幾何:
+- placement_hints:基礎家具(床/沙發/餐桌/書桌/衣櫃)最先卡位、泛用件
+  居中、副件貼主件、自由座椅最後的確定性優先序 + 成組標籤,餵給
+  generate_layout 的 hints —— 只影響試放順序,合法性仍由引擎的
+  碰撞/淨空把關。其他物件因此都是「依基礎家具的位置」再配置。
+- resolve_placements:消費引擎的 placement_failed。副件(COMPANION_OF)
+  放不下、或主件不在(未選/被移除/放不下)→ 直接移除,絕不換小獨活
+  (寧缺勿亂,床頭櫃絕不流落遠牆);泛用件先試換更小同型號,沒有更小款
+  就移除;只有使用者指定且受保護的家具會升級回報,絕不靜默移除。
+
+全程不呼叫 LLM、不產生座標;重擺一律經注入的 place_fn(= 引擎)。
 """
-
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable
 
-from .knowledge import ANCHOR_FAMILIES, COMPANION_OF, FAMILY_ZH, GROUP_OF, family_of
+from .knowledge import (
+    COMPANION_OF,
+    ESSENTIAL_FAMILIES,
+    FAMILY_ZH,
+    FREE_SEATING_FAMILIES,
+    GROUP_OF,
+    family_of,
+    is_outdoor_item,
+)
+
+logger = logging.getLogger(__name__)
+
+PlaceFn = Callable[[list[dict[str, Any]]], list[dict[str, Any]]]
 
 
-EnginePlaceFn = Callable[[list[dict[str, Any]]], list[dict[str, Any]]]
-
-
-def _footprint_cm2(item: dict[str, Any]) -> float:
-    """只比較型錄邊界的公分尺寸，不做幾何或座標運算。"""
+def _footprint(item: dict[str, Any]) -> float:
     size = item.get("size_cm") or {}
     try:
         return float(size.get("width") or 0) * float(size.get("depth") or 0)
@@ -26,43 +42,52 @@ def _footprint_cm2(item: dict[str, Any]) -> float:
 
 
 def _clean_size_cm(item: dict[str, Any]) -> dict[str, float]:
-    """防禦性清洗型錄尺寸，避免字串、缺欄或非正值進入替換品項。"""
+    """型錄尺寸防禦性清洗(池裡的原始值可能是字串或缺欄)。"""
     size = item.get("size_cm") or {}
-    cleaned: dict[str, float] = {}
+    out: dict[str, float] = {}
     for key, fallback in (("width", 120.0), ("depth", 60.0), ("height", 80.0)):
         try:
             value = float(size.get(key))
         except (TypeError, ValueError):
             value = 0.0
-        cleaned[key] = value if value > 0 else fallback
-    return cleaned
+        out[key] = value if value > 0 else fallback
+    return out
 
 
-def _name(item: dict[str, Any]) -> str:
-    return str(item.get("name_zh_raw") or item.get("name_zh") or item.get("furniture_id") or "家具")
+def _name(obj: dict[str, Any]) -> str:
+    return obj.get("name_zh_raw") or str(obj.get("furniture_id") or "家具")
 
 
-def _key(item: dict[str, Any]) -> str:
-    """取得場景品項對位鍵；多實例家具優先使用 instance_id。"""
-    return str(item.get("instance_id") or item.get("furniture_id") or "")
+def _key(obj: dict[str, Any]) -> str:
+    """品項對位鍵:count 展開後同 furniture_id 會有多實例,優先用 instance_id。"""
+    return str(obj.get("instance_id") or obj.get("furniture_id") or "")
 
 
-def _anchor_names(family: str) -> str:
-    return "或".join(FAMILY_ZH.get(anchor, anchor) for anchor in COMPANION_OF.get(family, ()))
+def _anchors_zh(family: str) -> str:
+    return "或".join(FAMILY_ZH.get(a, a) for a in COMPANION_OF.get(family, ()))
 
 
 def placement_hints(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """產生主件 → 泛用件 → 副件的確定性順序，不含座標或旋轉。"""
+    """確定性擺放提示:回 {instance_id|furniture_id: {"priority", "group"}}。
 
-    def item_class(item: dict[str, Any]) -> int:
+    優先序:基礎家具(ESSENTIAL_FAMILIES:床/沙發/餐桌/書桌/衣櫃,
+    面積大到小)最先卡位 → 泛用件(面積大到小)→ 副件(COMPANION_OF
+    —— 引擎的成組候選要有已就位的主件可貼)→ 自由座椅
+    (FREE_SEATING_FAMILIES,最後撿剩餘空間;先擺會以房間中央泛用候選
+    搶走沙發正前方,茶几/電視櫃的成組位就沒了)。
+    只給順序與成組語意,不給座標;無 LLM 參與,結果可重現。
+    """
+    def _class(item: dict[str, Any]) -> int:
         family = family_of(item.get("normalized_type"))
+        if family in FREE_SEATING_FAMILIES:
+            return 3
         if family in COMPANION_OF:
             return 2
-        if family in ANCHOR_FAMILIES:
+        if family in ESSENTIAL_FAMILIES:
             return 0
         return 1
 
-    order = sorted(items, key=lambda item: (item_class(item), -_footprint_cm2(item), _key(item)))
+    order = sorted(items, key=lambda it: (_class(it), -_footprint(it), _key(it)))
     hints: dict[str, dict[str, Any]] = {}
     for priority, item in enumerate(order):
         hint: dict[str, Any] = {"priority": priority}
@@ -77,185 +102,174 @@ def pick_smaller_model(
     pool: list[dict[str, Any]],
     normalized_type: str | None,
     footprint_cap: float,
-    exclude_ids: set[str],
+    exclude_ids: set,
 ) -> dict[str, Any] | None:
-    """挑選同型、有 3D 模型且 footprint 更小的確定性替代品。
+    """從型錄池挑「同型、有 3D 模型、footprint 比 cap 小」的最小一款(確定性)。
 
-    找不到相同 ``normalized_type`` 時，才放寬到相同擺位族系。
+    先找同 normalized_type;沒有再放寬到同族系(fabric-sofa ↔ leather-sofa)。
+    挑最小是為了最大化放得下的機率、讓修復迴圈更快收斂;footprint 排序、
+    furniture_id 作 tie-break 確保結果穩定可測。找不到回 None。
     """
-
-    def candidates(predicate: Callable[[dict[str, Any]], bool]) -> list[dict[str, Any]]:
+    def _candidates(match) -> list[dict[str, Any]]:
         return [
-            item
-            for item in pool
-            if item.get("has_model")
-            and predicate(item)
-            and str(item.get("furniture_id") or "") not in exclude_ids
-            and 0 < _footprint_cm2(item) < footprint_cap
+            p
+            for p in pool
+            if p.get("has_model")
+            and match(p)
+            and p.get("furniture_id") not in exclude_ids
+            and 0 < _footprint(p) < footprint_cap
+            and not is_outdoor_item(p)   # 換小替補不得引入戶外家具(客廳戶外椅根因之一)
         ]
 
-    found = candidates(lambda item: item.get("normalized_type") == normalized_type)
+    found = _candidates(lambda p: p.get("normalized_type") == normalized_type)
     if not found:
         family = family_of(normalized_type)
-        found = candidates(lambda item: family_of(item.get("normalized_type")) == family)
+        found = _candidates(lambda p: family_of(p.get("normalized_type")) == family)
     if not found:
         return None
-    return min(found, key=lambda item: (_footprint_cm2(item), str(item.get("furniture_id"))))
+    return min(found, key=lambda p: (_footprint(p), str(p.get("furniture_id"))))
 
 
 def _replacement_item(item: dict[str, Any], smaller: dict[str, Any]) -> dict[str, Any]:
-    """以新型錄品項換小，並只保留白名單中的場景綁定資料。"""
-    # 以新型錄品項為主，只白名單保留場景綁定資料，避免產生
-    # 「新 ID／新模型＋舊顏色／舊價格」的混合品項。
-    replacement = dict(smaller)
-    for key in (
-        "instance_id",
-        "space_id",
-        "room_id",
-        "selection_source",
-        "user_required",
-        "quantity_index",
-        "auto_decor_role",
-        "decor_anchor_role",
-    ):
-        if key in item:
-            replacement[key] = item[key]
-    replacement["size_cm"] = _clean_size_cm(smaller)
-    replacement["name_zh_raw"] = (
-        smaller.get("name_zh_raw") or smaller.get("name_zh") or smaller.get("furniture_id")
-    )
-    return replacement
+    """換小款:型錄欄位取新款,場景欄位(instance_id/space 綁定/選件來源)保留。"""
+    return {
+        **item,
+        "furniture_id": smaller.get("furniture_id"),
+        # 前端 2D 對帳與 GLB 追溯都認 catalog id,跟著換,否則新件掛舊型錄
+        "catalog_furniture_id": smaller.get("furniture_id"),
+        "name_zh_raw": smaller.get("name_zh_raw") or smaller.get("name_zh")
+        or smaller.get("furniture_id"),
+        "normalized_type": smaller.get("normalized_type"),
+        "model_url": smaller.get("model_url"),
+        "primary_style": smaller.get("primary_style"),
+        "color": smaller.get("color"),
+        "size_cm": _clean_size_cm(smaller),
+    }
 
 
 def resolve_placements(
     objects: list[dict[str, Any]],
     items: list[dict[str, Any]],
     pool: list[dict[str, Any]],
-    *,
-    engine_place_fn: EnginePlaceFn,
+    place_fn: PlaceFn | None = None,
     protected_ids: set[str] | None = None,
-    max_rounds: int = 3,
+    max_rounds: int | None = None,
+    *,
+    engine_place_fn: PlaceFn | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    """依引擎 ``placement_failed`` 結果換小、移除或升級人工處理。
+    """讀引擎的 placement_failed → 寧缺勿亂 / 換小 / 移除 → 重擺至收斂。
 
-    返回 ``(engine_objects, final_items, report)``。本函式不讀寫座標；
-    ``engine_objects`` 內的座標只可由 ``engine_place_fn`` 產生。使用者
-    指定家具放不下時只升級人工處理，不得自動替換或刪除。
+    預設**不設輪數上限**,擺到合理為止:每輪對失敗件「換更小同型」或「移除」,
+    換小的 footprint 嚴格遞減、池又有限,移除嚴格減件,故必然收斂;整輪無任何
+    動作(全為使用者指定升級件)也停。``max_rounds`` 僅供測試/呼叫端顯式設限。
+
+    ``engine_place_fn`` 是 ``place_fn`` 的別名(2026-08-02 合併 bella-test1 時保留
+    ——server 端以該名呼叫)。兩者擇一提供即可,同時給以 ``place_fn`` 為準。
+
+    回傳 (objects, final_items, report):
+    - objects:修復後的擺放結果(座標仍 100% 由 place_fn / 引擎算)。
+    - final_items:修復後的家具清單(換過/移過),供 payload 對齊。
+    - report:每筆動作 {furniture_id, type, action(replace|remove|escalate),
+      from, to, message_zh},繁中訊息直接給使用者看。
     """
+    place_fn = place_fn or engine_place_fn
+    if place_fn is None:
+        raise TypeError("resolve_placements 需要 place_fn(或別名 engine_place_fn)")
     working = [dict(item) for item in items]
     protected_ids = protected_ids or set()
     report: list[dict[str, Any]] = []
-    failure_counts: dict[str, int] = {}
     escalated: set[str] = set()
 
-    def find_item(obj: dict[str, Any]) -> dict[str, Any] | None:
+    def _find_item(obj: dict[str, Any]) -> dict[str, Any] | None:
         key = _key(obj)
         for candidate in working:
             if _key(candidate) == key:
                 return candidate
-        furniture_id = str(obj.get("furniture_id") or "")
+        fid = str(obj.get("furniture_id") or "")
         return next(
-            (candidate for candidate in working if str(candidate.get("furniture_id") or "") == furniture_id),
-            None,
+            (c for c in working if str(c.get("furniture_id")) == fid), None
         )
 
-    def remove(item: dict[str, Any], obj: dict[str, Any], message: str) -> None:
+    def _remove(item: dict[str, Any], obj: dict[str, Any], message: str) -> None:
         nonlocal working
         key = _key(item)
-        working = [candidate for candidate in working if _key(candidate) != key]
-        report.append(
-            {
-                "furniture_id": obj.get("furniture_id"),
-                "type": obj.get("normalized_type"),
-                "action": "remove",
-                "from": _name(item),
-                "to": None,
-                "message_zh": message,
-            }
-        )
+        working = [c for c in working if _key(c) != key]
+        report.append({
+            "furniture_id": obj.get("furniture_id"),
+            "type": obj.get("normalized_type"),
+            "action": "remove",
+            "from": _name(item),
+            "to": None,
+            "message_zh": message,
+        })
 
-    for _round in range(max_rounds):
+    rounds = 0
+    while max_rounds is None or rounds < max_rounds:
+        rounds += 1
+        failed = [obj for obj in objects if obj.get("placement_failed")]
         changed = False
-        for obj in [candidate for candidate in objects if candidate.get("placement_failed")]:
-            item = find_item(obj)
+
+        for obj in failed:
+            item = _find_item(obj)
             if item is None:
                 continue
-            furniture_id = str(obj.get("furniture_id") or "")
-            if furniture_id in protected_ids:
-                if furniture_id not in escalated:
-                    escalated.add(furniture_id)
-                    report.append(
-                        {
-                            "furniture_id": furniture_id,
-                            "type": obj.get("normalized_type"),
-                            "action": "escalate",
-                            "from": _name(item),
-                            "to": None,
-                            "message_zh": f"使用者指定的「{_name(item)}」目前放不下，需人工調整位置或需求。",
-                        }
-                    )
+            fid = str(obj.get("furniture_id") or "")
+            if fid in protected_ids:
+                if fid not in escalated:
+                    escalated.add(fid)
+                    report.append({
+                        "furniture_id": obj.get("furniture_id"),
+                        "type": obj.get("normalized_type"),
+                        "action": "escalate",
+                        "from": _name(item),
+                        "to": None,
+                        "message_zh": f"使用者指定的「{_name(item)}」目前放不下，需由使用者調整位置或需求。",
+                    })
                 continue
-
             family = family_of(obj.get("normalized_type"))
             if family in COMPANION_OF:
-                # 副件只准與主件成組；副件本身放不下就直接退場，不換小獨活。
-                remove(
-                    item,
-                    obj,
-                    f"「{_name(item)}」需與{_anchor_names(family)}成組擺放，目前放不下，先移除。",
-                )
+                # 寧缺勿亂:副件只准與主件成組,放不下就退場,絕不換小獨活
+                _remove(item, obj, f"「{_name(item)}」需與{_anchors_zh(family)}成組擺放，目前放不下，先移除。")
                 changed = True
                 continue
-
-            key = _key(obj)
-            failure_counts[key] = failure_counts.get(key, 0) + 1
-            if failure_counts[key] >= 2:
-                # 同一品項連續兩輪失敗後停止替換，避免在候選間反覆震盪。
-                remove(item, obj, f"多次嘗試仍放不下，移除「{_name(item)}」。")
-                changed = True
-                continue
-
-            used_ids = {str(candidate.get("furniture_id") or "") for candidate in working}
+            # 換小到無可換才移除:替補 footprint 嚴格小於現件,鏈必收斂,
+            # 不需要「連兩輪失敗就放棄」的防震盪計數。
+            used_ids = {str(c.get("furniture_id")) for c in working}
             smaller = pick_smaller_model(
-                pool,
-                obj.get("normalized_type"),
-                _footprint_cm2(item),
-                used_ids,
+                pool, obj.get("normalized_type"), _footprint(item), used_ids
             )
             if smaller is None:
-                remove(item, obj, f"空間有限，暫時移除「{_name(item)}」以維持動線。")
+                _remove(item, obj, f"空間有限，暫時移除「{_name(item)}」以維持動線。")
                 changed = True
                 continue
-
             working[working.index(item)] = _replacement_item(item, smaller)
-            report.append(
-                {
-                    "furniture_id": furniture_id,
-                    "type": obj.get("normalized_type"),
-                    "action": "replace",
-                    "from": _name(item),
-                    "to": _name(smaller),
-                    "message_zh": f"空間放不下，已換成較小的「{_name(smaller)}」。",
-                }
-            )
+            report.append({
+                "furniture_id": fid,
+                "type": obj.get("normalized_type"),
+                "action": "replace",
+                "from": _name(item),
+                "to": _name(smaller),
+                "message_zh": f"空間放不下，已換成較小的「{_name(smaller)}」。",
+            })
             changed = True
 
-        # 主件已不在工作清單時，Agent 自選的副件也一併退場；使用者指定
-        # 或來源未標記的家具不在此自動清理範圍。
+        # 寧缺勿亂第二式:主件已不在清單(未選/被移除)的副件一併退場,
+        # 床頭櫃絕不留在沒有床的房裡。只清 agent 選的件(selection_source
+        # 為 openrouter/local_rules);使用者指定或未標記來源的一律不動。
         working_families = {
             family_of(candidate.get("normalized_type")) for candidate in working
         }
         for obj in objects:
             if obj.get("placement_failed"):
-                continue
+                continue  # 失敗件已在上面處理
             family = family_of(obj.get("normalized_type"))
             anchors = COMPANION_OF.get(family)
             if not anchors or working_families.intersection(anchors):
                 continue
-            furniture_id = str(obj.get("furniture_id") or "")
-            if furniture_id in protected_ids:
-                continue
-            item = find_item(obj)
+            fid = str(obj.get("furniture_id") or "")
+            if fid in protected_ids:
+                continue  # 使用者堅持要的,保留並交由使用者裁決
+            item = _find_item(obj)
             if item is None:
                 continue
             if item.get("user_required") or item.get("selection_source") not in (
@@ -263,18 +277,14 @@ def resolve_placements(
                 "local_rules",
             ):
                 continue
-            remove(
-                item,
-                obj,
-                f"「{_name(item)}」的主件{_anchor_names(family)}不在配置中，依成組原則一併移除。",
-            )
+            _remove(item, obj, f"「{_name(item)}」的主件{_anchors_zh(family)}不在配置中，依成組原則一併移除。")
             working_families = {
                 family_of(candidate.get("normalized_type")) for candidate in working
             }
             changed = True
 
         if not changed:
-            break
-        objects = engine_place_fn(working)
+            break  # 無任何換/移(全升級或無可動)→ 停止,避免空轉
+        objects = place_fn(working)
 
     return objects, working, report

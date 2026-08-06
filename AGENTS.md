@@ -4,8 +4,8 @@
 
 ## 動手前必做
 
-1. 閱讀 `README.md`，確認目前八步產品流程與啟動指令。
-2. 閱讀 `docs/TEAM_AI_OWNERSHIP.md` 與目標 owner 的 `docs/owners/` 說明。
+1. 閱讀 `README.md` 與 `docs/RoomPilot_現行版本總覽.md`，確認目前八步產品流程與啟動指令。
+2. 閱讀 `docs/使用者流程與系統架構圖.md`、`docs/TEAM_AI_OWNERSHIP.md` 與目標 owner 的 `docs/owners/` 說明。
 3. 閱讀最近的 `AGENTS.md` 與相關 `docs/contracts/`。
 4. 執行 `git status --short`，保留他人尚未提交的變更。
 5. 追查本次行為的輸入、輸出、座標單位、保存邊界與測試。
@@ -33,11 +33,11 @@
 
 | 路徑 | 主要 owner | 主要責任 |
 |---|---|---|
-| `backend/server/` | Bella | FastAPI、專案保存、八步 UI、2D/3D 調度 |
+| `backend/server/` | Bella | FastAPI、SQLite 專案保存、八步 UI、2D/3D、AI 渲染與最終交付調度 |
 | `backend/floorplan/` | Cody | 影像/DXF 辨識、牆門窗房間、`layout_json` |
 | `backend/spatial_data/` | Django | 空間尺寸、房間關係、layout evaluation schema |
 | `backend/catalog/`、`JSON/`、`scripts/sql/` | Kai | 正式家具、CloudFront 資產、PostgreSQL 匯入與 RAG metadata |
-| `backend/agent/` | Yen | 需求結構化、選件、修復意圖與說明 |
+| `backend/agent/` | Yen | 問卷專業化、選件、內部候選評估、逐房視角、生圖／修圖與報告文字 |
 | `backend/engine/` | Ancai | 配置、碰撞、淨空、移動與幾何合法性 |
 | `backend/upgrade3d/` | Cody | 已確認 layout 轉為 3D 可用結構 |
 | `frontend3d/` | Bella | 次要 React/R3F 原型，不是正式流程 |
@@ -52,11 +52,18 @@
 - 平面圖辨識輸出是 `layout_json`；方案生成與編輯輸出是 `scene_json`。
 - Graph RAG 只檢索房間、家具、風格、材質與限制的關係與證據，不決定幾何、碰撞、淨空或結構合法性。
 - 家具合法位置只由 `backend/engine/` 判定。
-- 第 6 步正式家具以 Kai PostgreSQL `roompilot.furniture_catalog_current` 優先；資料庫不可用時才回退已驗證 JSON。
+- 第 6 步只交付一份 `configuration_snapshot`；牆面與地面材質以 `room_id` 逐房保存，修改一房不得覆寫其他房間。房間、地面與家具沿用 `layout_json`／`scene_json` 原始座標，不得為了預覽把房間重新置中。
+- 正式家具預設讀 Kai PostgreSQL `roompilot.furniture_catalog_current`；strict postgres 不可用時回傳 503，只有明確設定 JSON 離線模式才可讀已驗證 JSON。
+- 第 7 步每個候選相機必須綁定 `room_id`，位置落在該房間內並能看見全室主要範圍；鎖定視角不得改寫家具配置。
+- 第 8 步送出生圖前先顯示依問卷與 RAG 整理的大致詞彙，並提醒不得改變房間尺寸、牆、門窗、固定家具與第 7 步視角。全屋初稿完成後，每個房間的初稿圖片只允許一次成功修圖，失敗不扣額度。
+- 最終交付由 Bella 的 `/design-delivery` 組成逐房簡報、工程報告、資安檢查結果與家具／裝潢預算；目前資安實作是敏感欄位名稱 denylist 的確定性移除，不得誤稱完整欄位 whitelist 或最終專業資安審查。缺價只能標記「待報價」。
+- Step 5 家具 RAG API 與 Step 8 `GenPicAgent` 已接線；`RequirementSkill`、`MasterAgent`、`ReportAgent` 尚未由正式 FastAPI 八步流程呼叫。文件與 AI 必須把模組已存在和 runtime 已接線分開描述。
+- 目前 `backend/server/main.py` 使用 SQLite `ProjectStore`；`.env.example` 的 PostgreSQL provider 是遷移目標，尚未接入主流程。
 - 冰箱、洗衣機等家電保留為問卷與 AI 生圖上下文，不能進入 2D/3D 自動配置或正式家具 API。
 - 隔離區或未匹配資料不得進 API 或場景。
 - 正式網頁在 `backend/server/static/`；不得以 `frontend3d/` 取代，除非已明確核准遷移。
 - 不得提交 `.env`、本機 runtime、快取、模型權重或大型 GLB 壓縮檔。
+- 文件出現舊九／十步、公開 A／B 或以 `/render-jobs` 為主流程時，必須標成歷史／legacy，不得覆蓋本文件的現行契約。
 
 ## 驗證矩陣
 

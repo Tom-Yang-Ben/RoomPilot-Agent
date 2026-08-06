@@ -1,6 +1,6 @@
 # RoomPilot 家具 PostgreSQL 正式 Read 串接（Phase 1）
 
-更新日期：2026-07-31
+更新日期：2026-08-06
 主要負責人：Kai（catalog / SQL）
 協作負責人：Bella（FastAPI 對外契約）
 
@@ -9,7 +9,7 @@
 Phase 1 只處理「正式家具型錄的讀取路徑」：
 
 - `/api/furniture` 的篩選、搜尋、總筆數、facet 與分頁改由 PostgreSQL 執行。
-- `/api/furniture/{item_id}` 使用 `item_id` 主鍵查詢，不再掃描 8,675 筆 catalog／8,076 筆 active API 資料的 Python list。
+- `/api/furniture/{item_id}` 使用 `item_id` 主鍵查詢，不再掃描整份 catalog 的 Python list。
 - `/api/furniture/{item_id}/model` 優先由 PostgreSQL 取得 CloudFront GLB URL。
 - FastAPI 使用共用的 thread-safe PostgreSQL connection pool。
 - SQL row 轉成既有前端 contract，Bella 的 library / scene 不需要改欄位名稱。
@@ -24,8 +24,7 @@ Phase 1 只處理「正式家具型錄的讀取路徑」：
 flowchart LR
     A["Kai 的正式 JSON / CSV 來源"] -->|"import / UPSERT"| B["roompilot 正規化資料表"]
     B --> C["furniture_catalog_current"]
-    C --> D["furniture_catalog_api_current"]
-    D --> E["backend/catalog/postgres_repository.py"]
+    C --> E["backend/catalog/postgres_repository.py"]
     E -->|"SQL filter / count / facet / pagination"| F["Bella 的 FastAPI main.py"]
     F --> G["library / scene 前端"]
     H["S3 / CloudFront GLB 與 PNG"] -->|"URL metadata 存 SQL"| B
@@ -55,7 +54,7 @@ flowchart LR
   - 將 SQL row 轉成既有 furniture scene/card contract。
 - `scripts/sql/roompilot_postgresql_schema.sql`
   - `roompilot.furniture_catalog_current`：正規化表與資產的目前版聚合。
-  - `roompilot.furniture_catalog_api_current`：API taxonomy、安全預設與顯示欄位。
+  - schema 仍可能建立 `roompilot.furniture_catalog_api_current`，但現行 Python runtime 不讀此 view。
 - `backend/server/main.py`
   - 只接收 HTTP query、呼叫 repository、組回既有 API response。
   - 不在 FastAPI 內複製 SQL 或 catalog 演算法。
@@ -70,7 +69,7 @@ flowchart LR
 ROOMPILOT_CATALOG_PROVIDER=postgres
 ```
 
-此模式是 strict mode。資料庫、driver 或 `roompilot.furniture_catalog_api_current` 不可用時，家具 API 回傳：
+此模式是 strict mode。資料庫、driver 或 `roompilot.furniture_catalog_current` 不可用時，家具 API 回傳：
 
 ```json
 {
@@ -201,23 +200,23 @@ git diff --check
 
 ```sql
 SELECT COUNT(*)
-FROM roompilot.furniture_catalog_api_current
+FROM roompilot.furniture_catalog_current
 WHERE kind = 'furniture';
 
 SELECT item_id, glb_url, front_image_url, side_image_url, angle_45_image_url
-FROM roompilot.furniture_catalog_api_current
+FROM roompilot.furniture_catalog_current
 WHERE kind = 'furniture'
 ORDER BY item_id
 LIMIT 5;
 ```
 
-5 份正式匯入來源的家具 ID 皆為 8,675 筆；正式總表應為 8,675 筆，`roompilot.furniture_catalog_current` 與 `roompilot.furniture_catalog_api_current` 則只提供其中 8,076 筆 active／RAG-indexable 家具。另 599 筆 inactive 家具保留在總表供複核，不得進正式 API／RAG。
+2026-08-06 live runtime 使用 `roompilot.furniture_catalog_current` 的 7,958 筆家具。`/api/catalog/status` 驗證 7,958 個 GLB 與 23,874 張三視圖；舊 8,675／8,076／599 是歷史匯入批次，不是目前 read view 的驗收值。
 
 ## Phase 1 驗收清單
 
-- [x] PostgreSQL 總表是 8,675 筆家具；current/API view 是 8,076 筆 active 家具，另有 599 筆 inactive 家具保留複核。
-- [x] 8,675 筆 catalog 家具各有 1 個 ready/uploaded GLB URL。
-- [x] 8,675 筆 catalog 家具各有 front / side / angle-45 三張 ready/uploaded 圖片 URL（共 26,025 張）。
+- [x] `furniture_catalog_current` read view 是 7,958 筆可交付家具。
+- [x] 7,958 筆 current 家具各有 1 個 ready/uploaded GLB URL。
+- [x] 7,958 筆 current 家具各有 front / side / angle-45 三張 ready/uploaded 圖片 URL（共 23,874 張）。
 - [x] `/api/furniture` 不先載入完整 SQL catalog 再由 Python 篩選。
 - [x] filter、search、count、facet、pagination 由 repository SQL 執行。
 - [x] 家具詳情使用 `item_id` 查詢。
@@ -226,4 +225,4 @@ LIMIT 5;
 - [x] API response 保持 Bella 既有 contract。
 - [x] 已用正式 `.env` 完成 live PostgreSQL 與 FastAPI smoke test。
 
-現行資料契約驗收值：正式總表與 GLB 各 8,675 筆、current/API view 8,076 筆、inactive 599 筆、三視角圖片 26,025 張。Live PostgreSQL 驗收必須與 importer dry-run 的這組數量一致；`/api/furniture` 只回傳 active 資料。
+現行資料契約驗收值：current/API view 與 GLB 各 7,958 筆、三視角圖片 23,874 張。Live PostgreSQL 驗收必須同時通過 importer dry-run、status API 與 producer／consumer 測試；`/api/furniture` 只回傳 current 資料。

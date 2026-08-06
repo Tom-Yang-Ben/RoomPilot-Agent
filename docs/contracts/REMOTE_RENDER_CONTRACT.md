@@ -1,4 +1,10 @@
-# 遠端室內渲染契約
+# 遠端室內渲染契約（Legacy `/render-jobs`）
+
+> 文件狀態：Legacy 相容契約，保留供 `backend/render_provider_app.py` 與舊專案讀取；不是現行第 8 步主路徑。
+> 取代日期：2026-08-06。現行請讀 [`BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md`](BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md)。
+> 新路徑為 `GET /api/ai-render/status`、`POST /api/projects/{project_id}/ai-renders`、`POST /api/projects/{project_id}/ai-renders/{room_id}/edit` 與 `POST /api/projects/{project_id}/design-delivery`。
+
+本文以下的第 9／10 步編號與 `/render-jobs` payload 僅描述舊流程，AI 不得拿它恢復九步／十步 UI。
 
 第 10 步只透過 FastAPI 的
 `POST /api/projects/{project_id}/render-jobs` 呼叫遠端生圖服務。瀏覽器

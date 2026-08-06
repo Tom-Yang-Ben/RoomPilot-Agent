@@ -1,8 +1,12 @@
 # Bella 第 6–8 步濃縮流程規格
 
-狀態：已完成需求定稿，尚未實作  
-更新日期：2026-07-26  
+狀態：**歷史產品設計稿**；不可直接作為現行實作規格
+更新日期：2026-08-06
 適用分支：`bella-test1`
+
+> AI 現行實作基準：[`contracts/BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md`](contracts/BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md)。本文保留由十步濃縮為八步時的原始 user stories，因此下文仍含已取消的天花／燈光編輯、每房不同色卡、「加入提案」、自由選渲染房間與歷史版本策略。這些都是歷史需求，不得自行補做或恢復 UI。
+
+現行差異摘要：第 6 步只提供逐房牆面／地面調整並維持平面圖全域座標；第 7 步每房三個綁定 `room_id` 的全室視角，之後以代表房確認一張全屋色卡；第 8 步先確認大致詞彙與不可改空間限制，完成全屋初稿後每張房間圖最多一次成功修圖，最後由 deterministic `/design-delivery` 建立 Web/JSON 簡報、工程與預算。Yen `RequirementSkill`、`MasterAgent`、`ReportAgent` 尚待正式 adapter；資安目前是敏感 key denylist 基線。
 
 ## Problem Statement
 

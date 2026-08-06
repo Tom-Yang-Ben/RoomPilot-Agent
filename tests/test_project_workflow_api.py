@@ -76,7 +76,11 @@ def test_agent_furniture_selection_marks_unvalidated_local_rules_without_llm() -
     ] == ["bed-1", "nightstand-1", "bed-2"]
 
 
-def test_worktree_uses_the_main_repository_runtime_directory(tmp_path: Path) -> None:
+def test_worktree_uses_the_main_repository_runtime_directory(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("ROOMPILOT_RUNTIME_DIR", raising=False)
     repository = tmp_path / "RoomPilot-Agent"
     worktree = repository / ".worktrees" / "bella-test1"
     worktree.mkdir(parents=True)

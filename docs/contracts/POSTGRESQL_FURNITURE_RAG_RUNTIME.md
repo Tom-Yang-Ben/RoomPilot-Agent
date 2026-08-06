@@ -1,6 +1,6 @@
 # PostgreSQL Furniture RAG Runtime Contract
 
-更新日期：2026-07-31
+更新日期：2026-08-06
 主要 owner：Django
 協作 owner：Kai（PostgreSQL/catalog）、Bella（FastAPI/正式前端）
 
@@ -51,8 +51,8 @@ POST /api/rag/search/jobs
 distance/similarity；不得輸出 embedding。函式只命中相同 model/dimension、active
 item 與 current text hash。舊的 `search_furniture_embeddings` 保留相容。
 
-v1 使用 exact cosine scan，固定模型為 `BAAI/bge-m3`、維度 1024；不建立 HNSW，
-正式完整批次為 8,076 筆 active／RAG-indexable 向量；599 筆 inactive 家具不得進檢索來源。
+v1 使用 exact cosine scan，固定模型為 `BAAI/bge-m3`、維度 1024；不建立 HNSW。
+2026-08-06 `/api/rag/status` 驗證 7,958 筆 current／RAG-indexable 向量；inactive 家具不得進檢索來源。
 
 ## HTTP 介面
 
@@ -93,7 +93,7 @@ JSON、keyword search 或其他 LLM。
 
 ## 效能邊界
 
-PostgreSQL/pgvector 已是正式資料來源；目前 8,076 筆 exact cosine top-50 約為秒級，
+PostgreSQL/pgvector 已是正式資料來源；目前 7,958 筆 exact cosine top-50 約為秒級，
 不是分鐘級等待的主要來源。CPU lazy-load、BGE-M3 embedding 與 cross-encoder reranker
 才是主要成本。runtime 將同一次多品項查詢的 embedding 與 reranker 合併批次，但不減少
 top-50、top-20/12，也不改變評分公式。

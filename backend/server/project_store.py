@@ -82,6 +82,7 @@ class ProjectStore:
         self.upload_dir = runtime_dir / "uploads"
         self.render_dir = runtime_dir / "renders"
         self.database_path = runtime_dir / "projects.sqlite3"
+        self.runtime_dir.mkdir(parents=True, exist_ok=True)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
         self.render_dir.mkdir(parents=True, exist_ok=True)
         self._initialize()

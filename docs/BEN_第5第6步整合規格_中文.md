@@ -1,4 +1,10 @@
-# RoomPilot 第 5、6 步整合規格（提供 Ben／AI 實作）
+# RoomPilot 第 5、6 步整合規格（Ben 歷史草案）
+
+> 文件狀態：部分內容已被取代，保留作 Ben／Bella 決策歷史。
+> 取代日期：2026-08-06。
+> AI 現行實作請讀 [`contracts/BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md`](contracts/BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md) 與 [`RoomPilot_現行版本總覽.md`](RoomPilot_現行版本總覽.md)。
+
+本文後續的方案 A／B 不再是正式使用者流程。現行第 6 步直接維護單一 `configuration_snapshot`；第 7 步才鎖定 Yen 逐房視角；第 8 步逐房初稿、每房一次修圖並建立成果包。本文仍可作第 5 步問卷、RAG 失敗不中斷與固定結構原則的歷史依據，但不得用來恢復 A/B UI。
 
 ## 目的
 

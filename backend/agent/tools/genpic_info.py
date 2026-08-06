@@ -1,0 +1,153 @@
+"""生圖資訊整理 tool：組出生圖提示詞包與鎖定清單（deterministic）。
+
+依定案：視角畫面（Three.js 截圖）作構圖參考、提示詞素材來自需求文件
+（含材質與家電 context）、色卡與場景配置。改圖時額外產出「鎖定清單」，
+明確告訴模型只能改使用者指定的內容、其餘元素保持不變。
+
+家電只在這裡進入畫面描述（渲染 context），不影響任何配置決策。
+"""
+from __future__ import annotations
+
+from ..documents import (
+    LayoutRoom,
+    LockManifestDoc,
+    RequirementDoc,
+    SceneDoc,
+)
+from .base import ToolContract
+from .design_knowledge import style_note
+
+
+def furniture_lines(scene: SceneDoc, room: LayoutRoom) -> list[str]:
+    # 定案：數值與相對位置措辭都不進提示詞——畫面位置由 img2img 視角
+    # 截圖鎖定，文字只補名稱、類型與材質描述。
+    lines = []
+    for row in scene.placed_in(room.room_id):
+        name = str(row.get("name") or row.get("id") or "家具")
+        details = "，".join(
+            str(row.get(key) or "").strip()
+            for key in ("type", "material")
+            if str(row.get(key) or "").strip()
+        )
+        lines.append(f"{name}（{details}）" if details else name)
+    return lines
+
+
+class GenPicInfoTool:
+    contract = ToolContract(
+        name="genpic_info",
+        description="整理生圖提示詞包（需求＋材質＋色卡＋場景＋家電 context）與鎖定清單。",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "requirements": {"type": "object"},
+                "scene": {"type": "object"},
+                "room": {"type": "object"},
+                "palette": {"type": ["object", "null"]},
+                "viewpoint": {"type": ["object", "null"]},
+                "stage": {"type": "string"},
+            },
+            "required": ["requirements", "scene", "room", "stage"],
+        },
+        output_schema={
+            "type": "object",
+            "properties": {
+                "prompt": {"type": "string"},
+                "lock_manifest": {"type": "object"},
+            },
+        },
+    )
+
+    def run(
+        self,
+        requirements: RequirementDoc,
+        scene: SceneDoc,
+        room: LayoutRoom,
+        *,
+        stage: str,
+        palette: dict | None = None,
+        viewpoint: dict | None = None,
+    ) -> dict:
+        # 提示詞模板（2026-08-04 使用者定案）：
+        # 「渲染成寫實風格，房間：{}、整體風格：{}、風格參考：{}、
+        #   色調採(60%, 30%, 10%)：{}、地板材質：{}、牆壁材質：{}、
+        #   家具配置(位置與數量必須與下列完全一致，不可增減或移動)：{}、
+        #   家電：{}、{額外補充需求}」
+        # 有數值資訊（尺寸/公分）不提供；沒有資料的段落整段省略。
+        segments = ["你是室內軟裝設計師，風格要極致寫實。"]
+        if requirements.styles:
+            style_text = "、".join(requirements.styles[:2])
+            segments.append(f"整體風格：{style_text}")
+            segments.append(f"將此草圖渲染成{style_text}風的配色")
+            note = style_note(requirements.styles)
+            if note:
+                segments.append(note)   # 已含「風格參考（…）：」前綴
+
+        segments.append(f'房間：{room.name}')
+
+        if palette:
+            colors = "、".join(str(c) for c in (palette.get("colors") or [])[:3])
+            # colors = "、".join(str(c) for c in (palette.get("colors") or [])[:5])
+            segments.append(f"整體色調比例採(60%, 30%, 10%)：{colors}")
+
+        materials = requirements.materials or {}
+        for key, label in (("地板", "地板材質"), ("牆面", "牆壁材質")):
+            if materials.get(key):
+                segments.append(f"{label}：{materials[key]}")
+
+        furniture = furniture_lines(scene, room)
+        '''
+        if furniture:
+            segments.append(
+                "家具配置(位置與數量必須與下列完全一致，不可增減或移動)："
+                + "、".join(furniture)
+            )
+        '''
+        if furniture:
+            segments.append(
+                "家具配置：\n"
+                + "、\n\t".join(furniture)
+            )
+
+        appliances = [
+            item.text for item in requirements.appliances if item.room_id in (None, room.room_id)
+        ]
+        if appliances:
+            segments.append("家電：" + "、".join(appliances))
+        if viewpoint and viewpoint.get("note"):
+            segments.append(str(viewpoint["note"]))
+        prompt = "；".join(segment.strip("、，； ") for segment in segments if segment.strip())
+        if not prompt.endswith(("。", "！", "？")):
+            prompt += "。"
+        manifest = LockManifestDoc(
+            room_id=room.room_id,
+            palette_id=(palette or {}).get("palette_id"),
+            viewpoint_id=(viewpoint or {}).get("viewpoint_id"),
+            locked_furniture=furniture,
+            locked_materials={**materials, "palette": (palette or {}).get("name", "")},
+            allowed_change="",
+        )
+        prompt += (
+            "\n可補充符合問卷的非固定軟裝細節；不得增減或移動固定家具、牆、門、窗、樑或柱。"
+            "\n草圖中的格局、物件位置不可變動。\n"
+        )
+        return {"prompt": prompt, "lock_manifest": manifest.to_dict(), "stage": stage}
+
+    @staticmethod
+    def edit_instruction(lock_manifest: LockManifestDoc, feedback: str) -> str:
+        """把使用者意見與鎖定清單組成「只改這些、其餘不動」的編輯指令。"""
+
+        lines = [
+            f"請只修改以下內容：{feedback.strip()}。",
+            "除上述修改外，畫面其他一切必須與附圖完全一致，特別是：",
+        ]
+        for row in lock_manifest.locked_furniture:
+            lines.append(f"- {row}（位置、樣式、數量不可變）")
+        if lock_manifest.locked_materials:
+            material_text = "；".join(
+                f"{key}：{value}" for key, value in lock_manifest.locked_materials.items() if value
+            )
+            if material_text:
+                lines.append(f"- 材質與色調維持：{material_text}")
+        lines.append("- 相機視角、房間結構、門窗位置完全不變。")
+        return "\n".join(lines)

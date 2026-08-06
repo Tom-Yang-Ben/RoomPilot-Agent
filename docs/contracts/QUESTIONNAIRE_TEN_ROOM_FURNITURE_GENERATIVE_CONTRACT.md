@@ -124,7 +124,7 @@ UI 以「臥室（一）」、「臥室（二）」等實例名稱協助使用�
 - `selected_catalog_furniture` 與 `final_step6_furniture`
 - `generative_equipment`、`surfaces` 與本房 `rag` 工作結果
 
-外部渲染呼叫的 `agent_generation_handoff` 會移除姓名、電話與地址等個人資訊。這份 JSON 是外部 Agent 的唯一配置資料來源；牆、門、窗、樑、柱皆視為固定結構，不可因方案 A／B 或生圖偏好改動。
+外部渲染呼叫的 `agent_generation_handoff` 會移除姓名、電話與地址等個人資訊。這份 JSON 是外部 Agent 的唯一配置資料來源；牆、門、窗、樑、柱皆視為固定結構，不可因第 6 步配置微調、第 7 步視角或第 8 步生圖偏好改動。
 
 ## 驗收條件
 

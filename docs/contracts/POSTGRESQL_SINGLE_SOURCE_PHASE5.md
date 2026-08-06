@@ -1,8 +1,10 @@
 # PostgreSQL Single Source Phase 5
 
+> 文件狀態：目標／歷史契約，不是目前可直接執行的完整 runbook。家具 strict PostgreSQL read-through 已實作；`/api/health`、PostgreSQL ProjectStore 與 Phase 4 從零重建工具尚未實作。現況以 `docs/RoomPilot_現行版本總覽.md` 為準。
+
 更新日期：2026-07-31
 主要 owner：Kai（catalog／SQL）
-協作 owner：Bella（FastAPI／health）
+協作 owner：Bella（FastAPI；整體 health route 仍待實作）
 
 ## 現行可用性（2026-07-31）
 
@@ -31,7 +33,7 @@ versioned JSON / CSV
 PostgreSQL error -> JSON/CSV fallback -> HTTP 200
 ```
 
-正式 SQL 異常時，家具 API 回傳 `503 postgres_catalog_unavailable`；style／surface／cost 回傳 `503 runtime_catalog_unavailable`。`/api/catalog/status` 保留診斷 payload但不讀 manifest 檔案，`/api/health` 在正式資料庫未 ready 時回傳 HTTP 503。
+正式 SQL 異常時，家具 API 回傳 `503 postgres_catalog_unavailable`；style／surface／cost 回傳 `503 runtime_catalog_unavailable`。`/api/catalog/status` 保留診斷 payload但不讀 manifest 檔案。原始 Phase 5 設計中的 `/api/health` 尚未出現在現行 `backend/server/main.py`，不得宣稱已可呼叫。
 
 ## Provider 契約
 
@@ -58,7 +60,7 @@ ROOMPILOT_PROJECT_STORE_PROVIDER=sqlite
 
 | FastAPI 用途 | 正式來源 |
 |---|---|
-| 家具 list/detail/filter/facet/model URL | `roompilot.furniture_catalog_api_current` |
+| 家具 list/detail/filter/facet/model URL | 現行 Python runtime：`roompilot.furniture_catalog_current` |
 | 首頁與 styles 家具統計 | SQL `COUNT`／style aggregation |
 | 六種 UI style profile | `roompilot.design_style_profiles_current` |
 | 18 張 style cards | `roompilot.style_cards_current` |
@@ -66,7 +68,7 @@ ROOMPILOT_PROJECT_STORE_PROVIDER=sqlite
 | 裝修費率與來源 | `roompilot.renovation_cost_*` |
 | RAG style/material/cost | `roompilot.runtime_catalog_rag_documents` |
 | external／legacy | `roompilot.external_import_quarantine`，不進 API/RAG |
-| project／workflow | `roompilot.projects.workflow_json` JSONB |
+| project／workflow | 現行：SQLite `projects.sqlite3`；`roompilot.projects.workflow_json` 是待整合目標 |
 
 問卷題目定義仍是單一版控 JSON／Python 靜態契約，並非 PostgreSQL 失效時的 catalog fallback；使用者答案已存 project JSONB。GLB／PNG 位元組仍在 S3／CloudFront，SQL 保存正式 URL 與狀態。
 
@@ -89,12 +91,15 @@ FastAPI 不可自行解析這些輸入檔。匯入器會保存 source path、SHA
 
 ```text
 GET /api/catalog/status
-GET /api/health
 ```
+
+`GET /api/health` 是下列 readiness 條件的目標端點，目前未實作。現行需分別查
+`/api/catalog/status`、`/api/rag/status`、`/api/scene/provider-status`、
+`/api/ai-render/status` 與 legacy `/api/render-provider/status`。
 
 正式 ready 條件：
 
-1. `roompilot.furniture_catalog_api_current` 存在且有正式家具。
+1. `roompilot.furniture_catalog_current` 存在且有正式家具。
 2. GLB 與三視角 SQL asset counts 完整。
 3. design style、style card、surface、cost 與 RAG views 可查。
 4. `roompilot.projects` 存在，正式 project store provider 是 PostgreSQL。

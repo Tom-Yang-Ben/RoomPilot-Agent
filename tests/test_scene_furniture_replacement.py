@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "backend/server/static/scene.html").read_text(encoding="utf-8")
 SOURCE = (ROOT / "backend/server/static/scene_v2.js").read_text(encoding="utf-8")
+CSS = (ROOT / "backend/server/static/site.css").read_text(encoding="utf-8")
 
 
 def test_step6_has_a_dedicated_replacement_drawer() -> None:
@@ -54,6 +55,24 @@ def test_replacement_search_reloads_for_mode_changes_and_text_queries() -> None:
     assert "requestedModeExists" in SOURCE
 
 
+def test_configuration_furniture_row_opens_replacement_after_rerender() -> None:
+    handler = SOURCE.split("const selectConfigurationFurniture", 1)[1].split(
+        "element.configurationPlanLayer?.addEventListener", 1
+    )[0]
+    listeners = SOURCE.split("element.configurationPlanLayer?.addEventListener", 1)[1].split(
+        "element.configurationPendingList?.addEventListener", 1
+    )[0]
+
+    assert "openReplacement = false" in handler
+    assert "const furnitureId = button.dataset.selectConfigurationFurniture" in handler
+    assert "renderConfigurationPlan();" in handler
+    assert "if (openReplacement) {" in handler
+    assert "dataset.requestedFurnitureId = furnitureId" in handler
+    assert "void openFurnitureReplacement({ furnitureId });" in handler
+    assert "{ fromPlan: true }" in listeners
+    assert "{ openReplacement: true }" in listeners
+
+
 def test_pending_smaller_replacement_keeps_the_clicked_furniture_and_mode() -> None:
     assert 'data-replace-smaller-configuration-furniture=' in SOURCE
     assert 'mode: "smaller"' in SOURCE
@@ -78,7 +97,7 @@ def test_single_item_reflow_stays_in_the_clicked_room_and_persists_to_scheme() -
     assert "scheme.sceneData = JSON.parse(JSON.stringify(state.sceneData));" in reflow
 
 
-def test_replacement_preview_uses_the_current_room_and_keeps_candidate_details_concise() -> None:
+def test_replacement_preview_uses_the_current_room_and_shows_catalog_photos() -> None:
     preview = SOURCE.split("async function previewReplacementCandidate", 1)[1].split(
         "function renderReplacementCandidates", 1
     )[0]
@@ -93,19 +112,28 @@ def test_replacement_preview_uses_the_current_room_and_keeps_candidate_details_c
     )[0]
     assert "replacementFurnitureName(candidate)" in replacement_list
     assert "replacementFurnitureSize(candidate)" in replacement_list
-    assert "rp-replacement-thumb" not in replacement_list
+    assert "replacementCandidateImageUrl(candidate)" in replacement_list
+    assert 'class="rp-replacement-image' in replacement_list
+    assert 'loading="lazy"' in replacement_list
+    assert "data-replacement-image" in replacement_list
+    assert ".rp-replacement-image" in CSS
+    assert ".rp-replacement-image-fallback" in CSS
     assert "function buildReplacementRoomPreviewScene" in SOURCE
 
 
-def test_replacement_preview_keeps_room_floor_and_replacement_on_the_2d_layout_origin() -> None:
+def test_replacement_preview_keeps_room_at_its_original_floorplan_position() -> None:
     builder = SOURCE.split("function buildReplacementRoomPreviewScene", 1)[1].split(
         "async function previewReplacementCandidate", 1
     )[0]
 
     assert '"door_openings"' in builder
-    assert ").map((region) => shiftFloorplanRegion(region, offset));" in builder
+    assert "const offset = { x: bounds.centerX, z: bounds.centerZ };" not in builder
+    assert ".map((segment) => shiftSceneSegment(segment, offset))" not in builder
+    assert ".map((region) => shiftFloorplanRegion(region, offset))" not in builder
+    assert "scene.surface_overrides = (scene.surface_overrides || [])" in builder
+    assert "String(assignment.room_id || '') === String(room.id)" in builder
     assert "const layoutPosition = Number.isFinite(Number(current.xCm))" in builder
-    assert "? shiftScenePoint({ x: current.xCm, z: current.yCm }, offset)" in builder
+    assert "? { x: Number(current.xCm), z: Number(current.yCm) }" in builder
     assert "position_cm: layoutPosition" in builder
     assert "rotation_y_deg: layoutRotation" in builder
 

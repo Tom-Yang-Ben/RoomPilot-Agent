@@ -1,4 +1,10 @@
-# Kai AI 責任說明
+# Kai AI 責任與交接說明
+
+文件版本：2026-08-06。Kai 擁有正式 catalog、資產 manifest、PostgreSQL 資料交付、RAG metadata 與可追溯價格來源。
+
+## AI 快速結論
+
+家具 ID、尺寸、GLB／圖片 URL、啟用狀態、材質與價格來源只能以 Kai 正式資料為準。沒有價格來源的家具或裝潢工程只能標記「待報價」，任何 Agent、前端或成果包都不得猜金額。
 
 ## 任務
 
@@ -13,11 +19,10 @@
   -> 未匹配資料隔離
   -> PostgreSQL staging + UPSERT 正式表
   -> roompilot.furniture_catalog_current
-  -> roompilot.furniture_catalog_api_current
   -> Bella /api/furniture 與第 6 步
 ```
 
-正式 catalog 共 8,675 筆家具與 8,675 個 GLB，其中 8,076 筆為 active／RAG-indexable，透過 PostgreSQL API view 提供給正式 API／RAG；另有 599 筆 inactive 家具保留複核且不得進正式 API／RAG。SQL `styles` 只保存六個正式風格代碼，三視角圖片共 26,025 張。每筆 catalog 家具需提供 GLB 與 `front`、`side`、`angle-45` 圖片。JSON 來源只供 importer 與明確指定的離線開發模式，不得在正式 `postgres` 模式自動取代資料庫。
+2026-08-06 live runtime 由 `roompilot.furniture_catalog_current` 對外提供 7,958 筆家具；`/api/catalog/status` 驗證 7,958 個 GLB 與 23,874 張 `front`、`side`、`angle-45` 三視圖，`/api/rag/status` 驗證 7,958 筆 current BGE-M3 向量。`backend/server/postgres_catalog.py` 與 `backend/catalog/postgres_repository.py` 都讀這個 view；`furniture_catalog_api_current` 可能仍存在於歷史 schema，但不是目前 Python runtime 的讀取來源。舊文件中的 8,675／8,076／599 是歷史匯入批次，不得拿來宣稱目前 API／RAG ready。JSON 來源只供 importer 與明確指定的離線開發模式，不得在正式 `postgres` 模式自動取代資料庫。
 
 Phase 2 由 Kai 維護家具 SQL 寫入 transaction、taxonomy reference、啟用門檻與 `furniture_admin_audit`；Bella 的 FastAPI 只負責 Bearer 權限、request/response 驗證與路由接入。管理端只能軟刪除，不得用 CRUD 直接移除正式資料或讓家電進入公開家具 API。
 
@@ -27,7 +32,16 @@ Phase 4/5 的 design styles、style cards、surface、cost、quarantine 與 RAG 
 
 家電問卷資料不屬於第 6 步正式家具 catalog；它只作第 8 步生圖的需求上下文。
 
-家具向量資料依 `docs/contracts/POSTGRESQL_FURNITURE_EMBEDDINGS.md` 協作。Kai 維護來源 View、約束與 UPSERT 匯入器；目前正式批次是 8,076 筆 `BAAI/bge-m3`、1,024 維、cosine、L2-normalized 向量。SQL 欄位仍保留開放維度且尚未建立 HNSW；Django 負責文字、向量生成與檢索品質。
+## 八步流程中的位置
+
+- 第 5 步：提供可選家具、材質、風格與價格證據，不決定使用者需求。
+- 第 6 步：以 active／可交付 catalog 供搜尋、替換與 3D 模型載入；替換清單優先顯示 `image_url`／`thumbnail_url` 型錄照片，位置由 Ancai 驗證。
+- 第 7 步：提供色卡、材質與家具外觀證據；Yen 視角不得改 catalog 身分。
+- 第 8 步：把已選家具的 `price_twd`、`price_source` 與交付狀態帶入成果包；未知價格一律待報價。
+
+目標契約要求 `POST /api/projects/{project_id}/design-delivery` 只有在家具同時具有可信價格與 `price_source` 時才列參考小計。現行 builder 只檢查正數價格，尚未強制來源欄位；這是待修正的 consumer 驗證，不代表 Kai 可提供無來源價格。裝潢工程、未知家具與需現場丈量項目不估假總價；正式報價仍需丈量、材料確認與廠商報價。
+
+家具向量資料依 `docs/contracts/POSTGRESQL_FURNITURE_EMBEDDINGS.md` 協作。Kai 維護來源 View、約束與 UPSERT 匯入器；目前 live current 是 7,958 筆 `BAAI/bge-m3`、1,024 維、cosine、L2-normalized 向量。SQL 欄位仍保留開放維度且尚未建立 HNSW；Django 負責文字、向量生成與檢索品質。
 
 ## 修改前
 
@@ -44,7 +58,14 @@ Phase 4/5 的 design styles、style cards、surface、cost、quarantine 與 RAG 
 - Bella 維護 API 與 UI adapter；Kai 提供穩定資料契約。
 - 大型 GLB、產品圖片原檔留在 Git 之外。
 
-## 驗證
+## 禁止事項
+
+- 不讓 inactive、quarantine 或未匹配資料進正式 API、RAG、場景或成果包。
+- 不由 UI 或 LLM 改寫官方 `item_id`、尺寸、價格與 CloudFront URL。
+- 不把 JSON fallback 說成正式 PostgreSQL 已成功連線。
+- 不提交 AWS 金鑰、資料庫密碼、Bearer token 或真實使用者資料。
+
+## 最低驗證
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/sql/import_official_catalog_to_postgres.py --dry-run

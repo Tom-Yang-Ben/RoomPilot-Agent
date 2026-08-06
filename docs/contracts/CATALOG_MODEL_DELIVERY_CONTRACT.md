@@ -1,6 +1,6 @@
 # RoomPilot 家具模型交付契約
 
-最後更新：2026-07-31
+最後更新：2026-08-06
 
 本文件定義家具 metadata、雲端 GLB 與網站之間的模型交付規則。
 正式家具 GLB 由已驗證的 CloudFront Manifest 提供。
@@ -21,7 +21,7 @@ Manifest 位於：
 backend/catalog/data/manifests/glb_upload_all_result.csv
 ```
 
-正式 catalog／GLB 集合必須是官方 JSON 與四份 Manifest 完整共有的 8,675 個 ID；三視角圖片必須共有 26,025 筆。8,675 筆中只有 8,076 筆 active／RAG-indexable 家具可進正式 API／RAG，另 599 筆 inactive 家具只保留複核；
+現行 live delivery 集合由 `roompilot.furniture_catalog_current` 提供 7,958 個 ID；`/api/catalog/status` 已驗證 7,958 個 GLB 與 23,874 張三視角圖片。官方 JSON 與 Manifest 的舊 8,675／8,076／599 批次只保留為歷史匯入依據，不可越過 current view 進正式 API／RAG；
 每件家具的 `style_primary` 與 `style_secondary` 只能是六個正式代碼。
 正式 active 集合包含 118 筆 `floor-lamp`／落地燈，這 118 筆都必須具有 GLB、三視角圖片與 current BGE-M3 向量；其餘 674 筆非落地燈照明維持排除，不得與天花板燈或一般 `lamp` 類別混入。
 舊檔的家具列不得補官方 JSON、增加家具、改寫六風格或覆蓋 GLB／圖片
@@ -33,8 +33,9 @@ Agent 選件或 3D 場景，也不得猜測模型 URL。
 ## 交付規則
 
 - 預設模式是 `cloudfront`。
-- 網頁、Agent、RAG 與 3D 只能列出 8,076 筆 active 家具，不得把 599 筆 inactive 家具或其他集合載入正式 API 後再
+- 網頁、Agent、RAG 與 3D 只能列出 `roompilot.furniture_catalog_current` 的 7,958 筆家具，不得把歷史 inactive、quarantine 或其他集合載入正式 API 後再
   於前端隱藏多餘資料。
+- 第 6 步家具替換卡必須使用 catalog 的 `image_url`／`thumbnail_url`（或三視圖欄位）顯示實物照片；照片失效時顯示明確空狀態，不得用空白卡冒充已載入。
 - 只有 Manifest 中狀態已完成且具 HTTPS URL 的模型可被發布。
 - 對應順序是家具 ID、合併後模型優先 ID、唯一標準化英文品名。
 - 同名對應超過一筆時拒絕猜測。

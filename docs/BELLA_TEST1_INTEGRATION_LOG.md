@@ -1,21 +1,27 @@
-# Bella Test1 Integration Log
+# Bella Test1 整合歷史紀錄
 
-Last updated: 2026-07-27
-Branch: `bella-test1`
-Remote push status: not pushed
+# 文件狀態：歷史時間序紀錄
 
-Current catalog count note (2026-07-31): this file is a historical integration
-log. The current formal dataset is 8,675 catalog/GLB records, 26,025 images,
-8,076 active/API/RAG records, and 599 inactive review records. Older counts in
-dated entries below describe the state observed at that time and are not the
-current contract.
+不得把下方的舊條目當成現行架構。現行架構已於 2026-08-06 重新核對，請以
+`RoomPilot_現行版本總覽.md` 與
+`contracts/BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md` 為準。
+
+- 最後一筆歷史紀錄：2026-07-27
+- 分支：`bella-test1`
+- 當時遠端推送狀態：尚未推送
+
+現行資料覆寫（2026-08-06）：此檔是歷史整合紀錄。Live runtime 以
+`roompilot.furniture_catalog_current`、`/api/catalog/status` 與
+`/api/rag/status` 為準，目前為 7,958 件家具／GLB、23,874 張三視圖與
+7,958 筆 current BGE-M3 向量。下方 8,675／8,076／599 等數字只描述舊匯入
+批次，不是目前 API readiness。
 
 ## 2026-07-27 最新整合狀態
 
 - 此段記錄 2026-07-27 當時的 Kai PostgreSQL catalog 匯入與 API adapter；
-  現行正式數量以檔首的 2026-07-31 catalog count note 為準。
+  現行正式數量以檔首的 2026-08-06 live runtime 覆寫為準。
 - 第 6 步優先使用 PostgreSQL 的家具、CloudFront GLB 與三視角 PNG；
-  資料庫暫時不可用才回退到已驗證 JSON catalog。
+  現行 strict `postgres` 模式不可用時回 503；只有明確指定 `ROOMPILOT_CATALOG_PROVIDER=json` 的離線環境才使用已驗證 JSON。
 - 冰箱、洗衣機等家電保留為問卷與 `scene_json.render_context` 的生圖
   輔助資料，不再進入 2D/3D 自動配置或正式家具 API。
 - 增加 PostgreSQL 數值與風格欄位 adapter，避免 `Decimal` JSON 序列化及

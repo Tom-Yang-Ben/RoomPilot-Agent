@@ -1,15 +1,15 @@
 # PostgreSQL 家具向量契約
 
-更新日期：2026-07-31
+更新日期：2026-08-06
 
 ## 目前狀態
 
 - 正式來源：`JSON/furniture/furniture_official_catagory.json`
 - 正式向量來源：`JSON/RAG/furniture_embeddings_bge_m3.jsonl`
-- catalog 來源筆數：8,675；active／RAG-indexable 向量來源筆數：8,076；inactive：599
+- live current catalog／RAG-indexable 筆數：7,958；舊 8,675／8,076／599 僅為歷史匯入批次
 - 每筆都有可驗證的 `embedded_text` 與 SHA-256 `text_hash`
 - JSON 宣告目標：`BAAI/bge-m3`、1,024 維、cosine、normalized
-- `roompilot.furniture_embeddings` 的正式完整批次是 8,076 筆向量，全部連到目前 active 家具與 VLM annotation；599 筆 inactive 家具不得進向量表
+- `/api/rag/status` 驗證 `roompilot.furniture_embeddings` 有 7,958 筆 current 向量，全部必須連到目前 current 家具與 VLM annotation；inactive 家具不得進向量表
 - 118 筆 `floor-lamp` 均屬 active source，且都有 current BGE-M3 向量
 - 開發階段使用無固定維度的 `VECTOR`；尚不建立 HNSW index
 
@@ -50,7 +50,7 @@ RAG 不另外建立第二套資料表。正式向量必須透過本契約寫入�
   --require-all
 ```
 
-第二個指令會建立或更新 Schema，確認 SQL source view 的 8,076 筆 active／RAG-indexable 家具與 8,675 筆官方 JSON 中對應資料的文字及 hash 完全一致，再 UPSERT 8,076 筆正式數值向量。
+第二個指令會建立或更新 Schema，確認 SQL source view 的 current／RAG-indexable 家具與官方 JSON 中對應資料的文字及 hash 完全一致，再 UPSERT 完整 current 數值向量。2026-08-06 live 驗收值為 7,958 筆；匯入器仍須以當次 source view 為準，不能硬編碼筆數。
 
 ## RAG 向量交付格式
 

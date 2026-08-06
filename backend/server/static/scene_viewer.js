@@ -919,6 +919,8 @@ export function createSceneViewer(
     stableMaterial.userData.roompilotWholeHouseWall = true;
     stableMaterial.userData.roompilotImageSurface = Boolean(material.map);
     stableMaterial.userData.roompilotSurfaceUsage = "wall";
+    if (material.bumpMap && material.bumpMap !== material.map) material.bumpMap.dispose();
+    material.dispose();
     return stableMaterial;
   }
 
@@ -1344,12 +1346,34 @@ export function createSceneViewer(
     return material;
   }
 
-  function registerWall(wallMesh) {
+  function wallSurfaceSegment(segment) {
+    const startX = Number(segment?.start?.x);
+    const startZ = Number(segment?.start?.z);
+    const endX = Number(segment?.end?.x);
+    const endZ = Number(segment?.end?.z);
+    if (![startX, startZ, endX, endZ].every(Number.isFinite)) return null;
+    return {
+      start: { x: startX, z: startZ },
+      end: { x: endX, z: endZ },
+    };
+  }
+
+  function tagWallSurface(wallMesh, { segment = null, exteriorSideSign = 0 } = {}) {
+    const surfaceSegment = wallSurfaceSegment(segment);
+    if (surfaceSegment) {
+      wallMesh.userData.roompilotWallSegment = surfaceSegment;
+      wallMesh.userData.roompilotExteriorSideSign = Number(exteriorSideSign) || 0;
+    }
+    return wallMesh;
+  }
+
+  function registerWall(wallMesh, surfaceMetadata = {}) {
     wallMesh.castShadow = true;
     wallMesh.receiveShadow = true;
     wallMesh.userData.baseOpacity = 1;
     wallMesh.userData.fullPositionY = wallMesh.position.y;
     wallMesh.userData.fullScaleY = wallMesh.scale.y;
+    tagWallSurface(wallMesh, surfaceMetadata);
     wallMeshes.push(wallMesh);
     return wallMesh;
   }
@@ -1478,7 +1502,7 @@ export function createSceneViewer(
         bridge.castShadow = true;
         bridge.receiveShadow = true;
         bridge.userData.roompilotArchitecturalDetail = "confirmed-wall-junction-fill";
-        roomGroupRef.add(registerWall(bridge));
+        roomGroupRef.add(registerWall(bridge, { segment: bridgeSegment }));
         usedEndpoints.add(endpoint.key);
         usedEndpoints.add(neighbor.candidate.key);
       });
@@ -1564,7 +1588,7 @@ export function createSceneViewer(
           Number(start.z) + unitZ * center,
         );
         wallMesh.rotation.y = rotationY;
-        roomGroupRef.add(registerWall(wallMesh));
+        roomGroupRef.add(registerWall(wallMesh, { segment, exteriorSideSign }));
       };
 
       const addBaseboard = (from, to) => {
@@ -1586,7 +1610,7 @@ export function createSceneViewer(
         trim.castShadow = true;
         trim.receiveShadow = true;
         trim.userData.roompilotArchitecturalDetail = "baseboard";
-        roomGroupRef.add(trim);
+        roomGroupRef.add(tagWallSurface(trim, { segment, exteriorSideSign }));
       };
 
       let cursor = sectionMin;
@@ -1644,6 +1668,7 @@ export function createSceneViewer(
       topCap.rotation.y = rotationY;
       topCap.castShadow = true;
       topCap.receiveShadow = true;
+      tagWallSurface(topCap, { segment, exteriorSideSign });
       roomGroupRef.add(topCap);
     });
 
@@ -1736,7 +1761,7 @@ export function createSceneViewer(
         header.receiveShadow = true;
         header.userData.roompilotArchitecturalDetail = "door-header-wall";
         header.userData.roompilotArchitecturalId = id;
-        roomGroupRef.add(registerWall(header));
+        roomGroupRef.add(registerWall(header, { segment: { start, end } }));
       }
       buildOpeningAssembly(
         roomGroupRef,
@@ -1920,7 +1945,7 @@ export function createSceneViewer(
         );
         section.rotation.y = Math.atan2(-dz, dx);
         section.userData.roompilotArchitecturalDetail = detail;
-        roomGroupRef.add(registerWall(section));
+        roomGroupRef.add(registerWall(section, { segment: { start, end } }));
       };
       if (isWindow) {
         const frameAllowanceCm = 0.6;
@@ -2325,6 +2350,7 @@ export function createSceneViewer(
       surface.position.set(part.x, 0.6 + index * 0.1, part.z);
       surface.receiveShadow = true;
       surface.userData.roompilotMaterialZone = index + 1;
+      surface.userData.roompilotMaterialBoundaryRoomId = String(boundary.room_id || "");
       roomGroupRef.add(surface);
     });
   }
@@ -2336,60 +2362,21 @@ export function createSceneViewer(
       && point.z <= Number(bounds.maxZ) + padding;
   }
 
-  function createRoomSurfaceOverrides(roomGroupRef, sceneData) {
-    (sceneData.surface_overrides || []).forEach((override, index) => {
-      const bounds = override.room_bounds_cm;
-      if (!bounds) return;
-      const width = Number(bounds.maxX) - Number(bounds.minX);
-      const depth = Number(bounds.maxZ) - Number(bounds.minZ);
-      if (width < 2 || depth < 2) return;
-      const material = createFloorMaterial(
-        override.floor_option || "auto",
-        sceneData.surface_catalog,
-        { widthCm: width, depthCm: depth },
-      );
-      applySurfaceTint(material, override.floor_color_hex);
-      const polygon = override.room_polygon_cm || [];
-      let geometry;
-      if (polygon.length >= 3) {
-        const shape = new THREE.Shape();
-        polygon.forEach((point, pointIndex) => {
-          const x = Number(point.x);
-          const y = -Number(point.z);
-          if (pointIndex === 0) shape.moveTo(x, y);
-          else shape.lineTo(x, y);
-        });
-        shape.closePath();
-        geometry = new THREE.ShapeGeometry(shape);
-      } else {
-        geometry = new THREE.PlaneGeometry(width, depth);
-      }
-      const surface = new THREE.Mesh(geometry, material);
-      surface.rotation.x = -Math.PI / 2;
-      surface.position.y = 0.4 + index * 0.1;
-      if (polygon.length < 3) {
-        surface.position.x = (Number(bounds.minX) + Number(bounds.maxX)) / 2;
-        surface.position.z = (Number(bounds.minZ) + Number(bounds.maxZ)) / 2;
-      }
-      surface.receiveShadow = true;
-      surface.userData.roompilotSurfaceOverride = override.room_id;
-      roomGroupRef.add(surface);
-    });
-  }
-
-  function createRoomCeilingOverrides(sceneData, wallHeight) {
-    const dropByStyle = {
-      flat: 12,
-      cove: 18,
-      floating: 20,
-      linear: 14,
-      "no-main-light": 12,
-      "wood-grid": 16,
-    };
-    (sceneData.surface_overrides || []).forEach((override, index) => {
-      const styleId = override.ceiling_style_id || "exposed";
-      const polygon = override.room_polygon_cm || [];
-      if (styleId === "exposed" || polygon.length < 3) return;
+  function createRoomSurfaceOverrideMesh(sceneData, override, index = 0) {
+    const bounds = override?.room_bounds_cm;
+    if (!bounds) return null;
+    const width = Number(bounds.maxX) - Number(bounds.minX);
+    const depth = Number(bounds.maxZ) - Number(bounds.minZ);
+    if (width < 2 || depth < 2) return null;
+    const material = createFloorMaterial(
+      override.floor_option || "auto",
+      sceneData.surface_catalog,
+      { widthCm: width, depthCm: depth },
+    );
+    applySurfaceTint(material, override.floor_color_hex);
+    const polygon = override.room_polygon_cm || [];
+    let geometry;
+    if (polygon.length >= 3) {
       const shape = new THREE.Shape();
       polygon.forEach((point, pointIndex) => {
         const x = Number(point.x);
@@ -2398,22 +2385,135 @@ export function createSceneViewer(
         else shape.lineTo(x, y);
       });
       shape.closePath();
+      geometry = new THREE.ShapeGeometry(shape);
+    } else {
+      geometry = new THREE.PlaneGeometry(width, depth);
+    }
+    const surface = new THREE.Mesh(geometry, material);
+    surface.rotation.x = -Math.PI / 2;
+    surface.position.y = 0.4 + index * 0.1;
+    if (polygon.length < 3) {
+      surface.position.x = (Number(bounds.minX) + Number(bounds.maxX)) / 2;
+      surface.position.z = (Number(bounds.minZ) + Number(bounds.maxZ)) / 2;
+    }
+    surface.receiveShadow = true;
+    surface.userData.roompilotSurfaceOverride = String(override.room_id || "");
+    surface.userData.roompilotSurfaceOverrideIndex = index;
+    return surface;
+  }
+
+  function createRoomSurfaceOverrides(roomGroupRef, sceneData) {
+    (sceneData.surface_overrides || []).forEach((override, index) => {
+      const surface = createRoomSurfaceOverrideMesh(sceneData, override, index);
+      if (surface) roomGroupRef.add(surface);
+    });
+  }
+
+  function questionnaireCeilingPreviewColor(sceneData, overrides = []) {
+    const candidates = [
+      sceneData.design_choices?.ceiling_color_hex,
+      sceneData.questionnaire?.ceiling_color_hex,
+      sceneData.style_card?.ceiling?.color,
+      sceneData.style_card?.wall?.color,
+      sceneData.style_card?.palette_hex?.[0],
+      sceneData.style_card?.palette?.[0],
+      overrides.find((override) => override.ceiling_color_hex)?.ceiling_color_hex,
+      "#f4f1eb",
+    ];
+    const preferredColor = candidates.find((value) => (
+      /^#[0-9a-f]{6}$/i.test(String(value || "").trim())
+    )) || "#f4f1eb";
+    const previewColor = new THREE.Color(preferredColor);
+    const hsl = { h: 0, s: 0, l: 0 };
+    previewColor.getHSL(hsl);
+    previewColor.setHSL(hsl.h, Math.min(hsl.s, 0.18), Math.max(hsl.l, 0.88));
+    return previewColor;
+  }
+
+  function roomCeilingRegions(sceneData) {
+    const canonicalOverrides = new Map();
+    (sceneData.surface_overrides || []).forEach((override) => {
+      const roomId = String(override?.room_id || "").trim();
+      if (roomId) canonicalOverrides.set(roomId, override);
+    });
+    const regions = [];
+    const includedRoomIds = new Set();
+    const confirmedRegions = [
+      ...(sceneData.floorplan?.room_regions || []),
+      ...(sceneData.floorplan?.rooms || []),
+    ];
+    confirmedRegions.forEach((region, index) => {
+      const roomId = String(region?.room_id || region?.id || `room-${index + 1}`).trim();
+      if (!roomId || includedRoomIds.has(roomId)) return;
+      const override = canonicalOverrides.get(roomId) || {};
+      const overridePolygon = override.room_polygon_cm || [];
+      const confirmedPolygon = region.exterior || region.polygon_cm || region.polygon_m || [];
+      const polygon = overridePolygon.length >= 3 ? overridePolygon : confirmedPolygon;
+      if (polygon.length < 3) return;
+      regions.push({ ...override, room_id: roomId, room_polygon_cm: polygon });
+      includedRoomIds.add(roomId);
+    });
+    canonicalOverrides.forEach((override, roomId) => {
+      if (includedRoomIds.has(roomId) || (override.room_polygon_cm || []).length < 3) return;
+      regions.push(override);
+    });
+    return regions;
+  }
+
+  function createRoomCeilingOverrides(sceneData, wallHeight) {
+    const overrides = roomCeilingRegions(sceneData);
+    const requestedDropCm = Number(sceneData.design_choices?.ceiling_drop_cm);
+    const unifiedDropCm = THREE.MathUtils.clamp(
+      Number.isFinite(requestedDropCm) && requestedDropCm > 0 ? requestedDropCm : 10,
+      6,
+      24,
+    );
+    const previewHeight = wallHeight - unifiedDropCm;
+    const previewColor = questionnaireCeilingPreviewColor(sceneData, overrides);
+    const questionnaireStyle = sceneData.design_choices?.ceiling_style
+      || sceneData.questionnaire?.ceiling_style
+      || "flat";
+    const sharedFallbackNote = "3D 預覽以全屋同高的淺色天花覆蓋層呈現；最終生圖會依問卷保留各房間的天花風格。";
+    let usesFallbackPreview = false;
+    overrides.forEach((override) => {
+      const styleId = override.ceiling_style_id || questionnaireStyle;
+      const polygon = override.room_polygon_cm || [];
+      if (polygon.length < 3) return;
+      const shape = new THREE.Shape();
+      polygon.forEach((point, pointIndex) => {
+        const coordinates = ringPointCoordinates(point);
+        if (!coordinates) return;
+        if (pointIndex === 0) shape.moveTo(coordinates.x, -coordinates.z);
+        else shape.lineTo(coordinates.x, -coordinates.z);
+      });
+      shape.closePath();
       const material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(override.ceiling_color_hex || "#f4f1eb"),
-        roughness: override.ceiling_material_id === "wood-veneer" ? 0.72 : 0.9,
-        metalness: styleId === "linear" ? 0.12 : 0,
+        color: previewColor.clone(),
+        roughness: 0.92,
+        metalness: 0,
         side: THREE.DoubleSide,
       });
       const panel = new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
       panel.rotation.x = Math.PI / 2;
-      panel.position.y = wallHeight - (dropByStyle[styleId] || 12) - index * 0.05;
+      panel.position.y = previewHeight;
       panel.receiveShadow = true;
       panel.userData.roompilotCeilingOverride = override.room_id;
+      panel.userData.roompilotCeilingPreviewMode = "questionnaire-unified-cover";
       panel.userData.ceilingStyle = styleId;
+      panel.userData.ceilingRequestedStyle = styleId;
       panel.userData.ceilingMaterial = override.ceiling_material_id || "flat-paint";
       panel.userData.lightingId = override.lighting_id || "";
+      const fallbackNote = styleId === "flat" ? "" : sharedFallbackNote;
+      panel.userData.ceilingPreviewFallbackNote = fallbackNote;
+      usesFallbackPreview ||= Boolean(fallbackNote);
       ceilingGroup.add(panel);
     });
+    ceilingGroup.userData.roompilotCeilingPreviewHeightCm = previewHeight;
+    ceilingGroup.userData.roompilotCeilingPreviewColor = `#${previewColor.getHexString()}`;
+    ceilingGroup.userData.roompilotCeilingPreviewNote = usesFallbackPreview
+      ? sharedFallbackNote
+      : "";
+    container.dataset.roompilotCeilingPreviewNote = ceilingGroup.userData.roompilotCeilingPreviewNote;
   }
 
   function wallMaterialResolver(sceneData, defaultMaterial) {
@@ -2467,14 +2567,19 @@ export function createSceneViewer(
       const nearestZ = THREE.MathUtils.clamp(point.z, Number(bounds.minZ), Number(bounds.maxZ));
       return Math.hypot(point.x - nearestX, point.z - nearestZ);
     };
-    function roomOverrideForInteriorPoint(point) {
+    function roomOverrideForInteriorPoint(point, { allowBoundaryFallback = true } = {}) {
       const exact = roomOverrides.filter((item) => {
         const polygon = item.room_polygon_cm || [];
         return polygon.length >= 3
           ? ringContainsPoint(point, polygon)
-          : (item.room_bounds_cm && pointInBounds(point, item.room_bounds_cm, 18));
+          : (item.room_bounds_cm && pointInBounds(point, item.room_bounds_cm));
       });
-      if (exact.length) return exact[0];
+      if (exact.length) {
+        return exact
+          .map((item) => ({ item, depth: distanceToRoomBoundary(point, item) }))
+          .sort((left, right) => right.depth - left.depth)[0].item;
+      }
+      if (!allowBoundaryFallback) return null;
 
       // A wall face lies exactly on the room boundary.  Imperfect OCR polygons
       // can leave a few centimetres of drift, so retain the closest room rather
@@ -2514,7 +2619,7 @@ export function createSceneViewer(
       };
       return materialForOverride(roomOverrideForInteriorPoint(midpoint));
     };
-    resolveWallMaterial.faceMaterials = (segment, exteriorSideSign = 1) => {
+    resolveWallMaterial.faceMaterials = (segment, exteriorSideSign = 0) => {
       const start = segment.start || {};
       const end = segment.end || {};
       const dx = Number(end.x || 0) - Number(start.x || 0);
@@ -2526,11 +2631,62 @@ export function createSceneViewer(
         z: (Number(start.z || 0) + Number(end.z || 0)) / 2,
       };
       const normal = { x: -dz / length, z: dx / length };
+      const sampleForSide = (side, distance = 16) => ({
+        x: midpoint.x + normal.x * side * distance,
+        z: midpoint.z + normal.z * side * distance,
+      });
+      const roomOverrideForWallSide = (side) => {
+        for (const distance of [12, 20, 28]) {
+          const exact = roomOverrideForInteriorPoint(
+            sampleForSide(side, distance),
+            { allowBoundaryFallback: false },
+          );
+          if (exact) return exact;
+        }
+        const adjacent = roomOverrides
+          .map((item) => {
+            const polygon = item.room_polygon_cm || [];
+            const points = polygon.map(ringPointCoordinates).filter(Boolean);
+            const bounds = item.room_bounds_cm;
+            const center = points.length
+              ? {
+                x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+                z: points.reduce((sum, point) => sum + point.z, 0) / points.length,
+              }
+              : (bounds ? {
+                x: (Number(bounds.minX) + Number(bounds.maxX)) / 2,
+                z: (Number(bounds.minZ) + Number(bounds.maxZ)) / 2,
+              } : null);
+            const signedSideDistance = center
+              ? ((center.x - midpoint.x) * normal.x + (center.z - midpoint.z) * normal.z) * side
+              : -Infinity;
+            return {
+              item,
+              boundaryDistance: distanceToRoomBoundary(midpoint, item),
+              signedSideDistance,
+            };
+          })
+          .filter((candidate) => (
+            candidate.signedSideDistance > 0
+              && candidate.boundaryDistance <= 28
+          ))
+          .sort((left, right) => left.boundaryDistance - right.boundaryDistance);
+        return adjacent[0]?.item || null;
+      };
+      const positiveRoom = roomOverrideForWallSide(1);
+      const negativeRoom = roomOverrideForWallSide(-1);
+      const sideContainsConfirmedRoom = (side) => [12, 20, 28].some((distance) => (
+        pointInsideAnyFloorplanRoom(sampleForSide(side, distance), sceneData.floorplan)
+      ));
+      const positiveContainsRoom = Boolean(positiveRoom)
+        || sideContainsConfirmedRoom(1);
+      const negativeContainsRoom = Boolean(negativeRoom)
+        || sideContainsConfirmedRoom(-1);
       const materialForSide = (side) => {
-        const sample = {
-          x: midpoint.x + normal.x * side * 16,
-          z: midpoint.z + normal.z * side * 16,
-        };
+        const roomForSide = side > 0 ? positiveRoom : negativeRoom;
+        if (roomForSide) return materialForOverride(roomForSide);
+        if (sideContainsConfirmedRoom(side)) return defaultMaterial;
+        const sample = sampleForSide(side);
         return materialForOverride(roomOverrideForInteriorPoint(sample));
       };
       let positiveSide = materialForSide(1);
@@ -2540,8 +2696,12 @@ export function createSceneViewer(
       // instead of silently reverting to the generic wall material.
       if (exteriorSideSign) {
         const adjacentInteriorMaterial = materialForSide(-exteriorSideSign);
-        if (exteriorSideSign > 0) positiveSide = adjacentInteriorMaterial;
-        else negativeSide = adjacentInteriorMaterial;
+        if (exteriorSideSign > 0 && !positiveContainsRoom && negativeContainsRoom) {
+          positiveSide = adjacentInteriorMaterial;
+        }
+        if (exteriorSideSign < 0 && !negativeContainsRoom && positiveContainsRoom) {
+          negativeSide = adjacentInteriorMaterial;
+        }
       }
       const interior = resolveWallMaterial(segment);
       // BoxGeometry uses material slots 0 and 1 for the two wall end caps.
@@ -2555,7 +2715,24 @@ export function createSceneViewer(
       ];
       return materials;
     };
+    resolveWallMaterial.forRoomId = (roomId) => {
+      const override = canonicalOverrides.get(String(roomId || "").trim());
+      return override ? materialForOverride(override) : null;
+    };
+    resolveWallMaterial.cachedMaterials = cache;
     return resolveWallMaterial;
+  }
+
+  function createSceneWallMaterial(sceneData) {
+    const wallOption = sceneData.design_choices?.wall_option || "auto";
+    const material = createWallMaterial(wallOption, sceneData.surface_catalog);
+    const wallPbr = sceneData.style?.pbr?.wall || {};
+    const wallColor = sceneData.design_choices?.wall_color_hex
+      || sceneData.style_card?.palette_hex?.[0];
+    applySurfaceTint(material, wallColor);
+    if (wallPbr.roughness != null) material.roughness = wallPbr.roughness;
+    if (wallPbr.metalness != null) material.metalness = wallPbr.metalness;
+    return material;
   }
 
   function wallSegmentPoint(segment, key) {
@@ -2681,7 +2858,7 @@ export function createSceneViewer(
         x: midpoint.x - normal.x * offset,
         z: midpoint.z - normal.z * offset,
       }, floorplan);
-      if (leftInside !== rightInside) return true;
+      if (leftInside || rightInside) return leftInside !== rightInside;
     }
     const bounds = wallSegmentBounds(floorplan);
     if (!bounds) return false;
@@ -2876,6 +3053,7 @@ export function createSceneViewer(
     clearGroup(ceilingGroup);
     clearGroup(hangingLightGroup);
     wallMeshes.length = 0;
+    delete container.dataset.roompilotCeilingPreviewNote;
     const catalogThumbnailMode = sceneData.design_choices?.catalog_thumbnail_mode === true;
 
     const widthCm = Math.max(sceneData.floorplan.width_cm, 240);
@@ -2905,6 +3083,7 @@ export function createSceneViewer(
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = 0;
     floor.receiveShadow = true;
+    floor.userData.roompilotBaseFloor = true;
     if (!catalogThumbnailMode) roomGroup.add(floor);
     const presentationGround = new THREE.Mesh(
       new THREE.CircleGeometry(Math.max(widthCm, depthCm) * 1.15, 96),
@@ -2968,11 +3147,9 @@ export function createSceneViewer(
 
     const ceilingDropCm = Number(sceneData.design_choices?.ceiling_drop_cm) || 0;
     const ceilingHeight = wallHeight - ceilingDropCm;
-    const hasRoomCeilings = (sceneData.surface_overrides || []).some(
-      (override) => override.ceiling_style_id && override.ceiling_style_id !== "exposed",
-    );
+    const hasRoomCeilingRegions = roomCeilingRegions(sceneData).length > 0;
     if (!catalogThumbnailMode) {
-      if (hasRoomCeilings) {
+      if (hasRoomCeilingRegions) {
         createRoomCeilingOverrides(sceneData, wallHeight);
       } else {
         createCeilingGeometry(
@@ -3042,15 +3219,30 @@ export function createSceneViewer(
     } else {
       const backWall = new THREE.Mesh(new THREE.BoxGeometry(widthCm, wallHeight, wallThickness), wallMaterial.clone());
       backWall.position.set(0, wallHeight / 2, -depthCm / 2);
-      roomGroup.add(registerWall(backWall));
+      roomGroup.add(registerWall(backWall, {
+        segment: {
+          start: { x: -widthCm / 2, z: -depthCm / 2 },
+          end: { x: widthCm / 2, z: -depthCm / 2 },
+        },
+      }));
 
       const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, depthCm), wallMaterial.clone());
       leftWall.position.set(-widthCm / 2, wallHeight / 2, 0);
-      roomGroup.add(registerWall(leftWall));
+      roomGroup.add(registerWall(leftWall, {
+        segment: {
+          start: { x: -widthCm / 2, z: depthCm / 2 },
+          end: { x: -widthCm / 2, z: -depthCm / 2 },
+        },
+      }));
 
       const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, wallHeight, depthCm), wallMaterial.clone());
       rightWall.position.set(widthCm / 2, wallHeight / 2, 0);
-      roomGroup.add(registerWall(rightWall));
+      roomGroup.add(registerWall(rightWall, {
+        segment: {
+          start: { x: widthCm / 2, z: -depthCm / 2 },
+          end: { x: widthCm / 2, z: depthCm / 2 },
+        },
+      }));
     }
 
     // Keep a DOM-visible diagnostic for project-page verification. It measures
@@ -3265,6 +3457,8 @@ export function createSceneViewer(
     const palette = style.palette_hex || ["#F3EBDD", "#D3B48A", "#8B684B"];
     const lightColor = new THREE.Color(palette[1] || "#D3B48A");
     const positions = room.widthCm >= 480 ? [-90, 0, 90] : [-62, 62];
+
+    if (["none", "no-main-light"].includes(lightStyle)) return;
 
     if (lightStyle === "track") {
       const rail = new THREE.Mesh(
@@ -4074,6 +4268,265 @@ export function createSceneViewer(
     }
     furnitureGroup.add(wrapper);
     return wrapper;
+  }
+
+  const surfaceTextureKeys = [
+    "map", "normalMap", "roughnessMap", "metalnessMap",
+    "bumpMap", "alphaMap", "aoMap", "emissiveMap",
+  ];
+
+  function disposeUnusedMaterials(materials) {
+    const activeMaterials = new Set();
+    const activeTextures = new Set();
+    scene.traverse((object) => {
+      const objectMaterials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+      objectMaterials.filter(Boolean).forEach((material) => {
+        activeMaterials.add(material);
+        surfaceTextureKeys.forEach((key) => {
+          if (material[key]) activeTextures.add(material[key]);
+        });
+      });
+    });
+
+    const disposedMaterials = new Set();
+    const disposedTextures = new Set();
+    materials.filter(Boolean).forEach((material) => {
+      if (activeMaterials.has(material) || disposedMaterials.has(material)) return;
+      surfaceTextureKeys.forEach((key) => {
+        const texture = material[key];
+        if (!texture || activeTextures.has(texture) || disposedTextures.has(texture)) return;
+        texture.dispose?.();
+        disposedTextures.add(texture);
+      });
+      material.dispose?.();
+      disposedMaterials.add(material);
+    });
+  }
+
+  function removeSurfaceMesh(mesh, discardedMaterials) {
+    roomGroup.remove(mesh);
+    mesh.geometry?.dispose?.();
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    discardedMaterials.push(...materials.filter(Boolean));
+  }
+
+  function canonicalRoomSurfaceOverrides(sceneData) {
+    const canonical = new Map();
+    (sceneData.surface_overrides || []).forEach((override, index) => {
+      const roomId = String(override?.room_id || "").trim();
+      if (roomId) canonical.set(roomId, { override, index });
+    });
+    return canonical;
+  }
+
+  function matchingRoomBounds(left, right, tolerance = 1) {
+    if (!left || !right) return false;
+    return ["minX", "maxX", "minZ", "maxZ"].every((key) => (
+      Math.abs(Number(left[key]) - Number(right[key])) <= tolerance
+    ));
+  }
+
+  function materialBoundaryTargetsRoom(sceneData, roomId) {
+    const boundary = sceneData?.material_boundary;
+    if (!boundary || !roomId) return false;
+    const explicitRoomId = String(boundary.room_id || "").trim();
+    if (explicitRoomId) return explicitRoomId === roomId;
+    const roomOverride = canonicalRoomSurfaceOverrides(sceneData).get(roomId)?.override;
+    return matchingRoomBounds(boundary.room_bounds_cm, roomOverride?.room_bounds_cm);
+  }
+
+function updateRoomSurfaces(sceneData, roomId = "") {
+    if (!lastSceneData || !sceneData || typeof sceneData !== "object") return false;
+
+    const normalizedSceneData = Array.isArray(sceneData.surface_overrides)
+      ? sceneData
+      : { ...sceneData, surface_overrides: [] };
+    const targetRoomId = String(roomId || "").trim();
+    const previousWorldSceneData = lastWorldSceneData;
+    lastSceneData = normalizedSceneData;
+    lastWorldSceneData = sceneDataForWorld(normalizedSceneData);
+    const worldSceneData = lastWorldSceneData;
+    const discardedMaterials = [];
+    const canonicalOverrides = canonicalRoomSurfaceOverrides(worldSceneData);
+
+    const defaultWallMaterial = createSceneWallMaterial(worldSceneData);
+    const resolveWallMaterial = wallMaterialResolver(worldSceneData, defaultWallMaterial);
+    const materialRoomId = (material) => String(
+      material?.userData?.roompilotWallSurfaceId || "",
+    ).trim();
+
+    const wallSurfaceMeshes = new Set(wallMeshes);
+    roomGroup.traverse((object) => {
+      if (object.isMesh && object.userData.roompilotWallSegment) {
+        wallSurfaceMeshes.add(object);
+      }
+    });
+    wallSurfaceMeshes.forEach((wall) => {
+      const oldWasArray = Array.isArray(wall.material);
+      const oldMaterials = oldWasArray ? wall.material : [wall.material];
+      const segment = wall.userData.roompilotWallSegment;
+      let nextMaterial = null;
+
+      if (segment) {
+        nextMaterial = resolveWallMaterial.faceMaterials?.(
+          segment,
+          Number(wall.userData.roompilotExteriorSideSign) || 0,
+        ) || resolveWallMaterial(segment)?.clone?.();
+      } else if (oldWasArray) {
+        nextMaterial = oldMaterials.map((material) => (
+          resolveWallMaterial.forRoomId(materialRoomId(material))?.clone()
+            || defaultWallMaterial.clone()
+        ));
+      } else if (canonicalOverrides.size === 1) {
+        const onlyRoomId = canonicalOverrides.keys().next().value;
+        nextMaterial = resolveWallMaterial.forRoomId(onlyRoomId)?.clone()
+          || defaultWallMaterial.clone();
+      } else if (!targetRoomId) {
+        nextMaterial = defaultWallMaterial.clone();
+      }
+
+      if (!nextMaterial) return;
+      let nextMaterials = Array.isArray(nextMaterial) ? nextMaterial : [nextMaterial];
+      if (
+        targetRoomId
+        && canonicalOverrides.size === 1
+        && canonicalOverrides.has(targetRoomId)
+        && !nextMaterials.some((material) => materialRoomId(material) === targetRoomId)
+      ) {
+        discardedMaterials.push(...nextMaterials);
+        const roomMaterial = resolveWallMaterial.forRoomId(targetRoomId);
+        nextMaterials = oldWasArray
+          ? oldMaterials.map(() => roomMaterial.clone())
+          : [roomMaterial.clone()];
+      }
+
+      if (!targetRoomId) {
+        discardedMaterials.push(...oldMaterials);
+        wall.material = Array.isArray(nextMaterial) ? nextMaterials : nextMaterials[0];
+      } else if (oldWasArray) {
+        const replacements = oldMaterials.map((oldMaterial, index) => {
+          const candidate = nextMaterials[index] || nextMaterials[0];
+          const belongsToTarget = materialRoomId(oldMaterial) === targetRoomId
+            || materialRoomId(candidate) === targetRoomId;
+          if (belongsToTarget) {
+            discardedMaterials.push(oldMaterial);
+            return candidate;
+          }
+          discardedMaterials.push(candidate);
+          return oldMaterial;
+        });
+        discardedMaterials.push(...nextMaterials.slice(oldMaterials.length));
+        wall.material = replacements;
+      } else if (nextMaterials.length > 1) {
+        const hasTargetFace = nextMaterials.some(
+          (material) => materialRoomId(material) === targetRoomId,
+        );
+        if (hasTargetFace) {
+          wall.material = nextMaterials.map((material) => {
+            if (materialRoomId(material) === targetRoomId) return material;
+            discardedMaterials.push(material);
+            return oldMaterials[0].clone();
+          });
+          discardedMaterials.push(oldMaterials[0]);
+        } else {
+          discardedMaterials.push(...nextMaterials);
+        }
+      } else {
+        const candidate = nextMaterials[0];
+        const belongsToTarget = materialRoomId(oldMaterials[0]) === targetRoomId
+          || materialRoomId(candidate) === targetRoomId
+          || (canonicalOverrides.size === 1 && canonicalOverrides.has(targetRoomId));
+        if (belongsToTarget) {
+          discardedMaterials.push(oldMaterials[0]);
+          wall.material = candidate;
+        } else {
+          discardedMaterials.push(candidate);
+        }
+      }
+
+      const activeWallMaterials = Array.isArray(wall.material) ? wall.material : [wall.material];
+      activeWallMaterials.filter(Boolean).forEach((material) => {
+        material.needsUpdate = true;
+      });
+    });
+    discardedMaterials.push(defaultWallMaterial, ...resolveWallMaterial.cachedMaterials.values());
+
+    const floorMeshes = roomGroup.children.filter((child) => (
+      Object.prototype.hasOwnProperty.call(child.userData, "roompilotSurfaceOverride")
+        && (!targetRoomId || child.userData.roompilotSurfaceOverride === targetRoomId)
+    ));
+    floorMeshes.forEach((mesh) => removeSurfaceMesh(mesh, discardedMaterials));
+    if (targetRoomId) {
+      const entry = canonicalOverrides.get(targetRoomId);
+      const surface = entry
+        ? createRoomSurfaceOverrideMesh(worldSceneData, entry.override, entry.index)
+        : null;
+      if (surface) roomGroup.add(surface);
+    } else {
+      canonicalOverrides.forEach(({ override, index }) => {
+        const surface = createRoomSurfaceOverrideMesh(worldSceneData, override, index);
+        if (surface) roomGroup.add(surface);
+      });
+    }
+
+    const baseFloor = roomGroup.children.find((child) => child.userData.roompilotBaseFloor === true);
+    if (!targetRoomId && baseFloor) {
+      const roomSize = roomGroup.userData.roomSize || {};
+      const nextBaseFloorMaterial = createFloorMaterial(
+        worldSceneData.design_choices?.floor_option || "auto",
+        worldSceneData.surface_catalog,
+        roomSize,
+      );
+      applySurfaceTint(
+        nextBaseFloorMaterial,
+        worldSceneData.design_choices?.floor_color_hex
+          || worldSceneData.style_card?.palette_hex?.[1],
+      );
+      const floorPbr = worldSceneData.style?.pbr?.floor || {};
+      if (floorPbr.roughness != null) nextBaseFloorMaterial.roughness = floorPbr.roughness;
+      if (floorPbr.metalness != null) nextBaseFloorMaterial.metalness = floorPbr.metalness;
+      discardedMaterials.push(baseFloor.material);
+      baseFloor.material = nextBaseFloorMaterial;
+    }
+
+    const refreshBoundary = !targetRoomId
+      || materialBoundaryTargetsRoom(previousWorldSceneData, targetRoomId)
+      || materialBoundaryTargetsRoom(worldSceneData, targetRoomId);
+    if (refreshBoundary) {
+      roomGroup.children
+        .filter((child) => child.userData.roompilotMaterialZone)
+        .forEach((mesh) => removeSurfaceMesh(mesh, discardedMaterials));
+      const nextBoundaryTargetsRoom = !targetRoomId
+        || materialBoundaryTargetsRoom(worldSceneData, targetRoomId);
+      if (worldSceneData.material_boundary && nextBoundaryTargetsRoom) {
+        const fallbackFloorMaterial = baseFloor?.material || createFloorMaterial(
+          worldSceneData.design_choices?.floor_option || "auto",
+          worldSceneData.surface_catalog,
+          roomGroup.userData.roomSize || {},
+        );
+        createMaterialBoundarySurfaces(
+          roomGroup,
+          worldSceneData.material_boundary,
+          fallbackFloorMaterial,
+          worldSceneData,
+        );
+        if (!baseFloor) discardedMaterials.push(fallbackFloorMaterial);
+      }
+    }
+
+    const sceneObjectsById = new Map((normalizedSceneData.scene_objects || []).map((item) => (
+      [String(item.furniture_id || ""), item]
+    )));
+    furnitureGroup.children.forEach((wrapper) => {
+      const currentItem = wrapper.userData.sceneObject;
+      const nextItem = sceneObjectsById.get(String(currentItem?.furniture_id || ""));
+      if (nextItem) wrapper.userData.sceneObject = nextItem;
+    });
+
+    disposeUnusedMaterials(discardedMaterials);
+    return true;
   }
 
   async function loadScene(sceneData) {
@@ -5709,6 +6162,7 @@ export function createSceneViewer(
 
   return {
     loadScene,
+    updateRoomSurfaces,
     resetCamera,
     setCameraPreset,
     setViewMode,

@@ -11,6 +11,20 @@ from test_scene_workflow import ROOT, run_workflow_script
 STATIC = ROOT / "backend" / "server" / "static"
 
 
+def _javascript_function(source: str, name: str) -> str:
+    match = re.search(
+        rf"(?m)^(?:async\s+)?function\s+{re.escape(name)}\s*\(",
+        source,
+    )
+    assert match is not None, f"missing JavaScript function: {name}"
+    next_match = re.search(
+        r"(?m)^(?:async\s+)?function\s+",
+        source[match.end() :],
+    )
+    end = match.end() + next_match.start() if next_match else len(source)
+    return source[match.start() : end]
+
+
 def _space_heading_html(html: str) -> str:
     heading_start = html.index('class="rp-pane-heading"', html.index('id="space-step"'))
     stage_start = html.index('id="space-plan-stage"')
@@ -193,7 +207,7 @@ def test_room_questionnaire_recommends_exact_surface_catalog_records() -> None:
     assert 'api("/api/scene/bootstrap")' in source
 
 
-def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions() -> None:
+def test_room_surfaces_preserve_explicit_room_wall_and_floor_overrides() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "const INDEPENDENT_FLOOR_ROOM_TYPES" in source
@@ -210,8 +224,18 @@ def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions()
     assert "trimAccentWallSurfaces" in source
     assert "wallSurfaceIds: []" in source
     assert "wallOverrides: {}" in source
-    assert "if (!roomAllowsIndependentFloor(room) && mainFloor)" in source
-    assert "if (mainWall && !roomKeepsExplicitWallOverride(room, next))" in source
+    keeps_override = source.split("function roomKeepsExplicitWallOverride", 1)[1].split(
+        "function normalizedRoomSurfaces", 1
+    )[0]
+    assert "roomAllowsIndependentFloor" not in keeps_override
+    assert "surfaces.wallOverrideExplicit === true" in keeps_override
+    assert "if (mainFloor && !next.floor?.materialId && !next.floor?.color)" in source
+    assert "if (mainWall && !next.wallDefault?.materialId && !next.wallDefault?.color)" in source
+    saved_normalizer = source.split("function normalizeSavedSceneWallSurfaces", 1)[1].split(
+        "function stableStringNumber", 1
+    )[0]
+    assert "override.wall_option =" not in saved_normalizer
+    assert "override.wall_color_hex =" not in saved_normalizer
     assert "const restoredWallSurfaceRepairs" in source
     assert "const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {})" in source
     assert "const surfaces = normalizedRoomSurfaces(room, rawSurfaces || {})" in source
@@ -312,7 +336,8 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'id="questionnaire-furniture-preference-tags"' in html
     assert 'data-open-questionnaire-furniture-catalog=""' in html
     assert "QUESTIONNAIRE_FURNITURE_PREFERENCE_TAGS" in source
-    assert 'model_load_verification: "deferred"' in source
+    assert "function verifiedQuestionnaireCatalogOffers" in source
+    assert 'model_load_verification: "verified"' in source
     assert ".rp-questionnaire-furniture-options" in css
     assert ".rp-questionnaire-room-usage-options" in css
     assert "第 5 步採用純文字家具清單" in css
@@ -372,6 +397,18 @@ def test_step_six_uses_rag_only_as_a_same_type_questionnaire_substitution() -> N
     assert "selection ? specsFromSelectionResponse(room, selection, specs) : specs" in auto_layout
     assert "recommendCompanionFurniture(" not in auto_layout
     assert "String(item.room_id) === String(room.id)" in source
+
+
+def test_user_confirmed_catalog_furniture_is_not_replaced_by_agent_selection() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    selection = source.split("function specsFromSelectionResponse", 1)[1].split(
+        "function specsAllowedByRoomFeasibility", 1
+    )[0]
+
+    assert "catalogItem?.user_selected === true" in selection
+    assert "catalogItem?.furniture_id" in selection
+    assert "catalogItem?.model_url" in selection
+    assert "return [type, variant, reason, autoAdded, catalogItem];" in selection
 
 
 def test_step_six_uses_friendly_door_status_without_internal_counts() -> None:
@@ -1139,9 +1176,9 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "const generated = await generateWhiteModelFromRequirements({" in viewer
     assert 'state.workflow?.goTo("layout_2d")' in viewer
     assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });' in viewer
-    assert viewer.count('await confirmLayout2d({ strictSelectedFurniture: true });') >= 2
+    assert viewer.count('await confirmLayout2d({ allowPendingFurniture: true });') >= 2
     assert 'state.designSchemes.schemes.B && !state.designSchemes.schemes.B.stale' in viewer
-    assert "方案 A、B 的 2D+3D 配置已建立" in viewer
+    assert "問卷需求的 2D+3D 配置已建立" in viewer
     assert 'state.workflow.currentStep === "white_model_3d"' in viewer
     assert 'state.workflow.currentStep === "layout_2d"' in viewer
     assert "returnToRequirementsOnFailure: true" in viewer
@@ -1151,7 +1188,7 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "const sceneFurniture = allowPendingFurniture" in viewer
     assert "selectedFurniture.filter((item) => item.model_url)" in viewer
     assert "尚未找到可用的資料庫 GLB" in viewer
-    assert "selected_furniture_exact: strictSelectedFurniture || !allowPendingFurniture" in viewer
+    assert "selected_furniture_exact: strictSelectedFurniture || allowPendingFurniture" in viewer
     assert "完成需求，建立配置方案" in html
 
 
@@ -1165,7 +1202,7 @@ def test_requirement_generation_defers_a_single_failed_room_without_breaking_ste
     assert "item.placementFailed = true;" in auto_layout
     assert "item.placementReason = errorMessage(error);" in auto_layout
     assert "renderLayout2d();" not in viewer
-    assert "renderLayoutRoomFilter();\n      renderLayoutFurniture();\n      return;" in viewer
+    assert "renderLayoutRoomFilter();\n      renderLayoutFurniture();\n      return false;" in viewer
 
 
 def test_questionnaire_selects_one_whole_house_style_before_room_specific_finishes() -> None:
@@ -1352,7 +1389,7 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
     assert "只重排此家具" in source
     assert "syncOverlayToImage(" in source
     assert "element.configurationPlanStage" in source
-    assert "void openFurnitureReplacement();" in source
+    assert "void openFurnitureReplacement({ furnitureId });" in source
     assert ".rp-configuration-plan" in css
     assert ".rp-configuration-plan-sticky" in css
     assert "position: sticky;" in css
@@ -1364,15 +1401,14 @@ def test_configuration_markers_focus_3d_and_use_visible_selected_numbers() -> No
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
     handler = source.split("const selectConfigurationFurniture =", 1)[1].split(
-        "element.configurationPlanLayer.addEventListener", 1
+        "element.configurationPlanLayer?.addEventListener", 1
     )[0]
 
-    assert "event.currentTarget === element.configurationPlanLayer" in handler
-    assert (
-        "event.currentTarget === element.configurationPlanFurnitureList" in handler
-    )
-    assert "if (fromFurnitureList) void openFurnitureReplacement()" in handler
-    assert "syncSelected2dFurnitureToScene({ focus: true })" in handler
+    assert "{ fromPlan = false, openReplacement = false }" in handler
+    assert "if (openReplacement) {" in handler
+    assert "dataset.requestedFurnitureId = furnitureId" in handler
+    assert "void openFurnitureReplacement({ furnitureId });" in handler
+    assert "syncSelected2dFurnitureToScene({ focus: false })" in handler
     assert "已在 3D 定位家具" in handler
     assert ".rp-configuration-furniture.is-active b" in css
     assert ".rp-configuration-furniture-list button.is-active > b" in css
@@ -2506,7 +2542,7 @@ def test_scene_does_not_force_placeholder_furniture_for_an_empty_plan() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "目前沒有指定家具，先放入可刪除的雙人沙發" not in source
-    assert "selected_furniture_exact: strictSelectedFurniture || !allowPendingFurniture" in source
+    assert "selected_furniture_exact: strictSelectedFurniture || allowPendingFurniture" in source
 
 
 def test_final_room_scheme_generation_keeps_selected_furniture_exact() -> None:
@@ -2699,7 +2735,7 @@ def test_style_switch_changes_unlocked_models_and_material_surface_types() -> No
     assert "createRoomSurfaceOverrides" in viewer
     assert "wallMaterialResolver" in viewer
     assert "sceneData.surface_overrides" in controller
-    assert "state.sceneData.surface_overrides = []" in controller
+    assert "String(item.room_id) !== String(room.id)" in controller
     assert "state.sceneData.material_boundary = null" in controller
     assert "state.materialBoundary = null" in controller
     assert 'option value="surface"' not in html
@@ -2890,6 +2926,7 @@ def test_ceiling_and_light_choices_create_distinct_three_geometry() -> None:
     assert 'ceilingStyle === "linear"' in viewer
     assert 'ceilingStyle === "wood-grid"' in viewer
     assert "function createStyleLights(" in viewer
+    assert 'if (["none", "no-main-light"].includes(lightStyle)) return;' in viewer
     assert 'lightStyle === "track"' in viewer
     assert 'lightStyle === "downlight"' in viewer
     assert 'lightStyle === "paper"' in viewer
@@ -3102,12 +3139,19 @@ def test_master_view_lock_reads_the_current_confirmation_control() -> None:
     assert "if (!contentConfirmed)" in lock
 
 
-def test_step_six_exposes_the_per_room_scheme_selection_workflow() -> None:
+def test_step_six_hides_legacy_ab_controls_from_the_user_workflow() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
-    for element_id in (
-        "open-room-scheme-selection",
-        "room-scheme-gate-status",
+    for hidden_markup in (
+        'id="layout-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true"',
+        'id="white-model-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true"',
+        'id="realistic-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true"',
+        'id="proposal-scheme-bar" class="rp-segmented" role="tablist" aria-label="舊版設計方案相容資料" hidden aria-hidden="true"',
+        'id="room-scheme-gate" class="rp-editor-box" aria-labelledby="room-scheme-gate-title" hidden aria-hidden="true"',
+    ):
+        assert hidden_markup in html
+
+    for compatibility_element_id in (
         "room-scheme-selection-dialog",
         "room-scheme-list",
         "room-scheme-status",
@@ -3116,19 +3160,19 @@ def test_step_six_exposes_the_per_room_scheme_selection_workflow() -> None:
         "room-scheme-complete",
         "room-scheme-progress",
     ):
-        assert f'id="{element_id}"' in html
+        assert f'id="{compatibility_element_id}"' in html
 
-    assert "選擇方式" in html
-    assert "比較家具平面位置與可旋轉的 3D 視圖。" in html
+    assert "確認家具配置並調整材質" in html
+    assert "材質與燈光預覽" not in html
 
 
 def test_steps_six_to_eight_use_room_views_then_style_then_final_renders() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function roomSchemeSelectionRequired()" in source
-    assert "return Boolean(state.rooms?.length && state.designSchemes?.schemes?.A);" in source
-    assert "Do not expose the Step 6 editor until the user has chosen the" in source
-    assert "requestAnimationFrame(promptRoomSchemeSelection);" in source
+    selection_gate = source.split("function roomSchemeSelectionRequired()", 1)[1].split("}", 1)[0]
+    assert "return false;" in selection_gate
+    assert "if (!roomSchemeSelectionRequired() || !state.rooms.length) return;" in source
     assert "function ensureProposalRoomViewPanel()" in source
     assert "function confirmProposalRoomViews()" in source
     assert "function renderProposalStyleStage()" in source
@@ -3310,6 +3354,18 @@ def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
     assert 'state.workflow?.invalidateFrom?.("proposal_review")' in source
 
 
+def test_restored_yen_steps_wait_for_the_current_step_panel() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    restored = source.split("async function renderRestoredStep()", 1)[1].split(
+        "function goTo(step)", 1
+    )[0]
+
+    assert "async function prepareAiRender()" in source
+    assert "function selectRenderRoom(roomId)" in source
+    assert "await prepareWorkflowStep(state.workflow.currentStep);" in restored
+    assert 'showStep(state.workflow.currentStep || "project", { preparePanel: false });' in source
+
+
 def test_empty_scheme_a_does_not_persist_layout_before_layout_work_exists() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
@@ -3327,6 +3383,73 @@ def test_grouped_surface_cards_sync_their_material_ids_into_native_selects() -> 
     assert "syncSurfaceMaterialSelect(kind, items, current)" in source
     assert "select.value = materialId" in source
     assert "select.value !== materialId" in source
+
+
+def test_step_six_surface_editor_limits_questionnaire_choices_to_six() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    renderer = _javascript_function(source, "renderGroupedMaterialOptions")
+
+    assert "const STEP_SIX_SURFACE_SWATCH_LIMIT = 6;" in source
+    assert "const STEP_SIX_SURFACE_MATERIAL_LIMIT = 6;" in source
+    assert "catalogMaterialOptionsForPack" in renderer
+    assert "STEP_SIX_SURFACE_MATERIAL_LIMIT" in renderer
+    assert 'data-surface-color-swatch' in source
+    assert 'data-surface-material-card' in renderer
+    assert "surfaceRecommendationReason" in renderer
+    assert "item.id === selectedMaterial ?" in renderer
+
+
+def test_step_six_surface_drafts_confirm_unlock_and_report_room_progress() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    confirm_room = _javascript_function(source, "confirmStepSixRoomSurfaces")
+    unlock_room = _javascript_function(source, "unlockStepSixRoomSurfaces")
+    progress = _javascript_function(source, "renderStepSixSurfaceProgress")
+
+    assert "state.roomFinishDrafts" in source
+    assert "roomSurfaceDrafts: state.roomFinishDrafts" in source
+    assert "serverState.realistic_3d?.roomSurfaceDrafts" in source
+    assert "stepSixSurfaceConfirmed: true" in confirm_room
+    assert "stepSixSurfaceConfirmedAt" in confirm_room
+    assert "nextUnconfirmedStepSixRoom" in confirm_room
+    assert "stepSixSurfaceConfirmed: false" in unlock_room
+    assert "confirmed" in progress
+    assert "state.rooms.length" in progress
+
+
+def test_step_six_surface_preview_updates_the_loaded_white_scene_in_place() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    preview = _javascript_function(source, "previewStepSixRoomSurfaces")
+    focus = _javascript_function(source, "focusStepSixRoom")
+
+    assert ".loadScene(" not in preview
+    assert ".loadScene(" not in focus
+    assert "realisticViewer" not in preview
+    assert "realisticViewer" not in focus
+    assert "whiteViewer.updateRoomSurfaces" in preview
+    assert "previewStepSixRoomSurfaces" in focus
+    assert "whiteViewer.setCameraState" in focus
+
+
+def test_step_six_requires_every_room_surface_confirmation_before_step_seven() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function allStepSixRoomSurfacesConfirmed()" in source
+    guard = source.index("if (!allStepSixRoomSurfacesConfirmed())")
+    completion = source.index('state.workflow.complete("realistic_3d"', guard)
+    proposal = source.index('goTo("proposal_review")', completion)
+    assert guard < completion < proposal
+    assert "firstUnconfirmedStepSixRoom" in source[guard:completion]
+
+
+def test_scene_viewer_updates_room_surfaces_without_reloading_the_scene() -> None:
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    update_room = _javascript_function(viewer, "updateRoomSurfaces")
+    public_api = viewer.split("  return {\n    loadScene,", 1)[1]
+
+    assert ".loadScene(" not in update_room
+    assert "roomId" in update_room
+    assert "surface_overrides" in update_room
+    assert "updateRoomSurfaces," in public_api
 
 
 def test_realtime_style_step_keeps_only_confirmed_furniture_and_flushes_persistence() -> None:
@@ -3391,6 +3514,88 @@ def test_proposal_room_view_panel_has_a_compatible_static_mount() -> None:
     )[0]
 
     assert '$("#proposal-review-step .rp-control-pane") || $("#proposal-review-step")' in panel
+    assert "第 7 步｜逐房視角" in panel
+    assert "確認此空間視角" in panel
+    assert "Yen" not in panel
+
+
+def test_room_render_context_uses_explicit_whole_house_questionnaire_fallback() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "function wholeHouseQuestionnaireNeeds()" in source
+    assert 'source: fallbackUsed ? "whole_house_fallback" : "room_questionnaire"' in source
+    assert "本房未填獨立需求，已套用全屋問卷與鎖定配置" in source
+    assert "...(context.wholeHouseNeeds || [])" in source
+    assert 'id="proposal-room-questionnaire-context"' not in source
+    assert "renderPromptKeywords" in source
+
+
+def test_step_eight_exposes_a_web_delivery_report_before_json_download() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    for element_id in (
+        "design-delivery-dialog",
+        "design-delivery-content",
+        "download-design-delivery-json",
+        "design-delivery-done",
+    ):
+        assert f'id="{element_id}"' in html
+    assert "function renderDesignDeliveryPackage(delivery)" in source
+    assert "function downloadDesignDeliveryJson()" in source
+    assert "建立並查看裝潢簡報與費用明細" in source
+    assert "資安工程審核" in source
+
+
+def test_step_eight_delivery_contains_wide_tables_on_mobile() -> None:
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert ".rp-design-delivery-content > *" in css
+    assert ".rp-design-delivery-dialog .rp-task-dialog-shell" in css
+    delivery_children = css.split(".rp-design-delivery-content > *", 1)[1].split("}", 1)[0]
+    delivery_content = css.split(".rp-design-delivery-content {", 1)[1].split("}", 1)[0]
+    delivery_shell = css.split(
+        ".rp-design-delivery-dialog .rp-task-dialog-shell", 1
+    )[1].split("}", 1)[0]
+    table_wrap = css.split(".rp-delivery-table-wrap", 1)[1].split("}", 1)[0]
+    hero_meta = css.split(".rp-delivery-hero > div", 1)[1].split("}", 1)[0]
+    assert "min-width: 0" in delivery_children
+    assert "min-height: 0" in delivery_content
+    assert "grid-template-rows: auto minmax(0, 1fr) auto" in delivery_shell
+    assert "calc(100dvh - 34px)" in delivery_shell
+    assert "min-width: 0" in table_wrap
+    assert "overflow-x: auto" in table_wrap
+    assert "overflow-wrap: anywhere" in hero_meta
+
+
+def test_configuration_snapshot_preserves_catalog_price_for_truthful_budget() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    snapshot = source.split("function snapshotFurniture(item)", 1)[1].split(
+        "function configurationSnapshot", 1
+    )[0]
+
+    assert "item.price_twd" in snapshot
+    assert "price_twd:" in snapshot
+    assert "price_source:" in snapshot
+
+
+def test_yen_room_view_lock_uses_an_available_scene_version() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    handler = source.split("function lockSelectedProposalRoomView()", 1)[1].split(
+        "function legacyConfirmProposalRoomViewsV1b()", 1
+    )[0]
+
+    assert "configurationSnapshotData" not in handler
+    assert "currentSceneVersion()" in handler
+
+
+def test_surface_override_status_tolerates_a_missing_scope_option() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    handler = source.split("async function applySurfaceOverrides", 1)[1].split(
+        "function toggleMaterialBoundary()", 1
+    )[0]
+
+    assert '$("#surface-scope option:checked")?.textContent' in handler
 
 
 def test_master_view_lock_reports_unexpected_client_errors() -> None:

@@ -1,4 +1,17 @@
-# RoomPilot 第 6-8 步、Agent 與生圖整合規格
+# RoomPilot 第 6-8 步、Agent 與生圖整合規格（歷史 A/B 實作稿）
+
+> 文件狀態：已被取代，保留作決策歷史，不得直接交給 AI 實作。
+> 取代日期：2026-08-06。
+> 現行唯一執行契約：[`contracts/BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md`](contracts/BELLA_6_8_YEN_AGENT_EXECUTION_AND_VERIFICATION.md)。
+> 現行架構：[`RoomPilot_現行版本總覽.md`](RoomPilot_現行版本總覽.md) 與 [`使用者流程與系統架構圖.md`](使用者流程與系統架構圖.md)。
+
+AI 必須忽略本文後續的公開 A/B、未完成實作與舊 remote render 流程。現行差異如下：
+
+1. 第 6 步只有單一配置工作台，不顯示或要求 A/B；舊欄位只供資料相容。
+2. 第 7 步為每房三個 Yen 視角候選，全部鎖定後確認代表房全屋色卡。
+3. 第 8 步使用 `/ai-renders` 首次生圖、`/edit` 每房最多一次修圖。
+4. 最後由 `/design-delivery` 建立逐房 Web 簡報、工程、資安與預算成果包。
+5. 本文以下內容只用來理解早期設計取捨，不可覆蓋上述現行規則。
 
 ## 目的與不可變原則
 

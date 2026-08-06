@@ -84,11 +84,11 @@ def _render_setting(name: str, default: str = "") -> str:
 
 
 def _render_timeout_seconds() -> float:
-    raw_value = _render_setting("ROOMPILOT_RENDER_PROVIDER_TIMEOUT_SECONDS", "60")
+    raw_value = _render_setting("ROOMPILOT_RENDER_PROVIDER_TIMEOUT_SECONDS", "300")
     try:
-        return max(5.0, min(float(raw_value), 180.0))
+        return max(5.0, min(float(raw_value), 600.0))
     except (TypeError, ValueError):
-        return 60.0
+        return 300.0
 
 
 def render_provider_status() -> dict[str, Any]:
@@ -184,8 +184,10 @@ def _validate_configuration_snapshot(payload: dict[str, Any]) -> None:
             for view in payload.get("room_views") or []
             if isinstance(view, dict) and view.get("room_id")
         }
-        if expected_room_ids and expected_room_ids != supplied_room_ids:
-            raise ValueError("room_views_incomplete")
+        if not supplied_room_ids:
+            raise ValueError("room_views_required")
+        if supplied_room_ids - expected_room_ids:
+            raise ValueError("room_views_unknown_room")
 
 
 def prepare_render_payload(payload: dict[str, Any]) -> dict[str, Any]:
