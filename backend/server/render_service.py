@@ -9,6 +9,11 @@ import httpx
 
 
 SUPPORTED_RENDER_MODES = {"palette_comparison", "room_final"}
+# 每個請求的生圖任務上限（Codex 2026-08-04 開放項：render-jobs 無總量檢查）。
+# 每張色卡／每個房間視角各觸發一次付費生圖 API；正式 UI 最多 18 張色卡、
+# 房型上限 12 種，這裡取寬鬆上界——擋的是灌爆型 payload，不是正常使用。
+MAX_RENDER_STYLE_CARDS = 18
+MAX_RENDER_ROOM_VIEWS = 24
 PRIVATE_KEYS = {
     "address",
     "email",
@@ -183,11 +188,16 @@ def prepare_render_payload(payload: dict[str, Any]) -> dict[str, Any]:
         str(item).strip() for item in style_card_ids
     ):
         raise ValueError("style_card_ids_required")
+    if len([item for item in style_card_ids if str(item).strip()]) > MAX_RENDER_STYLE_CARDS:
+        raise ValueError("render_style_cards_exceed_limit")
     master_camera = payload.get("master_view", {}).get("camera", {})
     if not _valid_camera(master_camera):
         raise ValueError("locked_master_camera_required")
     if mode == "room_final":
-        _validate_room_views(payload.get("room_views"), payload.get("scene"))
+        room_views = payload.get("room_views")
+        if isinstance(room_views, list) and len(room_views) > MAX_RENDER_ROOM_VIEWS:
+            raise ValueError("render_room_views_exceed_limit")
+        _validate_room_views(room_views, payload.get("scene"))
 
     prepared = deepcopy(payload)
     prepared["request_id"] = str(payload.get("request_id") or uuid4().hex)

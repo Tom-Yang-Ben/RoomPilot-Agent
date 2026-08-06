@@ -264,6 +264,40 @@ def test_render_persists_prompt_and_design_context_for_proposal(direct_provider)
     assert living["prompt_hash"] == jobs[0]["prompt_hash"]
 
 
+def test_render_jobs_reject_payloads_beyond_task_limits(direct_provider) -> None:
+    """Codex 2026-08-04 開放項：render-jobs 無總量檢查。每張色卡／每個房間
+    視角都是一次付費生圖呼叫，灌爆型 payload 必須在驗證層就擋下，
+    一次生圖 API 都不能發出去。"""
+    project_id = _create_project()
+
+    flooded_cards = _payload(project_id)
+    flooded_cards["style_card_ids"] = [f"card-{index}" for index in range(19)]
+    response = client.post(
+        f"/api/projects/{project_id}/render-jobs", json=flooded_cards
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "render_style_cards_exceed_limit"
+
+    flooded_rooms = _payload(project_id, mode="room_final")
+    template = dict(flooded_rooms["room_views"][0])
+    flooded_rooms["room_views"] = [
+        {**template, "room_id": f"room-{index}"} for index in range(25)
+    ]
+    response = client.post(
+        f"/api/projects/{project_id}/render-jobs", json=flooded_rooms
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "render_room_views_exceed_limit"
+
+    assert direct_provider == [], "超限請求不得觸發任何一次生圖 API 呼叫"
+
+    # 上限內的正常請求不受影響。
+    normal = client.post(
+        f"/api/projects/{project_id}/render-jobs", json=_payload(project_id)
+    )
+    assert normal.status_code == 202
+
+
 def test_structured_surface_values_render_readable_text() -> None:
     """第 6 步表面方案是結構化 dict；直接 str() 會把 Python repr 原文塞進
     prompt 與逐圖理念（floor04 實測：牆面：{'color': ...}）。必須取可讀欄位。"""
