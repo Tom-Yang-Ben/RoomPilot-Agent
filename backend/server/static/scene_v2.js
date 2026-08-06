@@ -8881,6 +8881,10 @@ function knownUnavailableCatalogFurnitureIds() {
   );
 }
 
+// 離屏檢視器是全域單例、驗證走同一條 glbThumbnailSequence 佇列，所以一個卡住
+// 的網址會擋住後面每一件。逾時就當作不可用，寧可少推薦一件也不要讓問卷停住。
+const CATALOG_MODEL_VERIFY_TIMEOUT_MS = 15_000;
+
 async function verifyQuestionnaireCatalogModel(offer) {
   const modelUrl = String(offer?.model_url || "");
   if (!modelUrl || unavailableCatalogModelUrls.has(modelUrl)) return false;
@@ -8889,8 +8893,26 @@ async function verifyQuestionnaireCatalogModel(offer) {
   glbThumbnailSequence = glbThumbnailSequence
     .catch(() => null)
     .then(async () => {
-      await glbThumbnailViewer.loadScene(glbThumbnailScene(offer));
-      available = !(glbThumbnailViewer.getDiagnostics()?.failedFurniture || []).length;
+      let timer = null;
+      try {
+        // loadScene 失敗必須在這裡收斂：讓它往外拋會連同整個房間的推薦一起
+        // 進 ensureQuestionnaireFurnitureRecommendations 的 catch，變成
+        // 「資料庫推薦暫時無法載入」而不是「這一件不能用」。
+        await Promise.race([
+          glbThumbnailViewer.loadScene(glbThumbnailScene(offer)),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error("catalog_model_verify_timeout")),
+              CATALOG_MODEL_VERIFY_TIMEOUT_MS,
+            );
+          }),
+        ]);
+        available = !(glbThumbnailViewer.getDiagnostics()?.failedFurniture || []).length;
+      } catch {
+        available = false;
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
       if (available) {
         verifiedCatalogModelUrls.add(modelUrl);
       } else {
@@ -8899,6 +8921,42 @@ async function verifyQuestionnaireCatalogModel(offer) {
     });
   await glbThumbnailSequence;
   return available;
+}
+
+/**
+ * 依序真的把候選的 GLB 載一次，回傳第一個載得動的（載不動就不推薦）。
+ *
+ * f0f1139f 為了問卷速度把這層拿掉、改成 model_load_verification: "deferred"，
+ * 但 verifyQuestionnaireCatalogModel 從此沒有呼叫點，兩個 Set 永遠是空的——
+ * 剩下的 Boolean(model_url) 只證明資料庫欄位有填字串，不證明抓得到。壞掉的
+ * GLB 因此一路混到第 6 步才被 confirmWhiteModel 硬擋住。
+ *
+ * 上游 catalogOffersForSpec 已用 questionnaireOffersWithSizeChoices 收斂到 4 件
+ * 以內，所以每個家具類型最多驗 4 次；驗過的網址進 verifiedCatalogModelUrls，
+ * 跨房間重複命中不會再載一次。
+ */
+async function firstVerifiedQuestionnaireOffer(offers, room, unavailableCatalogIds) {
+  const usable = (offers || []).filter((offer) => (
+    !unavailableCatalogIds.has(String(offer.furniture_id))
+    && Boolean(offer.model_url)
+    && !unavailableCatalogModelUrls.has(String(offer.model_url))
+  ));
+  // 先試放得進房間的；全部載不動時才退到放不下的候選，並照實標記 fit 風險。
+  const fitting = usable.filter((offer) => replacementCandidateFitsRoom(offer, room));
+  const fittingIds = new Set(fitting.map((offer) => String(offer.furniture_id)));
+  const ordered = [
+    ...fitting,
+    ...usable.filter((offer) => !fittingIds.has(String(offer.furniture_id))),
+  ];
+  for (const offer of ordered) {
+    if (!await verifyQuestionnaireCatalogModel(offer)) continue;
+    return {
+      ...offer,
+      room_fit_checked: fittingIds.has(String(offer.furniture_id)),
+      model_load_verified: true,
+    };
+  }
+  return null;
 }
 
 function renderQuestionnaireFurnitureRecommendations(room = activeQuestionnaireRoom()) {
@@ -9054,26 +9112,16 @@ async function ensureQuestionnaireFurnitureRecommendations(
       if (!offers.length) {
         offers = await catalogFallbackOffersForSpec(room, spec, index);
       }
-      let candidates = offers.filter((offer) =>
-        !unavailableCatalogIds.has(String(offer.furniture_id))
-        && Boolean(offer.model_url)
-        && !unavailableCatalogModelUrls.has(String(offer.model_url)),
-      );
-      if (!candidates.length) {
-        offers = await catalogFallbackOffersForSpec(room, spec, index);
-        candidates = offers.filter((offer) =>
-          !unavailableCatalogIds.has(String(offer.furniture_id))
-          && Boolean(offer.model_url)
-          && !unavailableCatalogModelUrls.has(String(offer.model_url)),
+      let picked = await firstVerifiedQuestionnaireOffer(offers, room, unavailableCatalogIds);
+      if (!picked) {
+        // 主候選全部載不動時再撈一次寬鬆候選，行為與原本的 candidates 二次查詢一致。
+        picked = await firstVerifiedQuestionnaireOffer(
+          await catalogFallbackOffersForSpec(room, spec, index),
+          room,
+          unavailableCatalogIds,
         );
       }
-      const fittingCandidates = candidates.filter((offer) => replacementCandidateFitsRoom(offer, room));
-      return questionnaireOffersWithSizeChoices(spec[0], candidates).map((offer) => ({
-        ...offer,
-        room_fit_checked: fittingCandidates.includes(offer),
-        model_load_verified: verifiedCatalogModelUrls.has(String(offer.model_url)),
-        model_load_verification: "deferred",
-      }));
+      return picked ? [picked] : [];
     }));
     let recommendedOffers = groups.flat();
     const program = questionnaireFurnitureProgram(room);
@@ -9086,18 +9134,9 @@ async function ensureQuestionnaireFurnitureRecommendations(
         if (!offers.length) {
           offers = await catalogFallbackOffersForSpec(room, [type, "standard"], specs.length + index);
         }
-        const candidates = offers.filter((offer) =>
-          !unavailableCatalogIds.has(String(offer.furniture_id))
-          && Boolean(offer.model_url)
-          && !unavailableCatalogModelUrls.has(String(offer.model_url))
-          && replacementCandidateFitsRoom(offer, room),
-        );
-        return questionnaireOffersWithSizeChoices(type, candidates).map((offer) => ({
-          ...offer,
-          room_fit_checked: true,
-          model_load_verified: verifiedCatalogModelUrls.has(String(offer.model_url)),
-          model_load_verification: "deferred",
-        }));
+        // 這一段是「補上預設家具」，放不進房間就沒有意義，維持硬性要求 fit。
+        const picked = await firstVerifiedQuestionnaireOffer(offers, room, unavailableCatalogIds);
+        return picked?.room_fit_checked ? [picked] : [];
       }));
       recommendedOffers = [...recommendedOffers, ...fallbackGroups.flat()];
     }
