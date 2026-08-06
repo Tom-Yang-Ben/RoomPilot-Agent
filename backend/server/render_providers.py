@@ -324,6 +324,41 @@ def build_render_prompt(
     return "\n".join(parts)
 
 
+def build_design_context(
+    prepared: dict[str, Any],
+    style_pack: dict[str, Any],
+    room_view: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """逐圖設計理念素材：與 prompt 同源、結構化落地。
+
+    全部取自既有請求欄位（風格包文案、問卷 digest），不在此生成新文字；
+    因此與生圖 prompt 完全一致，工程報告端可以決定性重排版，不必回頭
+    解析 prompt 字串。
+    """
+    room_view = room_view or {}
+    surfaces = {
+        key: str(style_pack[key])
+        for key in ("wall", "floor", "lighting", "rendering")
+        if style_pack.get(key)
+    }
+    palette = style_pack.get("palette_hex")
+    context = {
+        "style_card_id": style_pack.get("card_id"),
+        "style_id": style_pack.get("style_id"),
+        "style_name": style_pack.get("name") or style_pack.get("style_label"),
+        "palette_hex": (
+            [str(color) for color in palette[:6]] if isinstance(palette, list) else []
+        ),
+        "surfaces": surfaces,
+        "room_id": room_view.get("room_id"),
+        "room_label": room_view.get("room_label"),
+        "requirement_notes": requirement_notes(prepared, room_view),
+    }
+    return {
+        key: value for key, value in context.items() if value not in (None, "", [], {})
+    }
+
+
 def _reference_data_url(prepared: dict[str, Any], room_view: dict[str, Any] | None) -> str:
     candidates = []
     if room_view is not None:
@@ -447,6 +482,7 @@ async def run_direct_render_jobs(project_id: str, payload: dict[str, Any], store
         style_pack = _style_pack_for(prepared, task["style_card_id"])
         prompt = build_render_prompt(prepared, style_pack, task["room_view"])
         reference = _reference_data_url(prepared, task["room_view"])
+        room_view = task["room_view"] or {}
         try:
             png = await _generate_one(prompt, reference)
         except (RenderProviderRejected, RenderProviderUnavailable) as exc:
@@ -454,7 +490,6 @@ async def run_direct_render_jobs(project_id: str, payload: dict[str, Any], store
             # 任務卡（QA 2026-08-01 #7：遇首個 502 即整批中止）。
             failures += 1
             last_failure = exc
-            room_view = task["room_view"] or {}
             jobs.append(
                 {
                     "job_id": None,
@@ -468,41 +503,42 @@ async def run_direct_render_jobs(project_id: str, payload: dict[str, Any], store
             )
             continue
 
+        # prompt 與其結構化素材隨圖落地（簡報逐圖理念的資料來源）。
+        save_kwargs = {
+            "content": png,
+            "white_model_version": 0,
+            "viewpoint_version": 0,
+            "style_version": 0,
+            "style_card_id": task["style_card_id"],
+            "provider": "openrouter_image",
+            "room_id": str(room_view.get("room_id") or "") or None,
+            "prompt_text": prompt,
+            "design_context": build_design_context(
+                prepared, style_pack, task["room_view"]
+            ),
+        }
         revision = int(store.get_project(project_id).get("revision") or 0)
         try:
             render, _project = store.save_render(
-                project_id,
-                expected_revision=revision,
-                content=png,
-                white_model_version=0,
-                viewpoint_version=0,
-                style_version=0,
-                style_card_id=task["style_card_id"],
-                provider="openrouter_image",
+                project_id, expected_revision=revision, **save_kwargs
             )
         except Exception:
             # 版本競態時取最新 revision 重試一次；再失敗就明話拒絕。
             revision = int(store.get_project(project_id).get("revision") or 0)
             render, _project = store.save_render(
-                project_id,
-                expected_revision=revision,
-                content=png,
-                white_model_version=0,
-                viewpoint_version=0,
-                style_version=0,
-                style_card_id=task["style_card_id"],
-                provider="openrouter_image",
+                project_id, expected_revision=revision, **save_kwargs
             )
-        room_view = task["room_view"] or {}
         jobs.append(
             {
                 "job_id": render["render_id"],
+                "render_id": render["render_id"],
                 "style_card_id": task["style_card_id"],
                 "room_id": room_view.get("room_id"),
                 "status": "completed",
                 "preview_url": f"/api/projects/{project_id}/renders/{render['render_id']}/png",
                 "image_url": f"/api/projects/{project_id}/renders/{render['render_id']}/png",
                 "label": room_view.get("room_label"),
+                "prompt_hash": render.get("prompt_hash"),
             }
         )
     if tasks and failures == len(tasks) and last_failure is not None:

@@ -61,6 +61,10 @@ def test_phase3_schema_uses_jsonb_revision_and_render_foreign_key() -> None:
     assert "CREATE TABLE IF NOT EXISTS roompilot.render_outputs" in schema
     assert "REFERENCES roompilot.projects(project_id) ON DELETE CASCADE" in schema
     assert "idx_render_outputs_project_created" in schema
+    # 逐圖理念欄位（2026-08-06）：加法遷移必須存在，舊庫跑同一份 schema 就補齊。
+    assert "ADD COLUMN IF NOT EXISTS room_id TEXT" in schema
+    assert "ADD COLUMN IF NOT EXISTS prompt_text TEXT" in schema
+    assert "ADD COLUMN IF NOT EXISTS design_context_json JSONB" in schema
 
 
 def test_sqlite_migration_dry_run_reads_legacy_revision_as_zero(
@@ -252,7 +256,31 @@ def test_live_postgres_project_jsonb_revision_render_and_cleanup(
         )
         assert render["path"].read_bytes() == b"phase3-render"
         assert after_render["revision"] == 3
-        assert store.list_renders(project_id)[0]["render_id"] == render["render_id"]
+        listed = store.list_renders(project_id)[0]
+        assert listed["render_id"] == render["render_id"]
+        # 瀏覽器截圖沒有 prompt：逐圖理念欄位必須是 NULL，不得編造。
+        assert listed["prompt_text"] is None
+        assert listed["prompt_hash"] is None
+        assert listed["design_context"] is None
+
+        annotated, after_annotated = store.save_render(
+            project_id,
+            expected_revision=3,
+            content=b"phase3-render-2",
+            white_model_version=1,
+            viewpoint_version=2,
+            style_version=3,
+            style_card_id="phase3-card",
+            provider="openrouter_image",
+            room_id="living-1",
+            prompt_text="phase3 prompt",
+            design_context={"style_name": "北歐奶油風"},
+        )
+        assert after_annotated["revision"] == 4
+        assert annotated["room_id"] == "living-1"
+        assert annotated["design_context"] == {"style_name": "北歐奶油風"}
+        assert annotated["prompt_hash"] is not None
+        assert len(annotated["prompt_hash"]) == 64
 
         with store._connection() as connection:
             with store._cursor(connection) as cursor:

@@ -456,6 +456,27 @@ class DesignNarrative(StrictModel):
     disclaimer_zh: str
 
 
+class RenderRationale(StrictModel):
+    """第 8 步單張生圖的設計理念。
+
+    素材在生圖當下隨圖落地（render_outputs 的 prompt／design_context），
+    這裡只重排版，不生成新內容；沒有落地紀錄的圖（例如瀏覽器截圖）不會
+    出現在列表，缺席即如實缺席。
+    """
+
+    render_id: str = Field(min_length=1)
+    room_id: str | None = None
+    room_label: str | None = None
+    style_card_id: str | None = None
+    style_name_zh: str | None = None
+    palette_hex: list[str] = Field(default_factory=list)
+    surfaces_zh: dict[str, str] = Field(default_factory=dict)
+    requirement_notes_zh: list[str] = Field(default_factory=list)
+    rationale_zh: str = Field(min_length=1)
+    prompt_hash: str | None = None
+    source: Literal["render_prompt_log"] = "render_prompt_log"
+
+
 class DocumentManifest(StrictModel):
     document_id: str
     document_type: Literal["report_json", "report_html", "estimate_xlsx"]
@@ -484,6 +505,8 @@ class ReportPayload(StrictModel):
     schedule: ScheduleResult
     narratives: NarrativeResult
     design_narrative: DesignNarrative
+    # 逐圖理念是加法欄位：舊 package 的 report_json 沒有這一欄也要能讀回。
+    render_rationales: list[RenderRationale] = Field(default_factory=list)
     assumptions: list[str]
     exclusions: list[str]
     documents: list[DocumentManifest] = Field(default_factory=list)

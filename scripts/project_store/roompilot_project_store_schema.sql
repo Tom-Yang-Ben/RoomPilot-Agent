@@ -58,6 +58,9 @@ CREATE TABLE IF NOT EXISTS roompilot.render_outputs (
     file_path           TEXT NOT NULL,
     byte_size           BIGINT NOT NULL,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    room_id             TEXT,
+    prompt_text         TEXT,
+    design_context_json JSONB,
     CONSTRAINT render_white_model_version_nonnegative
         CHECK (white_model_version >= 0),
     CONSTRAINT render_viewpoint_version_nonnegative
@@ -157,6 +160,15 @@ CREATE TABLE IF NOT EXISTS roompilot.project_members (
     CONSTRAINT project_members_role_known
         CHECK (project_role IN ('owner', 'editor', 'viewer'))
 );
+
+-- 逐圖設計理念（2026-08-06）：第 8 步生圖的 prompt 與結構化設計素材隨圖落地，
+-- 供簡報／工程報告對每張圖給出對應理念。瀏覽器截圖（browser_capture）為 NULL。
+ALTER TABLE roompilot.render_outputs
+    ADD COLUMN IF NOT EXISTS room_id TEXT;
+ALTER TABLE roompilot.render_outputs
+    ADD COLUMN IF NOT EXISTS prompt_text TEXT;
+ALTER TABLE roompilot.render_outputs
+    ADD COLUMN IF NOT EXISTS design_context_json JSONB;
 
 -- 停用帳號欄位（2026-08-03）；首發帳戶端建立的庫沒有這一欄。
 ALTER TABLE roompilot.users

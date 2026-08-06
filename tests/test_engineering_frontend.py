@@ -55,6 +55,11 @@ def test_frontend_adapter_maps_existing_state_without_direct_backends() -> None:
         "error.status = response.status",
         "existing.snapshot",
         "existing.completeness",
+        # 第 8 步「輸出簡報」auto 流程：自動保存→鎖定→生成；XLSX 只在
+        # artifact-tool 已設定時一起要，避免整包因 adapter 缺席全數失敗。
+        "runAutoProposal",
+        'get("auto")',
+        "module_path_configured",
     ):
         assert required in source
     lowered = source.lower()

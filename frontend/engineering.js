@@ -2,6 +2,7 @@
 import {
   authorizedObjectUrl,
   downloadAuthorized,
+  getCurrentUser,
   requireSignedIn,
 } from "./auth_client.js?v=sha256-b35a4ff11b37";
 // geometry_core.js 零依賴，不屬於 scene 模組鏈——所以成果報告頁共用它不會被綁進
@@ -151,12 +152,17 @@ function renderReferencesForRoom(room, workflow, renders) {
     prompt_hash: job.prompt_hash || null,
   })).filter((item) => item.render_url);
   if (refs.length || renders.length === 0) return refs;
-  if ((workflow.space_confirmation?.rooms || []).length !== 1) return [];
-  return renders.map((render, index) => ({
+  // render_outputs 已落地 room_id（2026-08-06）：jobs 遺失時多房專案也能逐房回查；
+  // 舊紀錄沒有 room_id，維持只有單房專案才回退整包 render history 的原規則。
+  const roomRenders = renders.filter((render) => String(render.room_id || "") === String(room.id));
+  const pool = roomRenders.length
+    ? roomRenders
+    : ((workflow.space_confirmation?.rooms || []).length === 1 ? renders : []);
+  return pool.map((render, index) => ({
     render_url: `/api/projects/${encodeURIComponent(render.project_id)}/renders/${encodeURIComponent(render.render_id)}/png`,
     view_name: render.filename || `專案生圖 ${index + 1}`,
     render_id: render.render_id,
-    prompt_hash: null,
+    prompt_hash: render.prompt_hash || null,
   }));
 }
 
@@ -363,7 +369,8 @@ async function loadCurrentProject() {
 }
 
 async function saveDraft() {
-  if (!state.project) return;
+  if (!state.project) return false;
+  let saved = false;
   try {
     state.snapshot = buildProjectSnapshot(state.project, state.renders);
     state.snapshot.region = "Taiwan";
@@ -379,18 +386,21 @@ async function saveDraft() {
     state.completeness = result.completeness;
     $("#snapshot-status").textContent = `Draft 已保存；來源 project revision = ${state.snapshot.source_project_revision}。`;
     $("#job-error").textContent = "";
+    saved = true;
   } catch (error) {
     $("#job-error").textContent = errorMessage(error);
   }
   renderState();
+  return saved;
 }
 
 async function lockRevision() {
   const confirmedBy = $("#confirmed-by").value.trim();
   if (!confirmedBy) {
     $("#job-error").textContent = "請先輸入設計師／確認者。";
-    return;
+    return false;
   }
+  let locked = false;
   try {
     const result = await api(
       `/api/v1/projects/${encodeURIComponent(state.projectId)}/revisions/${encodeURIComponent(state.snapshot.revision)}/lock`,
@@ -404,10 +414,12 @@ async function lockRevision() {
     state.completeness = result.completeness;
     $("#snapshot-status").textContent = `${state.snapshot.revision} 已由 ${confirmedBy} 鎖定；後續修改必須建立新 revision。`;
     $("#job-error").textContent = "";
+    locked = true;
   } catch (error) {
     $("#job-error").textContent = errorMessage(error);
   }
   renderState();
+  return locked;
 }
 
 function updateJob(job) {
@@ -416,7 +428,7 @@ function updateJob(job) {
   $("#job-error").textContent = job.error ? `${job.error_code || "ERROR"}：${job.error}` : "";
 }
 
-async function generatePackage() {
+async function generatePackage(documentTypes) {
   $("#download-links").innerHTML = "";
   $("#html-preview").hidden = true;
   $("#json-details").hidden = true;
@@ -426,7 +438,9 @@ async function generatePackage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         revision: state.snapshot.revision,
-        documents: ["report_json", "report_html", "estimate_xlsx"],
+        documents: Array.isArray(documentTypes) && documentTypes.length
+          ? documentTypes
+          : ["report_json", "report_html", "estimate_xlsx"],
       }),
     });
     updateJob(queued);
@@ -530,15 +544,42 @@ function renderReportSummary(report) {
   $("#report-summary").hidden = false;
 }
 
+// 第 8 步「輸出簡報」入口帶 auto=1 進來：自動走「保存 Draft → 鎖定 → 生成」，
+// 任一步失敗就停在原地，錯誤照常顯示，使用者可手動接續。
+async function runAutoProposal() {
+  if (!state.snapshot) return;
+  if (state.snapshot.approval_status !== "designer_confirmed") {
+    $("#job-stage").textContent = "輸出簡報：正在保存並鎖定目前設計…";
+    if (!(await saveDraft())) return;
+    const confirmedInput = $("#confirmed-by");
+    if (!confirmedInput.value.trim()) {
+      const user = getCurrentUser();
+      confirmedInput.value = String(user?.display_name || user?.email || "").trim();
+    }
+    if (!(await lockRevision())) return;
+  }
+  $("#job-stage").textContent = "輸出簡報：正在生成提案文件…";
+  // 簡報的必要文件是 HTML 提案與 JSON payload；XLSX 只在 artifact-tool
+  // 已設定時一起要，否則整包會因 XLSX_ADAPTER_UNAVAILABLE 全數失敗。
+  const documents = state.health?.xlsx?.module_path_configured
+    ? ["report_json", "report_html", "estimate_xlsx"]
+    : ["report_json", "report_html"];
+  await generatePackage(documents);
+}
+
 $("#refresh-state").addEventListener("click", () => loadCurrentProject().catch((error) => {
   $("#job-error").textContent = errorMessage(error);
 }));
 $("#save-draft").addEventListener("click", saveDraft);
 $("#lock-revision").addEventListener("click", lockRevision);
-$("#generate-package").addEventListener("click", generatePackage);
+$("#generate-package").addEventListener("click", () => generatePackage());
 
 if (requireSignedIn()) {
-  loadCurrentProject().catch((error) => {
+  const autoRun = new URLSearchParams(location.search).get("auto") === "1";
+  loadCurrentProject().then(() => {
+    if (autoRun) return runAutoProposal();
+    return undefined;
+  }).catch((error) => {
     $("#job-error").textContent = errorMessage(error);
     $("#snapshot-status").textContent = errorMessage(error);
     renderState();

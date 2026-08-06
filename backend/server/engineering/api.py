@@ -43,6 +43,7 @@ from .models import (
 from .narrative import TemplateNarrativeService
 from .orchestrator import EngineeringOrchestrator
 from .quantity import QuantityService
+from .render_rationale import RenderRationaleService
 from .repository import (
     EngineeringRepository,
     LockedRevisionError,
@@ -91,6 +92,17 @@ def build_engineering_router(
                 detail={"error_code": "PROJECT_NOT_FOUND", "message": "找不到專案"},
             )
 
+    def _load_render_png(target_project_id: str, render_id: str) -> bytes | None:
+        """報告 HTML 內嵌用的 PNG bytes；單張取不到就退回原網址，不擋報告。"""
+        try:
+            record = project_store_getter().get_render(target_project_id, render_id)
+            path = record.get("path")
+            if path is not None and Path(path).is_file():
+                return Path(path).read_bytes()
+        except Exception:
+            pass
+        return None
+
     def build_orchestrator() -> EngineeringOrchestrator:
         demo_mode = _env_bool("ROOMPILOT_DEMO_MODE", default=False)
         return EngineeringOrchestrator(
@@ -113,8 +125,10 @@ def build_engineering_router(
                 generated_dir=generated_dir,
                 repository=repository,
                 api_prefix="/api/v1",
+                render_asset_loader=_load_render_png,
             ),
             demo_mode=demo_mode,
+            render_rationale_service=RenderRationaleService(project_store_getter),
         )
 
     @router.get("/engineering/health")

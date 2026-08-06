@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -157,10 +158,26 @@ class ProjectStore:
                     file_path TEXT NOT NULL,
                     byte_size INTEGER NOT NULL,
                     created_at TEXT NOT NULL,
+                    room_id TEXT,
+                    prompt_text TEXT,
+                    design_context_json TEXT,
                     FOREIGN KEY(project_id) REFERENCES projects(project_id)
                 )
                 """
             )
+            render_columns = {
+                row["name"]
+                for row in connection.execute(
+                    "PRAGMA table_info(render_outputs)"
+                ).fetchall()
+            }
+            # 逐圖設計理念（2026-08-06）：生圖 prompt 與其結構化素材隨圖落地，
+            # 簡報才能對每張圖給出對應理念。舊庫補欄位，瀏覽器截圖列為 NULL。
+            for column in ("room_id", "prompt_text", "design_context_json"):
+                if column not in render_columns:
+                    connection.execute(
+                        f"ALTER TABLE render_outputs ADD COLUMN {column} TEXT"
+                    )
 
     @staticmethod
     def _project(row: sqlite3.Row) -> dict:
@@ -341,6 +358,11 @@ class ProjectStore:
 
     @staticmethod
     def _render(row: sqlite3.Row) -> dict:
+        prompt_text = row["prompt_text"]
+        try:
+            design_context = json.loads(row["design_context_json"] or "null")
+        except json.JSONDecodeError:
+            design_context = None
         return {
             "render_id": row["render_id"],
             "project_id": row["project_id"],
@@ -353,6 +375,14 @@ class ProjectStore:
             "filename": row["filename"],
             "byte_size": int(row["byte_size"]),
             "created_at": row["created_at"],
+            "room_id": row["room_id"],
+            "prompt_text": prompt_text,
+            "prompt_hash": (
+                hashlib.sha256(prompt_text.encode("utf-8")).hexdigest()
+                if prompt_text
+                else None
+            ),
+            "design_context": design_context if isinstance(design_context, dict) else None,
         }
 
     def save_render(
@@ -366,6 +396,9 @@ class ProjectStore:
         style_version: int,
         style_card_id: str,
         provider: str,
+        room_id: str | None = None,
+        prompt_text: str | None = None,
+        design_context: dict | None = None,
     ) -> tuple[dict, dict]:
         """Persist a versioned PNG without replacing earlier proposal history."""
         render_id = uuid4().hex
@@ -392,8 +425,9 @@ class ProjectStore:
                     INSERT INTO render_outputs (
                         render_id, project_id, white_model_version,
                         viewpoint_version, style_version, style_card_id,
-                        provider, mime_type, filename, file_path, byte_size, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        provider, mime_type, filename, file_path, byte_size, created_at,
+                        room_id, prompt_text, design_context_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         render_id,
@@ -408,6 +442,13 @@ class ProjectStore:
                         str(stored_path),
                         len(content),
                         now,
+                        room_id,
+                        prompt_text,
+                        (
+                            json.dumps(design_context, ensure_ascii=False)
+                            if design_context
+                            else None
+                        ),
                     ),
                 )
                 connection.execute(
@@ -556,13 +597,15 @@ class ProjectStore:
                 target_render = target_dir / render["filename"]
                 if source_render.resolve() != target_render.resolve():
                     shutil.copy2(source_render, target_render)
+                legacy_keys = render.keys()
                 connection.execute(
                     """
                     INSERT OR IGNORE INTO render_outputs (
                         render_id, project_id, white_model_version,
                         viewpoint_version, style_version, style_card_id,
-                        provider, mime_type, filename, file_path, byte_size, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        provider, mime_type, filename, file_path, byte_size, created_at,
+                        room_id, prompt_text, design_context_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         render["render_id"],
@@ -577,6 +620,13 @@ class ProjectStore:
                         str(target_render),
                         render["byte_size"],
                         render["created_at"],
+                        render["room_id"] if "room_id" in legacy_keys else None,
+                        render["prompt_text"] if "prompt_text" in legacy_keys else None,
+                        (
+                            render["design_context_json"]
+                            if "design_context_json" in legacy_keys
+                            else None
+                        ),
                     ),
                 )
         return imported

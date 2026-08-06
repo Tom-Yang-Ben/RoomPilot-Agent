@@ -11,6 +11,7 @@ completed＋preview_url（前端首回即顯示）。
 from __future__ import annotations
 
 import base64
+import json
 from io import BytesIO
 from uuid import uuid4
 
@@ -230,6 +231,55 @@ def test_palette_jobs_complete_synchronously_and_land_in_project_renders(direct_
 
     listed = client.get(f"/api/projects/{project_id}/renders").json()["renders"]
     assert {record["provider"] for record in listed} == {"openrouter_image"}
+
+
+def test_render_persists_prompt_and_design_context_for_proposal(direct_provider) -> None:
+    """簡報逐圖理念的資料來源：prompt 與結構化設計素材必須隨圖落地。"""
+    project_id = _create_project()
+
+    response = client.post(
+        f"/api/projects/{project_id}/render-jobs",
+        json=_payload(project_id, mode="room_final"),
+    )
+
+    assert response.status_code == 202
+    jobs = response.json()["jobs"]
+    # 回傳的 job 直接帶 render_id 與 prompt_hash，前端存進 proposal_review.jobs
+    # 後，成果報告的 RenderReference 就能對回這筆落地紀錄。
+    assert all(job["render_id"] and job["prompt_hash"] for job in jobs)
+
+    listed = client.get(f"/api/projects/{project_id}/renders").json()["renders"]
+    by_room = {record["room_id"]: record for record in listed}
+    assert set(by_room) == {"living-1", "bedroom-1"}
+    living = by_room["living-1"]
+    assert "不得新增、刪除或移動" in living["prompt_text"]
+    context = living["design_context"]
+    assert context["style_name"] == "北歐奶油風"
+    assert context["palette_hex"] == ["#F5EFE6", "#D8C3A5"]
+    assert context["surfaces"]["floor"] == "淺橡木超耐磨木地板"
+    assert context["room_label"] == "客廳"
+    assert any("線性燈天花" in note for note in context["requirement_notes"])
+    # 去識別化與 prompt 同一條規則：姓名電話不得落地。
+    assert "Ada" not in json.dumps(context, ensure_ascii=False)
+    assert living["prompt_hash"] == jobs[0]["prompt_hash"]
+
+
+def test_browser_capture_render_has_no_fabricated_rationale(direct_provider) -> None:
+    """瀏覽器截圖沒有生圖 prompt；落地欄位必須是空，不得編造。"""
+    project_id = _create_project()
+    project = client.get(f"/api/projects/{project_id}").json()["project"]
+
+    response = client.post(
+        f"/api/projects/{project_id}/renders",
+        files={"file": ("view.png", _png_bytes(), "image/png")},
+        data={"expected_revision": str(project["revision"])},
+    )
+
+    assert response.status_code == 201
+    record = response.json()["render"]
+    assert record["prompt_text"] is None
+    assert record["prompt_hash"] is None
+    assert record["design_context"] is None
 
 
 def test_room_final_uses_per_room_reference_and_falls_back_to_master(direct_provider) -> None:

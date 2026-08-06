@@ -201,6 +201,107 @@ def test_demo_e2e_generates_html_json_and_two_sheet_artifact_xlsx(
         assert ":f>" in worksheet_xml
 
 
+_TINY_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0"
+    b"\x00\x00\x00\x03\x00\x01\x87\xa1N\xd4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
+def test_report_carries_per_render_rationale_and_embeds_png(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """簡報鏈驗收：第 8 步落地的 prompt 素材要變成逐圖理念，圖要內嵌可離線看。"""
+    from backend.server import main as server_main
+
+    monkeypatch.setenv("ROOMPILOT_DEMO_MODE", "false")
+    project = _project()
+    render, project = server_main.PROJECT_STORE.save_render(
+        project["project_id"],
+        expected_revision=project["revision"],
+        content=_TINY_PNG,
+        white_model_version=0,
+        viewpoint_version=0,
+        style_version=0,
+        style_card_id="card-nordic",
+        provider="openrouter_image",
+        room_id="living-1",
+        prompt_text="你是室內設計渲染引擎。硬性限制：不得新增、刪除或移動任何家具。",
+        design_context={
+            "style_card_id": "card-nordic",
+            "style_name": "北歐奶油風",
+            "palette_hex": ["#F5EFE6", "#D8C3A5"],
+            "surfaces": {"wall": "暖白乳膠漆", "floor": "淺橡木超耐磨木地板"},
+            "room_id": "living-1",
+            "room_label": "客廳",
+            "requirement_notes": ["客廳——天花：線性燈天花、燈具：軌道燈"],
+        },
+    )
+    snapshot = _snapshot(project)
+    snapshot["rooms"][0]["renders"] = [
+        {
+            "render_url": (
+                f"/api/projects/{project['project_id']}/renders/"
+                f"{render['render_id']}/png"
+            ),
+            "view_name": "客廳渲染",
+            "render_id": render["render_id"],
+            "prompt_hash": render["prompt_hash"],
+        },
+        {
+            # 瀏覽器截圖（無落地 prompt）：不得被編造理念。
+            "render_url": "/api/projects/demo/renders/manual/png",
+            "view_name": "設計師補充視角",
+        },
+    ]
+    revision = snapshot["revision"]
+    assert client.put(
+        f"/api/v1/projects/{project['project_id']}/revisions/{revision}/snapshot",
+        json=snapshot,
+    ).status_code == 200
+    assert client.post(
+        f"/api/v1/projects/{project['project_id']}/revisions/{revision}/lock",
+        json={"confirmed_by": "王設計師"},
+    ).status_code == 200
+    response = client.post(
+        f"/api/v1/projects/{project['project_id']}/engineering-packages",
+        json={"revision": revision, "documents": ["report_json", "report_html"]},
+    )
+    assert response.status_code == 202
+    job = client.get(f"/api/v1/jobs/{response.json()['job_id']}").json()
+    assert job["status"] in {"completed", "completed_with_warnings"}
+
+    report = client.get(f"/api/v1/packages/{job['package_id']}").json()
+    rationales = report["render_rationales"]
+    assert len(rationales) == 1, "只有生圖有落地素材；截圖不得被編造理念"
+    rationale = rationales[0]
+    assert rationale["render_id"] == render["render_id"]
+    assert rationale["room_label"] == "客廳"
+    assert rationale["style_name_zh"] == "北歐奶油風"
+    assert rationale["palette_hex"] == ["#F5EFE6", "#D8C3A5"]
+    assert rationale["prompt_hash"] == render["prompt_hash"]
+    assert "北歐奶油風" in rationale["rationale_zh"]
+    assert "淺橡木超耐磨木地板" in rationale["rationale_zh"]
+    assert "線性燈天花" in rationale["rationale_zh"]
+
+    html_document = next(
+        item for item in report["documents"] if item["document_type"] == "report_html"
+    )
+    html_text = client.get(html_document["download_url"]).content.decode("utf-8")
+    # 報告是離線交付文件：圖片必須內嵌，不能指向需要 token 的下載端點。
+    assert "data:image/png;base64," in html_text
+    assert "整體以「北歐奶油風」為風格基調" in html_text
+    assert "此圖無對應的生圖理念紀錄" in html_text
+
+    # 舊 package 沒有 render_rationales 欄位也要能讀回（加法契約）。
+    from backend.server.engineering.models import ReportPayload
+
+    legacy = {
+        key: value for key, value in report.items() if key != "render_rationales"
+    }
+    assert ReportPayload.model_validate(legacy).render_rationales == []
+
+
 def test_production_report_has_pending_quotes_and_no_fake_total(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import base64
 import html
 import json
 import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Callable
 from uuid import uuid4
 
 from .models import DocumentManifest, ReportPayload
@@ -23,11 +25,16 @@ class DocumentService:
         generated_dir: Path,
         repository: EngineeringRepository,
         api_prefix: str = "/api/v1",
+        render_asset_loader: Callable[[str, str], bytes | None] | None = None,
     ) -> None:
         self.generated_dir = generated_dir.resolve()
         self.repository = repository
         self.api_prefix = api_prefix.rstrip("/")
         self.workbook_builder = Path(__file__).with_name("workbook_builder.mjs")
+        # (project_id, render_id) -> PNG bytes。報告 HTML 是要離線交付的文件，
+        # 而 renders 下載端點需要 bearer token——<img src> 不帶身分一律 401，
+        # 所以生成時直接內嵌 base64；loader 缺席或單張失敗時退回原網址。
+        self.render_asset_loader = render_asset_loader
 
     def render(
         self, report: ReportPayload, requested_types: list[str]
@@ -301,11 +308,23 @@ class DocumentService:
         <p class="muted">{esc(estimate.disclaimer)}</p>
         </section>"""
 
-    @staticmethod
-    def _render_html(report: ReportPayload) -> str:
+    def _embedded_render_src(self, project_id: str, reference) -> str:
+        if self.render_asset_loader is not None and reference.render_id:
+            try:
+                raw = self.render_asset_loader(project_id, reference.render_id)
+            except Exception:
+                raw = None
+            if raw:
+                return "data:image/png;base64," + base64.b64encode(raw).decode("ascii")
+        return reference.render_url
+
+    def _render_html(self, report: ReportPayload) -> str:
         esc = lambda value: html.escape(str(value if value is not None else ""))
         quantity_by_room = {item.room_id: item for item in report.quantities.rooms}
         retrieval_by_room = {item.room_id: item for item in report.retrieval.rooms}
+        rationale_by_render = {
+            item.render_id: item for item in report.render_rationales
+        }
         risks_by_room: dict[str, list] = {}
         for risk in report.risks.results:
             risks_by_room.setdefault(risk.room_id or "project", []).append(risk)
@@ -313,11 +332,24 @@ class DocumentService:
         for room in report.snapshot.rooms:
             quantity = quantity_by_room[room.room_id]
             retrieval = retrieval_by_room[room.room_id]
-            renders = "".join(
-                f'<figure><img src="{esc(item.render_url)}" alt="{esc(room.name)} {esc(item.view_name)}">'
-                f"<figcaption>{esc(item.view_name)}</figcaption></figure>"
-                for item in room.renders
-            ) or '<p class="empty">尚無逐房生圖；需在第 8 步完成或由設計師補充。</p>'
+            figures: list[str] = []
+            for item in room.renders:
+                rationale = rationale_by_render.get(item.render_id or "")
+                rationale_html = (
+                    f'<p class="render-rationale">{esc(rationale.rationale_zh)}</p>'
+                    if rationale is not None
+                    else '<p class="render-rationale muted">此圖無對應的生圖理念紀錄'
+                    "（例如瀏覽器截圖）。</p>"
+                )
+                figures.append(
+                    f'<figure><img src="{esc(self._embedded_render_src(report.project_id, item))}"'
+                    f' alt="{esc(room.name)} {esc(item.view_name)}">'
+                    f"<figcaption>{esc(item.view_name)}</figcaption>"
+                    f"{rationale_html}</figure>"
+                )
+            renders = "".join(figures) or (
+                '<p class="empty">尚無逐房生圖；需在第 8 步完成或由設計師補充。</p>'
+            )
             materials = "".join(
                 f"<li><b>{esc(item.part)}</b>：{esc(item.name)}（耗損 {item.waste_rate:.0%}）</li>"
                 for item in room.materials
@@ -384,6 +416,7 @@ small,.muted{{color:var(--muted)}}.meta,.metrics{{display:flex;flex-wrap:wrap;ga
 .demo{{background:#a51d1d;color:white;font-size:20px;font-weight:800;padding:16px 20px;margin:20px 0;border:5px solid #ffd66b}}
 .room{{padding:28px 0;border-top:1px solid var(--line)}}.renders{{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}}
 figure{{margin:0}}img{{width:100%;max-height:430px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}}figcaption{{color:var(--muted)}}
+.render-rationale{{margin:6px 0 0;font-size:13px;line-height:1.6}}.render-rationale.muted{{color:var(--muted)}}
 .two{{display:grid;grid-template-columns:1fr 1fr;gap:28px}}li{{margin:5px 0}}.risk-high{{color:#a51d1d}}.risk-medium{{color:var(--warn)}}
 .empty{{padding:16px;background:#f7f8f6;color:var(--muted)}}
 .swatches{{display:flex;flex-wrap:wrap;gap:14px;margin:14px 0}}

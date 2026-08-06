@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -182,6 +183,15 @@ class PostgresProjectStore:
 
     @staticmethod
     def _render(row: Any) -> dict[str, Any]:
+        # RealDictCursor 回傳 dict；欄位缺席代表資料庫尚未套用
+        # scripts/project_store 的加法遷移，這裡不掩蓋、直接 KeyError。
+        prompt_text = row["prompt_text"]
+        design_context = row["design_context_json"]
+        if isinstance(design_context, str):
+            try:
+                design_context = json.loads(design_context)
+            except json.JSONDecodeError:
+                design_context = None
         return {
             "render_id": row["render_id"],
             "project_id": row["project_id"],
@@ -194,6 +204,14 @@ class PostgresProjectStore:
             "filename": row["filename"],
             "byte_size": int(row["byte_size"]),
             "created_at": _timestamp(row["created_at"]),
+            "room_id": row["room_id"],
+            "prompt_text": prompt_text,
+            "prompt_hash": (
+                hashlib.sha256(prompt_text.encode("utf-8")).hexdigest()
+                if prompt_text
+                else None
+            ),
+            "design_context": design_context if isinstance(design_context, dict) else None,
         }
 
     @staticmethod
@@ -380,6 +398,9 @@ class PostgresProjectStore:
         style_version: int,
         style_card_id: str,
         provider: str,
+        room_id: str | None = None,
+        prompt_text: str | None = None,
+        design_context: dict | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         render_id = uuid4().hex
         filename = f"roompilot-{project_id[:8]}-{render_id[:8]}.png"
@@ -400,9 +421,9 @@ class PostgresProjectStore:
                             render_id, project_id, white_model_version,
                             viewpoint_version, style_version, style_card_id,
                             provider, mime_type, filename, file_path, byte_size,
-                            created_at
+                            created_at, room_id, prompt_text, design_context_json
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, 'image/png',
-                                  %s, %s, %s, %s)
+                                  %s, %s, %s, %s, %s, %s, %s::jsonb)
                         """,
                         (
                             render_id,
@@ -416,6 +437,13 @@ class PostgresProjectStore:
                             str(stored_path),
                             len(content),
                             now,
+                            room_id,
+                            prompt_text,
+                            (
+                                json.dumps(design_context, ensure_ascii=False)
+                                if design_context
+                                else None
+                            ),
                         ),
                     )
                     cursor.execute(

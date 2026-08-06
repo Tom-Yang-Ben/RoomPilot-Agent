@@ -14,6 +14,7 @@ from .furniture_cost import FurnitureEstimateService
 from .models import ProjectSnapshot, ReportPayload
 from .narrative import TemplateNarrativeService
 from .quantity import QuantityService
+from .render_rationale import RenderRationaleService
 from .rules import ExistingEngineRuleService
 from .schedule import ScheduleService
 
@@ -35,6 +36,7 @@ class EngineeringOrchestrator:
         design_narrative_service: DesignNarrativeService,
         document_service: DocumentService,
         demo_mode: bool,
+        render_rationale_service: RenderRationaleService | None = None,
     ) -> None:
         self.quantity_service = quantity_service
         self.rag_service = rag_service
@@ -46,6 +48,7 @@ class EngineeringOrchestrator:
         self.design_narrative_service = design_narrative_service
         self.document_service = document_service
         self.demo_mode = demo_mode
+        self.render_rationale_service = render_rationale_service
 
     def generate(
         self,
@@ -80,6 +83,14 @@ class EngineeringOrchestrator:
         )
         update(86, "design_narrative")
         design_narrative = self.design_narrative_service.generate(snapshot)
+        update(88, "render_rationale")
+        # 逐圖理念只讀 render_outputs 落地紀錄；在 snapshot_hash 計算之前就緒，
+        # 但存進 payload 頂層、不觸碰 snapshot 本體。
+        render_rationales = (
+            self.render_rationale_service.collect(snapshot)
+            if self.render_rationale_service is not None
+            else []
+        )
 
         snapshot_json = json.dumps(
             snapshot.model_dump(mode="json"),
@@ -132,6 +143,7 @@ class EngineeringOrchestrator:
             schedule=schedule,
             narratives=narratives,
             design_narrative=design_narrative,
+            render_rationales=render_rationales,
             assumptions=assumptions,
             exclusions=exclusions,
             documents=[],

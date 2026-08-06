@@ -1574,6 +1574,110 @@
         "title": "QuantityResult",
         "type": "object"
       },
+      "RenderRationale": {
+        "additionalProperties": false,
+        "description": "第 8 步單張生圖的設計理念。\n\n素材在生圖當下隨圖落地（render_outputs 的 prompt／design_context），\n這裡只重排版，不生成新內容；沒有落地紀錄的圖（例如瀏覽器截圖）不會\n出現在列表，缺席即如實缺席。",
+        "properties": {
+          "palette_hex": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Palette Hex",
+            "type": "array"
+          },
+          "prompt_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Hash"
+          },
+          "rationale_zh": {
+            "minLength": 1,
+            "title": "Rationale Zh",
+            "type": "string"
+          },
+          "render_id": {
+            "minLength": 1,
+            "title": "Render Id",
+            "type": "string"
+          },
+          "requirement_notes_zh": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Requirement Notes Zh",
+            "type": "array"
+          },
+          "room_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room Id"
+          },
+          "room_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room Label"
+          },
+          "source": {
+            "const": "render_prompt_log",
+            "default": "render_prompt_log",
+            "title": "Source",
+            "type": "string"
+          },
+          "style_card_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style Card Id"
+          },
+          "style_name_zh": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Style Name Zh"
+          },
+          "surfaces_zh": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Surfaces Zh",
+            "type": "object"
+          }
+        },
+        "required": [
+          "render_id",
+          "rationale_zh"
+        ],
+        "title": "RenderRationale",
+        "type": "object"
+      },
       "RenderReference": {
         "additionalProperties": false,
         "properties": {
@@ -1683,6 +1787,13 @@
           },
           "quantities": {
             "$ref": "#/components/schemas/QuantityResult"
+          },
+          "render_rationales": {
+            "items": {
+              "$ref": "#/components/schemas/RenderRationale"
+            },
+            "title": "Render Rationales",
+            "type": "array"
           },
           "retrieval": {
             "$ref": "#/components/schemas/RetrievalResult"

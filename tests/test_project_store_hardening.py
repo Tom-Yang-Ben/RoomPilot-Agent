@@ -57,6 +57,51 @@ def test_expected_revision_rejects_stale_update_without_overwriting(tmp_path: Pa
     }
 
 
+def test_render_outputs_gains_prompt_columns_on_existing_database(tmp_path: Path) -> None:
+    """舊庫沒有逐圖理念欄位：重開 store 要自動補欄，舊列讀回 None、新列可寫。"""
+    runtime = tmp_path / "runtime"
+    store = ProjectStore(runtime)
+    project = store.create_project(name="逐圖理念遷移")
+    with store._connect() as connection:
+        for column in ("room_id", "prompt_text", "design_context_json"):
+            connection.execute(f"ALTER TABLE render_outputs DROP COLUMN {column}")
+        connection.execute(
+            """
+            INSERT INTO render_outputs (
+                render_id, project_id, white_model_version, viewpoint_version,
+                style_version, style_card_id, provider, mime_type, filename,
+                file_path, byte_size, created_at
+            ) VALUES ('legacy-1', ?, 0, 0, 0, 'card-1', 'browser_capture',
+                      'image/png', 'legacy.png', 'legacy.png', 1, '2026-01-01')
+            """,
+            (project["project_id"],),
+        )
+
+    reopened = ProjectStore(runtime)
+    legacy = reopened.list_renders(project["project_id"])[0]
+    assert legacy["prompt_text"] is None
+    assert legacy["prompt_hash"] is None
+    assert legacy["design_context"] is None
+    assert legacy["room_id"] is None
+
+    saved, _project = reopened.save_render(
+        project["project_id"],
+        expected_revision=project["revision"],
+        content=_png_bytes(),
+        white_model_version=0,
+        viewpoint_version=0,
+        style_version=0,
+        style_card_id="card-nordic",
+        provider="openrouter_image",
+        room_id="living-1",
+        prompt_text="測試 prompt",
+        design_context={"style_name": "北歐奶油風"},
+    )
+    assert saved["room_id"] == "living-1"
+    assert saved["design_context"] == {"style_name": "北歐奶油風"}
+    assert saved["prompt_hash"] and len(saved["prompt_hash"]) == 64
+
+
 def test_legacy_database_is_migrated_with_revision_zero(tmp_path: Path) -> None:
     runtime = tmp_path / "legacy-runtime"
     runtime.mkdir()
