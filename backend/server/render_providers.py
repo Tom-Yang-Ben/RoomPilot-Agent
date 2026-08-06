@@ -270,6 +270,28 @@ def requirement_notes(
     return notes
 
 
+def _style_surface_text(value: Any) -> str:
+    """風格包的牆/地/光欄位可能是字串（風格卡文案）或結構化 dict（第 6 步
+    表面方案）。dict 直接 str() 會把 Python repr 原文塞進 prompt 與逐圖理念
+    （floor04 實測：牆面：{'color': ...}），這裡只取可讀欄位。"""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, dict):
+        pbr = value.get("pbr") if isinstance(value.get("pbr"), dict) else {}
+        parts = [
+            str(part).strip()
+            for part in (
+                value.get("label") or value.get("name"),
+                value.get("color"),
+                value.get("material") or pbr.get("material"),
+                value.get("surfaceOption") or value.get("styleId"),
+            )
+            if part
+        ]
+        return "、".join(parts)
+    return str(value).strip() if value not in (None, "") else ""
+
+
 def build_render_prompt(
     prepared: dict[str, Any],
     style_pack: dict[str, Any],
@@ -296,7 +318,7 @@ def build_render_prompt(
     if isinstance(palette, list) and palette:
         parts.append("主色調（hex）：" + "、".join(str(color) for color in palette[:6]) + "。")
     for key, label in (("wall", "牆面"), ("floor", "地板"), ("lighting", "燈光"), ("rendering", "渲染語言")):
-        value = style_pack.get(key)
+        value = _style_surface_text(style_pack.get(key))
         if value:
             parts.append(f"{label}：{value}。")
     requirements = prepared.get("requirements") or {}
@@ -337,9 +359,9 @@ def build_design_context(
     """
     room_view = room_view or {}
     surfaces = {
-        key: str(style_pack[key])
+        key: text
         for key in ("wall", "floor", "lighting", "rendering")
-        if style_pack.get(key)
+        if (text := _style_surface_text(style_pack.get(key)))
     }
     palette = style_pack.get("palette_hex")
     context = {

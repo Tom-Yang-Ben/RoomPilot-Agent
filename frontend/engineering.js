@@ -428,19 +428,31 @@ function updateJob(job) {
   $("#job-error").textContent = job.error ? `${job.error_code || "ERROR"}：${job.error}` : "";
 }
 
+function availableDocumentTypes() {
+  // XLSX 由 @oai/artifact-tool 生成；adapter 未設定時要求它只會讓整包
+  // 失敗（XLSX_ADAPTER_UNAVAILABLE），HTML 與 JSON 也一起陪葬。手動與
+  // 自動流程都只要求本機做得出來的文件，缺席原因如實顯示、不假裝成功。
+  if (state.health?.xlsx?.module_path_configured) {
+    return ["report_json", "report_html", "estimate_xlsx"];
+  }
+  return ["report_json", "report_html"];
+}
+
 async function generatePackage(documentTypes) {
   $("#download-links").innerHTML = "";
   $("#html-preview").hidden = true;
   $("#json-details").hidden = true;
+  const documents = Array.isArray(documentTypes) && documentTypes.length
+    ? documentTypes
+    : availableDocumentTypes();
+  const xlsxSkipped = !documents.includes("estimate_xlsx");
   try {
     const queued = await api(`/api/v1/projects/${encodeURIComponent(state.projectId)}/engineering-packages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         revision: state.snapshot.revision,
-        documents: Array.isArray(documentTypes) && documentTypes.length
-          ? documentTypes
-          : ["report_json", "report_html", "estimate_xlsx"],
+        documents,
       }),
     });
     updateJob(queued);
@@ -449,6 +461,9 @@ async function generatePackage(documentTypes) {
       await new Promise((resolve) => setTimeout(resolve, 800));
       job = await api(`/api/v1/jobs/${encodeURIComponent(job.job_id)}`);
       updateJob(job);
+    }
+    if (xlsxSkipped) {
+      $("#job-stage").textContent += "；XLSX adapter（@oai/artifact-tool）未設定，本次未產生 Excel 估價表";
     }
     if (job.status === "failed") return;
     state.report = await api(`/api/v1/packages/${encodeURIComponent(job.package_id)}`);
@@ -559,12 +574,7 @@ async function runAutoProposal() {
     if (!(await lockRevision())) return;
   }
   $("#job-stage").textContent = "輸出簡報：正在生成提案文件…";
-  // 簡報的必要文件是 HTML 提案與 JSON payload；XLSX 只在 artifact-tool
-  // 已設定時一起要，否則整包會因 XLSX_ADAPTER_UNAVAILABLE 全數失敗。
-  const documents = state.health?.xlsx?.module_path_configured
-    ? ["report_json", "report_html", "estimate_xlsx"]
-    : ["report_json", "report_html"];
-  await generatePackage(documents);
+  await generatePackage();
 }
 
 $("#refresh-state").addEventListener("click", () => loadCurrentProject().catch((error) => {

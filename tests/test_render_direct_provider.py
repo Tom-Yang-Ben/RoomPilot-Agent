@@ -264,6 +264,30 @@ def test_render_persists_prompt_and_design_context_for_proposal(direct_provider)
     assert living["prompt_hash"] == jobs[0]["prompt_hash"]
 
 
+def test_structured_surface_values_render_readable_text() -> None:
+    """第 6 步表面方案是結構化 dict；直接 str() 會把 Python repr 原文塞進
+    prompt 與逐圖理念（floor04 實測：牆面：{'color': ...}）。必須取可讀欄位。"""
+    style_pack = {
+        "card_id": "card-x",
+        "name": "自然木質",
+        "wall": {
+            "color": "#FAF4EE",
+            "surfaceOption": "warm_white",
+            "pbr": {"material": "mineral-paint", "roughness": 0.88},
+        },
+        "floor": "淺橡木超耐磨木地板",
+    }
+
+    prompt = render_providers.build_render_prompt({}, style_pack)
+    context = render_providers.build_design_context({}, style_pack)
+
+    assert "{'" not in prompt
+    assert "牆面：#FAF4EE、mineral-paint、warm_white。" in prompt
+    assert "地板：淺橡木超耐磨木地板。" in prompt
+    assert context["surfaces"]["wall"] == "#FAF4EE、mineral-paint、warm_white"
+    assert context["surfaces"]["floor"] == "淺橡木超耐磨木地板"
+
+
 def test_browser_capture_render_has_no_fabricated_rationale(direct_provider) -> None:
     """瀏覽器截圖沒有生圖 prompt；落地欄位必須是空，不得編造。"""
     project_id = _create_project()
