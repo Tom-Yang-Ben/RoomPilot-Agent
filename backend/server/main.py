@@ -1722,6 +1722,53 @@ def _validate_floorplan_bytes(extension: str, content: bytes) -> str:
     return "image/png" if extension == ".png" else "image/jpeg"
 
 
+def _unresolved_recognition_review(workflow: dict) -> list[dict]:
+    """宣告空間確認完成、卻仍有辨識複核房間未經人工確認的清單。
+
+    對應 ``confirmation.py`` 的 ``targeted_room_review_required`` 閘門：正式
+    前端不走 ``/api/floorplan/confirm``，所以在 workflow 宣告
+    ``space_confirmation`` 完成時做等值檢查。房間 id 已不存在視為已處理——
+    刪除、合併、切割都是人工介入。已完成的舊專案房間全數 confirmed，不受
+    影響。
+    """
+    flow = workflow.get("_flow")
+    completed = flow.get("completed") if isinstance(flow, dict) else None
+    if not isinstance(completed, list) or "space_confirmation" not in completed:
+        return []
+    recognition = workflow.get("recognition")
+    spatial = (
+        recognition.get("spatial_report") if isinstance(recognition, dict) else None
+    )
+    items = spatial.get("review_items") if isinstance(spatial, dict) else None
+    if not isinstance(items, list) or not items:
+        return []
+    space = workflow.get("space_confirmation")
+    rooms = space.get("rooms") if isinstance(space, dict) else None
+    rooms_by_id: dict[str, dict] = {}
+    if isinstance(rooms, list):
+        for room in rooms:
+            if isinstance(room, dict) and room.get("id") is not None:
+                rooms_by_id[str(room["id"])] = room
+    unresolved: list[dict] = []
+    seen: set[str] = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        room_id = str(item.get("room_id"))
+        room = rooms_by_id.get(room_id)
+        if room is None or room.get("confirmed") is True or room_id in seen:
+            continue
+        seen.add(room_id)
+        unresolved.append(
+            {
+                "room_id": room_id,
+                "label": room.get("label"),
+                "reason": item.get("reason"),
+            }
+        )
+    return unresolved
+
+
 @app.post("/api/projects", status_code=201)
 def create_project(payload: dict) -> dict:
     name = str(payload.get("name") or "").strip()
@@ -1753,6 +1800,19 @@ def save_project_workflow(project_id: str, payload: dict) -> dict:
     workflow = payload.get("workflow")
     if workflow is not None and not isinstance(workflow, dict):
         raise HTTPException(422, "workflow_must_be_an_object")
+    unresolved_review = _unresolved_recognition_review(workflow or {})
+    if unresolved_review:
+        raise HTTPException(
+            422,
+            {
+                "code": "recognition_review_unresolved",
+                "message": (
+                    "系統標記需人工複核的房間尚未逐一確認，"
+                    "無法將空間確認標為完成；請回到第 4 步處理。"
+                ),
+                "rooms": unresolved_review,
+            },
+        )
     expected_revision = payload.get("expected_revision")
     if expected_revision is not None and (
         isinstance(expected_revision, bool)

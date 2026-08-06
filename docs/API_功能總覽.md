@@ -38,7 +38,7 @@
 |---|---|---|---|
 | POST | `/api/projects`（201） | main.py:1520 | 建立新專案。Body：`{name, notes}` → `{project}` |
 | GET | `/api/projects/{project_id}` | main.py:1536 | 取得專案資料 |
-| PUT | `/api/projects/{project_id}/workflow` | main.py:1542 | 保存工作流程狀態；以 `expected_revision`、`base_updated_at` 做樂觀鎖防衝突 |
+| PUT | `/api/projects/{project_id}/workflow` | main.py:1795 | 保存工作流程狀態；以 `expected_revision`、`base_updated_at` 做樂觀鎖防衝突。宣告 `space_confirmation` 完成、但 `recognition.spatial_report.review_items` 指到的房間仍未確認時，回 422 `recognition_review_unresolved`（`detail.rooms` 列出待處理房間）|
 
 ## 3. 平面圖（專案綁定）
 
