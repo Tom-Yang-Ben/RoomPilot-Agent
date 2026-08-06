@@ -534,10 +534,8 @@ const element = {
   aiOpenrouterEditRoom: $("#ai-openrouter-edit-room"),
   aiOpenrouterEditFeedback: $("#ai-openrouter-edit-feedback"),
   aiOpenrouterEditStatus: $("#ai-openrouter-edit-status"),
-  designManualStatus: $("#design-manual-status"),
-  designManualGenerate: $("#design-manual-generate"),
-  designManualDownload: $("#design-manual-download"),
   deliveryProposalStatus: $("#delivery-proposal-status"),
+  deliveryProposalGenerate: $("#delivery-proposal-generate"),
   deliveryProposalDownload: $("#delivery-proposal-download"),
 };
 
@@ -13354,7 +13352,7 @@ async function prepareAiRender() {
   }
   void refreshAiOpenrouterStatus();
   renderAiOpenrouterResults();
-  restoreDesignManualPanel();
+  restoreDeliveryProposalPanel();
 }
 
 // ---- 第 8 步：OpenRouter nano banana 逐房寫實生圖（不移動擺設）＋整批一次改圖 ----
@@ -13565,7 +13563,7 @@ function roomBoundsCm(room) {
   };
 }
 
-function designManualRoomsPayload() {
+function deliveryRoomsPayload() {
   const results = state.proposalReview.openRouterRenders?.results || [];
   return state.rooms.map((room) => {
     const render = results.find(
@@ -13581,17 +13579,6 @@ function designManualRoomsPayload() {
   });
 }
 
-function showDesignManualDownload(record) {
-  if (!element.designManualDownload) return;
-  if (!record) {
-    element.designManualDownload.hidden = true;
-    return;
-  }
-  element.designManualDownload.href = `/api/projects/${state.projectId}/design-manual/pdf`;
-  element.designManualDownload.textContent = `下載設計手冊 PDF（${(record.sections || []).length || 8} 章）`;
-  element.designManualDownload.hidden = false;
-}
-
 function showDeliveryProposalDownload(record) {
   if (!element.deliveryProposalDownload) return;
   if (!record) {
@@ -13599,7 +13586,7 @@ function showDeliveryProposalDownload(record) {
     return;
   }
   element.deliveryProposalDownload.href = `/api/projects/${state.projectId}/delivery-proposal/pdf`;
-  element.deliveryProposalDownload.textContent = "下載交付提案 PDF（品牌版）";
+  element.deliveryProposalDownload.textContent = "下載設計提案 PDF";
   element.deliveryProposalDownload.hidden = false;
 }
 
@@ -13609,21 +13596,19 @@ function setDeliveryProposalStatus(text) {
   element.deliveryProposalStatus.hidden = !text;
 }
 
-function restoreDesignManualPanel() {
-  const workflow = state.project?.workflow || {};
-  showDesignManualDownload(workflow.design_manual);
-  showDeliveryProposalDownload(workflow.delivery_proposal);
-  if (workflow.design_manual && element.designManualStatus) {
-    element.designManualStatus.textContent = "已有先前產出的成果報告，可直接下載或重新產出取代紀錄。";
-  }
+function restoreDeliveryProposalPanel() {
+  const record = state.project?.workflow?.delivery_proposal;
+  showDeliveryProposalDownload(record);
+  setDeliveryProposalStatus(record
+    ? "已有先前產出的設計提案，可直接下載或重新產出取代紀錄。"
+    : "完成上方生圖後產出效果最好；未生圖也可先輸出文字版。");
   void checkDeliveryEngine();
 }
 
 async function checkDeliveryEngine() {
   try {
     const status = await api("/api/delivery-proposal/status");
-    if (!status.available) setDeliveryProposalStatus(status.reason || "交付提案排版引擎尚未安裝。");
-    else if (!state.project?.workflow?.delivery_proposal) setDeliveryProposalStatus("");
+    if (!status.available) setDeliveryProposalStatus(status.reason || "設計提案排版引擎尚未安裝。");
   } catch {
     /* 狀態查不到不擋操作，錯誤會在實際產出時回報 */
   }
@@ -13637,47 +13622,39 @@ function rememberReportRecord(key, record) {
   };
 }
 
-async function generateDesignManual() {
+async function generateDeliveryProposal() {
   if (!state.sceneData || !state.projectId) {
-    if (element.designManualStatus) {
-      element.designManualStatus.textContent = "請先完成第 6 步配置，才能產出成果報告。";
-    }
+    setDeliveryProposalStatus("請先完成第 6 步配置，才能產出設計提案。");
     return;
   }
-  const rooms = designManualRoomsPayload();
+  const rooms = deliveryRoomsPayload();
   const renderedCount = rooms.filter((room) => room.image_data_url).length;
-  const body = JSON.stringify({ project_id: state.projectId, scene: state.sceneData, rooms });
-  const post = { method: "POST", headers: { "Content-Type": "application/json" }, body };
-  element.designManualGenerate.disabled = true;
-  element.designManualStatus.textContent = renderedCount
-    ? `正在組稿兩份成果報告（含 ${renderedCount} 個房間的生圖成果）…`
-    : "正在組稿兩份成果報告（尚無生圖，圖面標記待補）…";
+  element.deliveryProposalGenerate.disabled = true;
+  setDeliveryProposalStatus(renderedCount
+    ? `正在排版設計提案（含 ${renderedCount} 個房間的生圖成果）…`
+    : "正在排版設計提案（尚無生圖，圖面標記待補）…");
   try {
-    const result = await api(`/api/projects/${state.projectId}/design-manual`, post);
-    syncProjectRevision(result);
-    rememberReportRecord("design_manual", result.manual);
-    showDesignManualDownload(result.manual);
-    element.designManualStatus.textContent =
-      `設計手冊完成（${(result.manual.sections || []).length} 章`
-      + (renderedCount ? `，含 ${renderedCount} 房生圖）。` : "，未含生圖）。");
-  } catch (error) {
-    element.designManualStatus.textContent = `設計手冊：${errorMessage(error)}`;
-  }
-  // 交付提案接續產出（Chromium 排版較慢）；一份失敗不影響另一份。
-  setDeliveryProposalStatus("正在排版交付提案（品牌版）…");
-  try {
-    const result = await api(`/api/projects/${state.projectId}/delivery-proposal`, post);
+    const result = await api(`/api/projects/${state.projectId}/delivery-proposal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: state.projectId, scene: state.sceneData, rooms }),
+    });
     syncProjectRevision(result);
     rememberReportRecord("delivery_proposal", result.proposal);
     showDeliveryProposalDownload(result.proposal);
     const warnings = result.proposal.warnings || [];
+    // 只報數量的話，「文案走離線底稿」這種會影響交付品質的提醒等於沒說；
+    // 第一則直接顯示出來，其餘才用數量帶過。
     setDeliveryProposalStatus(
-      warnings.length ? `交付提案完成，${warnings.length} 項排版提醒。` : "交付提案完成。",
+      (renderedCount ? `設計提案完成（含 ${renderedCount} 房生圖）` : "設計提案完成（未含生圖）")
+      + (warnings.length
+        ? `。${warnings[0]}${warnings.length > 1 ? `（另有 ${warnings.length - 1} 項提醒）` : ""}`
+        : "。"),
     );
   } catch (error) {
-    setDeliveryProposalStatus(`交付提案：${errorMessage(error)}`);
+    setDeliveryProposalStatus(errorMessage(error));
   } finally {
-    element.designManualGenerate.disabled = false;
+    element.deliveryProposalGenerate.disabled = false;
   }
 }
 
@@ -15050,7 +15027,7 @@ function bindEvents() {
   });
   $("#ai-openrouter-edit-submit")?.addEventListener("click", submitAiOpenrouterEdit);
   $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
-  element.designManualGenerate?.addEventListener("click", generateDesignManual);
+  element.deliveryProposalGenerate?.addEventListener("click", generateDeliveryProposal);
   $("#ai-openrouter-edit-close")?.addEventListener("click", closeAiOpenrouterEditDialog);
   $("#close-render-brief")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-cancel")?.addEventListener("click", closeRenderBriefDialog);

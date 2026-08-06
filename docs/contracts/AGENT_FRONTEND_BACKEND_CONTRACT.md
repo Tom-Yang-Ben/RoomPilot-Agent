@@ -194,48 +194,44 @@ AN engine 初次擺放後若出現 `placement_failed`，
 `action` 目前可能是 `replace`、`remove` 或 `escalate`。Bella 應顯示
 `message_zh`，不可把 `escalate` 當作成功擺放。
 
-## 成果報告（Report Agent，兩版比較）
+## 成果報告（Report Agent）
 
 第 8 步收尾由 Bella adapter（`backend/server/design_manual_service.py`）把
-scene_json 與逐房生圖成果組成 Yen Report Agent 的 Docs 層文件，產出**兩版**
-報告供比較：八章設計手冊（Pillow 排版），與品牌交付提案（`backend/agent/
-skills/roompilot-delivery-pdf/` 打包 skill 的 build_pdf.py 以 Playwright
-Chromium 排版；文案由 `skills/delivery/` 流程層產生——LLM 依 SKILL.md 寫作
-規範改寫，離線走只寫既有事實的 deterministic 底稿）。組稿與排版都在
-`backend/agent/`，adapter 不重做。
+scene_json 與逐房生圖成果組成 Yen Report Agent 的 Docs 層文件，輸出**設計
+提案 PDF** 作為正式成果報告：`backend/agent/skills/roompilot-delivery-pdf/`
+打包 skill 的 build_pdf.py 以 Playwright Chromium 排版；文案由
+`skills/delivery/` 流程層產生——LLM 依 SKILL.md 寫作規範改寫，離線走只寫
+既有事實的 deterministic 底稿。組稿與排版都在 `backend/agent/`，adapter
+不重做。
 
-### `POST /api/projects/{project_id}/design-manual`
+2026-08-06 兩版比較後定案採本版；先前的八章設計手冊（Pillow 排版）**未採用
+為正式版**，其端點保留供獨立呼叫，第 8 步 UI 不再觸發。
+
+### `POST /api/projects/{project_id}/delivery-proposal`
 
 Request：`scene`（state.sceneData）＋逐房 `rooms`（`room_id`、`room_label`、
 `width_cm`、`depth_cm`、目前最新生圖 `image_data_url`（可為 null）、`model`）。
 
-Response（201）：`manual.sections`（八章標題）、`manual.download_url`、
-`manual.rendered_rooms`、專案 `revision` 與 `updated_at`。workflow 增加
-`design_manual` 中繼資料（含檔名；不存圖與 PDF 內容）。
-
-- 未設定 `OPENROUTER_API_KEY` 照樣輸出：LLM 只潤飾前言與設計理念，離線走
-  deterministic 底稿。
-- `placement_failed` 家具不進手冊；未標價品項不猜價。
-- 缺 `scene` 回 422 `scene_required`；缺房間回 422 `rooms_required`。
-
-### `GET /api/projects/{project_id}/design-manual/pdf`
-
-下載最近一次產出的 PDF。尚未產出回 404 `design_manual_not_found`；紀錄在但
-檔案遺失回 410 `design_manual_file_missing`。
-
-### `POST /api/projects/{project_id}/delivery-proposal`
-
-品牌交付提案版：與設計手冊吃**同一份 payload**（scene＋rooms）。Response
-（201）：`proposal.download_url`、`proposal.warnings`（排版腳本的殘頁／空圖
-提醒）、`revision`、`updated_at`；workflow 增加 `delivery_proposal` 中繼資料。
-文案規則：只寫資料裡有的數字與規格、無圖房間寫進已知限制、未標價不猜價
-（規範全文見打包 skill 的 `references/writing-rules.md`）。
+Response（201）：`proposal.download_url`、`proposal.warnings`（排版腳本的
+殘頁／空圖提醒）、`proposal.rendered_rooms`、專案 `revision` 與
+`updated_at`；workflow 增加 `delivery_proposal` 中繼資料（含檔名；不存圖與
+PDF 內容）。文案規則：只寫資料裡有的數字與規格、無圖房間寫進已知限制、
+未標價不猜價（規範全文見打包 skill 的 `references/writing-rules.md`）。
+缺 `scene` 回 422 `scene_required`；缺房間回 422 `rooms_required`。
 
 排版引擎（playwright Chromium）未安裝時回 503
 `delivery_engine_not_configured` 並附安裝指引（`requirements-delivery.txt`＋
 `playwright install chromium`）；`GET /api/delivery-proposal/status` 可預先查。
-`GET /api/projects/{project_id}/delivery-proposal/pdf` 下載，404／410 語意同
-設計手冊。PDF 旁會留存 `content.json` 供文案數字溯源。
+`GET /api/projects/{project_id}/delivery-proposal/pdf` 下載；未產出回 404
+`delivery_proposal_not_found`、檔案遺失回 410。PDF 旁會留存 `content.json`
+供文案數字溯源。未設定 `OPENROUTER_API_KEY` 照樣輸出（deterministic 底稿）。
+
+### 設計手冊端點（保留，UI 不觸發）
+
+`POST /api/projects/{project_id}/design-manual` 與
+`GET …/design-manual/pdf`：八章設計手冊 PDF，payload 與錯誤碼語意同上
+（workflow 鍵為 `design_manual`）。行為由 `tests/test_design_manual_api.py`
+維持驗證。
 
 ## 失敗與安全規則
 

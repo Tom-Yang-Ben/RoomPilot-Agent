@@ -79,6 +79,9 @@ def _rooms(with_image: bool = True) -> list[dict]:
             ),
         },
         {"room_id": "study-1", "room_label": "書房", "width_cm": 300, "depth_cm": 280},
+        # 浴室與陽台不在軟裝提案範圍，不該排出篇章。
+        {"room_id": "bath-1", "room_label": "浴室", "width_cm": 200, "depth_cm": 180},
+        {"room_id": "balcony-1", "room_label": "陽台", "width_cm": 300, "depth_cm": 120},
     ]
 
 
@@ -110,25 +113,82 @@ def test_offline_content_is_factual_and_clean() -> None:
     assert "revision 3" in content["meta"]["version"]
 
     rooms = {room["name"]: room for room in content["rooms"]}
+    # 浴室與陽台不排篇章，範圍在速覽開場交代。
     assert set(rooms) == {"客廳", "書房"}
+    assert "浴室" in content["overview"]["intro"] and "陽台" in content["overview"]["intro"]
     living = rooms["客廳"]
     assert len(living["look"]) >= 40
-    assert len(living["rationale"]) >= 2
+    # 選件依據一條就夠；擺位與淨空是工作紀錄，不是屋主要讀的設計理由。
+    assert living["rationale"][0]["title"] == "選件依據"
+    assert not any(
+        word in json.dumps(living["rationale"], ensure_ascii=False)
+        for word in ("擺位", "淨空", "幾何引擎", "不重疊")
+    )
     spec_text = json.dumps(living["specs"], ensure_ascii=False)
     assert "北歐布沙發" in spec_text and "210×90 cm" in spec_text
     assert "18,800" in spec_text
+    # 型號留在規格表，敘述只用通用中文名。
+    assert "北歐布沙發" in living["look"] and "sofa" not in living["look"]
+
+    # 設計總論＝後續每一章的摘要（章名當標題）。
+    titles = [pillar["title"] for pillar in content["statement"]["pillars"]]
+    assert titles[0] == "全案速覽" and titles[-1] == "接下來"
+    assert "客廳" in titles and "書房" in titles and "色彩與材質" in titles
+
+    # 全案速覽不能只有幾格數字：要有開場與空間一覽表。
+    assert content["overview"]["intro"]
+    assert len(content["overview"]["table"]["rows"]) == 2
 
     # 無圖房間必須寫進 appendix.limits（不能讓屋主以為漏做）。
     assert any("書房" in limit for limit in content["appendix"]["limits"])
     # 未標價原則保留。
     assert any("正式報價" in limit for limit in content["appendix"]["limits"])
-    # 60/30/10 色卡 swatches。
-    assert content["palette"]["swatches"][0]["usage"].startswith("主色")
+    # 60/30/10 色卡 swatches：色名要看得懂，不是把色碼印兩次。
+    swatch = content["palette"]["swatches"][0]
+    assert swatch["usage"].startswith("主色")
+    assert swatch["name"].startswith("米白") and swatch["hex"] in swatch["name"]
+    assert content["palette"]["intro"].count("\n") >= 2
+    assert all(material["why"] for material in content["materials"])
 
     # deterministic 底稿不得出現廣告腔／AI 高頻詞（writing-rules 禁詞抽查）。
     serialized = json.dumps(content, ensure_ascii=False)
     for banned in ("打造", "極致", "匠心", "營造出", "坐落於", "此外", "藉由", "不只是"):
         assert banned not in serialized, banned
+
+
+def test_identical_furniture_collapses_into_one_spec_row() -> None:
+    """四張一樣的餐椅抄四遍，屋主第一反應是「這表格是不是壞了」。"""
+    scene = _scene()
+    chair = {
+        "id": "chair",
+        "normalized_type": "dining-chair",
+        "name_zh_raw": "鉚釘現代餐椅，34 英寸（約 86.4 釐米）高, 粉筆色",
+        "material": "brass",
+        "size_cm": {"width": 51, "depth": 52, "height": 86},
+        "placement_room_id": "living-1",
+    }
+    scene["scene_objects"] += [
+        {**chair, "instance_id": f"chair#{index}"} for index in range(1, 4)
+    ]
+    store, _ = _assemble_store(scene, _rooms(), design_revision=1)
+    from backend.agent.documents import DocKey, LayoutDoc, RequirementDoc, SceneDoc
+
+    snapshot = store.snapshot()
+    content = build_content(
+        "林宅",
+        RequirementDoc.from_dict(snapshot[DocKey.REQUIREMENTS]),
+        LayoutDoc.from_dict(snapshot[DocKey.LAYOUT]),
+        SceneDoc.from_dict(snapshot[DocKey.variant(DocKey.SCENE, "chosen")]),
+        {},
+    )
+    living = next(room for room in content["rooms"] if room["name"] == "客廳")
+    chairs = [row for row in living["specs"] if "餐椅" in row["label"]]
+    assert len(chairs) == 1
+    assert "共 3 件" in chairs[0]["value"]
+    # 類型欄出中文，不是 dining-chair。
+    assert "餐椅，51×52 cm" in chairs[0]["value"] and "brass" not in chairs[0]["value"]
+    # 敘述用通用名，不重複列三次。
+    assert living["look"].count("餐椅") == 1
 
 
 def test_llm_copy_merges_into_content() -> None:
@@ -164,8 +224,11 @@ def test_llm_copy_merges_into_content() -> None:
                 ensure_ascii=False,
             )
 
-    DeliverySkill(CopyGateway())._merge_llm_copy(content, requirements, layout, scene)
+    merged = DeliverySkill(CopyGateway())._merge_llm_copy(
+        content, requirements, layout, scene
+    )
 
+    assert merged is True
     living = next(room for room in content["rooms"] if room["room_id"] == "living-1")
     assert living["scene_line"] == "週五晚上四個人擠在沙發上看片。"
     assert "亞麻" in living["look"]
@@ -174,6 +237,48 @@ def test_llm_copy_merges_into_content() -> None:
     # 書房未回傳 → 保留 deterministic 底稿。
     study = next(room for room in content["rooms"] if room["room_id"] == "study-1")
     assert "書房" in study["look"]
+
+
+def test_llm_placement_rationale_is_dropped() -> None:
+    """LLM 若又寫回「擺位與淨空」，合稿時擋掉——那是工作紀錄不是設計理由。"""
+    requirements, layout, scene = _docs()
+    content = build_content("林宅", requirements, layout, scene, {}, design_revision=1)
+
+    class NoisyGateway:
+        available = True
+
+        def chat(self, messages, *, model=None, temperature=0.3, force_json=False):
+            return json.dumps(
+                {
+                    "overview_intro": "28.6 坪、兩個空間，材質與配色同一套。",
+                    "palette_intro": "米白鋪底，木色收邊，點綴只出現在小物件上。",
+                    "rooms": [
+                        {
+                            "room_id": "living-1",
+                            "look": "從玄關轉進來，第一眼是整面南向的窗。",
+                            "rationale": [
+                                {"title": "擺位與淨空", "body": "位置由幾何引擎驗證，不重疊。"},
+                                {"title": "選件依據", "body": "你說很少看電視，電視收在側牆淺櫃。"},
+                            ],
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            )
+
+    DeliverySkill(NoisyGateway())._merge_llm_copy(content, requirements, layout, scene)
+
+    living = next(room for room in content["rooms"] if room["room_id"] == "living-1")
+    assert [row["title"] for row in living["rationale"]] == ["選件依據"]
+    assert content["overview"]["intro"].startswith("28.6 坪")
+    assert content["palette"]["intro"].startswith("米白鋪底")
+
+
+def test_offline_copy_is_reported_not_silently_downgraded() -> None:
+    """沒有 LLM 照樣出檔，但不能假裝文案是寫過的。"""
+    requirements, layout, scene = _docs()
+    content = build_content("林宅", requirements, layout, scene, {}, design_revision=1)
+    assert DeliverySkill(None)._merge_llm_copy(content, requirements, layout, scene) is False
 
 
 # ------------------------------------------------------------ PDF 端到端

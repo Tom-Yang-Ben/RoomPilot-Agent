@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-bd547b9ed96d" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-e4a7bb7f63ac" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -931,15 +931,13 @@
               <button id="ai-openrouter-generate" type="button" class="primary-action">對每個房間視角生成寫實圖</button>
               <div id="ai-openrouter-results" class="rp-render-result-grid"></div>
             </section>
-            <section id="design-manual-section" class="rp-editor-box">
+            <section id="delivery-proposal-section" class="rp-editor-box">
               <span class="eyebrow">REPORT AGENT</span>
-              <h3>4. 成果報告（兩版比較）</h3>
-              <p>報告 Agent 以同一份成果產出兩版 PDF 供比較：八章設計手冊（章節式統整），與品牌交付提案（給屋主的敘事版，roompilot-delivery-pdf 排版）。</p>
-              <button id="design-manual-generate" type="button" class="primary-action">產出兩份成果報告</button>
-              <p id="design-manual-status" class="rp-viewer-status">完成上方生圖後產出效果最好；未生圖也可先輸出文字版。</p>
-              <a id="design-manual-download" class="secondary-action" hidden>下載設計手冊 PDF</a>
-              <p id="delivery-proposal-status" class="rp-viewer-status" hidden></p>
-              <a id="delivery-proposal-download" class="secondary-action" hidden>下載交付提案 PDF</a>
+              <h3>4. 設計提案（PDF）</h3>
+              <p>報告 Agent 統整需求、配置、家具、色卡與生圖成果，寫成給屋主看的設計提案（roompilot-delivery-pdf 品牌排版）。</p>
+              <button id="delivery-proposal-generate" type="button" class="primary-action">產出設計提案</button>
+              <p id="delivery-proposal-status" class="rp-viewer-status">完成上方生圖後產出效果最好；未生圖也可先輸出文字版。</p>
+              <a id="delivery-proposal-download" class="secondary-action" hidden>下載設計提案 PDF</a>
             </section>
           </aside>
         </div>
@@ -1071,6 +1069,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-7cb93e258bfb"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-e19d8a238229"></script>
   </body>
 </html>
