@@ -2494,7 +2494,8 @@ export function createSceneViewer(
           else shape.lineTo(x, y);
         });
         shape.closePath();
-        geometry = new THREE.ShapeGeometry(shape);
+        // 同 createFloorGeometry：公分座標 UV 會把貼圖糊成單色，正規化到 0..1。
+        geometry = normalizeShapeUvsToBounds(new THREE.ShapeGeometry(shape));
       } else {
         geometry = new THREE.PlaneGeometry(width, depth);
       }
@@ -3052,11 +3053,33 @@ export function createSceneViewer(
     });
   }
 
+  // ShapeGeometry 的 UV 直接等於頂點的公分座標（0～上千），而地板貼圖的
+  // repeat 是按「UV 0..1 攤滿該面」設計的（getContinuousSurfaceRepeat 以
+  // 房寬/模組寬計算）。兩者相乘會讓貼圖每公分重複數次、糊成平均色——使用者
+  // 看到的就是「選什麼材質都只變單一顏色」。這裡把 UV 正規化回幾何邊界 0..1。
+  function normalizeShapeUvsToBounds(geometry) {
+    geometry.computeBoundingBox();
+    const bounds = geometry.boundingBox;
+    const spanX = Math.max(bounds.max.x - bounds.min.x, 1e-6);
+    const spanY = Math.max(bounds.max.y - bounds.min.y, 1e-6);
+    const position = geometry.attributes.position;
+    const uv = geometry.attributes.uv;
+    for (let i = 0; i < uv.count; i += 1) {
+      uv.setXY(
+        i,
+        (position.getX(i) - bounds.min.x) / spanX,
+        (position.getY(i) - bounds.min.y) / spanY,
+      );
+    }
+    uv.needsUpdate = true;
+    return geometry;
+  }
+
   function createFloorGeometry(floorplan, widthCm, depthCm) {
     const shapes = synchronizedFloorRegions(floorplan, widthCm, depthCm)
       .map((region) => polygonShape(region, true))
       .filter(Boolean);
-    const geometry = new THREE.ShapeGeometry(shapes);
+    const geometry = normalizeShapeUvsToBounds(new THREE.ShapeGeometry(shapes));
     geometry.computeVertexNormals();
     return geometry;
   }

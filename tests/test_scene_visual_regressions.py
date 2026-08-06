@@ -408,6 +408,19 @@ def test_material_schemes_explain_surface_and_furniture_changes() -> None:
     assert all(set(item["furnitureRoles"]) == {"fabric", "wood"} for item in result)
 
 
+def test_floor_shape_geometry_normalizes_uvs_so_catalog_textures_stay_visible() -> None:
+    """ShapeGeometry 的 UV 是公分座標，直接配 repeat 會把地板貼圖糊成單色。
+
+    整層底板與逐房覆蓋層都必須經過 normalizeShapeUvsToBounds 正規化，
+    否則使用者選任何地板材質都只會看到 tint 後的平均色。
+    """
+    viewer = (STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "function normalizeShapeUvsToBounds(geometry)" in viewer
+    assert "normalizeShapeUvsToBounds(new THREE.ShapeGeometry(shapes))" in viewer
+    assert "normalizeShapeUvsToBounds(new THREE.ShapeGeometry(shape))" in viewer
+
+
 def test_view_mode_hint_is_part_of_viewer_and_adjacent_to_canvas() -> None:
     html = SCENE_HTML.read_text(encoding="utf-8")
     viewer = html.split('id="white-model-3d-step"', 1)[1]
