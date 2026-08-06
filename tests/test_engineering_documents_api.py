@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import zipfile
 from datetime import date
 from io import BytesIO
@@ -127,7 +128,7 @@ def test_unlocked_revision_returns_required_409() -> None:
     assert response.json()["detail"]["error_code"] == "REVISION_NOT_LOCKED"
 
 
-def test_demo_e2e_generates_html_json_and_two_sheet_artifact_xlsx(
+def test_demo_e2e_generates_html_json_and_four_sheet_artifact_xlsx(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     if not os.getenv("ROOMPILOT_ARTIFACT_TOOL_MODULES"):
@@ -190,15 +191,20 @@ def test_demo_e2e_generates_html_json_and_two_sheet_artifact_xlsx(
 
     with zipfile.ZipFile(BytesIO(downloaded["estimate_xlsx"])) as workbook:
         workbook_xml = workbook.read("xl/workbook.xml").decode("utf-8")
-        assert workbook_xml.count(":sheet ") == 2
+        # 2026-08-03 起 builder 產四張表（58e11c55 加入家具採購與設計語彙）。
+        # sheet 與 f 標籤不綁 XML 命名空間前綴：不同 xlsx writer（@oai/artifact-tool
+        # 與本機相容層）序列化前綴不同，內容契約不該綁 writer 實作。
+        assert len(re.findall(r"<(?:\w+:)?sheet ", workbook_xml)) == 4
         assert "工程估價" in workbook_xml
         assert "初步排程" in workbook_xml
+        assert "家具採購" in workbook_xml
+        assert "設計語彙" in workbook_xml
         worksheet_xml = "".join(
             workbook.read(name).decode("utf-8")
             for name in workbook.namelist()
             if name.startswith("xl/worksheets/sheet") and name.endswith(".xml")
         )
-        assert ":f>" in worksheet_xml
+        assert re.search(r"<(?:\w+:)?f>", worksheet_xml)
 
 
 _TINY_PNG = (
