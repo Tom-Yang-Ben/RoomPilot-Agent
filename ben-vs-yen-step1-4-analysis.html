@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>origin/ben vs yen — 步驟 1–4 畫面排版・功能・產出比對</title>
+<style>
+  :root {
+    --ink: #24211c;
+    --ink-soft: #6b6257;
+    --paper: #faf8f4;
+    --card: #ffffff;
+    --line: #e3dcd2;
+    --yen: #2458a6;
+    --yen-soft: #eaf1fb;
+    --ben: #9a5b1f;
+    --ben-soft: #f7ecdd;
+    --ok: #2e7d54;
+    --ok-soft: #e2f0e8;
+    --warn: #a06a10;
+    --warn-soft: #f7ecd4;
+    --bad: #b3372f;
+    --bad-soft: #f9e4e1;
+    --mono: Consolas, "Cascadia Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Segoe UI", "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 22px 90px; }
+  header.doc {
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 26px;
+  }
+  header.doc h1 { font-size: 27px; margin: 0 0 8px; line-height: 1.35; }
+  header.doc p.sub { margin: 0; color: var(--ink-soft); }
+  .meta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 10px; margin-top: 14px;
+  }
+  .meta-grid div {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 12px; font-size: 13px;
+  }
+  .meta-grid b { display: block; font-size: 11px; letter-spacing: .08em; color: var(--ink-soft); }
+  nav.toc {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 18px; margin-bottom: 30px; font-size: 13.5px;
+  }
+  nav.toc a { color: var(--yen); text-decoration: none; margin-right: 14px; white-space: nowrap; }
+  nav.toc a:hover { text-decoration: underline; }
+  h2 {
+    font-size: 21px; margin: 44px 0 12px; padding-top: 10px;
+    border-top: 2px solid var(--line);
+  }
+  h2 .no { color: var(--ink-soft); font-weight: 600; margin-right: 6px; }
+  h3 { font-size: 16.5px; margin: 26px 0 8px; }
+  p { margin: 8px 0; }
+  code {
+    font-family: var(--mono); font-size: 12.5px;
+    background: #f1ede6; border-radius: 4px; padding: 1px 5px;
+    word-break: break-all;
+  }
+  .tablebox { overflow-x: auto; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; background: var(--card); font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: #f3efe8; font-size: 12.5px; }
+  td.c, th.c { text-align: center; }
+  .tag-yen, .tag-ben {
+    display: inline-block; font-size: 11px; font-weight: 700; border-radius: 5px;
+    padding: 1px 7px; letter-spacing: .04em; vertical-align: 1px;
+  }
+  .tag-yen { background: var(--yen-soft); color: var(--yen); }
+  .tag-ben { background: var(--ben-soft); color: var(--ben); }
+  .badge {
+    display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px;
+    padding: 2px 12px; vertical-align: 1px;
+  }
+  .badge.ok   { background: var(--ok-soft);   color: var(--ok); }
+  .badge.warn { background: var(--warn-soft); color: var(--warn); }
+  .badge.bad  { background: var(--bad-soft);  color: var(--bad); }
+  .callout {
+    border-left: 4px solid var(--warn); background: var(--warn-soft);
+    border-radius: 0 10px 10px 0; padding: 10px 16px; margin: 14px 0; font-size: 14px;
+  }
+  .callout.red  { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.blue { border-color: var(--yen); background: var(--yen-soft); }
+  .callout.green{ border-color: var(--ok);  background: var(--ok-soft); }
+  .tldr {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 14px; margin: 18px 0;
+  }
+  .tldr .cardx {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 18px;
+  }
+  .tldr .cardx h3 { margin: 0 0 6px; font-size: 15px; }
+  .tldr .cardx ul { margin: 4px 0 0; padding-left: 20px; font-size: 13.5px; }
+  .tldr .cardx li { margin: 4px 0; }
+
+  /* ------- wireframes ------- */
+  .wire-pair {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0 6px;
+  }
+  @media (max-width: 860px) { .wire-pair { grid-template-columns: 1fr; } }
+  .wire {
+    border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+    overflow: hidden;
+  }
+  .wire .cap {
+    padding: 6px 12px; font-size: 12.5px; font-weight: 700;
+    border-bottom: 1px solid var(--line);
+  }
+  .wire.yen .cap { background: var(--yen-soft); color: var(--yen); }
+  .wire.ben .cap { background: var(--ben-soft); color: var(--ben); }
+  .frame { padding: 10px; background: #f6f3ee; }
+  .wire.ben .frame { background: #f2eee7; }
+  .blk {
+    border: 1px dashed #b9ad9d; border-radius: 6px; background: #fffdfa;
+    padding: 4px 8px; margin: 5px 0; font-size: 11.5px; color: #5c5347; line-height: 1.5;
+  }
+  .blk.solid { border-style: solid; }
+  .blk.btn { background: #3d3227; color: #fff; border: none; text-align: center; font-weight: 600; }
+  .blk.btn.dis { background: #cfc5b8; color: #7a7061; }
+  .blk.warnb { background: var(--warn-soft); border-color: var(--warn); }
+  .blk.badge2 { background: var(--ben-soft); border-color: var(--ben); }
+  .cols { display: grid; gap: 8px; }
+  .cols.c2 { grid-template-columns: 1.4fr 1fr; }
+  .cols.c2r { grid-template-columns: 1fr 1.1fr; }
+  .muted { color: var(--ink-soft); font-size: 12px; }
+  .small { font-size: 12.5px; }
+  .ev { color: var(--ink-soft); font-size: 11.5px; font-family: var(--mono); }
+  ul.diff { padding-left: 20px; margin: 6px 0; }
+  ul.diff li { margin: 5px 0; }
+  .verdict-row {
+    display: flex; align-items: baseline; gap: 10px; margin: 14px 0 4px;
+    padding: 8px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  }
+  footer { margin-top: 60px; color: var(--ink-soft); font-size: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <h1>origin/ben vs 本分支（yen）— 主流程步驟 1–4<br />畫面排版・功能差異・產出一致性比對</h1>
+  <p class="sub">RoomPilot 八步工作流的前四步：1 建立專案、2 上傳平面圖、3 確定尺寸、4 空間與結構。本報告為唯讀解析，未修改任何程式碼。</p>
+  <div class="meta-grid">
+    <div><b>本分支（yen）</b>工作樹快照 2026-08-06 15:27<br />HEAD <code>89ab4cd1</code>＋未提交修改</div>
+    <div><b>比對對象</b><code>origin/ben</code> @ <code>29e0c95a</code>（2026-08-06）</div>
+    <div><b>共同祖先</b>merge-base <code>08517cba</code></div>
+    <div><b>分析方法</b>逐檔閱讀兩分支 scene.html／scene_v2.js／後端路由，附 file:line 證據</div>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#s0">0 名詞判讀</a>
+  <a href="#s1">1 總結</a>
+  <a href="#s2">2 全局架構差異</a>
+  <a href="#s3">3 入口鏈</a>
+  <a href="#s4">4 步驟1 建立專案</a>
+  <a href="#s5">5 步驟2 上傳平面圖</a>
+  <a href="#s6">6 步驟3 確定尺寸</a>
+  <a href="#s7">7 步驟4 空間與結構</a>
+  <a href="#s8">8 房型詞彙三層對照</a>
+  <a href="#s9">9 產出一致性總表</a>
+  <a href="#s10">10 快照注意事項</a>
+</nav>
+
+<!-- ============================================================= -->
+<h2 id="s0"><span class="no">0</span>「問卷的一到四步」的判讀</h2>
+<p>兩分支的八步導覽列完全相同（<span class="tag-yen">yen</span> <code>scene.html:23-30</code>、<span class="tag-ben">ben</span> <code>scene.html:25-32</code>）：</p>
+<p><b>1 建立專案 → 2 上傳平面圖 → 3 確定尺寸 → 4 空間與結構 → 5 需求問卷 → 6 配置與預覽 → 7 方案鎖定與視角 → 8 AI 渲染與成果包</b></p>
+<p>「一到四步」只有一種能同時對上兩邊的解讀：<b>主流程的步驟 1–4</b>。問卷（第 5 步）內部的分步在兩邊都不是 4 步——ben 的新「初回面談」是 7 步（居住者／三項目標／優先空間／不可變條件／預算時程／風格方向／面談摘要，<code>scene_first_meeting.js:3-11</code>），yen 的問卷是 3 階段（全屋風格與設備／逐房用途與家具／確認方案，<code>scene.html:387-391</code>）。本報告依此以主流程步驟 1–4 為比對範圍。</p>
+
+<!-- ============================================================= -->
+<h2 id="s1"><span class="no">1</span>總結（TL;DR）</h2>
+<div class="tldr">
+  <div class="cardx">
+    <h3>畫面排版</h3>
+    <ul>
+      <li><b>步驟 1／2：小改。</b>版面結構相同，ben 換了文案並加視覺元素（利益點 chips、格式章、表單引言）。</li>
+      <li><b>步驟 3：中改。</b>ben 把右欄改成「選點 → 輸入 → 確認」三任務進度清單，輸入框未選點前禁用。</li>
+      <li><b>步驟 4：大改。</b>ben 改為引導式逐房確認（目前檢視卡＋佇列＋複核清單）、底部 sticky 完成列、桌機全視窗鎖定、暖色紙感卡片風。</li>
+    </ul>
+  </div>
+  <div class="cardx">
+    <h3>功能差異</h3>
+    <ul>
+      <li>ben 全站有<b>帳號登入</b>（login／projects 頁、Bearer token、後端角色檢查）；yen 完全沒有。</li>
+      <li>步驟 3 套用比例：<b>yen 純前端等比縮放；ben 上傳原圖請後端整套重新辨識</b>。</li>
+      <li>步驟 4：ben 消費辨識層的<b>複核旗標</b>（一鍵確認會排除疑點房、後端 422 硬閘擋未複核完成）；yen 對同一批旗標<b>完全未消費</b>。</li>
+      <li>ben 修掉 yen 現存的兩個結構性 bug（房名選單脫鉤、room-editor 重複 id）。</li>
+    </ul>
+  </div>
+  <div class="cardx">
+    <h3>產出一致性</h3>
+    <ul>
+      <li><span class="badge ok">一致</span> 四步用到的 API 路徑、payload、回應形狀兩邊相同（ben 只加 auth 與輸入驗證）。</li>
+      <li><span class="badge ok">一致</span> workflow 保存機制（<code>PUT …/workflow</code>、4 個頂層鍵、localStorage 鍵名）相同。</li>
+      <li><span class="badge warn">相容</span> 完成資料鍵：ben 第 4 步多 2 個複核鍵；yen 保存多 <code>confirmed_structure_snapshot</code>。驗證規則相同，互不破壞。</li>
+      <li><span class="badge bad">不一致</span> <b>房型詞彙</b>：辨識層與 UI 層的 <code>rooms[].type</code> 值域分歧（餐廳、書房、玄關、走道、樓梯、車庫六類對映不同），直接影響 yen 第 5 步問卷的逐房題組。詳見 <a href="#s8">§8</a>。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<h2 id="s2"><span class="no">2</span>全局架構差異（影響整合方式的背景）</h2>
+<div class="tablebox"><table>
+  <tr><th style="width:170px">面向</th><th>本分支 yen</th><th>origin/ben</th></tr>
+  <tr>
+    <td>前端目錄</td>
+    <td><code>backend/server/static/</code></td>
+    <td>搬到 repo 根 <code>frontend/</code>；URL 前綴仍是 <code>/static</code>（<code>backend/paths.py:25</code> <code>STATIC_DIR = REPO_ROOT / "frontend"</code>）</td>
+  </tr>
+  <tr>
+    <td>後端組織</td>
+    <td>單體 <code>main.py</code>（3,322 行）</td>
+    <td><code>main.py</code> 1,623 行＋路由拆檔：<code>projects_api.py</code>（專案／平面圖，步驟 1–4 全在此）、<code>scene_api.py</code>（第 6 步後）、<code>auth/</code>（9 檔）、<code>engineering/</code>、<code>shortlist_api.py</code></td>
+  </tr>
+  <tr>
+    <td>帳號系統</td>
+    <td>無</td>
+    <td>完整 auth 堆疊（登入／refresh／角色／專案擁有權，約 1,800 行）＋<code>auth_client.js</code> 全域 fetch 攔截器自動帶 <code>Authorization: Bearer</code>（<code>auth_client.js:166-189</code>）</td>
+  </tr>
+  <tr>
+    <td>頁面</td>
+    <td>index／styles／library／scene</td>
+    <td>另有 <b>login.html、projects.html</b>（專案列表＋建立＋成員管理，列表 API 在 <code>auth/api.py:201</code>）、engineering.html</td>
+  </tr>
+  <tr>
+    <td>專案儲存</td>
+    <td>SQLite <code>project_store.py</code></td>
+    <td>同 SQLite 為預設，另有 PostgreSQL 選項 <code>postgres_project_store.py</code>（503 行）</td>
+  </tr>
+  <tr>
+    <td>規模</td>
+    <td>scene.html 1,002 行；scene_v2.js ~15,121 行；site.css 13,352 行</td>
+    <td>scene.html 1,233 行；scene_v2.js 13,151 行；site.css 17,630 行</td>
+  </tr>
+  <tr>
+    <td>辨識層 <code>backend/floorplan/</code>（Cody 領域）</td>
+    <td colspan="2">兩邊各自演進，互差 26 檔（+2,224 / −1,465）：ben 對齊 Cody 2026-08-01 十類 CamelCase 詞彙、含 OCR 房名「信心值認領」修正（<code>vision/rooms.py:248-276</code>）；<code>spatial_report.py</code>／<code>confirmation.py</code> 兩邊相同。詞彙影響見 §8。</td>
+  </tr>
+</table></div>
+
+<!-- ============================================================= -->
+<h2 id="s3"><span class="no">3</span>進入步驟 1 之前：入口鏈差異</h2>
+<div class="wire-pair">
+  <div class="wire yen"><div class="cap">yen：無登入、無列表，網址即專案</div>
+    <div class="frame">
+      <div class="blk solid">index.html（行銷首頁）→「開始設計」直連 <b>/scene</b></div>
+      <div class="blk">/scene 無 <code>?project_id</code> → 直接顯示步驟 1 建立專案</div>
+      <div class="blk">建立成功 → <code>history.replaceState("/scene?project_id=…")</code></div>
+      <div class="blk warnb">重開專案唯一途徑：使用者自己保存網址（無 GET /api/projects 列表 API）</div>
+    </div>
+  </div>
+  <div class="wire ben"><div class="cap">ben：登入 → 專案列表 → 場景</div>
+    <div class="frame">
+      <div class="blk solid">index.html →「開始設計」連 <b>/projects</b></div>
+      <div class="blk">projects.html：<code>requireSignedIn()</code> 未登入導 <b>/login?next=…</b>；登入預設落點 /projects</div>
+      <div class="blk">列表 <code>GET /api/projects</code>（user 範圍）＋建立（client 角色隱藏建立鈕）→ 跳 <b>/scene?project_id=…</b></div>
+      <div class="blk">scene_v2.js 尾端 <code>if (requireSignedIn()) restoreProject()</code>；步驟 1 按鈕變「<b>繼續此專案</b>」</div>
+    </div>
+  </div>
+</div>
+<p class="ev">yen: scene_v2.js:153, 1455, 14868-14873｜ben: scene_v2.js:244, 1351-1354, 1501-1511, 13149; projects.js:157-226; login.js:16; auth_client.js:147-152, 235-239</p>
+
+<!-- ============================================================= -->
+<h2 id="s4"><span class="no">4</span>步驟 1：建立專案</h2>
+<h3>4.1 畫面排版</h3>
+<div class="wire-pair">
+  <div class="wire yen"><div class="cap">yen（scene.html:41-61）</div>
+    <div class="frame"><div class="cols c2r">
+      <div>
+        <div class="blk">PROJECT<br /><b>建立這次的空間規劃專案</b><br />說明一句</div>
+      </div>
+      <div>
+        <div class="blk solid">專案名稱 [輸入框]</div>
+        <div class="blk solid">備註（選填）[多行]</div>
+        <div class="blk btn">建立專案並繼續</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="wire ben"><div class="cap">ben（scene.html:43-75）</div>
+    <div class="frame"><div class="cols c2r">
+      <div>
+        <div class="blk">PROJECT<br /><b>從一張平面圖，<br />開始想像家的樣子</b><br />說明一句</div>
+        <div class="blk badge2">［自動保存］［隨時續作］［八步完成］ ← 利益點 chips</div>
+      </div>
+      <div>
+        <div class="blk badge2">開始規劃／<b>先為這個空間取個名字</b> ← 表單引言</div>
+        <div class="blk solid">專案名稱 [輸入框]</div>
+        <div class="blk solid">備註（選填）[多行]</div>
+        <div class="blk btn">建立專案並繼續（有 project_id 時：繼續此專案）</div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<p class="small">版面骨架（<code>rp-simple-step</code> 左文案右表單）相同；ben 加了 <code>rp-project-benefits</code>、<code>rp-form-heading</code> 兩塊與換行主標。導覽列小差：yen 的 span 文字帶重複數字（「1 建立專案」），ben 只有圓形數字。</p>
+
+<h3>4.2 功能差異</h3>
+<ul class="diff">
+  <li><b>相同</b>：submit 攔截、名稱必填前端擋、<code>POST /api/projects</code>、成功後 <code>complete("project", { name })</code> → <code>scheduleSave("upload")</code> → 跳步驟 2。</li>
+  <li><span class="tag-ben">ben</span> 後端要求登入且角色為 designer（<code>projects_api.py:298</code> <code>require_system_role("designer")</code>）；建立者自動設為專案 owner（<code>projects_api.py:313</code>）。</li>
+  <li><span class="tag-ben">ben</span> 名稱／備註限長與型別檢查（<code>_project_text</code>，<code>projects_api.py:132-155</code>；非字串或超長回 422）。yen 直接 <code>str()</code> 硬轉、無上限（<code>main.py:1721-1731</code>）。</li>
+  <li><span class="tag-ben">ben</span> 帶 <code>?project_id</code> 進場時按鈕語意變「繼續此專案」，並補標記 workflow 完成（<code>scene_v2.js:1351-1354, 1501-1511</code>）。</li>
+</ul>
+
+<h3>4.3 產出</h3>
+<div class="verdict-row"><span class="badge ok">產出一致</span><span class="small">API：<code>POST /api/projects</code> body <code>{name, notes}</code> → 回 <code>{project}</code>；專案 record 頂層鍵（<code>project_id/name/notes/current_step/workflow/revision/created_at/updated_at</code>）兩邊相同。完成鍵 <code>{name}</code> 相同。差異僅在 ben 的 auth 前置（未登入 401）與輸入驗證嚴格度。</span></div>
+<p class="ev">yen: scene_v2.js:1436-1459; main.py:1725-1738｜ben: scene_v2.js:1496-1532; projects_api.py:295-314</p>
+
+<!-- ============================================================= -->
+<h2 id="s5"><span class="no">5</span>步驟 2：上傳平面圖</h2>
+<h3>5.1 畫面排版</h3>
+<div class="wire-pair">
+  <div class="wire yen"><div class="cap">yen（scene.html:63-96）</div>
+    <div class="frame"><div class="cols c2">
+      <div>
+        <div class="blk">FLOOR PLAN／上傳平面圖　　狀態：尚未選擇</div>
+        <div class="blk solid" style="padding:18px;text-align:center">↑<br /><b>選擇 DXF、PNG 或 JPG 平面圖</b><br />其他格式會被阻擋並說明原因</div>
+      </div>
+      <div>
+        <div class="blk">FILE CHECK／確認圖檔內容</div>
+        <div class="blk solid">☐ 我已確認圖檔內容正確</div>
+        <div class="blk btn dis">確認並開始辨識（disabled）</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="wire ben"><div class="cap">ben（scene.html:77-111）</div>
+    <div class="frame"><div class="cols c2">
+      <div>
+        <div class="blk">FLOOR PLAN／上傳平面圖　　狀態：尚未選擇</div>
+        <div class="blk solid" style="padding:18px;text-align:center"><span style="border:1px solid #b9ad9d;border-radius:4px;padding:0 6px;font-size:10px">DXF · PNG · JPG</span><br /><b>將平面圖放在這裡</b><br />或從電腦中選擇檔案，系統會先替您檢查格式<br /><span style="background:#3d3227;color:#fff;border-radius:6px;padding:1px 10px">選擇平面圖</span></div>
+      </div>
+      <div>
+        <div class="blk">FILE CHECK／確認圖檔內容</div>
+        <div class="blk solid">☐ 我已確認圖檔內容正確</div>
+        <div class="blk btn dis">確認並開始辨識（disabled）</div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<p class="small">結構相同（左 drop-zone＋預覽、右確認欄）。差異只有 drop-zone 內部文案與視覺（格式章 <code>rp-upload-format</code>、假按鈕 <code>rp-upload-choose</code>）。</p>
+
+<h3>5.2 功能差異</h3>
+<ul class="diff">
+  <li><b>相同</b>：副檔名白名單、DXF 不做本機預覽、按鈕需「已選檔＋已勾確認」才啟用；點擊後同樣的 3 連發序列：<br />
+  ① <code>POST /api/projects/{id}/floorplan</code>（FormData 僅 <code>file</code>）→ ② <code>PUT …/workflow</code>（<code>{current_step:"upload", workflow:{floorplan_confirmation:{confirmed:true}}}</code>，因為後端辨識前會擋未確認）→ ③ <code>POST …/floorplan/analyze</code>（無 body）。</li>
+  <li><b>相同</b>：engine 由後端依副檔名決定（<code>.dxf</code>→<code>"dxf"</code>、影像→<code>"cody"</code>），前端照抄。</li>
+  <li><span class="tag-ben">ben</span> 上傳大小上限 <code>MAX_FLOORPLAN_BYTES</code>（<code>_read_upload</code>，<code>projects_api.py:411</code>）；yen 無上限。</li>
+  <li><span class="tag-ben">ben</span> 原圖以 <code>authorizedObjectUrl()</code> 帶 token 抓成 blob URL 顯示（<code>scene_v2.js:1619-1622</code>）；yen 直接用 <code>source_url</code>。</li>
+</ul>
+
+<h3>5.3 產出</h3>
+<div class="verdict-row"><span class="badge ok">產出一致</span><span class="small">上傳回應 <code>{project, upload{filename, extension, mime_type, source_url}}</code>、辨識回應 <code>{analysis, layout_json, geometry_engine}</code> 兩邊相同；<b>兩邊前端都不讀 <code>layout_json</code></b>，只用 <code>analysis</code>＋<code>geometry_engine</code>。完成鍵 <code>upload:{filename}</code>、<code>recognition:{engine}</code> 相同。後端 analyze 的副作用（重置 workflow、<code>_flow.completed=["project","upload","recognition"]</code>、<code>staleFrom:"calibration"</code>）逐字相同。</span></div>
+<p class="callout">⚠ <b>analysis 內容物是同形不同值</b>：analysis 頂層鍵集合兩邊相同（schema_version…spatial_report），但 <code>rooms[].type</code> 的值域因辨識層詞彙分歧而不同（§8）。</p>
+<p class="ev">yen: scene_v2.js:1524-1591; main.py:1798-1844, 2282-2370｜ben: scene_v2.js:1597-1674; projects_api.py:392-439, 599-690</p>
+
+<!-- ============================================================= -->
+<h2 id="s6"><span class="no">6</span>步驟 3：確定尺寸（辨識＋校正共用面板）</h2>
+<h3>6.1 畫面排版</h3>
+<div class="wire-pair">
+  <div class="wire yen"><div class="cap">yen（scene.html:98-128）</div>
+    <div class="frame"><div class="cols c2">
+      <div>
+        <div class="blk">3 確定尺寸／在圖上拉出一段已知尺寸　　辨識摘要</div>
+        <div class="blk solid" style="min-height:90px;text-align:center;padding-top:36px">平面圖＋校正線 SVG</div>
+      </div>
+      <div>
+        <div class="blk">目前要做的事／拖曳兩個端點，再輸入實際公分</div>
+        <div class="blk">1. 點起點再點終點　2. 端點可拖曳　3. 輸入一個實際尺寸（cm）</div>
+        <div class="blk solid">讀數：尚未定位兩點</div>
+        <div class="blk solid">這一段的實際尺寸（公分）[輸入框・隨時可打]</div>
+        <div class="blk">重選兩點</div>
+        <div class="blk btn dis">確認尺寸並顯示房間（disabled）</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="wire ben"><div class="cap">ben（scene.html:113-168）</div>
+    <div class="frame"><div class="cols c2">
+      <div>
+        <div class="blk">3 確定尺寸／選一段您確定的長度　　辨識摘要</div>
+        <div class="blk solid" style="min-height:74px;text-align:center;padding-top:28px">平面圖＋校正線 SVG</div>
+        <div class="blk">提示：建議選標示清楚、距離較長的牆面</div>
+      </div>
+      <div>
+        <div class="blk">STEP 03／標定實際尺寸</div>
+        <div class="blk badge2"><b>① 選擇起點與終點</b>（readout 內嵌）　狀態章：進行中</div>
+        <div class="blk badge2"><b>② 輸入實際尺寸</b>［輸入框・<u>未選點前 disabled</u>］　狀態章：待選點</div>
+        <div class="blk badge2"><b>③ 確認比例</b>　狀態章：待完成</div>
+        <div class="blk">重新選擇端點（平時隱藏）</div>
+        <div class="blk btn dis">確認尺寸並顯示房間（disabled）</div>
+      </div>
+    </div></div>
+  </div>
+</div>
+<p class="small">ben 把靜態說明改成<b>三任務進度清單</b>（<code>rp-calibration-task-flow</code>），每個任務有狀態章（進行中／待選點／可確認／完成），由 <code>setCalibrationTaskState</code>／<code>updateCalibrationAction</code> 驅動（<code>scene_v2.js:1857-1904</code>）；輸入框在兩點就緒前禁用。</p>
+
+<h3>6.2 功能差異（本步最大行為分歧）</h3>
+<div class="callout blue"><b>套用比例的計算路徑不同。</b><br />
+<span class="tag-yen">yen</span>：<b>純前端等比縮放</b>——<code>applyCalibrationToAnalysis()</code>（<code>scene_v2.js:1788-1867</code>）以 <code>factor = 新cm/px ÷ 舊cm/px</code> 就地縮放牆門窗座標與長度、房間多邊形、面積×factor²，改寫 <code>analysis.scale</code> 與 issues。<b>不呼叫任何 API</b>。<br />
+<span class="tag-ben">ben</span>：<b>後端整套重算</b>（非 DXF）——先 <code>GET …/floorplan/source</code> 取回原圖，再 <code>POST /api/floorplan/analyze</code>（FormData：<code>file</code>＋<code>calibration_json</code>），用回應<b>整包置換 <code>state.analysis</code></b>（<code>scene_v2.js:1944-1954</code>）。房間／牆門窗可能與第一次辨識不同（辨識管線在正確比例下重跑）。<br />
+DXF 兩邊都走本地推算，不呼叫後端。</div>
+<ul class="diff">
+  <li>互動（點兩點、拖曳端點、取代較近端點）兩邊等價；ben 多任務狀態機與輸入禁用。</li>
+  <li>附帶事實：yen 的後端 <code>POST /api/floorplan/analyze</code> <b>本來就接受 <code>calibration_json</code></b>（<code>main.py:3303+</code> 簽名含該 Form 欄位）——ben 的重算路徑接到 yen 後端不需要任何後端改動。</li>
+</ul>
+
+<h3>6.3 產出</h3>
+<div class="verdict-row"><span class="badge warn">保存鍵一致・數值來源不同</span><span class="small">兩邊都存 <code>complete("calibration", { distanceCm, calibration })</code>，其中 <code>calibration = {distance_cm, start_px, end_px, pixel_distance, cm_per_px}</code>（<code>scene_calibration.js:1-14</code>，兩分支同檔同構）。差異在校正後的 <code>analysis</code>：yen 是「舊辨識結果 × 縮放係數」，ben 是「正確比例下重新辨識的結果」——schema 相同，數值與房間集合可能不同。之後兩邊都做 <code>initializeRoomsAndStructures()</code> 正規化為 <code>*_cm</code>／<code>polygon_cm</code>（等價；ben 把純幾何抽到 <code>scene_plan_geometry.js</code>，並以 <code>roomPolygonsDiffer</code> 判定被修復的輪廓、強制設回未確認）。</span></div>
+<p class="ev">yen: scene_v2.js:1715-1898; scene_calibration.js:16-44｜ben: scene_v2.js:1834-1966, 2316-2385; scene_plan_geometry.js:13-21</p>
+
+<!-- ============================================================= -->
+<h2 id="s7"><span class="no">7</span>步驟 4：空間與結構（兩邊差異最大的一步）</h2>
+<h3>7.1 畫面排版</h3>
+<div class="wire-pair">
+  <div class="wire yen"><div class="cap">yen（scene.html:130-370）：清單式，自由順序</div>
+    <div class="frame"><div class="cols c2">
+      <div>
+        <div class="blk">標題＋「查看全部空間框選」＋<u>房名編輯器（藏在標題工具列）</u>＋圖例</div>
+        <div class="blk solid" style="min-height:110px;text-align:center;padding-top:44px">平面圖＋房間/結構 SVG 疊層</div>
+        <div class="blk">方案比較 A/B（隱藏，有可拆牆才出現）＋圖說</div>
+      </div>
+      <div>
+        <div class="blk solid">［房間｜牆門窗樑柱］分頁</div>
+        <div class="blk">＋新增漏辨識空間｜一鍵確認全部房間（無排除）</div>
+        <div class="blk">合併房間｜切割房間</div>
+        <div class="blk">已確認 0 / 0 個房間</div>
+        <div class="blk solid" style="min-height:52px">房間全列表（每列：選取・確認・刪除）<br /><span class="muted">複核疑點＝卡片上一行小字提示，無強制</span></div>
+        <div class="blk btn">完成空間與結構確認（<u>永遠可按</u>，按了才驗證）</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="wire ben"><div class="cap">ben（scene.html:170-444）：引導式逐房＋sticky 完成列</div>
+    <div class="frame">
+      <div class="cols c2">
+        <div>
+          <div class="blk">標題＋「查看全部空間框選」＋圖例（房名編輯器移走）</div>
+          <div class="blk badge2">檢視模式工具列：查看全部空間｜操作提示</div>
+          <div class="blk solid" style="min-height:96px;text-align:center;padding-top:38px">平面圖＋SVG 疊層（桌機常駐可見）</div>
+        </div>
+        <div>
+          <div class="blk solid">［房間｜牆門窗樑柱］分頁</div>
+          <div class="blk">STEP 04 房間確認　進度 <b>0 / 0</b></div>
+          <div class="blk warnb"><b>系統標記需人工複核</b>：疑點房清單（一鍵確認不涵蓋）</div>
+          <div class="blk badge2"><b>目前檢視卡</b>：房名下拉（JS 生成）＋套用｜面積｜▸編輯房間範圍（收合）<br />［稍後處理］［<b>確認並查看下一間</b>］</div>
+          <div class="blk">其他房間（佇列，選取即查看）</div>
+          <div class="blk">▸ 更多操作：新增漏辨識｜一鍵確認｜<b>刪除目前房間</b>｜合併｜切割</div>
+        </div>
+      </div>
+      <div class="blk btn dis" style="margin-top:6px">⬇ sticky 完成列：完成度摘要＋提示＋【完成空間與結構確認】（<u>disabled 直到全數完成</u>）</div>
+    </div>
+  </div>
+</div>
+<ul class="diff">
+  <li><span class="tag-ben">ben</span> 步驟 4 專屬視覺：暖色紙感背景 <code>#f2eee7</code>、雙欄 grid <code>1.58fr / 0.82fr</code>（右欄至少 390px）、卡片圓角陰影（<code>site.css:5-40</code>）。</li>
+  <li><span class="tag-ben">ben</span> 桌機 ≥1025px <b>全視窗鎖定</b>：頁面本身不捲動，右側確認欄獨立捲動、平面圖恆在視野（<code>site.css:43-91</code>）。</li>
+  <li><span class="tag-ben">ben</span> 完成列 sticky 釘在視窗底（<code>site.css:558-575</code>；註解記載動機：舊版完成鈕在 y=1138，1000px 視窗看不到，使用者以為第 4 步壞掉）。</li>
+  <li>結構分頁（門窗牆樑柱清單、選取結構編輯器、3D 結構預覽、可拆牆 A/B 預覽）與「尺寸標註平面圖」子頁<b>兩邊逐字幾乎相同</b>。</li>
+</ul>
+
+<h3>7.2 功能差異</h3>
+<div class="tablebox"><table>
+  <tr><th style="width:180px">機制</th><th>yen</th><th>ben</th></tr>
+  <tr>
+    <td>房間確認流程</td>
+    <td>全列表自由點選；每列自帶確認／刪除鈕</td>
+    <td>引導式：目前檢視卡＋「確認並查看下一間」「稍後處理」自動輪轉（<code>scene_v2.js:2553-2674</code>）；佇列列表並存；「刪除目前房間」（最後一間不可刪）</td>
+  </tr>
+  <tr>
+    <td>辨識複核旗標<br /><span class="muted">（後端 <code>spatial_report.review_items</code>，兩分支後端都會產出）</span></td>
+    <td><b>完全未消費</b>：<code>scene_workflow.js</code> 的 <code>setRecognition／resolveReviewItem</code> 是死碼（零呼叫）；前端只有另一套 <code>room_review_reasons</code> 顯示一行提示文字，無任何強制</td>
+    <td><b>雙軌消費</b>：<code>scene_recognition_review.js</code>（58 行）解析 review_items（4 種 reason）渲染「需人工複核」清單；<code>confirmAllRooms()</code> 排除被標記房（<code>scene_v2.js:2676-2699</code>）；另保留前端 <code>room_review_reasons</code> 提示（5 種 reason）</td>
+  </tr>
+  <tr>
+    <td>完成把關</td>
+    <td><code>#confirm-space</code> 永遠可按，點擊時做 4 段 early-return 驗證（房間全確認→結構全確認→2 個勾選框）</td>
+    <td><code>#confirm-space</code> <b>disabled</b> 直到 5 條件全真（<code>updateSpaceCompletionState</code>，<code>scene_v2.js:3062-3094</code>）；完成列同步顯示缺什麼；<b>後端第二道閘</b>：宣告 space_confirmation 完成但仍有未處理複核房 → <code>PUT …/workflow</code> 回 422 <code>recognition_review_unresolved</code>（<code>projects_api.py:158-202, 338-350</code>；房間已被刪／合併／切割視為已人工處理）</td>
+  </tr>
+  <tr>
+    <td>房名下拉選單</td>
+    <td>HTML 寫死 12 選項；JS 另有一張 10 項 <code>ROOM_NAME_OPTIONS</code> 表 → <b>兩表脫鉤（現存 bug，見 §8.2）</b></td>
+    <td>select 留空、由 <code>renderRoomNameSelect()</code> 依 <code>ROOM_NAME_OPTIONS</code> 生成（<code>scene_v2.js:5374-5385</code>；HTML 註解言明避免與辨識層類別集脫鉤）</td>
+  </tr>
+  <tr>
+    <td>重複 id 修復</td>
+    <td>房名編輯器在平面圖標題工具列（<code>scene.html:137-166</code>）</td>
+    <td>只留目前檢視卡內一份；註解記載舊版兩份造成 7 組重複 id、querySelector 一半接錯（<code>scene.html:177-178</code>）</td>
+  </tr>
+  <tr>
+    <td>saveRoom 寫入</td>
+    <td><code>label／type／room_type／visual_space_type</code>＋<code>confirmed=false</code>＋<code>source="manual_confirmation"</code>＋<code>confidence=1</code>＋<code>applyCanonicalRoomLabels()</code></td>
+    <td><code>label／type／room_type／visual_space_type</code>＋<code>confirmed=false</code>（同四欄，少 source／confidence）</td>
+  </tr>
+</table></div>
+
+<h3>7.3 產出</h3>
+<div class="tablebox"><table>
+  <tr><th></th><th>yen</th><th>ben</th><th class="c">一致性</th></tr>
+  <tr>
+    <td>保存 payload 的 <code>workflow.space_confirmation</code></td>
+    <td><code>{coordinate_unit:"cm", rooms, structures, <b>confirmed_structure_snapshot</b>, dismissed_auto_room_ids, design_schemes}</code></td>
+    <td><code>{coordinate_unit:"cm", rooms, structures, dismissed_auto_room_ids, design_schemes}</code></td>
+    <td class="c"><span class="badge warn">相容</span><br /><span class="muted">yen 多一鍵（yen 下游用）</span></td>
+  </tr>
+  <tr>
+    <td><code>complete("space_confirmation", …)</code> 資料鍵</td>
+    <td>5 鍵：<code>roomsConfirmed, structureConfirmed, proportionsConfirmed, dimensionedPlanConfirmed, totalAreaM2</code></td>
+    <td>7 鍵：同 5 鍵＋<code>recognitionReviewItemCount, recognitionReviewResolved</code></td>
+    <td class="c"><span class="badge warn">相容</span><br /><span class="muted">驗證只看前 3 鍵，兩邊同</span></td>
+  </tr>
+  <tr>
+    <td><code>rooms[]</code> 內容</td>
+    <td colspan="2">欄位集合相同（id/label/type/room_type/visual_space_type/polygon_cm/area/confirmed/…）；<b>type 值域不同</b>（§8）</td>
+    <td class="c"><span class="badge bad">值域不一致</span></td>
+  </tr>
+  <tr>
+    <td>confirm-space／confirm-dimensioned-plan 是否呼叫 API</td>
+    <td colspan="2">兩邊都不呼叫——持久化一律走背景 <code>scheduleSave()</code> → <code>PUT /api/projects/{id}/workflow</code>（payload 頂層 <code>save_id / base_updated_at / current_step / workflow</code>，兩邊相同；重試 3 次、pending-save 重播機制同）</td>
+    <td class="c"><span class="badge ok">一致</span></td>
+  </tr>
+</table></div>
+<p class="ev">yen: scene_v2.js:2639-2716, 5520-5555, 5623-5644, 918-1106｜ben: scene_v2.js:2508-2716, 3062-3094, 5676-5711, 5779-5803, 1089-1156</p>
+
+<!-- ============================================================= -->
+<h2 id="s8"><span class="no">8</span>房型詞彙三層對照（產出不一致的核心）</h2>
+<p>「房間是什麼房」在系統裡有三層表述：<b>辨識層</b>（OCR 文字／Cody 語意 → <code>rooms[].type</code>）、<b>UI 層</b>（步驟 4 房名選單寫入 <code>type / visual_space_type</code>）、<b>問卷層</b>（第 5 步用哪個欄位查逐房題組）。三層在兩分支各自演進，這是四步產出中唯一的實質不一致。</p>
+
+<h3>8.1 辨識層（<code>backend/floorplan/vision/analysis.py</code>，Cody 領域）</h3>
+<div class="tablebox"><table>
+  <tr><th>圖面文字</th><th>yen 產出 type</th><th>ben 產出 type</th></tr>
+  <tr><td>餐廳</td><td><code>kitchen</code>（併入廚房）</td><td><code>dining_room</code></td></tr>
+  <tr><td>書房／工作室</td><td><code>storage</code></td><td><code>workspace</code></td></tr>
+  <tr><td>玄關</td><td><code>entryway</code></td><td rowspan="2"><code>circulation</code>（合併）</td></tr>
+  <tr><td>走道／走廊</td><td><code>hallway</code></td></tr>
+  <tr><td>樓梯</td><td><code>stair</code></td><td>不採用（None）</td></tr>
+  <tr><td>車庫</td><td><code>garage</code></td><td>不採用（None）</td></tr>
+  <tr><td colspan="3" class="muted">Cody 語意標籤對照表：yen 用小寫舊詞彙（living/bed/bath/entry…）；ben 對齊 Cody 2026-08-01 <code>6300e9e0</code> 十類 CamelCase（LivingRoom/Bath/Hallway…），且 Hallway→circulation。ben 另修 OCR 房名「信心值認領」（同名不再被多房重複認領，<code>vision/rooms.py:248-276</code>）。</td></tr>
+</table></div>
+
+<h3>8.2 UI 層（步驟 4 房名選單 <code>ROOM_NAME_OPTIONS</code>）</h3>
+<div class="tablebox"><table>
+  <tr><th>選項 id（visual_space_type）</th><th>yen 寫入 type</th><th>ben 寫入 type</th></tr>
+  <tr><td>entryway 玄關</td><td><code>entryway</code></td><td><code>circulation</code></td></tr>
+  <tr><td>hallway 走道</td><td><code>hallway</code></td><td><code>circulation</code></td></tr>
+  <tr><td>stair 樓梯</td><td><code>stair</code></td><td><code>circulation</code></td></tr>
+  <tr><td>garage 車庫</td><td><code>garage</code></td><td><code>storage</code></td></tr>
+  <tr><td>living_room／kitchen／bedroom／bathroom／balcony／storage</td><td colspan="2">兩邊相同（type = id）</td></tr>
+  <tr><td colspan="3" class="muted">yen 的表每項多帶 <code>classification</code>（CamelCase，對應 Cody 十類）；ben 無此欄。兩邊都是 10 項。</td></tr>
+</table></div>
+
+<div class="callout red"><b>yen 現存 bug（本次比對中確認）：房名選單雙表脫鉤。</b><br />
+scene.html 寫死 12 個 option（含 <code>dining_room / primary_bedroom / secondary_bedroom / study / circulation / multi_purpose</code>），但 JS 的 <code>ROOM_NAME_OPTIONS</code> 只認 10 個 id（含 <code>hallway / bedroom / stair / garage</code>），且 JS 不重繪 select。交集只有 6 個 id。後果：(1) 使用者選 HTML 才有的 6 個選項，按「套用名稱」被 <code>saveRoom()</code> 以「請選擇空間名稱」拒絕（<code>scene_v2.js:5223-5230</code>）；(2) JS 才有的 4 個 id 回寫 <code>select.value</code> 時瀏覽器找不到 option，顯示變空白。ben 的「select 由 JS 生成」正是針對這一類脫鉤的修法。</div>
+
+<h3>8.3 問卷層（第 5 步逐房題組的查表鍵）</h3>
+<div class="tablebox"><table>
+  <tr><th></th><th>yen（scene_questionnaire_test2.js:1-11）</th><th>ben（scene_questionnaire_test2.js）</th></tr>
+  <tr>
+    <td>查表鍵</td>
+    <td><b><code>room.type</code></b>，表鍵：entryway / living_room / kitchen / bedroom / bathroom / balcony / storage / hallway / garage（<b>無 circulation、無 stair</b>）</td>
+    <td><b><code>room.visual_space_type</code> 優先</b>（表 <code>VISUAL_SPACES_BY_ROOM_NAME</code>），缺漏才退回 type；stair／garage 明確無軟裝題</td>
+  </tr>
+</table></div>
+<div class="callout red"><b>連鎖後果（整合時的頭號風險）</b>：若把 ben 的步驟 4 原樣移入 yen 而不動詞彙——玄關／走道／樓梯房間會被寫成 <code>type="circulation"</code>，yen 問卷查 <code>ROOM_TO_VISUAL_SPACES["circulation"]</code> 查無此鍵 → <b>這些房在第 5 步拿不到任何題組</b>；車庫被寫成 <code>storage</code> → 拿到書房／儲藏室的題目。家具推薦（第 6 步 <code>scene_layout2d.js</code> 契約鍵）同樣受 type 值域影響。</div>
+
+<!-- ============================================================= -->
+<h2 id="s9"><span class="no">9</span>產出一致性總表</h2>
+<div class="tablebox"><table>
+  <tr><th>契約項</th><th>比對結果</th><th class="c">判定</th></tr>
+  <tr><td>步驟導覽與狀態機（<code>WORKFLOW_STEPS</code> 11 步、panel 對應、schema v2、儲存鍵 <code>roompilot.workflow.v2:{id}</code>）</td><td>兩邊逐字相同（<code>scene_workflow.js</code> 前 30 行一致；ben 多 <code>setRecognition／resolveReviewItem</code> 等在 yen 是死碼的擴充）</td><td class="c"><span class="badge ok">一致</span></td></tr>
+  <tr><td><code>POST /api/projects</code>／<code>GET /api/projects/{id}</code></td><td>路徑、payload、回應形狀相同；ben 加 auth＋限長</td><td class="c"><span class="badge ok">一致</span></td></tr>
+  <tr><td><code>POST …/floorplan</code>＋<code>GET …/floorplan/source</code></td><td>相同；ben 加大小上限＋auth</td><td class="c"><span class="badge ok">一致</span></td></tr>
+  <tr><td><code>POST …/floorplan/analyze</code>（含回應三鍵與 workflow 重置副作用）</td><td>實作逐字相同；ben 加 auth</td><td class="c"><span class="badge ok">一致</span></td></tr>
+  <tr><td><code>PUT …/workflow</code>（樂觀鎖 revision／replay_pending／2MB 上限／409／413）</td><td>相同；ben <b>多一道 422 複核硬閘</b>（僅在宣告 space_confirmation 完成且有未處理 review_items 時觸發）</td><td class="c"><span class="badge warn">相容</span></td></tr>
+  <tr><td>前端保存 payload（<code>save_id/base_updated_at/current_step/workflow</code>；workflow 頂層鍵）</td><td>相同；yen 的 space_confirmation 多 <code>confirmed_structure_snapshot</code>；兩邊皆無 scene_json／layout_json 頂層鍵</td><td class="c"><span class="badge warn">相容</span></td></tr>
+  <tr><td>各步完成資料鍵（complete()）</td><td>步驟 1／2／3 完全相同；步驟 4 ben 多 2 個複核鍵（驗證不看）</td><td class="c"><span class="badge warn">相容</span></td></tr>
+  <tr><td>步驟 3 校正後 analysis 的來源</td><td>yen 前端縮放 vs ben 後端重算（schema 同、數值可能不同）</td><td class="c"><span class="badge warn">路徑不同</span></td></tr>
+  <tr><td><code>rooms[].type</code> 值域（辨識層＋UI 層）</td><td>六類房型對映分歧（§8.1／8.2），直接牽動第 5 步題組與第 6 步推薦鍵</td><td class="c"><span class="badge bad">不一致</span></td></tr>
+  <tr><td><code>spatial_report.review_items</code></td><td>兩邊後端同樣產出（<code>spatial_report.py</code>／<code>confirmation.py</code> 兩分支零差異）；yen 前端不消費、ben 前後端都消費</td><td class="c"><span class="badge warn">產出同・消費不同</span></td></tr>
+</table></div>
+
+<p><b>一句話結論</b>：步驟 1–4 的 API 與保存契約兩邊本是同源、至今仍同形，ben 是「同一副骨架上做了 UI 引導強化＋複核閘門＋auth」；唯一會咬到 yen 第 5–8 步的實質不一致是<b>房型詞彙</b>（以及選擇性差異：步驟 3 的重算路徑）。這代表「把 ben 的 1–4 換進來」在技術上可行，但詞彙層必須落在 yen 這邊——具體做法見另一份《整合計畫》。</p>
+
+<!-- ============================================================= -->
+<h2 id="s10"><span class="no">10</span>快照注意事項</h2>
+<ul class="diff">
+  <li>本分析期間偵測到<b>本 repo 正被另一工作階段編輯</b>（backend/agent 與第 8 步生圖／交付相關檔案持續變動，scene_v2.js 行號在分析中位移約 +2）。已確認變動 hunks 全部落在第 5–8 步區段（scene.html @859/@989、scene_v2.js @510/@13010/@13207/@14562），<b>不影響本報告對步驟 1–4 的結論</b>；引用的 yen 行號以 15:27 快照為準，實施整合時需重新對點。</li>
+  <li>ben 分支另有一份方向相反的整合規格（<code>docs/backlog/BELLA_TEST1_STEP567_INTEGRATION.md</code>，把 bella-test1 的第 5–7 步併入 ben），其中佐證了兩件事：ben 的步驟 1–4 markup 即 <code>scene.html:43-445</code>；auth 是跨步橫切接線（scene_v2.js 內共 5 處觸點）。</li>
+</ul>
+
+<footer>
+  產出：Claude Code 唯讀分析｜比對基準 yen 工作樹 2026-08-06 15:27（HEAD 89ab4cd1）vs origin/ben 29e0c95a｜姊妹文件：<code>ben-step1-4-integration-plan.html</code>（整合計畫）
+</footer>
+
+</div>
+</body>
+</html>

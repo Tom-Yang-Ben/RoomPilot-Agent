@@ -74,7 +74,7 @@ class GenPicInfoTool:
         #   家具配置(位置與數量必須與下列完全一致，不可增減或移動)：{}、
         #   家電：{}、{額外補充需求}」
         # 有數值資訊（尺寸/公分）不提供；沒有資料的段落整段省略。
-        segments = [f"你是室內軟裝設計師，風格要極致寫實。"]
+        segments = [f"你是室內軟裝設計師，風格要「極致寫實」。"]
         if requirements.styles:
             segments.append(f"，將此草圖渲染成{'、'.join(requirements.styles[:2])}風的配色")
             note = style_note(requirements.styles)
@@ -125,7 +125,7 @@ class GenPicInfoTool:
             locked_materials={**materials, "palette": (palette or {}).get("name", "")},
             allowed_change="",
         )
-        prompt += '\n可以加上任何需要元素\n草圖中的格局、物件位置不可變動\n'
+        prompt += '\n可以加上任何需要元素\n草圖中的格局、物件位置不可變動\n光影以窗戶陽光及室內燈光為主'
         print(prompt)
         return {"prompt": prompt, "lock_manifest": manifest.to_dict(), "stage": stage}
 

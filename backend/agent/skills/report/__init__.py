@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from ...documents import (
@@ -27,8 +28,16 @@ INTRO_SPEC = DOC.spec("intro")
 RATIONALE_SPEC = DOC.spec("rationale")
 
 
+_BASE64_CHARS = re.compile(r"^[A-Za-z0-9+/=\s]+$")
+
+
 def _looks_like_b64(value: str) -> bool:
-    return bool(value) and len(value) > 200 and "/" not in value[:80] and "\\" not in value[:80]
+    """區分 image_ref 是 base64 內容還是檔案路徑。
+
+    base64 字母表含 ``/``，不能拿「前 80 字有無斜線」判斷（PNG 內容常在開頭就
+    出現 ``/``，會把合法圖誤判成路徑而漏出 PDF）；路徑則幾乎必含 ``.``、``:``
+    或反斜線，且長度遠小於 200。"""
+    return bool(value) and len(value) > 200 and bool(_BASE64_CHARS.match(value))
 
 
 class ReportSkill:

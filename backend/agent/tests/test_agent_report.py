@@ -6,7 +6,7 @@ from pathlib import Path
 
 from backend.agent.documents import DocKey, DocStore
 from backend.agent.skills.furniture import STRATEGIES, FurnitureSkill
-from backend.agent.skills.report import ReportSkill
+from backend.agent.skills.report import ReportSkill, _looks_like_b64
 from backend.agent.skills.requirements import RequirementSkill
 from backend.agent.tools.rag_furniture import RagFurnitureTool
 from backend.agent.tools.read_layout import ReadLayoutTool
@@ -58,3 +58,12 @@ def test_manual_has_rationale_chapter_and_furniture_reasons(
 
     assert Path(manual.pdf_path).exists()
     assert Path(manual.pdf_path).read_bytes()[:4] == b"%PDF"
+
+
+def test_looks_like_b64_tolerates_slash_in_image_payload():
+    """base64 字母表含「/」；PNG 內容常在開頭就出現，不可誤判成檔案路徑
+    而把合法生圖漏出 PDF。路徑（含副檔名、磁碟機字母）仍須判否。"""
+    assert _looks_like_b64("iVBORw0KGgo/" + "A/b+" * 100)
+    assert not _looks_like_b64("C:/Users/demo/.tmp/agent_output/" + "img/" * 60 + "x.png")
+    assert not _looks_like_b64(".tmp/agent_output/design_manual.pdf")
+    assert not _looks_like_b64("iVBORw0KGgo=")  # 太短，不是完整影像內容

@@ -12,8 +12,13 @@ agent / tools）＋「## 提示詞：<key>」＋「## 輸出 schema：<key>」�
 例外：``interior_design_principles/`` 與 ``interior_designer/`` 是知識型
 skill（foundry-skills 英文原文），只有 SKILL.md 宣告層、無流程層，
 由 ``tools.design_knowledge`` 節錄供選件提示與生圖措辭引用。
+``roompilot-delivery-pdf/`` 是打包的排版 skill（SKILL.md＋scripts＋assets＋
+references，自 .skill 壓縮包解出、保持原文），無 Python 流程層；由
+``delivery/`` 流程層以 subprocess 呼叫其 ``scripts/build_pdf.py`` 排版
+交付提案 PDF。
 """
 from .base import SkillDoc, SkillSpec, ask_llm_json, load_skill_doc
+from .delivery import DeliverySkill, delivery_engine_status
 from .editpic import STAGE_EDIT, EditPicSkill
 from .furniture import STRATEGIES, FurnitureSkill, Strategy
 from .genpic import STAGE_FULL, STAGE_PALETTE, GenPicSkill
@@ -34,6 +39,8 @@ __all__ = [
     "GenPicSkill",
     "EditPicSkill",
     "ReportSkill",
+    "DeliverySkill",
+    "delivery_engine_status",
     "STAGE_PALETTE",
     "STAGE_FULL",
     "STAGE_EDIT",

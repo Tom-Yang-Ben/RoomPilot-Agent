@@ -88,7 +88,7 @@
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
 <tr><td><span class="m POST">POST</span></td><td><code>/api/scene/generate</code></td><td class="loc">main.py:2249</td><td>生成 3D 場景：家具選件 + AN 擺放引擎。回傳 <code>{selected_furniture, scene_objects, placement_resolution_report, placement}</code></td></tr>
 <tr><td><span class="m POST">POST</span></td><td><code>/api/scene/layout</code></td><td class="loc">main.py:2295</td><td>使用者編輯後重算場景配置 → <code>{scene_objects}</code></td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/decorate</code></td><td class="loc">main.py:2414</td><td>依風格自動加入軟裝（地毯／植栽／燈具／布簾）→ <code>{scene_objects, decor_summary}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/decorate</code></td><td class="loc">main.py:2414</td><td>依風格自動加入軟裝（地毯／植栽／燈具／布簾）→ <code>{scene_objects, decor_summary}</code>。可帶 <code>dismissed_roles: [role]</code> 跳過使用者刪除過的軟裝角色，不再自動補回</td></tr>
 <tr><td><span class="m POST">POST</span></td><td><code>/api/scene/validate</code></td><td class="loc">main.py:2568</td><td>驗證單件家具拖曳位置（碰撞／淨空）→ <code>{valid, message, conflicts}</code></td></tr>
 <tr><td><span class="m GET">GET</span></td><td><code>/api/scene/provider-status</code></td><td class="loc">main.py:2076</td><td>查詢 OpenRouter／LLM 服務狀態</td></tr>
 <tr><td><span class="m GET">GET</span></td><td><code>/api/scene/bootstrap</code></td><td class="loc">main.py:1939</td><td>場景編輯初始化資料 → <code>{styles, taiwan_style_cards, surface_catalog, catalog_status}</code></td></tr>

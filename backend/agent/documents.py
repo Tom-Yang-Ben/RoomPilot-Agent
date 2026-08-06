@@ -66,7 +66,6 @@ class RequirementDoc:
 
     @classmethod
     def from_dict(cls, d: dict) -> "RequirementDoc":
-        print('d\t', d.get("styles"))
         return cls(
             hard=_rebuild(RequirementItem, d.get("hard")),
             soft=_rebuild(RequirementItem, d.get("soft")),

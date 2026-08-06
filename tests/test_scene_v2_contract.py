@@ -568,6 +568,32 @@ def test_soft_decor_calls_send_only_the_target_rooms_furniture() -> None:
     assert "returnedById" in decor_body
 
 
+def test_soft_decor_rerun_validates_instead_of_regenerating() -> None:
+    """軟裝重跑改「有就驗證、沒有才生成」:decorate 重生成是無記憶重算,
+    會把使用者刪掉的角色以另一件同類品項復活;已有軟裝的房間只走引擎
+    純驗證(/api/scene/validate),違規標記原因不拋錯、不自動重擺。刪除
+    軟裝時記錄 dismissed 角色並持久化,生成時帶給後端跳過。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    decor_body = source.split("async function ensureAutomaticSoftDecor")[1].split("\nasync function ")[0]
+
+    # 已有軟裝 → 純驗證,不重打 decorate
+    assert "const existingDecor = roomObjects.filter((item) => item.auto_decor_role)" in decor_body
+    assert "await validateExistingSoftDecor(existingDecor, allObjects)" in decor_body
+    # 生成時帶使用者刪除記憶
+    assert "dismissed_roles: state.dismissedDecorRoles[String(room.id)] || []" in decor_body
+    # 違規只標記,不再拋錯中斷換卡管線
+    assert "throw" not in decor_body
+    # 驗證走引擎端點並標記結果
+    validate_body = source.split("async function validateExistingSoftDecor")[1].split("\nasync function ")[0]
+    assert 'api("/api/scene/validate"' in validate_body
+    assert "item.placement_failed = true" in validate_body
+    assert "item.placement_reason" in validate_body
+    # 刪除軟裝記錄意圖,且隨 realistic_3d 持久化與還原
+    assert "state.dismissedDecorRoles[decorRoomId] = [...dismissed]" in source
+    assert "dismissedDecorRoles: state.dismissedDecorRoles" in source
+    assert "serverState.realistic_3d?.dismissedDecorRoles || {}" in source
+
+
 def test_set_furniture_shares_one_model_per_room() -> None:
     """成套家具統一規格:同一空間的餐椅(與成對床頭櫃)必須同款 ——
     GLB 逐件解析會讓自動補上的件各自找「最接近款」,同桌湊出雜牌椅。

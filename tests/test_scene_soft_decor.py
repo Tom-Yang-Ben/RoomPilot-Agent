@@ -426,3 +426,40 @@ def test_kitchen_gets_rug_but_no_floor_lamp() -> None:
     }
     assert "light" not in roles
     assert "rug" in roles
+
+
+def test_dismissed_decor_roles_are_not_regenerated() -> None:
+    """使用者刪過的軟裝角色不得復活:錨點推導是無記憶重算,少了
+    dismissed_roles 過濾,刪掉的地毯/燈會在下次重跑時以同角色的
+    另一件品項補回來。"""
+    sofa = {
+        "furniture_id": "sofa-existing",
+        "normalized_type": "sofa",
+        "name_zh_raw": "既有沙發",
+        "size_cm": {"width": 210, "depth": 90, "height": 82},
+        "position_cm": {"x": 0, "z": 120},
+        "rotation_y_deg": 180,
+        "position_locked": True,
+    }
+
+    response = client.post(
+        "/api/scene/decorate",
+        json={
+            "style": "scandinavian",
+            "floorplan_editor": _floorplan_editor(),
+            "placement_room_id": "living-1",
+            "scene_objects": [sofa],
+            "dismissed_roles": ["rug", "light"],
+        },
+    )
+
+    assert response.status_code == 200
+    roles = {
+        item["auto_decor_role"]
+        for item in response.json()["scene_objects"]
+        if item.get("auto_decor_role")
+    }
+    assert "rug" not in roles
+    assert "light" not in roles
+    # 未被排除的角色照常生成
+    assert {"curtain", "plant"} <= roles

@@ -71,6 +71,13 @@ from .ai_render_service import (
     edit_room_image,
     generate_room_images,
 )
+from .design_manual_service import (
+    DeliveryNotConfigured,
+    DesignManualError,
+    create_delivery_proposal,
+    create_design_manual,
+    delivery_proposal_status,
+)
 from .style_cards import load_taiwan_style_cards
 from .services.cloud_models import (
     cloud_model_status,
@@ -2108,6 +2115,156 @@ def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict
     }
 
 
+def _design_manual_dir(project_id: str) -> Path:
+    return PROJECT_STORE.runtime_dir / "manuals" / project_id
+
+
+def _public_design_manual(project_id: str, record: dict) -> dict:
+    payload = {key: value for key, value in record.items() if key != "filename"}
+    payload["download_url"] = f"/api/projects/{project_id}/design-manual/pdf"
+    return payload
+
+
+@app.post("/api/projects/{project_id}/design-manual", status_code=201)
+def create_project_design_manual(project_id: str, payload: dict) -> dict:
+    """第 8 步收尾：由 Report Agent 統整需求、配置、家具、色卡與生圖成果，
+    輸出八章設計手冊 PDF。
+
+    前端送 ``scene``（state.sceneData）＋逐房 ``rooms``（含房間尺寸與目前最新
+    的生圖 data URL；改圖後前端已就地更新）。LLM 只潤飾前言與設計理念，未設定
+    OPENROUTER_API_KEY 時走 deterministic 底稿照樣輸出。重新產出會覆蓋 workflow
+    紀錄並提高 revision；舊 PDF 檔保留於 runtime 目錄。
+    """
+    project = _stored_project(project_id)
+    scene, rooms = _validated_report_payload(project_id, payload)
+    try:
+        manual, record = create_design_manual(
+            project_id,
+            scene,
+            rooms,
+            _design_manual_dir(project_id),
+            design_revision=project["revision"],
+        )
+    except DesignManualError as exc:
+        raise HTTPException(
+            502, {"code": "design_manual_failed", "message": str(exc)}
+        ) from exc
+    updated = PROJECT_STORE.update_workflow(
+        project_id, workflow={"design_manual": record}
+    )
+    return {
+        "manual": _public_design_manual(project_id, record),
+        "revision": updated["revision"],
+        "updated_at": updated["updated_at"],
+    }
+
+
+@app.get("/api/projects/{project_id}/design-manual/pdf")
+def download_project_design_manual(project_id: str) -> FileResponse:
+    project = _stored_project(project_id)
+    record = (project.get("workflow") or {}).get("design_manual") or {}
+    filename = str(record.get("filename") or "")
+    if not filename:
+        raise HTTPException(
+            404,
+            {"code": "design_manual_not_found", "message": "尚未產出設計手冊。"},
+        )
+    path = _design_manual_dir(project_id) / filename
+    if not path.is_file():
+        raise HTTPException(
+            410,
+            {"code": "design_manual_file_missing", "message": "設計手冊紀錄存在，但檔案已遺失，請重新產出。"},
+        )
+    return FileResponse(path, media_type="application/pdf", filename=filename)
+
+
+def _validated_report_payload(project_id: str, payload: dict) -> tuple[dict, list[dict]]:
+    """設計手冊與交付提案共用的 payload 驗證（scene＋rooms）。"""
+    if payload.get("project_id") not in (None, project_id):
+        raise HTTPException(
+            422,
+            {"code": "manual_project_mismatch", "message": "報告資料與目前專案不一致。"},
+        )
+    scene = payload.get("scene")
+    if not isinstance(scene, dict) or not scene.get("scene_objects"):
+        raise HTTPException(
+            422,
+            {"code": "scene_required", "message": "缺少場景資料，請先完成第 6 步配置。"},
+        )
+    rooms = payload.get("rooms")
+    if not isinstance(rooms, list) or not any(
+        isinstance(room, dict) and str(room.get("room_id") or "").strip()
+        for room in rooms
+    ):
+        raise HTTPException(
+            422,
+            {"code": "rooms_required", "message": "缺少房間資料，無法組成果報告。"},
+        )
+    return scene, rooms
+
+
+@app.get("/api/delivery-proposal/status")
+def get_delivery_proposal_status() -> dict:
+    """交付提案排版引擎（playwright Chromium）是否可用；未安裝時回報安裝指引。"""
+    return delivery_proposal_status()
+
+
+@app.post("/api/projects/{project_id}/delivery-proposal", status_code=201)
+def create_project_delivery_proposal(project_id: str, payload: dict) -> dict:
+    """第 8 步收尾第二版報告：roompilot-delivery-pdf 打包 skill 排版的品牌
+    交付提案 PDF，與八章設計手冊吃同一份 payload，供兩版比較。"""
+    project = _stored_project(project_id)
+    scene, rooms = _validated_report_payload(project_id, payload)
+    try:
+        _, record = create_delivery_proposal(
+            project_id,
+            project.get("name") or "RoomPilot 專案",
+            scene,
+            rooms,
+            _design_manual_dir(project_id),
+            design_revision=project["revision"],
+        )
+    except DeliveryNotConfigured as exc:
+        raise HTTPException(
+            503, {"code": "delivery_engine_not_configured", "message": str(exc)}
+        ) from exc
+    except DesignManualError as exc:
+        raise HTTPException(
+            502, {"code": "delivery_proposal_failed", "message": str(exc)}
+        ) from exc
+    updated = PROJECT_STORE.update_workflow(
+        project_id, workflow={"delivery_proposal": record}
+    )
+    payload_record = {key: value for key, value in record.items() if key != "filename"}
+    payload_record["download_url"] = (
+        f"/api/projects/{project_id}/delivery-proposal/pdf"
+    )
+    return {
+        "proposal": payload_record,
+        "revision": updated["revision"],
+        "updated_at": updated["updated_at"],
+    }
+
+
+@app.get("/api/projects/{project_id}/delivery-proposal/pdf")
+def download_project_delivery_proposal(project_id: str) -> FileResponse:
+    project = _stored_project(project_id)
+    record = (project.get("workflow") or {}).get("delivery_proposal") or {}
+    filename = str(record.get("filename") or "")
+    if not filename:
+        raise HTTPException(
+            404,
+            {"code": "delivery_proposal_not_found", "message": "尚未產出交付提案。"},
+        )
+    path = _design_manual_dir(project_id) / filename
+    if not path.is_file():
+        raise HTTPException(
+            410,
+            {"code": "delivery_proposal_file_missing", "message": "交付提案紀錄存在，但檔案已遺失，請重新產出。"},
+        )
+    return FileResponse(path, media_type="application/pdf", filename=filename)
+
+
 def _floorplan_is_confirmed(project: dict) -> bool:
     confirmation = project.get("workflow", {}).get("floorplan_confirmation", {})
     if confirmation.get("confirmed") is True:
@@ -2943,6 +3100,18 @@ async def scene_decorate(payload: dict) -> dict:
         boundary=place_boundary,
     ) and room_type in {"living_room", "bedroom", "dining_room", "default"}:
         requested_roles.append("curtain")
+
+    # 使用者刪過的軟裝角色不再自動補回:錨點推導無記憶,少了這層過濾,
+    # 刪掉的地毯/燈會在下次重跑時以同角色另一件品項復活。
+    dismissed_roles = {
+        str(role)
+        for role in payload.get("dismissed_roles") or []
+        if isinstance(role, str) and role
+    }
+    if dismissed_roles:
+        requested_roles = [
+            role for role in requested_roles if role not in dismissed_roles
+        ]
 
     additions: list[dict] = []
     if "curtain" in requested_roles:

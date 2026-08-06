@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-c4f9b4ad04df";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-7bede239da5d";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -175,6 +175,9 @@ const state = {
   roomNodeMode: null,
   selectedRoomNodeIndices: [],
   dismissedAutoRoomIds: [],
+  // 使用者刪除軟裝的意圖記憶:{ roomId: [auto_decor_role, ...] }。
+  // 少了它,「沒有軟裝」與「使用者刪光了」在資料上無法區分,重跑會復活。
+  dismissedDecorRoles: {},
   structures: { walls: [], doors: [], windows: [], beams: [], columns: [] },
   designSchemes: normalizeDesignSchemes(),
   activeStructureKind: "door",
@@ -510,6 +513,11 @@ const element = {
   aiOpenrouterEditRoom: $("#ai-openrouter-edit-room"),
   aiOpenrouterEditFeedback: $("#ai-openrouter-edit-feedback"),
   aiOpenrouterEditStatus: $("#ai-openrouter-edit-status"),
+  designManualStatus: $("#design-manual-status"),
+  designManualGenerate: $("#design-manual-generate"),
+  designManualDownload: $("#design-manual-download"),
+  deliveryProposalStatus: $("#delivery-proposal-status"),
+  deliveryProposalDownload: $("#delivery-proposal-download"),
 };
 
 const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus, {
@@ -1008,6 +1016,7 @@ function workflowPayload() {
           activeStylePackId: state.activeStylePackId,
           surfaceState: state.surfaceState,
           materialBoundary: state.materialBoundary,
+          dismissedDecorRoles: state.dismissedDecorRoles,
         }
       : null,
     proposal_review: proposalIsLive
@@ -11283,6 +11292,16 @@ async function deleteSelectedSceneFurniture() {
     return;
   }
   objects.splice(state.selectedSceneIndex, 1);
+  if (selected.auto_decor_role) {
+    // 記住「這個房間不要這類軟裝」——否則下次重跑軟裝時,錨點推導
+    // 會以同角色的另一件品項把它補回來。
+    const decorRoomId = String(
+      selected.auto_decor_room_id || selected.placement_room_id || "default",
+    );
+    const dismissed = new Set(state.dismissedDecorRoles[decorRoomId] || []);
+    dismissed.add(String(selected.auto_decor_role));
+    state.dismissedDecorRoles[decorRoomId] = [...dismissed];
+  }
   state.furniture2d = removeFurniture2dBySceneObject(
     state.furniture2d,
     selected,
@@ -12075,6 +12094,35 @@ function stylePackByIdSafe(packId) {
   return STYLE_PACKS.find((pack) => pack.id === packId) || null;
 }
 
+async function validateExistingSoftDecor(decorItems, allObjects) {
+  // 純驗證路徑:逐件請引擎複核「目前位置是否仍合法」,不重挑、不重擺。
+  // 合法的清掉失敗標記;違規的標記原因交使用者處置,不自動修。
+  for (const item of decorItems) {
+    let verdict;
+    try {
+      verdict = await api("/api/scene/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          floorplan_editor: confirmedFloorplanEditor(),
+          item,
+          others: allObjects.filter((other) => other !== item),
+        }),
+      });
+    } catch (error) {
+      console.warn("Soft decor validation", error);
+      continue; // 驗證服務異常時保留原狀,不動軟裝
+    }
+    if (verdict.ok) {
+      delete item.placement_failed;
+      delete item.placement_reason;
+    } else {
+      item.placement_failed = true;
+      item.placement_reason = verdict.reason || "位置不合法";
+    }
+  }
+}
+
 async function ensureAutomaticSoftDecor(pack) {
   const targetRooms = state.rooms.length
     ? state.rooms
@@ -12088,6 +12136,14 @@ async function ensureAutomaticSoftDecor(pack) {
     const roomObjects = allObjects.filter((item) =>
       String(item.placement_room_id || item.auto_decor_room_id || "") === String(room.id));
     if (!roomObjects.length) continue;
+    // 已有軟裝的房間走純驗證:decorate 重生成是無記憶的重算,會把使用者
+    // 刪掉的角色以另一件同類品項補回來;只有「這房還沒有任何軟裝」才
+    // 生成一次,且帶上使用者刪除過的角色清單讓後端跳過。
+    const existingDecor = roomObjects.filter((item) => item.auto_decor_role);
+    if (existingDecor.length) {
+      await validateExistingSoftDecor(existingDecor, allObjects);
+      continue;
+    }
     const result = await api("/api/scene/decorate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -12096,6 +12152,7 @@ async function ensureAutomaticSoftDecor(pack) {
         floorplan_editor: confirmedFloorplanEditor(),
         placement_room_id: room.id,
         scene_objects: roomObjects,
+        dismissed_roles: state.dismissedDecorRoles[String(room.id)] || [],
       }),
     });
     const returned = result.scene_objects || [];
@@ -12113,11 +12170,12 @@ async function ensureAutomaticSoftDecor(pack) {
   const failed = (state.sceneData.scene_objects || []).filter(
     (item) => item.auto_decor_role && item.placement_failed,
   );
-  if (failed.length) {
-    throw new Error(`軟裝配置未通過家具引擎：${failed
-      .map((item) => item.name_zh_raw || item.auto_decor_role)
-      .join("、")}`);
-  }
+  // 違規只標記不拋錯:回傳清單讓呼叫端提示使用者移除或挪位,
+  // 不再中斷換卡管線、也不自動重擺。
+  return failed.map((item) => {
+    const label = item.name_zh_raw || item.auto_decor_role || "軟裝";
+    return item.placement_reason ? `${label}（${item.placement_reason}）` : label;
+  });
 }
 
 async function applyStylePackToScene(pack, { deferReload = false } = {}) {
@@ -12195,8 +12253,9 @@ async function applyStylePackToScene(pack, { deferReload = false } = {}) {
   // 把唯一一次重載留到呼叫端統一執行。
   element.realisticStatus.textContent = `正在套用「${pack.styleLabel}／${pack.name}」的牆面、地板、軟裝與家具搭配…`;
 
+  let decorWarnings = [];
   try {
-    await ensureAutomaticSoftDecor(pack);
+    decorWarnings = await ensureAutomaticSoftDecor(pack);
     if (revision !== styleApplyRevision) return;
     if (previousSceneStyle !== pack.styleId) {
       await replaceUnlockedFurnitureForStyle(pack);
@@ -12221,7 +12280,10 @@ async function applyStylePackToScene(pack, { deferReload = false } = {}) {
     return;
   }
   await evaluateCeilingConflicts();
-  element.realisticStatus.textContent = `已完成「${pack.styleLabel}／${pack.name}」：牆面、地板、PBR、燈光與未鎖定家具均已同步；軟裝與擺放規則已載入。`;
+  const decorNote = decorWarnings.length
+    ? `另有 ${decorWarnings.length} 件軟裝目前位置放不下：${decorWarnings.join("、")}；已保留原狀不自動重擺，可自行移除或挪位。`
+    : "軟裝與擺放規則已載入。";
+  element.realisticStatus.textContent = `已完成「${pack.styleLabel}／${pack.name}」：牆面、地板、PBR、燈光與未鎖定家具均已同步；${decorNote}`;
   scheduleSave("realistic_3d");
 }
 
@@ -13010,6 +13072,7 @@ async function prepareAiRender() {
   }
   void refreshAiOpenrouterStatus();
   renderAiOpenrouterResults();
+  restoreDesignManualPanel();
 }
 
 // ---- 第 8 步：OpenRouter nano banana 逐房寫實生圖（不移動擺設）＋整批一次改圖 ----
@@ -13204,6 +13267,135 @@ async function submitAiOpenrouterEdit() {
     closeAiOpenrouterEditDialog();
   } catch (error) {
     element.aiOpenrouterEditStatus.textContent = errorMessage(error);
+  }
+}
+
+// ---- 第 8 步收尾：Report Agent 設計手冊（PDF）產出與下載 ----
+
+function roomBoundsCm(room) {
+  const points = room?.polygon_cm || [];
+  if (!points.length) return { width_cm: 0, depth_cm: 0 };
+  const xs = points.map((point) => Number(point.x) || 0);
+  const ys = points.map((point) => Number(point.y) || 0);
+  return {
+    width_cm: Math.round(Math.max(...xs) - Math.min(...xs)),
+    depth_cm: Math.round(Math.max(...ys) - Math.min(...ys)),
+  };
+}
+
+function designManualRoomsPayload() {
+  const results = state.proposalReview.openRouterRenders?.results || [];
+  return state.rooms.map((room) => {
+    const render = results.find(
+      (row) => row.room_id === room.id && row.status === "completed" && row.image_data_url,
+    );
+    return {
+      room_id: room.id,
+      room_label: room.label,
+      ...roomBoundsCm(room),
+      image_data_url: render?.image_data_url || null,
+      model: render?.model || "",
+    };
+  });
+}
+
+function showDesignManualDownload(record) {
+  if (!element.designManualDownload) return;
+  if (!record) {
+    element.designManualDownload.hidden = true;
+    return;
+  }
+  element.designManualDownload.href = `/api/projects/${state.projectId}/design-manual/pdf`;
+  element.designManualDownload.textContent = `下載設計手冊 PDF（${(record.sections || []).length || 8} 章）`;
+  element.designManualDownload.hidden = false;
+}
+
+function showDeliveryProposalDownload(record) {
+  if (!element.deliveryProposalDownload) return;
+  if (!record) {
+    element.deliveryProposalDownload.hidden = true;
+    return;
+  }
+  element.deliveryProposalDownload.href = `/api/projects/${state.projectId}/delivery-proposal/pdf`;
+  element.deliveryProposalDownload.textContent = "下載交付提案 PDF（品牌版）";
+  element.deliveryProposalDownload.hidden = false;
+}
+
+function setDeliveryProposalStatus(text) {
+  if (!element.deliveryProposalStatus) return;
+  element.deliveryProposalStatus.textContent = text || "";
+  element.deliveryProposalStatus.hidden = !text;
+}
+
+function restoreDesignManualPanel() {
+  const workflow = state.project?.workflow || {};
+  showDesignManualDownload(workflow.design_manual);
+  showDeliveryProposalDownload(workflow.delivery_proposal);
+  if (workflow.design_manual && element.designManualStatus) {
+    element.designManualStatus.textContent = "已有先前產出的成果報告，可直接下載或重新產出取代紀錄。";
+  }
+  void checkDeliveryEngine();
+}
+
+async function checkDeliveryEngine() {
+  try {
+    const status = await api("/api/delivery-proposal/status");
+    if (!status.available) setDeliveryProposalStatus(status.reason || "交付提案排版引擎尚未安裝。");
+    else if (!state.project?.workflow?.delivery_proposal) setDeliveryProposalStatus("");
+  } catch {
+    /* 狀態查不到不擋操作，錯誤會在實際產出時回報 */
+  }
+}
+
+function rememberReportRecord(key, record) {
+  if (!state.project) return;
+  state.project = {
+    ...state.project,
+    workflow: { ...(state.project.workflow || {}), [key]: record },
+  };
+}
+
+async function generateDesignManual() {
+  if (!state.sceneData || !state.projectId) {
+    if (element.designManualStatus) {
+      element.designManualStatus.textContent = "請先完成第 6 步配置，才能產出成果報告。";
+    }
+    return;
+  }
+  const rooms = designManualRoomsPayload();
+  const renderedCount = rooms.filter((room) => room.image_data_url).length;
+  const body = JSON.stringify({ project_id: state.projectId, scene: state.sceneData, rooms });
+  const post = { method: "POST", headers: { "Content-Type": "application/json" }, body };
+  element.designManualGenerate.disabled = true;
+  element.designManualStatus.textContent = renderedCount
+    ? `正在組稿兩份成果報告（含 ${renderedCount} 個房間的生圖成果）…`
+    : "正在組稿兩份成果報告（尚無生圖，圖面標記待補）…";
+  try {
+    const result = await api(`/api/projects/${state.projectId}/design-manual`, post);
+    syncProjectRevision(result);
+    rememberReportRecord("design_manual", result.manual);
+    showDesignManualDownload(result.manual);
+    element.designManualStatus.textContent =
+      `設計手冊完成（${(result.manual.sections || []).length} 章`
+      + (renderedCount ? `，含 ${renderedCount} 房生圖）。` : "，未含生圖）。");
+  } catch (error) {
+    element.designManualStatus.textContent = `設計手冊：${errorMessage(error)}`;
+  }
+  // 交付提案接續產出（Chromium 排版較慢）；一份失敗不影響另一份。
+  setDeliveryProposalStatus("正在排版交付提案（品牌版）…");
+  try {
+    const result = await api(`/api/projects/${state.projectId}/delivery-proposal`, post);
+    syncProjectRevision(result);
+    rememberReportRecord("delivery_proposal", result.proposal);
+    showDeliveryProposalDownload(result.proposal);
+    const warnings = result.proposal.warnings || [];
+    setDeliveryProposalStatus(
+      warnings.length ? `交付提案完成，${warnings.length} 項排版提醒。` : "交付提案完成。",
+    );
+  } catch (error) {
+    setDeliveryProposalStatus(`交付提案：${errorMessage(error)}`);
+  } finally {
+    element.designManualGenerate.disabled = false;
   }
 }
 
@@ -14562,6 +14754,7 @@ function bindEvents() {
   });
   $("#ai-openrouter-edit-submit")?.addEventListener("click", submitAiOpenrouterEdit);
   $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
+  element.designManualGenerate?.addEventListener("click", generateDesignManual);
   $("#ai-openrouter-edit-close")?.addEventListener("click", closeAiOpenrouterEditDialog);
   $("#close-render-brief")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-cancel")?.addEventListener("click", closeRenderBriefDialog);
@@ -14926,6 +15119,7 @@ async function restoreProject() {
     state.activeStylePackId = serverState.realistic_3d?.activeStylePackId || null;
     state.surfaceState = serverState.realistic_3d?.surfaceState || state.surfaceState;
     state.materialBoundary = serverState.realistic_3d?.materialBoundary || null;
+    state.dismissedDecorRoles = serverState.realistic_3d?.dismissedDecorRoles || {};
     const savedProposal = serverState.proposal_review
       || state.workflow.data.proposal_review
       || {};

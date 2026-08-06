@@ -74,7 +74,7 @@
 |---|---|---|---|
 | POST | `/api/scene/generate` | main.py:2284 | 生成 3D 場景：家具選件 + AN 擺放引擎。回傳 `{selected_furniture, scene_objects, placement_resolution_report, placement}` |
 | POST | `/api/scene/layout` | main.py:2330 | 使用者編輯後重算場景配置 → `{scene_objects}` |
-| POST | `/api/scene/decorate` | main.py:2453 | 依風格自動加入軟裝（地毯／植栽／燈具／布簾）→ `{scene_objects, decor_summary}` |
+| POST | `/api/scene/decorate` | main.py:2453 | 依風格自動加入軟裝（地毯／植栽／燈具／布簾）→ `{scene_objects, decor_summary}`。可帶 `dismissed_roles: [role]` 跳過使用者刪除過的軟裝角色，不再自動補回 |
 | POST | `/api/scene/validate` | main.py:2607 | 驗證單件家具拖曳位置（碰撞／淨空）→ `{valid, message, conflicts}` |
 | GET | `/api/scene/provider-status` | main.py:2111 | 查詢 OpenRouter／LLM 服務狀態 |
 | GET | `/api/scene/bootstrap` | main.py:1974 | 場景編輯初始化資料 → `{styles, taiwan_style_cards, surface_catalog, catalog_status}` |

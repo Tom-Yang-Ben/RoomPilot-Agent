@@ -71,6 +71,14 @@ uv pip install --python .venv\Scripts\python.exe -r requirements-rag.txt
 
 OCR 套件較大，且不是啟動網站或執行目前標準測試的必要條件。
 
+第 8 步「產出兩份成果報告」中的品牌交付提案版需要選用的 Playwright
+Chromium 排版引擎；未安裝時該版回 503 並附指引，八章設計手冊不受影響：
+
+```powershell
+uv pip install --python .venv\Scripts\python.exe -r requirements-delivery.txt
+.venv\Scripts\playwright.exe install chromium
+```
+
 ## 驗證指令
 
 ```powershell
@@ -101,7 +109,9 @@ git status --short
 -> 5 完成逐房極與極問卷、家具需求與三張風格色卡
 -> 6 產生配置，在同一畫面同步編輯 2D/3D 家具與走動預覽
 -> 7 鎖定方案，每個空間選擇並微調生成視角
--> 8 AI 渲染與成果包：依問卷、家具、材質、色卡與視角產生逐房成果
+-> 8 AI 渲染與成果包：依問卷、家具、材質、色卡與視角產生逐房成果，
+   並由 Report Agent 統整輸出兩版成果報告 PDF 供比較
+   （八章設計手冊＋品牌交付提案）
 ```
 
 未處理的家具碰撞、淨空、超界或模型載入問題會阻擋下一步。結構變更

@@ -1,0 +1,13 @@
+# 交付提案 PDF（roompilot-delivery-pdf 打包 skill）排版引擎的選用依賴。
+# 未安裝時第 8 步「產出兩份成果報告」的交付提案版會回 503 並附本安裝指引；
+# 八章設計手冊（Pillow 排版）不受影響。
+#
+# 安裝：
+#   uv pip install --python .venv\Scripts\python.exe -r requirements-delivery.txt
+#   .venv\Scripts\playwright.exe install chromium
+#
+# playwright：Chromium print-to-PDF（build_pdf.py 的版面引擎，必要）
+# pikepdf：修正 Chromium 產出 PDF 文字層的康熙部首碼位（中文可搜尋；選配，
+#          缺少時 build_pdf.py 自動略過該步驟）
+playwright==1.62.0
+pikepdf==10.11.0
