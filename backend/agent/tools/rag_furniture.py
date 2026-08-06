@@ -56,6 +56,9 @@ def _as_candidate(row: dict) -> CandidateItem | None:
         reason=str(_first(row, ("reason", "match_reason"), "")),
         clearance=clearance if isinstance(clearance, dict) else None,
         image_url=_first(row, ("image_url", "front_image_url")),
+        # 外觀描述只走到生圖提示詞；缺欄位就留空，不猜、不從名稱拼湊。
+        description=str(_first(row, ("description", "rag_description"), "")),
+        material=str(_first(row, ("material", "primary_material"), "")),
     )
 
 

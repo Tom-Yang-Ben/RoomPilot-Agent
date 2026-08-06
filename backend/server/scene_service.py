@@ -2507,6 +2507,9 @@ def generate_layout(
             "model_url": item.get("model_url"),
             "primary_style": item.get("primary_style"),
             "material": item.get("material"),
+            # 型錄 VLM 外觀描述:第 8 步生圖提示詞的材質/配色證據
+            # (ai_render_service._placed_rows → genpic_info)。
+            "description": item.get("description"),
             "price": item.get("price"),
             "price_twd": item.get("price_twd"),
             "price_ntd": item.get("price_ntd"),

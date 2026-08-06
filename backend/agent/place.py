@@ -144,6 +144,10 @@ def _replacement_item(item: dict[str, Any], smaller: dict[str, Any]) -> dict[str
         "normalized_type": smaller.get("normalized_type"),
         "model_url": smaller.get("model_url"),
         "primary_style": smaller.get("primary_style"),
+        # 外觀欄位跟著換款:留舊件的材質/VLM 描述會讓生圖提示詞描述一件
+        # 已經不在場景裡的家具。
+        "material": smaller.get("material"),
+        "description": smaller.get("description"),
         "size_cm": _clean_size_cm(smaller),
     }
 

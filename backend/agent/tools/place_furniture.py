@@ -11,7 +11,8 @@ adjacent / overlay 意圖降級為 free 自由擺放（仍由 engine 決定座�
 
 場景 placed 條目沿用 ``backend.engine.schema.placed_to_dict``
 （``schema_version: "2.0"``、``coordinate_unit: "cm"``），並附加
-catalog 追溯欄位（catalog_id、style、price、clearance、matched_requirements）。
+catalog 追溯欄位（catalog_id、style、price、clearance、matched_requirements）
+與生圖用的外觀欄位（description、material）。
 """
 from __future__ import annotations
 
@@ -100,6 +101,9 @@ class PlaceFurnitureTool:
                             "hint_method": item.hint.method,
                             "hint_note": item.hint.note,
                             "reason": item.reason,
+                            # 生圖提示詞的外觀證據（genpic_info 讀這兩欄）
+                            "description": item.description,
+                            "material": item.material,
                         }
                     )
                     placed_rows.append(row)
