@@ -100,6 +100,11 @@ backend/server/static/texture_cache/
 !backend/server/static/pbr_assets/
 !backend/server/static/pbr_assets/**
 
+# 本機跑第 8 步留下的成果 PDF 與資料庫傾印檔:都是可重新產生的產物,
+# 且 dump 有 50MB 以上,進版控會永久膨脹 repo。
+roompilot-proposal-*.pdf
+roompilot_db_dump.sql*
+
 # macOS 系統殘留(入倉三規則:禁止提交)
 .DS_Store
 # 分割模型權重 93MB — 進 git 前組長決定
