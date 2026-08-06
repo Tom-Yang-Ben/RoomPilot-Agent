@@ -827,6 +827,11 @@ export function createSceneViewer(
   }
 
   const wallMeshes = [];
+  // 牆的附屬件（踢腳板、頂蓋、窗框玻璃門片）：透視時要跟宿主牆同組淡出，
+  // 但不參與 topdown 壓扁，也不會被選為透視對象。
+  const wallAccessoryMeshes = [];
+  // 目前被透視（半透明）的宿主牆分組 id；一次只會有一組。
+  let fadedWallGroupId = null;
 
   function setStatus(message) {
     if (statusElement) {
@@ -1549,12 +1554,15 @@ export function createSceneViewer(
     return material;
   }
 
-  function registerWall(wallMesh) {
+  function registerWall(wallMesh, wallGroupId = null) {
     wallMesh.castShadow = true;
     wallMesh.receiveShadow = true;
     wallMesh.userData.baseOpacity = 1;
     wallMesh.userData.fullPositionY = wallMesh.position.y;
     wallMesh.userData.fullScaleY = wallMesh.scale.y;
+    // 透視以「宿主牆分組」為單位：同一面牆的本體、補牆與附屬件一起淡出。
+    // 沒指定分組的牆（fallback 三面 Box 牆）自成一組，各自獨立讓路。
+    wallMesh.userData.roompilotWallGroupId = wallGroupId || `wall-solo-${wallMeshes.length}`;
     wallMeshes.push(wallMesh);
     return wallMesh;
   }
@@ -1577,10 +1585,11 @@ export function createSceneViewer(
       isExteriorWallSegment(segment, floorplan, wallThickness)
     ));
 
-    segments.forEach((segment) => {
+    segments.forEach((segment, segmentIndex) => {
       const start = segment.start;
       const end = segment.end;
       if (!start || !end) return;
+      const wallGroupId = `wall-seg-${segmentIndex}`;
 
       const dx = Number(end.x) - Number(start.x);
       const dz = Number(end.z) - Number(start.z);
@@ -1662,7 +1671,7 @@ export function createSceneViewer(
           Number(start.z) + unitZ * center,
         );
         wallMesh.rotation.y = rotationY;
-        roomGroupRef.add(registerWall(wallMesh));
+        roomGroupRef.add(registerWall(wallMesh, wallGroupId));
       };
 
       const addBaseboard = (from, to) => {
@@ -1686,6 +1695,8 @@ export function createSceneViewer(
         trim.castShadow = true;
         trim.receiveShadow = true;
         trim.userData.roompilotArchitecturalDetail = "baseboard";
+        trim.userData.roompilotWallGroupId = wallGroupId;
+        wallAccessoryMeshes.push(trim);
         roomGroupRef.add(trim);
       };
 
@@ -1720,6 +1731,7 @@ export function createSceneViewer(
               wallThickness,
             },
             surfaceCatalog,
+            wallGroupId,
           );
           renderedOpenings.add(interval.key);
         }
@@ -1742,6 +1754,8 @@ export function createSceneViewer(
       topCap.rotation.y = rotationY;
       topCap.castShadow = true;
       topCap.receiveShadow = true;
+      topCap.userData.roompilotWallGroupId = wallGroupId;
+      wallAccessoryMeshes.push(topCap);
       roomGroupRef.add(topCap);
     });
 
@@ -1772,11 +1786,18 @@ export function createSceneViewer(
         wallHeight,
         wallThickness,
         surfaceCatalog,
+        floorplan,
       );
     }
   }
 
-  function buildOpeningAssembly(roomGroupRef, interval, anchor, surfaceCatalog = null) {
+  function buildOpeningAssembly(
+    roomGroupRef,
+    interval,
+    anchor,
+    surfaceCatalog = null,
+    wallGroupId = null,
+  ) {
     const isWindow = interval.kind === "window";
     const frameMaterial = createArchitecturalMaterial(
       isWindow ? "window_frame" : "door_leaf",
@@ -1848,6 +1869,14 @@ export function createSceneViewer(
       leaf.receiveShadow = true;
       leaf.userData.roompilotArchitecturalDetail = "closed-door-leaf";
       assembly.add(leaf);
+    }
+    if (wallGroupId) {
+      // 窗框玻璃／門片跟宿主牆同組：牆透視時整組一起淡出，不再留浮空窗框。
+      assembly.traverse((object) => {
+        if (!object.isMesh) return;
+        object.userData.roompilotWallGroupId = wallGroupId;
+        wallAccessoryMeshes.push(object);
+      });
     }
     roomGroupRef.add(assembly);
   }
@@ -1927,7 +1956,9 @@ export function createSceneViewer(
           new THREE.BoxGeometry(
             openingWidth,
             height,
-            wallThickness,
+            // 後端 wall_polys 開槽每側多挖 1cm（WALL_POLY_OPENING_PIERCE_CM），
+            // 補牆要同厚才不會在槽的兩側各漏一條縫。
+            wallThickness + 2,
           ),
           openingSectionMaterials(),
         );
@@ -1938,6 +1969,10 @@ export function createSceneViewer(
         );
         section.rotation.y = Math.atan2(-dz, dx);
         section.userData.roompilotArchitecturalDetail = detail;
+        // 連續牆團本體是單一 mesh、拆不出「一面牆」所以不參與透視；
+        // 它的窗台／門楣補牆也必須永遠可見，否則 orbit 視角會把補牆
+        // 藏掉、窗洞看起來從地板通到天花板只剩浮空窗框。
+        section.userData.roompilotWallCullExempt = true;
         roomGroupRef.add(registerWall(section));
       };
       if (isWindow) {
@@ -2895,6 +2930,9 @@ export function createSceneViewer(
       wallMass.userData.roompilotArchitecturalDetail = "continuous-wall-mass";
       wallMass.userData.roompilotWallHeightAxis = "z";
       wallMass.userData.fullScaleZ = wallMass.scale.z;
+      // 整棟牆是一顆擠出 mesh，position 固定在原點，無法只透視其中一面；
+      // 明確豁免，避免被單面透視邏輯誤選。
+      wallMass.userData.roompilotWallCullExempt = true;
       roomGroupRef.add(registerWall(wallMass));
     });
     return true;
@@ -2958,6 +2996,8 @@ export function createSceneViewer(
     clearGroup(ceilingGroup);
     clearGroup(hangingLightGroup);
     wallMeshes.length = 0;
+    wallAccessoryMeshes.length = 0;
+    fadedWallGroupId = null;
     const catalogThumbnailMode = sceneData.design_choices?.catalog_thumbnail_mode === true;
 
     const widthCm = Math.max(sceneData.floorplan.width_cm, 240);
@@ -5624,36 +5664,103 @@ export function createSceneViewer(
   const wallCullCameraDir = new THREE.Vector3();
   const wallCullWallDir = new THREE.Vector3();
   const wallCullWallCenter = new THREE.Vector3();
+  const WALL_FADE_OPACITY = 0.15;
+  const WALL_FADE_DOT_THRESHOLD = 0.35;
+  // 遲滯：新候選要比目前這面明顯更正對相機才換手，轉過牆角時才不會兩面牆閃爍互搶。
+  const WALL_FADE_SWITCH_MARGIN = 0.08;
 
-  // 這個函式以前只是把每面牆強制設回 visible，所以外部視角永遠隔著近牆看房子——
-  // 第 6 步的預設 corner 鏡頭因此整片畫面都是牆的外側。orbit／dollhouse 這種站在
-  // 房子外面的視角，要讓夾在鏡頭與注視點之間的近牆讓路；walk 是站在室內，不能動。
+  // 淡出用「換材質」而不是改 opacity：牆材質有逐房快取共用，直接改會把
+  // 同房其他牆一起弄透明。半透明複本每面牆惰性建一次，之後只做指標切換。
+  function setWallMeshFaded(mesh, faded) {
+    if ((mesh.userData.roompilotWallFaded === true) === faded) return;
+    mesh.userData.roompilotWallFaded = faded;
+    if (faded) {
+      if (!mesh.userData.roompilotFadedMaterial) {
+        const source = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        const fadedMaterials = source.map((material) => {
+          const clone = material.clone();
+          clone.transparent = true;
+          clone.opacity = (material.opacity ?? 1) * WALL_FADE_OPACITY;
+          clone.depthWrite = false;
+          return clone;
+        });
+        mesh.userData.roompilotOpaqueMaterial = mesh.material;
+        mesh.userData.roompilotFadedMaterial = Array.isArray(mesh.material)
+          ? fadedMaterials
+          : fadedMaterials[0];
+      }
+      mesh.userData.roompilotOpaqueCastShadow = mesh.castShadow;
+      mesh.material = mesh.userData.roompilotFadedMaterial;
+      mesh.castShadow = false;
+    } else {
+      if (mesh.userData.roompilotOpaqueMaterial) {
+        mesh.material = mesh.userData.roompilotOpaqueMaterial;
+      }
+      if (mesh.userData.roompilotOpaqueCastShadow != null) {
+        mesh.castShadow = mesh.userData.roompilotOpaqueCastShadow;
+      }
+    }
+  }
+
+  // orbit 這種站在房子外面的視角，夾在鏡頭與注視點之間的近牆要讓路。以前是
+  // 約 70 度圓錐內整片 visible=false，角落視角會一次消掉兩三面牆、還把窗台／
+  // 門楣補牆藏掉只剩浮空窗框；現在一次只挑「最正對相機」的一面，連同補牆、
+  // 窗框、踢腳板、頂蓋整組轉半透明，其餘牆全部保持可見。walk 是站在室內，不能動。
   function updateWallVisibility() {
     // 只在 orbit 讓近牆讓路。dollhouse 是俯視娃娃屋，四面牆都看得到才是它的樣子，
     // 那個「全部牆保持可見」是既有契約（test_dollhouse_keeps_all_walls_visible…）。
     const cullNearWalls = viewMode.mode === "orbit";
-    wallCullCameraDir.copy(camera.position).sub(controls.target).setY(0);
-    const cameraDistance = wallCullCameraDir.length();
-    if (cameraDistance > 0) wallCullCameraDir.divideScalar(cameraDistance);
-    wallMeshes.forEach((wall) => {
-      let culled = false;
-      if (cullNearWalls && cameraDistance > 0) {
-        wall.getWorldPosition(wallCullWallCenter);
-        wallCullWallDir.copy(wallCullWallCenter).sub(controls.target).setY(0);
-        const wallDistance = wallCullWallDir.length();
-        if (wallDistance > 1) {
+    let nextGroupId = null;
+    if (cullNearWalls) {
+      wallCullCameraDir.copy(camera.position).sub(controls.target).setY(0);
+      const cameraDistance = wallCullCameraDir.length();
+      if (cameraDistance > 0) {
+        wallCullCameraDir.divideScalar(cameraDistance);
+        const groupDots = new Map();
+        wallMeshes.forEach((wall) => {
+          if (wall.userData.roompilotWallCullExempt) return;
+          const groupId = wall.userData.roompilotWallGroupId;
+          if (!groupId) return;
+          wall.getWorldPosition(wallCullWallCenter);
+          wallCullWallDir.copy(wallCullWallCenter).sub(controls.target).setY(0);
+          const wallDistance = wallCullWallDir.length();
+          if (wallDistance <= 1) return;
           wallCullWallDir.divideScalar(wallDistance);
-          // 約 70 度的圓錐：角落視角會讓相鄰的兩面近牆一起讓開。
-          culled = wallCullWallDir.dot(wallCullCameraDir) > 0.35;
+          const dot = wallCullWallDir.dot(wallCullCameraDir);
+          if (dot > (groupDots.get(groupId) ?? -Infinity)) groupDots.set(groupId, dot);
+        });
+        let bestGroupId = null;
+        let bestDot = -Infinity;
+        groupDots.forEach((dot, groupId) => {
+          if (dot > bestDot) {
+            bestDot = dot;
+            bestGroupId = groupId;
+          }
+        });
+        const currentDot = fadedWallGroupId != null
+          ? (groupDots.get(fadedWallGroupId) ?? -Infinity)
+          : -Infinity;
+        if (currentDot > WALL_FADE_DOT_THRESHOLD
+          && bestDot <= currentDot + WALL_FADE_SWITCH_MARGIN) {
+          nextGroupId = fadedWallGroupId;
+        } else if (bestDot > WALL_FADE_DOT_THRESHOLD) {
+          nextGroupId = bestGroupId;
         }
       }
-      wall.visible = !culled;
-      const materials = Array.isArray(wall.material) ? wall.material : [wall.material];
-      materials.filter(Boolean).forEach((material) => {
-        material.transparent = false;
-        material.opacity = wall.userData.baseOpacity || 1;
-        material.depthWrite = true;
-      });
+    }
+    fadedWallGroupId = nextGroupId;
+    wallMeshes.forEach((wall) => {
+      wall.visible = true;
+      setWallMeshFaded(
+        wall,
+        nextGroupId != null && wall.userData.roompilotWallGroupId === nextGroupId,
+      );
+    });
+    wallAccessoryMeshes.forEach((mesh) => {
+      setWallMeshFaded(
+        mesh,
+        nextGroupId != null && mesh.userData.roompilotWallGroupId === nextGroupId,
+      );
     });
   }
 
