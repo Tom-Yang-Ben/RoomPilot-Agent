@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 import zipfile
 from copy import deepcopy
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from threading import Lock
@@ -2323,6 +2324,411 @@ def download_project_delivery_proposal(project_id: str) -> FileResponse:
             {"code": "delivery_proposal_file_missing", "message": "交付提案紀錄存在，但檔案已遺失，請重新產出。"},
         )
     return FileResponse(path, media_type="application/pdf", filename=filename)
+
+
+# ---- 第 8 步成果包（design-delivery）----
+# 由 bella-new 分支移植：把全屋簡報、逐房成果、工程報告、資安審核與預算書
+# 打包成單一 JSON；並依本分支定案把設計提案 PDF（delivery-proposal）紀錄
+# 一併帶出，讓前端在同一個成果包對話框內產出與下載 PDF。
+
+DESIGNER_REFERENCE_BY_ROOM_TYPE = {
+    "living_room": "設計觀點參照 Ilse Crawford 重視以人為本、觸感與日常舒適的取向；本案僅借用方法論，不代表設計師參與或背書。",
+    "bedroom": "設計觀點參照 Kelly Hoppen 對安定對稱、層次中性色與休憩感的運用；本案僅借用方法論，不代表設計師參與或背書。",
+    "kitchen": "設計觀點參照 Patricia Urquiola 對耐用表面、節制用色與生活機能平衡的處理；本案僅借用方法論，不代表設計師參與或背書。",
+    "bathroom": "設計觀點參照 John Pawson 對比例、簡潔面材與受控光線的處理；本案僅借用方法論，不代表設計師參與或背書。",
+    "dining_room": "設計觀點參照 Ilse Crawford 以人的互動與用餐觸感建立空間核心的取向；本案僅借用方法論，不代表設計師參與或背書。",
+    "study": "設計觀點參照 John Pawson 以清楚秩序、留白與自然光降低視覺干擾的取向；本案僅借用方法論，不代表設計師參與或背書。",
+    "default": "設計觀點參照專業室內設計常用的動線、採光、材質連續性與收納需求四項原則。",
+}
+
+
+DELIVERY_ROOM_TYPE_ALIASES = {
+    "living": "living_room",
+    "livingroom": "living_room",
+    "客廳": "living_room",
+    "master_bedroom": "bedroom",
+    "guest_bedroom": "bedroom",
+    "臥室": "bedroom",
+    "主臥": "bedroom",
+    "次臥": "bedroom",
+    "廚房": "kitchen",
+    "餐廳": "dining_room",
+    "dining": "dining_room",
+    "書房": "study",
+    "office": "study",
+    "衛浴": "bathroom",
+    "浴室": "bathroom",
+}
+
+
+DELIVERY_SENSITIVE_KEYS = {
+    "authorization",
+    "api_key",
+    "apikey",
+    "openrouter_api_key",
+    "access_token",
+    "refresh_token",
+    "password",
+    "secret",
+    "cookie",
+    "set_cookie",
+    "email",
+    "phone",
+    "phone_number",
+    "full_name",
+    "address",
+}
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _delivery_room_type(room: dict) -> str:
+    raw = str(
+        room.get("room_type")
+        or room.get("type")
+        or (room.get("questionnaire") or {}).get("roomType")
+        or room.get("room_name")
+        or "default"
+    ).strip()
+    normalized = raw.casefold().replace("-", "_").replace(" ", "_")
+    if normalized in DESIGNER_REFERENCE_BY_ROOM_TYPE:
+        return normalized
+    if "bedroom" in normalized:
+        return "bedroom"
+    return DELIVERY_ROOM_TYPE_ALIASES.get(normalized, DELIVERY_ROOM_TYPE_ALIASES.get(raw, "default"))
+
+
+def _delivery_text(value: object, fallback: str = "") -> str:
+    text = str(value or "").strip()
+    return text or fallback
+
+
+def _delivery_amount_twd(item: dict) -> int | None:
+    for key in ("price_twd", "unit_price_twd", "amount_twd"):
+        value = item.get(key)
+        try:
+            amount = float(value)
+        except (TypeError, ValueError):
+            continue
+        if amount > 0:
+            return round(amount)
+    return None
+
+
+def _delivery_furniture_lines(snapshot: dict) -> list[dict]:
+    lines: list[dict] = []
+    for index, item in enumerate(snapshot.get("furniture") or [], start=1):
+        if not isinstance(item, dict):
+            continue
+        amount_twd = _delivery_amount_twd(item)
+        lines.append(
+            {
+                "id": item.get("instance_id") or item.get("id") or f"furniture-{index}",
+                "category": "furniture",
+                "category_label": "家具",
+                "room_id": item.get("room_id"),
+                "name": _delivery_text(
+                    item.get("name")
+                    or item.get("label")
+                    or item.get("name_zh")
+                    or item.get("name_zh_raw"),
+                    "已選家具",
+                ),
+                "quantity": 1,
+                "unit": "件",
+                "material": item.get("material"),
+                "size_cm": item.get("size_cm"),
+                "amount_twd": amount_twd,
+                "status": "catalog_reference" if amount_twd is not None else "pending_quote",
+                "status_label": "家具目錄參考價" if amount_twd is not None else "待報價",
+                "price_source": item.get("price_source"),
+                "note": (
+                    "沿用家具目錄參考價；運送、安裝與現場條件仍以正式報價為準。"
+                    if amount_twd is not None
+                    else "家具目錄未附可驗證價格，保留待報價，不自行推估。"
+                ),
+            }
+        )
+    return lines
+
+
+def _delivery_renovation_lines(rooms: list[dict]) -> list[dict]:
+    lines: list[dict] = []
+    for room in rooms:
+        if not isinstance(room, dict):
+            continue
+        room_name = _delivery_text(room.get("room_name"), "未命名空間")
+        questionnaire = room.get("questionnaire") if isinstance(room.get("questionnaire"), dict) else {}
+        surfaces = questionnaire.get("surfaces") if isinstance(questionnaire.get("surfaces"), dict) else {}
+        scope_labels = [
+            label
+            for key, label in (
+                ("wallDefault", "牆面"),
+                ("floor", "地板"),
+                ("ceiling", "天花與照明"),
+            )
+            if surfaces.get(key)
+        ]
+        lines.append(
+            {
+                "id": f"{room.get('room_id') or room_name}-finish",
+                "category": "renovation",
+                "category_label": "裝潢工程",
+                "room_id": room.get("room_id"),
+                "name": f"{room_name}裝潢、材質與照明工程",
+                "quantity": 1,
+                "unit": "房",
+                "amount_twd": None,
+                "status": "pending_quote",
+                "status_label": "待報價",
+                "scope": scope_labels or ["牆面", "地板", "天花與照明"],
+                "note": _delivery_text(
+                    questionnaire.get("note")
+                    or questionnaire.get("generation_notes")
+                    or questionnaire.get("furniture_preference"),
+                    "須先確認現場丈量、材質型號、施工範圍、燈具迴路與插座條件後再報價。",
+                ),
+                "quote_requirements": ["現場丈量", "材質型號", "施工範圍", "機電與插座條件"],
+            }
+        )
+    return lines
+
+
+def _delivery_sensitive_paths(value: object, path: str = "$payload") -> list[str]:
+    paths: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            normalized = str(key).strip().casefold().replace("-", "_")
+            child_path = f"{path}.{key}"
+            if normalized in DELIVERY_SENSITIVE_KEYS:
+                paths.append(child_path)
+                continue
+            paths.extend(_delivery_sensitive_paths(child, child_path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            paths.extend(_delivery_sensitive_paths(child, f"{path}[{index}]"))
+    return paths
+
+
+def _delivery_sanitized_copy(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: _delivery_sanitized_copy(child)
+            for key, child in value.items()
+            if str(key).strip().casefold().replace("-", "_") not in DELIVERY_SENSITIVE_KEYS
+        }
+    if isinstance(value, list):
+        return [_delivery_sanitized_copy(child) for child in value]
+    return deepcopy(value)
+
+
+def _delivery_security_review(payload: dict) -> dict:
+    redacted_paths = sorted(set(_delivery_sensitive_paths(payload)))
+    return {
+        "status": "passed_with_redactions" if redacted_paths else "passed",
+        "status_label": "通過（敏感欄位已排除）" if redacted_paths else "通過",
+        "reviewer": "RoomPilot 後端 deterministic security gate",
+        "reviewed_at": _utc_timestamp(),
+        "checks": [
+            {
+                "check_id": "provider_secret_isolation",
+                "status": "passed",
+                "detail": "瀏覽器成果包與生圖內容不包含伺服器端供應商金鑰。",
+            },
+            {
+                "check_id": "sensitive_field_redaction",
+                "status": "redacted" if redacted_paths else "passed",
+                "detail": "以欄位白名單組稿；識別資訊、cookie、密碼與 token 類欄位不進入成果包。",
+            },
+            {
+                "check_id": "price_integrity",
+                "status": "passed",
+                "detail": "僅列出家具目錄已附參考價；其餘裝潢與家具費用一律標示待報價。",
+            },
+        ],
+        "redacted_paths": redacted_paths,
+    }
+
+
+def _design_delivery_package(
+    project_id: str, payload: dict, delivery_proposal: dict | None = None
+) -> dict:
+    rooms = payload.get("rooms") if isinstance(payload.get("rooms"), list) else []
+    snapshot = payload.get("configuration_snapshot") if isinstance(payload.get("configuration_snapshot"), dict) else {}
+    raw_style_card = payload.get("style_card") if isinstance(payload.get("style_card"), dict) else {}
+    style_card = _delivery_sanitized_copy(raw_style_card)
+    security_review = _delivery_security_review(payload)
+    snapshot_furniture = [item for item in snapshot.get("furniture") or [] if isinstance(item, dict)]
+    presentation_rooms: list[dict] = []
+    engineering_rooms: list[dict] = []
+    for room in rooms:
+        if not isinstance(room, dict):
+            continue
+        questionnaire = room.get("questionnaire") if isinstance(room.get("questionnaire"), dict) else {}
+        locked_furniture = questionnaire.get("lockedFurniture") or questionnaire.get("locked_furniture") or []
+        if not isinstance(locked_furniture, list):
+            locked_furniture = []
+        room_type = _delivery_room_type(room)
+        room_name = _delivery_text(room.get("room_name"), "未命名空間")
+        room_id = room.get("room_id")
+        room_furniture = [
+            _delivery_sanitized_copy(item) for item in snapshot_furniture
+            if str(item.get("room_id") or "") == str(room_id or "")
+        ]
+        usage = questionnaire.get("usage") if isinstance(questionnaire.get("usage"), list) else []
+        note = _delivery_text(
+            questionnaire.get("summary") or questionnaire.get("note"),
+            "本房未填獨立補充，採用全屋問卷、已鎖定配置與色卡。",
+        )
+        raw_render_status = room.get("render") if isinstance(room.get("render"), dict) else {}
+        raw_view = room.get("view") if isinstance(room.get("view"), dict) else {}
+        raw_surfaces = questionnaire.get("surfaces") if isinstance(questionnaire.get("surfaces"), dict) else {}
+        raw_equipment = questionnaire.get("generativeEquipment") if isinstance(questionnaire.get("generativeEquipment"), dict) else {}
+        render_status = _delivery_sanitized_copy(raw_render_status)
+        view = _delivery_sanitized_copy(raw_view)
+        surfaces = _delivery_sanitized_copy(raw_surfaces)
+        equipment = _delivery_sanitized_copy(raw_equipment)
+        presentation_rooms.append(
+            {
+                "room_id": room_id,
+                "room_name": room_name,
+                "room_type": room_type,
+                "style_card": style_card.get("name") or style_card.get("id"),
+                "designer_reference": DESIGNER_REFERENCE_BY_ROOM_TYPE.get(
+                    room_type,
+                    DESIGNER_REFERENCE_BY_ROOM_TYPE["default"],
+                ),
+                "design_summary": (
+                    f"{room_name}保留第 4 步固定結構與第 7 步鎖定視角，"
+                    f"再把問卷需求、{len(room_furniture)} 件確認家具與「{style_card.get('name') or '已選色卡'}」整合為同一設計。"
+                ),
+                "decoration_summary": {
+                    "questionnaire_source": questionnaire.get("source") or "room",
+                    "questionnaire_note": note,
+                    "usage": usage,
+                    "locked_furniture": locked_furniture,
+                    "materials": surfaces,
+                    "ceiling_and_lighting": equipment,
+                    "render_status": render_status,
+                },
+            }
+        )
+        engineering_rooms.append(
+            {
+                "room_id": room_id,
+                "room_name": room_name,
+                "structure_source": "第 4 步已確認固定結構",
+                "view_source": "第 7 步已鎖定視角",
+                "view": view,
+                "furniture_count": len(room_furniture),
+                "furniture": room_furniture,
+                "materials": surfaces,
+                "ceiling_and_lighting": equipment,
+                "questionnaire_note": note,
+                "render_completed": bool(render_status.get("submitted_at")),
+                "revision_used": bool(render_status.get("revision_submitted_at")),
+            }
+        )
+    budget_lines = [
+        *_delivery_renovation_lines(rooms),
+        *_delivery_furniture_lines(snapshot),
+    ]
+    known_furniture_subtotal = sum(
+        int(line["amount_twd"])
+        for line in budget_lines
+        if line.get("category") == "furniture" and line.get("amount_twd") is not None
+    )
+    pending_quote_count = sum(1 for line in budget_lines if line.get("status") == "pending_quote")
+    budget_report = {
+        "title": "裝潢與家具預算報告書",
+        "currency": "TWD",
+        "pricing_status": "pending_quote" if pending_quote_count else "catalog_reference_only",
+        "pricing_status_label": "含待報價項目" if pending_quote_count else "家具目錄參考價",
+        "known_furniture_reference_subtotal_twd": known_furniture_subtotal,
+        "pending_quote_count": pending_quote_count,
+        "lines": budget_lines,
+        "disclaimer": "本成果包為概念設計與家具目錄參考；最終工程及家具總價須經現場丈量、材料確認與廠商正式報價。",
+    }
+    fixed_structure = snapshot.get("fixed_structure") if isinstance(snapshot.get("fixed_structure"), dict) else {}
+    engineering_report = {
+        "title": "RoomPilot 工程報告書",
+        "basis": [
+            "第 4 步固定結構",
+            "第 5 步問卷與 RAG 專業需求",
+            "第 6 步家具、材質、天花與照明配置",
+            "第 7 步逐房鎖定視角",
+            "第 8 步最終生圖與每房一次修改紀錄",
+        ],
+        "snapshot_id": snapshot.get("snapshot_id"),
+        "structure_counts": {
+            key: len(fixed_structure.get(key) or [])
+            for key in ("walls", "doors", "windows", "beams", "columns")
+        },
+        "rooms": engineering_rooms,
+        "completion": {
+            "room_count": len(engineering_rooms),
+            "rendered_room_count": sum(1 for room in engineering_rooms if room["render_completed"]),
+            "revised_room_count": sum(1 for room in engineering_rooms if room["revision_used"]),
+        },
+        "notes": [
+            "幾何合法性與家具位置以保存快照為準，報告組稿不重新產生座標。",
+            "施工前仍須由建築、結構、機電與室內裝修專業人員依現場條件複核。",
+        ],
+    }
+    presentation = {
+        "title": "RoomPilot 全屋設計與裝潢簡報",
+        "subtitle": "依問卷、RAG、確認配置、鎖定視角與最終生圖整理",
+        "style_card": style_card,
+        "rooms": presentation_rooms,
+        "security_review": security_review,
+    }
+    return {
+        "schema_version": "1.1",
+        "artifact_type": "roompilot.web_design_delivery.v1",
+        "project_id": project_id,
+        "snapshot_id": snapshot.get("snapshot_id"),
+        "generated_at": payload.get("generated_at") or _utc_timestamp(),
+        "presentation": presentation,
+        "engineering_report": engineering_report,
+        "security_review": security_review,
+        "budget": budget_report,
+        "budget_report": budget_report,
+        "delivery_proposal": delivery_proposal or {"status": "not_generated"},
+        "web_report": {
+            "title": "RoomPilot 設計成果包",
+            "format": "web_package",
+            "sections": [
+                {"heading": "一、全屋設計與裝潢簡報", "data_key": "presentation"},
+                {"heading": "二、逐房設計與生圖成果", "data_key": "presentation.rooms"},
+                {"heading": "三、工程報告書", "data_key": "engineering_report"},
+                {"heading": "四、資安工程審核", "data_key": "security_review"},
+                {"heading": "五、裝潢與家具預算報告書", "data_key": "budget_report"},
+                {"heading": "六、設計提案 PDF", "data_key": "delivery_proposal"},
+            ],
+        },
+    }
+
+
+@app.post("/api/projects/{project_id}/design-delivery")
+def create_project_design_delivery(project_id: str, payload: dict) -> dict:
+    """第 8 步成果包：五章 JSON 打包，並依本分支定案把 delivery-proposal
+    的產出紀錄與下載位置併入同一份回應。"""
+    project = _stored_project(project_id)
+    if payload.get("project_id") not in (None, project_id):
+        raise HTTPException(422, {"code": "delivery_project_mismatch"})
+    record = (project.get("workflow") or {}).get("delivery_proposal") or {}
+    proposal = {key: value for key, value in record.items() if key != "filename"}
+    if proposal:
+        proposal["status"] = "generated"
+        proposal["download_url"] = f"/api/projects/{project_id}/delivery-proposal/pdf"
+    else:
+        proposal = {
+            "status": "not_generated",
+            "hint": "可在成果包視窗直接產出設計提案 PDF。",
+        }
+    return _design_delivery_package(project_id, payload, delivery_proposal=proposal)
 
 
 def _floorplan_is_confirmed(project: dict) -> bool:

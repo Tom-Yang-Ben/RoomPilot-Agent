@@ -363,3 +363,103 @@ def test_download_before_generation_is_404(tmp_path, monkeypatch) -> None:
     response = client.get(f"/api/projects/{project_id}/delivery-proposal/pdf")
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "delivery_proposal_not_found"
+
+
+def _design_delivery_payload(project_id: str) -> dict:
+    return {
+        "project_id": project_id,
+        "style_card": {
+            "id": "scandinavian_1",
+            "name": "自然木質",
+            "palette_hex": ["#F3EBDD", "#D3B48A"],
+            "email": "should-not-leak@example.com",
+        },
+        "configuration_snapshot": {
+            "snapshot_id": "snap-1",
+            "furniture": [
+                {
+                    "instance_id": "sofa-1#1",
+                    "room_id": "living",
+                    "name_zh": "北歐布沙發",
+                    "price_twd": 12900,
+                },
+                {"instance_id": "table-1#1", "room_id": "living", "name_zh": "小茶几"},
+            ],
+            "fixed_structure": {"walls": [{}, {}], "doors": [{}], "windows": []},
+        },
+        "rooms": [
+            {
+                "room_id": "living",
+                "room_name": "客廳",
+                "room_type": "living_room",
+                "questionnaire": {
+                    "summary": "用途：家庭聚會；已選家具：北歐布沙發",
+                    "usage": ["家庭聚會"],
+                    "lockedFurniture": ["北歐布沙發"],
+                    "surfaces": {"wallDefault": "warm_white", "floor": "light_oak"},
+                    "generativeEquipment": {"primaryUse": "影音娛樂"},
+                },
+                "view": {"camera": {"position": [1, 2, 3]}},
+                "render": {"image_data_url": "data:image/png;base64,x", "submitted_at": "2026-08-07T00:00:00Z"},
+            },
+        ],
+    }
+
+
+def test_design_delivery_package_includes_proposal_record(tmp_path, monkeypatch) -> None:
+    client, project_id = _client(tmp_path, monkeypatch)
+    response = client.post(
+        f"/api/projects/{project_id}/design-delivery",
+        json=_design_delivery_payload(project_id),
+    )
+    assert response.status_code == 200
+    package = response.json()
+    assert package["artifact_type"] == "roompilot.web_design_delivery.v1"
+    assert package["snapshot_id"] == "snap-1"
+    headings = [section["heading"] for section in package["web_report"]["sections"]]
+    assert headings[-1] == "六、設計提案 PDF"
+    # 尚未產出 PDF 時，成果包仍要回報提案狀態而不是缺欄位。
+    assert package["delivery_proposal"]["status"] == "not_generated"
+    # 逐房章節：generativeEquipment 與 render 完成度要被帶出。
+    room = package["presentation"]["rooms"][0]
+    assert room["room_type"] == "living_room"
+    assert room["decoration_summary"]["ceiling_and_lighting"] == {"primaryUse": "影音娛樂"}
+    assert package["engineering_report"]["completion"]["rendered_room_count"] == 1
+    assert package["engineering_report"]["structure_counts"]["walls"] == 2
+    # 預算：有目錄價的家具列參考價，其餘與裝潢一律待報價，不得補猜總價。
+    budget = package["budget_report"]
+    assert budget["known_furniture_reference_subtotal_twd"] == 12900
+    statuses = {line["status"] for line in budget["lines"]}
+    assert statuses == {"catalog_reference", "pending_quote"}
+    # 資安審核：email 這類敏感欄位必須從成果包剔除並列入 redacted_paths。
+    assert package["security_review"]["status"] == "passed_with_redactions"
+    assert "email" not in package["presentation"]["style_card"]
+    assert any("email" in path for path in package["security_review"]["redacted_paths"])
+
+
+def test_design_delivery_reports_generated_proposal(tmp_path, monkeypatch) -> None:
+    client, project_id = _client(tmp_path, monkeypatch)
+    store = main.PROJECT_STORE
+    store.update_workflow(
+        project_id,
+        workflow={"delivery_proposal": {"filename": "proposal.pdf", "page_count": 7}},
+    )
+    response = client.post(
+        f"/api/projects/{project_id}/design-delivery",
+        json=_design_delivery_payload(project_id),
+    )
+    assert response.status_code == 200
+    proposal = response.json()["delivery_proposal"]
+    assert proposal["status"] == "generated"
+    assert proposal["download_url"] == f"/api/projects/{project_id}/delivery-proposal/pdf"
+    assert "filename" not in proposal
+
+
+def test_design_delivery_rejects_project_mismatch(tmp_path, monkeypatch) -> None:
+    client, project_id = _client(tmp_path, monkeypatch)
+    response = client.post(
+        f"/api/projects/{project_id}/design-delivery",
+        json={"project_id": "someone-else"},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "delivery_project_mismatch"
