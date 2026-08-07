@@ -1,0 +1,4726 @@
+# openapi-roompilot-v1.yaml - RoomPilot backend/server FastAPI 契約快照（機器生成）
+# 生成: 2026-08-07 由 app.openapi() 匯出（.venv Python + yaml.safe_dump, allow_unicode）
+# 基準: branch docs/vibecoding-restructure @ commit 1268b2b4
+# 來源 app: backend/server/main.py:244 app = FastAPI(title="AI 室內風格與家具配置展示系統")
+# 統計: paths 70、operations 77（GET 44 / POST 28 / PUT 2 / PATCH 1 / DELETE 2）；另有 /static mount 不入 schema
+# 注意:
+# - 本檔為快照；程式碼變更後以伺服器執行期 /openapi.json 為準。設計約定、錯誤語意與 auth 守衛對照表見同目錄 api_spec.md。
+# - spec 無 servers 段（FastAPI 預設）；本機 base URL 為 http://127.0.0.1:8002（README 快速啟動）。
+# - spec 無 securitySchemes：認證是自訂 Bearer 解析（backend/server/auth/dependencies.py），不經 FastAPI Security 機制，
+#   故各 operation 未標 security；實際守衛見 api_spec.md §4。
+# - 多數舊端點以 payload: dict 收件，openapi 只顯示空 object schema；欄位契約以 docs/contracts/ 對應檔為準。
+openapi: 3.1.0
+info:
+  title: AI 室內風格與家具配置展示系統
+  version: 0.1.0
+paths:
+  /api/auth/register:
+    post:
+      tags:
+      - auth
+      summary: Register
+      operationId: register_api_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      operationId: login_api_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/refresh:
+    post:
+      tags:
+      - auth
+      summary: Refresh
+      operationId: refresh_api_auth_refresh_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Logout
+      operationId: logout_api_auth_logout_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/me:
+    get:
+      tags:
+      - auth
+      summary: Me
+      operationId: me_api_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+  /api/auth/password:
+    post:
+      tags:
+      - auth
+      summary: Change Password
+      operationId: change_password_api_auth_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/admin/reset-password:
+    post:
+      tags:
+      - auth
+      summary: Admin Reset Password
+      operationId: admin_reset_password_api_auth_admin_reset_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/admin/set-active:
+    post:
+      tags:
+      - auth
+      summary: Admin Set Active
+      operationId: admin_set_active_api_auth_admin_set_active_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSetActiveRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects:
+    get:
+      tags:
+      - auth
+      summary: List My Projects
+      operationId: list_my_projects_api_projects_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ProjectSummary'
+                type: array
+                title: Response List My Projects Api Projects Get
+    post:
+      summary: Create Project
+      operationId: create_project_api_projects_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Create Project Api Projects Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}/members:
+    get:
+      tags:
+      - auth
+      summary: List Members
+      operationId: list_members_api_projects__project_id__members_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectMember'
+                title: Response List Members Api Projects  Project Id  Members Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - auth
+      summary: Add Member
+      operationId: add_member_api_projects__project_id__members_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddProjectMemberRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectMember'
+                title: Response Add Member Api Projects  Project Id  Members Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}/members/{user_id}:
+    delete:
+      tags:
+      - auth
+      summary: Remove Member
+      operationId: remove_member_api_projects__project_id__members__user_id__delete
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/furniture:
+    post:
+      tags:
+      - catalog-admin
+      summary: Create Catalog Furniture
+      operationId: create_catalog_furniture_api_admin_furniture_post
+      parameters:
+      - name: include_raw_data
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Raw Data
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: X-RoomPilot-Admin-Actor
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Roompilot-Admin-Actor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FurnitureCreateInput'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Catalog Furniture Api Admin Furniture Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/furniture/{item_id}:
+    get:
+      tags:
+      - catalog-admin
+      summary: Read Catalog Furniture
+      operationId: read_catalog_furniture_api_admin_furniture__item_id__get
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      - name: include_raw_data
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Raw Data
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: X-RoomPilot-Admin-Actor
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Roompilot-Admin-Actor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Read Catalog Furniture Api Admin Furniture  Item Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - catalog-admin
+      summary: Update Catalog Furniture
+      operationId: update_catalog_furniture_api_admin_furniture__item_id__patch
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      - name: include_raw_data
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Raw Data
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: X-RoomPilot-Admin-Actor
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Roompilot-Admin-Actor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FurniturePatchInput'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Update Catalog Furniture Api Admin Furniture  Item Id  Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - catalog-admin
+      summary: Delete Catalog Furniture
+      operationId: delete_catalog_furniture_api_admin_furniture__item_id__delete
+      parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Item Id
+      - name: expected_updated_at
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Expected Updated At
+      - name: include_raw_data
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Raw Data
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: X-RoomPilot-Admin-Actor
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Roompilot-Admin-Actor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Delete Catalog Furniture Api Admin Furniture  Item Id  Delete
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /rag:
+    get:
+      summary: Rag Page
+      operationId: rag_page_rag_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/rag/status:
+    get:
+      summary: Rag Status
+      operationId: rag_status_api_rag_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rag Status Api Rag Status Get
+  /api/rag/search:
+    post:
+      summary: Rag Search
+      operationId: rag_search_api_rag_search_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RagSearchRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rag Search Api Rag Search Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/rag/search/jobs:
+    post:
+      summary: Create Rag Search Job
+      operationId: create_rag_search_job_api_rag_search_jobs_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RagSearchRequest'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Create Rag Search Job Api Rag Search Jobs Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/rag/search/jobs/{job_id}:
+    get:
+      summary: Get Rag Search Job
+      operationId: get_rag_search_job_api_rag_search_jobs__job_id__get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Rag Search Job Api Rag Search Jobs  Job Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engineering/health:
+    get:
+      tags:
+      - engineering-documents
+      summary: Health
+      operationId: health_api_v1_engineering_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Api V1 Engineering Health Get
+  /api/v1/projects/{project_id}/revisions/{revision}/snapshot:
+    put:
+      tags:
+      - engineering-documents
+      summary: Save Snapshot
+      operationId: save_snapshot_api_v1_projects__project_id__revisions__revision__snapshot_put
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: revision
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Revision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectSnapshot'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - engineering-documents
+      summary: Get Snapshot
+      operationId: get_snapshot_api_v1_projects__project_id__revisions__revision__snapshot_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: revision
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Revision
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/engineering-packages:
+    post:
+      tags:
+      - engineering-documents
+      summary: Create Engineering Package
+      operationId: create_engineering_package_api_v1_projects__project_id__engineering_packages_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EngineeringPackageRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/jobs/{job_id}:
+    get:
+      tags:
+      - engineering-documents
+      summary: Get Job
+      operationId: get_job_api_v1_jobs__job_id__get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/packages/{package_id}:
+    get:
+      tags:
+      - engineering-documents
+      summary: Get Package
+      operationId: get_package_api_v1_packages__package_id__get
+      parameters:
+      - name: package_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Package Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportPayload'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/documents/{document_id}/download:
+    get:
+      tags:
+      - engineering-documents
+      summary: Download Document
+      operationId: download_document_api_v1_documents__document_id__download_get
+      parameters:
+      - name: document_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Document Id
+      - name: preview
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Preview
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/projects/{project_id}/revisions/{revision}/lock:
+    post:
+      tags:
+      - engineering-documents
+      summary: Lock Revision
+      operationId: lock_revision_api_v1_projects__project_id__revisions__revision__lock_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: revision
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Revision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LockRevisionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotEnvelope'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/rag/embedding-status:
+    get:
+      tags:
+      - furniture-shortlist
+      summary: Embedding Status
+      description: 語意檢索是否可用。前端據此決定要不要顯示『正在準備檢索』。
+      operationId: embedding_status_api_rag_embedding_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Embedding Status Api Rag Embedding Status Get
+  /api/projects/{project_id}/furniture-shortlist:
+    get:
+      tags:
+      - furniture-shortlist
+      summary: Get Shortlist
+      operationId: get_shortlist_api_projects__project_id__furniture_shortlist_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Shortlist Api Projects  Project Id  Furniture Shortlist Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - furniture-shortlist
+      summary: Create Shortlist
+      operationId: create_shortlist_api_projects__project_id__furniture_shortlist_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - type: object
+                additionalProperties: true
+              - type: 'null'
+              title: Payload
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Shortlist Api Projects  Project Id  Furniture Shortlist Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/scene/bootstrap:
+    get:
+      summary: Scene Bootstrap
+      operationId: scene_bootstrap_api_scene_bootstrap_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Scene Bootstrap Api Scene Bootstrap Get
+  /api/scene/provider-status:
+    get:
+      summary: Scene Provider Status
+      operationId: scene_provider_status_api_scene_provider_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Scene Provider Status Api Scene Provider Status Get
+  /api/scene/llm-status:
+    get:
+      summary: Scene Provider Status
+      operationId: scene_provider_status_api_scene_llm_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Scene Provider Status Api Scene Llm Status Get
+  /api/agent/furniture/select:
+    post:
+      summary: Agent Furniture Select
+      description: Server-side furniture selection gate for Yen selection discipline.
+      operationId: agent_furniture_select_api_agent_furniture_select_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Agent Furniture Select Api Agent Furniture Select Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/scene/generate:
+    post:
+      summary: Generate Scene
+      operationId: generate_scene_api_scene_generate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Generate Scene Api Scene Generate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/scene/layout:
+    post:
+      summary: Scene Layout
+      description: '前端本地操作(替換/移除/新增/重抽)後,由 furniture_engine 重算全場座標。
+
+
+        傳 floorplan(含 wall_segments)可重建 DXF 房間形狀;
+
+        scene_objects 帶 position_locked 的項目(使用者拖曳過)位置仍合法就不重排。
+
+        放不下的家具走與 /api/scene/generate 相同的擺放紀律:換小、移除或升級人工。'
+      operationId: scene_layout_api_scene_layout_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Scene Layout Api Scene Layout Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/scene/decorate:
+    post:
+      summary: Scene Decorate
+      description: 依風格加入軟裝，所有最終座標仍由家具引擎決定。
+      operationId: scene_decorate_api_scene_decorate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Scene Decorate Api Scene Decorate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/scene/validate:
+    post:
+      summary: Scene Validate
+      description: F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。
+      operationId: scene_validate_api_scene_validate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Scene Validate Api Scene Validate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}:
+    get:
+      summary: Get Project
+      operationId: get_project_api_projects__project_id__get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Project Api Projects  Project Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}/workflow:
+    put:
+      summary: Save Project Workflow
+      operationId: save_project_workflow_api_projects__project_id__workflow_put
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              title: Payload
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Save Project Workflow Api Projects  Project Id  Workflow Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}/floorplan:
+    post:
+      summary: Save Project Floorplan
+      operationId: save_project_floorplan_api_projects__project_id__floorplan_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_save_project_floorplan_api_projects__project_id__floorplan_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Save Project Floorplan Api Projects  Project Id  Floorplan Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}/floorplan/source:
+    get:
+      summary: Get Project Floorplan Source
+      operationId: get_project_floorplan_source_api_projects__project_id__floorplan_source_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}/renders:
+    post:
+      summary: Create Project Render
+      operationId: create_project_render_api_projects__project_id__renders_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_create_project_render_api_projects__project_id__renders_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Project Render Api Projects  Project Id  Renders Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      summary: List Project Renders
+      operationId: list_project_renders_api_projects__project_id__renders_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Project Renders Api Projects  Project Id  Renders Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}/renders/{render_id}/png:
+    get:
+      summary: Download Project Render
+      operationId: download_project_render_api_projects__project_id__renders__render_id__png_get
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      - name: render_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Render Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/render-provider/status:
+    get:
+      summary: Get Render Provider Status
+      operationId: get_render_provider_status_api_render_provider_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Get Render Provider Status Api Render Provider Status Get
+  /api/projects/{project_id}/render-jobs:
+    post:
+      summary: Create Project Render Jobs
+      operationId: create_project_render_jobs_api_projects__project_id__render_jobs_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              title: Payload
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Project Render Jobs Api Projects  Project Id  Render Jobs Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/projects/{project_id}/floorplan/analyze:
+    post:
+      summary: Analyze Project Floorplan
+      operationId: analyze_project_floorplan_api_projects__project_id__floorplan_analyze_post
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Project Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Analyze Project Floorplan Api Projects  Project Id  Floorplan Analyze
+                  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/floorplan/sample/630:
+    get:
+      summary: Floorplan Sample 630
+      operationId: floorplan_sample_630_api_floorplan_sample_630_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/floorplan/analyze:
+    post:
+      summary: Floorplan Analyze
+      description: PNG/JPG → 尺度、幾何、房間與初步機電需求；不確定時不得進設計。
+      operationId: floorplan_analyze_api_floorplan_analyze_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_floorplan_analyze_api_floorplan_analyze_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/floorplan/confirm:
+    post:
+      summary: Floorplan Confirm
+      description: 套用使用者確認／修正並輸出可供既有 3D 與家具引擎使用的契約。
+      operationId: floorplan_confirm_api_floorplan_confirm_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      summary: Home
+      operationId: home__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /login:
+    get:
+      summary: Login Page
+      operationId: login_page_login_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /projects:
+    get:
+      summary: Projects Page
+      operationId: projects_page_projects_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /styles:
+    get:
+      summary: Styles Page
+      operationId: styles_page_styles_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /library:
+    get:
+      summary: Library Page
+      operationId: library_page_library_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /scene:
+    get:
+      summary: Scene Page
+      operationId: scene_page_scene_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/site-data:
+    get:
+      summary: Site Data
+      operationId: site_data_api_site_data_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Site Data Api Site Data Get
+  /api/catalog/status:
+    get:
+      summary: Catalog Status Api
+      operationId: catalog_status_api_api_catalog_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Catalog Status Api Api Catalog Status Get
+  /api/health:
+    get:
+      summary: Api Health
+      operationId: api_health_api_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /engineering:
+    get:
+      summary: Engineering Page
+      operationId: engineering_page_engineering_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/home-data:
+    get:
+      summary: Home Data
+      operationId: home_data_api_home_data_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Home Data Api Home Data Get
+  /api/styles:
+    get:
+      summary: Styles Data
+      operationId: styles_data_api_styles_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Styles Data Api Styles Get
+  /api/furniture/by-ids:
+    post:
+      summary: Furniture By Ids
+      description: '依 item_id 批次取家具，供第 6 步從候選集還原完整資料。
+
+
+        候選集（``scene_json.furniture_shortlist``）只存 id 與排序分數，圖片、GLB
+
+        與擺放屬性仍在型錄。沒有這條路徑的話前端得對每個房間每個家具類型各打一次
+
+        ``/api/furniture`` 分頁掃描——那正是候選集要消除的成本。
+
+
+        回傳沿用 ``/api/furniture`` 的正規化與卡片格式，前端不必分兩套解析。'
+      operationId: furniture_by_ids_api_furniture_by_ids_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
+              type: object
+              title: Payload
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Furniture By Ids Api Furniture By Ids Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/furniture:
+    get:
+      summary: Furniture Catalog
+      operationId: furniture_catalog_api_furniture_get
+      parameters:
+      - name: style
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Style
+      - name: group
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Group
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Type
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Q
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 80
+          minimum: 1
+          default: 24
+          title: Page Size
+      - name: has_model
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Has Model
+      - name: detail
+        in: query
+        required: false
+        schema:
+          type: string
+          default: card
+          title: Detail
+      - name: color
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Color
+      - name: material
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Material
+      - name: size
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Furniture Catalog Api Furniture Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/furniture/{furniture_id}/model:
+    get:
+      summary: Furniture Model
+      operationId: furniture_model_api_furniture__furniture_id__model_get
+      parameters:
+      - name: furniture_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Furniture Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/furniture/{furniture_id}/model.gltf:
+    get:
+      summary: Furniture Model Gltf
+      operationId: furniture_model_gltf_api_furniture__furniture_id__model_gltf_get
+      parameters:
+      - name: furniture_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Furniture Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/furniture/{furniture_id}/buffer.bin:
+    get:
+      summary: Furniture Model Buffer
+      operationId: furniture_model_buffer_api_furniture__furniture_id__buffer_bin_get
+      parameters:
+      - name: furniture_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Furniture Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/furniture/{furniture_id}/images/{image_index}:
+    get:
+      summary: Furniture Model Image
+      operationId: furniture_model_image_api_furniture__furniture_id__images__image_index__get
+      parameters:
+      - name: furniture_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Furniture Id
+      - name: image_index
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Image Index
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/plans:
+    get:
+      summary: Plans
+      operationId: plans_api_plans_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Plans Api Plans Get
+  /api/plan:
+    get:
+      summary: Plan
+      operationId: plan_api_plan_get
+      parameters:
+      - name: name
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Name
+      - name: scale_m
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 500
+            exclusiveMinimum: 0
+          - type: 'null'
+          title: Scale M
+      - name: thickness
+        in: query
+        required: false
+        schema:
+          type: number
+          maximum: 2
+          exclusiveMinimum: 0
+          default: 0.18
+          title: Thickness
+      - name: height
+        in: query
+        required: false
+        schema:
+          type: number
+          maximum: 10
+          exclusiveMinimum: 0
+          default: 2.7
+          title: Height
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/upload:
+    post:
+      summary: Upload
+      operationId: upload_api_upload_post
+      parameters:
+      - name: scale_m
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 500
+            exclusiveMinimum: 0
+          - type: 'null'
+          title: Scale M
+      - name: thickness
+        in: query
+        required: false
+        schema:
+          type: number
+          maximum: 2
+          exclusiveMinimum: 0
+          default: 0.18
+          title: Thickness
+      - name: height
+        in: query
+        required: false
+        schema:
+          type: number
+          maximum: 10
+          exclusiveMinimum: 0
+          default: 2.7
+          title: Height
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_api_upload_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/sample-furniture:
+    get:
+      summary: Sample Furniture
+      operationId: sample_furniture_api_sample_furniture_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Sample Furniture Api Sample Furniture Get
+  /api/furniture/{name}:
+    get:
+      summary: Sample Furniture File
+      operationId: sample_furniture_file_api_furniture__name__get
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Name
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AddProjectMemberRequest:
+      properties:
+        email:
+          type: string
+          title: Email
+        project_role:
+          type: string
+          enum:
+          - editor
+          - viewer
+          title: Project Role
+          default: viewer
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      title: AddProjectMemberRequest
+    AdminResetPasswordRequest:
+      properties:
+        email:
+          type: string
+          title: Email
+        new_password:
+          type: string
+          maxLength: 1024
+          minLength: 8
+          title: New Password
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      - new_password
+      title: AdminResetPasswordRequest
+      description: '管理員重設他人密碼——本產品無寄信基礎設施，「忘記密碼」由 admin
+
+        設一組臨時密碼並口頭／訊息告知，使用者登入後再自行修改。'
+    AdminSetActiveRequest:
+      properties:
+        email:
+          type: string
+          title: Email
+        is_active:
+          type: boolean
+          title: Is Active
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      - is_active
+      title: AdminSetActiveRequest
+      description: 管理員停用／恢復帳號；停用同時撤銷目標全部 refresh token。
+    AnnotationInput:
+      properties:
+        model_name:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Model Name
+        model_version:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Model Version
+        prompt_version:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Prompt Version
+        object_type_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Object Type Zh
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        role:
+          anyOf:
+          - type: string
+            maxLength: 30
+          - type: 'null'
+          title: Role
+        visual_weight:
+          anyOf:
+          - type: string
+            maxLength: 30
+          - type: 'null'
+          title: Visual Weight
+        height_zone:
+          anyOf:
+          - type: string
+            maxLength: 30
+          - type: 'null'
+          title: Height Zone
+        size_class:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Size Class
+        pattern:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pattern
+        mood_tags:
+          items:
+            type: string
+          type: array
+          title: Mood Tags
+        shape_tags:
+          items:
+            type: string
+          type: array
+          title: Shape Tags
+        features:
+          items:
+            type: string
+          type: array
+          title: Features
+        search_keywords:
+          items:
+            type: string
+          type: array
+          title: Search Keywords
+        rag_text:
+          items:
+            type: string
+          type: array
+          title: Rag Text
+        confidence:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Confidence
+        description_source:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Description Source
+        raw_response:
+          additionalProperties: true
+          type: object
+          title: Raw Response
+      additionalProperties: false
+      type: object
+      title: AnnotationInput
+    Body_create_project_render_api_projects__project_id__renders_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+        expected_revision:
+          type: integer
+          title: Expected Revision
+        white_model_version:
+          type: integer
+          title: White Model Version
+          default: 0
+        viewpoint_version:
+          type: integer
+          title: Viewpoint Version
+          default: 0
+        style_version:
+          type: integer
+          title: Style Version
+          default: 0
+        style_card_id:
+          type: string
+          title: Style Card Id
+          default: unassigned
+        provider:
+          type: string
+          title: Provider
+          default: browser_capture
+      type: object
+      required:
+      - file
+      - expected_revision
+      title: Body_create_project_render_api_projects__project_id__renders_post
+    Body_floorplan_analyze_api_floorplan_analyze_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+        calibration_json:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Calibration Json
+        ocr_json:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ocr Json
+        geometry_json:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Geometry Json
+        observed_utilities_json:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Observed Utilities Json
+        brief_json:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Brief Json
+      type: object
+      required:
+      - file
+      title: Body_floorplan_analyze_api_floorplan_analyze_post
+    Body_save_project_floorplan_api_projects__project_id__floorplan_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+        expected_revision:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Expected Revision
+      type: object
+      required:
+      - file
+      title: Body_save_project_floorplan_api_projects__project_id__floorplan_post
+    Body_upload_api_upload_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_api_upload_post
+    ChangePasswordRequest:
+      properties:
+        current_password:
+          type: string
+          maxLength: 1024
+          minLength: 1
+          title: Current Password
+        new_password:
+          type: string
+          maxLength: 1024
+          minLength: 8
+          title: New Password
+      additionalProperties: false
+      type: object
+      required:
+      - current_password
+      - new_password
+      title: ChangePasswordRequest
+      description: 已登入者自行改密碼；目前密碼驗證失敗一律 400，不洩漏其他資訊。
+    ColorNarrative:
+      properties:
+        palette_hex:
+          items:
+            type: string
+          type: array
+          title: Palette Hex
+        palette_source:
+          type: string
+          enum:
+          - style_card
+          - style_default
+          - unavailable
+          title: Palette Source
+        palette_source_detail:
+          type: string
+          title: Palette Source Detail
+        roles:
+          items:
+            $ref: '#/components/schemas/PaletteRole'
+          type: array
+          title: Roles
+        dominant_ratio:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Dominant Ratio
+        secondary_ratio:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Secondary Ratio
+        accent_ratio:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Accent Ratio
+        temperature_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Temperature Zh
+        value_contrast_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Value Contrast Zh
+        saturation_ceiling_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Saturation Ceiling Zh
+        reading_rule_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reading Rule Zh
+      additionalProperties: false
+      type: object
+      required:
+      - palette_hex
+      - palette_source
+      - palette_source_detail
+      - roles
+      title: ColorNarrative
+    ConstructionNote:
+      properties:
+        room_id:
+          type: string
+          title: Room Id
+        title:
+          type: string
+          title: Title
+        content:
+          type: string
+          title: Content
+        source_id:
+          type: string
+          title: Source Id
+        confidence:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - contractor_confirmed
+          title: Confidence
+        professional_confirmation_required:
+          type: boolean
+          title: Professional Confirmation Required
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - title
+      - content
+      - source_id
+      - confidence
+      title: ConstructionNote
+    DesignEvidence:
+      properties:
+        source_id:
+          type: string
+          title: Source Id
+        scope:
+          type: string
+          enum:
+          - style
+          - color
+          - material
+          - room
+          - snapshot
+          title: Scope
+        confidence:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - contractor_confirmed
+          title: Confidence
+        caveat_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Caveat Zh
+      additionalProperties: false
+      type: object
+      required:
+      - source_id
+      - scope
+      - confidence
+      title: DesignEvidence
+    DesignNarrative:
+      properties:
+        style_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Style Id
+        style_name_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Style Name Zh
+        style_resolution_zh:
+          type: string
+          title: Style Resolution Zh
+        positioning_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Positioning Zh
+        design_language_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Design Language Zh
+        signature_elements_zh:
+          items:
+            type: string
+          type: array
+          title: Signature Elements Zh
+        form_vocabulary_zh:
+          additionalProperties:
+            type: string
+          type: object
+          title: Form Vocabulary Zh
+        lighting_approach_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lighting Approach Zh
+        avoid_zh:
+          items:
+            type: string
+          type: array
+          title: Avoid Zh
+        color:
+          anyOf:
+          - $ref: '#/components/schemas/ColorNarrative'
+          - type: 'null'
+        material:
+          anyOf:
+          - $ref: '#/components/schemas/MaterialNarrative'
+          - type: 'null'
+        rooms:
+          items:
+            $ref: '#/components/schemas/RoomDesignNarrative'
+          type: array
+          title: Rooms
+        evidence:
+          items:
+            $ref: '#/components/schemas/DesignEvidence'
+          type: array
+          title: Evidence
+        disclaimer_zh:
+          type: string
+          title: Disclaimer Zh
+      additionalProperties: false
+      type: object
+      required:
+      - style_id
+      - style_name_zh
+      - style_resolution_zh
+      - disclaimer_zh
+      title: DesignNarrative
+    DocumentManifest:
+      properties:
+        document_id:
+          type: string
+          title: Document Id
+        document_type:
+          type: string
+          enum:
+          - report_json
+          - report_html
+          - estimate_xlsx
+          title: Document Type
+        file_name:
+          type: string
+          title: File Name
+        content_type:
+          type: string
+          title: Content Type
+        download_url:
+          type: string
+          title: Download Url
+        byte_size:
+          type: integer
+          minimum: 0.0
+          title: Byte Size
+      additionalProperties: false
+      type: object
+      required:
+      - document_id
+      - document_type
+      - file_name
+      - content_type
+      - download_url
+      - byte_size
+      title: DocumentManifest
+    EngineeringPackageRequest:
+      properties:
+        revision:
+          type: string
+          pattern: ^[A-Za-z0-9._-]{1,80}$
+          title: Revision
+        documents:
+          items:
+            type: string
+            enum:
+            - report_json
+            - report_html
+            - estimate_xlsx
+          type: array
+          title: Documents
+      additionalProperties: false
+      type: object
+      required:
+      - revision
+      title: EngineeringPackageRequest
+    EquipmentRequirement:
+      properties:
+        equipment_id:
+          type: string
+          minLength: 1
+          title: Equipment Id
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        category:
+          type: string
+          minLength: 1
+          title: Category
+        quantity:
+          type: integer
+          minimum: 1.0
+          title: Quantity
+          default: 1
+        source:
+          type: string
+          enum:
+          - questionnaire
+          - scene_context
+          - designer
+          title: Source
+      additionalProperties: false
+      type: object
+      required:
+      - equipment_id
+      - name
+      - category
+      - source
+      title: EquipmentRequirement
+    EstimateLine:
+      properties:
+        room_id:
+          type: string
+          title: Room Id
+        work_item_code:
+          type: string
+          title: Work Item Code
+        trade:
+          type: string
+          title: Trade
+        name:
+          type: string
+          title: Name
+        unit:
+          type: string
+          title: Unit
+        raw_quantity:
+          type: number
+          title: Raw Quantity
+        waste_rate:
+          type: number
+          title: Waste Rate
+        pricing_quantity:
+          type: number
+          title: Pricing Quantity
+        material_unit_price:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Material Unit Price
+        labor_unit_price:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Labor Unit Price
+        other_unit_price:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Other Unit Price
+        subtotal:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Subtotal
+        price_record_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Price Record Id
+        price_source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Price Source
+        price_effective_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Price Effective Date
+        price_region:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Price Region
+        status:
+          type: string
+          enum:
+          - priced
+          - pending_quote
+          title: Status
+        confidence:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - contractor_confirmed
+          title: Confidence
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - work_item_code
+      - trade
+      - name
+      - unit
+      - raw_quantity
+      - waste_rate
+      - pricing_quantity
+      - material_unit_price
+      - labor_unit_price
+      - other_unit_price
+      - subtotal
+      - price_record_id
+      - price_source
+      - price_effective_date
+      - price_region
+      - status
+      - confidence
+      title: EstimateLine
+    EstimateResult:
+      properties:
+        lines:
+          items:
+            $ref: '#/components/schemas/EstimateLine'
+          type: array
+          title: Lines
+        known_subtotal:
+          type: number
+          title: Known Subtotal
+        estimated_total:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Estimated Total
+        pending_quote_count:
+          type: integer
+          title: Pending Quote Count
+        currency:
+          type: string
+          const: TWD
+          title: Currency
+          default: TWD
+        disclaimer:
+          type: string
+          title: Disclaimer
+      additionalProperties: false
+      type: object
+      required:
+      - lines
+      - known_subtotal
+      - estimated_total
+      - pending_quote_count
+      - disclaimer
+      title: EstimateResult
+    FurnitureCreateInput:
+      properties:
+        item_id:
+          type: string
+          maxLength: 200
+          minLength: 1
+          pattern: ^[A-Za-z0-9][A-Za-z0-9._:-]*$
+          title: Item Id
+        category_code:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Category Code
+        source_group:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Source Group
+        catalog:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Catalog
+        source_type:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Source Type
+        name_en:
+          type: string
+          minLength: 1
+          title: Name En
+        name_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name Zh
+        primary_color:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Primary Color
+        colors:
+          items:
+            type: string
+          type: array
+          title: Colors
+        primary_material:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Primary Material
+        materials:
+          items:
+            type: string
+          type: array
+          title: Materials
+        width_cm:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Width Cm
+        depth_cm:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Depth Cm
+        height_cm:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Height Cm
+        price_twd:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Price Twd
+        price_is_estimated:
+          type: boolean
+          title: Price Is Estimated
+          default: false
+        product_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Product Url
+        styles:
+          items:
+            $ref: '#/components/schemas/StyleAssignmentInput'
+          type: array
+          maxItems: 2
+          title: Styles
+        room_codes:
+          items:
+            type: string
+          type: array
+          title: Room Codes
+        annotation:
+          anyOf:
+          - $ref: '#/components/schemas/AnnotationInput'
+          - type: 'null'
+        raw_data:
+          additionalProperties: true
+          type: object
+          title: Raw Data
+      additionalProperties: false
+      type: object
+      required:
+      - item_id
+      - category_code
+      - name_en
+      title: FurnitureCreateInput
+    FurnitureEstimateLine:
+      properties:
+        room_id:
+          type: string
+          title: Room Id
+        room_name:
+          type: string
+          title: Room Name
+        furniture_id:
+          type: string
+          title: Furniture Id
+        catalog_furniture_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Catalog Furniture Id
+        name:
+          type: string
+          title: Name
+        category:
+          type: string
+          title: Category
+        width_cm:
+          type: number
+          title: Width Cm
+        depth_cm:
+          type: number
+          title: Depth Cm
+        height_cm:
+          type: number
+          title: Height Cm
+        quantity:
+          type: integer
+          minimum: 1.0
+          title: Quantity
+        unit_price_twd:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Unit Price Twd
+        subtotal_twd:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Subtotal Twd
+        price_is_estimated:
+          type: boolean
+          title: Price Is Estimated
+          default: false
+        price_source:
+          type: string
+          title: Price Source
+        status:
+          type: string
+          enum:
+          - priced
+          - price_unavailable
+          title: Status
+        confidence:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - contractor_confirmed
+          title: Confidence
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - room_name
+      - furniture_id
+      - catalog_furniture_id
+      - name
+      - category
+      - width_cm
+      - depth_cm
+      - height_cm
+      - quantity
+      - unit_price_twd
+      - subtotal_twd
+      - price_source
+      - status
+      - confidence
+      title: FurnitureEstimateLine
+    FurnitureEstimateResult:
+      properties:
+        lines:
+          items:
+            $ref: '#/components/schemas/FurnitureEstimateLine'
+          type: array
+          title: Lines
+        known_subtotal_twd:
+          type: integer
+          title: Known Subtotal Twd
+          default: 0
+        estimated_total_twd:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Estimated Total Twd
+        priced_count:
+          type: integer
+          title: Priced Count
+          default: 0
+        unpriced_count:
+          type: integer
+          title: Unpriced Count
+          default: 0
+        estimated_price_count:
+          type: integer
+          title: Estimated Price Count
+          default: 0
+        currency:
+          type: string
+          const: TWD
+          title: Currency
+          default: TWD
+        catalog_provider:
+          type: string
+          title: Catalog Provider
+        disclaimer:
+          type: string
+          title: Disclaimer
+      additionalProperties: false
+      type: object
+      required:
+      - catalog_provider
+      - disclaimer
+      title: FurnitureEstimateResult
+    FurniturePatchInput:
+      properties:
+        expected_updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Expected Updated At
+        category_code:
+          anyOf:
+          - type: string
+            maxLength: 100
+            minLength: 1
+          - type: 'null'
+          title: Category Code
+        source_group:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Source Group
+        catalog:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Catalog
+        source_type:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Source Type
+        name_en:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+          title: Name En
+        name_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name Zh
+        primary_color:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Primary Color
+        colors:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Colors
+        primary_material:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Primary Material
+        materials:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Materials
+        width_cm:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Width Cm
+        depth_cm:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Depth Cm
+        height_cm:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Height Cm
+        price_twd:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Price Twd
+        price_is_estimated:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Price Is Estimated
+        product_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Product Url
+        styles:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/StyleAssignmentInput'
+            type: array
+            maxItems: 2
+          - type: 'null'
+          title: Styles
+        room_codes:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Room Codes
+        annotation:
+          anyOf:
+          - $ref: '#/components/schemas/AnnotationInput'
+          - type: 'null'
+        raw_data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Raw Data
+        is_active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+      additionalProperties: false
+      type: object
+      title: FurniturePatchInput
+    FurniturePlacement:
+      properties:
+        furniture_id:
+          type: string
+          minLength: 1
+          title: Furniture Id
+        catalog_furniture_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Catalog Furniture Id
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        category:
+          type: string
+          minLength: 1
+          title: Category
+        width_cm:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Width Cm
+        depth_cm:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Depth Cm
+        height_cm:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Height Cm
+        quantity:
+          type: integer
+          minimum: 1.0
+          title: Quantity
+          default: 1
+        x_cm:
+          type: number
+          title: X Cm
+          default: 0
+        y_cm:
+          type: number
+          title: Y Cm
+          default: 0
+        rotation_deg:
+          type: number
+          title: Rotation Deg
+          default: 0
+        position_reference:
+          type: string
+          const: center
+          title: Position Reference
+          default: center
+        placement_failed:
+          type: boolean
+          title: Placement Failed
+          default: false
+        placement_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Placement Reason
+        needs_power:
+          type: boolean
+          title: Needs Power
+          default: false
+        needs_water:
+          type: boolean
+          title: Needs Water
+          default: false
+        needs_drain:
+          type: boolean
+          title: Needs Drain
+          default: false
+        asset_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Url
+      additionalProperties: false
+      type: object
+      required:
+      - furniture_id
+      - name
+      - category
+      - width_cm
+      - depth_cm
+      - height_cm
+      title: FurniturePlacement
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    JobStatus:
+      properties:
+        job_id:
+          type: string
+          title: Job Id
+        project_id:
+          type: string
+          title: Project Id
+        revision:
+          type: string
+          title: Revision
+        status:
+          type: string
+          enum:
+          - queued
+          - processing
+          - completed
+          - completed_with_warnings
+          - failed
+          title: Status
+        progress:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Progress
+        stage:
+          type: string
+          title: Stage
+        package_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Package Id
+        error_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Code
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        documents:
+          items:
+            $ref: '#/components/schemas/DocumentManifest'
+          type: array
+          title: Documents
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - job_id
+      - project_id
+      - revision
+      - status
+      - progress
+      - stage
+      title: JobStatus
+    LockRevisionRequest:
+      properties:
+        confirmed_by:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Confirmed By
+      additionalProperties: false
+      type: object
+      required:
+      - confirmed_by
+      title: LockRevisionRequest
+    LoginRequest:
+      properties:
+        email:
+          type: string
+          title: Email
+        password:
+          type: string
+          maxLength: 1024
+          minLength: 1
+          title: Password
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      - password
+      title: LoginRequest
+    MEPPoint:
+      properties:
+        point_id:
+          type: string
+          minLength: 1
+          title: Point Id
+        system:
+          type: string
+          enum:
+          - power
+          - lighting
+          - data
+          - cold_water
+          - hot_water
+          - drain
+          - hvac
+          - other
+          title: System
+        purpose:
+          type: string
+          title: Purpose
+        x_cm:
+          type: number
+          title: X Cm
+          default: 0
+        y_cm:
+          type: number
+          title: Y Cm
+          default: 0
+        z_cm:
+          type: number
+          title: Z Cm
+          default: 0
+        quantity:
+          type: integer
+          minimum: 1.0
+          title: Quantity
+          default: 1
+        professional_status:
+          type: string
+          enum:
+          - pending
+          - confirmed
+          - not_applicable
+          title: Professional Status
+          default: pending
+      additionalProperties: false
+      type: object
+      required:
+      - point_id
+      - system
+      - purpose
+      title: MEPPoint
+    MEPSuggestion:
+      properties:
+        room_id:
+          type: string
+          title: Room Id
+        related_item_id:
+          type: string
+          title: Related Item Id
+        related_item_name:
+          type: string
+          title: Related Item Name
+        system:
+          type: string
+          title: System
+        reason:
+          type: string
+          title: Reason
+        covered_by_existing_point:
+          type: boolean
+          title: Covered By Existing Point
+        source_id:
+          type: string
+          title: Source Id
+        confidence:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - contractor_confirmed
+          title: Confidence
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - related_item_id
+      - related_item_name
+      - system
+      - reason
+      - covered_by_existing_point
+      - source_id
+      - confidence
+      title: MEPSuggestion
+    MaterialNarrative:
+      properties:
+        primary_materials_zh:
+          items:
+            type: string
+          type: array
+          title: Primary Materials Zh
+        secondary_materials_zh:
+          items:
+            type: string
+          type: array
+          title: Secondary Materials Zh
+        finish_rule_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Finish Rule Zh
+        contrast_logic_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Contrast Logic Zh
+        floor_wall_relationship_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Floor Wall Relationship Zh
+        avoid_combinations_zh:
+          items:
+            type: string
+          type: array
+          title: Avoid Combinations Zh
+        selected_materials_zh:
+          items:
+            type: string
+          type: array
+          title: Selected Materials Zh
+      additionalProperties: false
+      type: object
+      title: MaterialNarrative
+    MaterialSelection:
+      properties:
+        material_id:
+          type: string
+          minLength: 1
+          title: Material Id
+        part:
+          type: string
+          enum:
+          - floor
+          - wall
+          - ceiling
+          - other
+          title: Part
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        waste_rate:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Waste Rate
+          default: 0.05
+      additionalProperties: false
+      type: object
+      required:
+      - material_id
+      - part
+      - name
+      title: MaterialSelection
+    NarrativeResult:
+      properties:
+        design_summary:
+          type: string
+          title: Design Summary
+        construction_summary:
+          type: string
+          title: Construction Summary
+        cost_summary:
+          type: string
+          title: Cost Summary
+        schedule_summary:
+          type: string
+          title: Schedule Summary
+        risk_summary:
+          type: string
+          title: Risk Summary
+      additionalProperties: false
+      type: object
+      required:
+      - design_summary
+      - construction_summary
+      - cost_summary
+      - schedule_summary
+      - risk_summary
+      title: NarrativeResult
+    PaletteRole:
+      properties:
+        hex:
+          type: string
+          title: Hex
+        role:
+          type: string
+          enum:
+          - dominant
+          - secondary
+          - accent
+          title: Role
+        relative_luminance:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Relative Luminance
+        usage_zh:
+          type: string
+          title: Usage Zh
+      additionalProperties: false
+      type: object
+      required:
+      - hex
+      - role
+      - relative_luminance
+      - usage_zh
+      title: PaletteRole
+    PointCm:
+      properties:
+        x_cm:
+          type: number
+          title: X Cm
+        y_cm:
+          type: number
+          title: Y Cm
+      additionalProperties: false
+      type: object
+      required:
+      - x_cm
+      - y_cm
+      title: PointCm
+    ProjectMember:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        email:
+          type: string
+          title: Email
+        display_name:
+          type: string
+          title: Display Name
+        project_role:
+          type: string
+          enum:
+          - owner
+          - editor
+          - viewer
+          title: Project Role
+        added_at:
+          type: string
+          format: date-time
+          title: Added At
+      additionalProperties: false
+      type: object
+      required:
+      - user_id
+      - email
+      - display_name
+      - project_role
+      - added_at
+      title: ProjectMember
+    ProjectSnapshot:
+      properties:
+        schema_version:
+          type: string
+          const: roompilot.project-snapshot.v1
+          title: Schema Version
+          default: roompilot.project-snapshot.v1
+        coordinate_unit:
+          type: string
+          const: cm
+          title: Coordinate Unit
+          default: cm
+        project_id:
+          type: string
+          minLength: 1
+          title: Project Id
+        project_name:
+          type: string
+          minLength: 1
+          title: Project Name
+        revision:
+          type: string
+          pattern: ^[A-Za-z0-9._-]{1,80}$
+          title: Revision
+        source_project_revision:
+          type: integer
+          minimum: 0.0
+          title: Source Project Revision
+        approval_status:
+          type: string
+          enum:
+          - draft
+          - designer_confirmed
+          title: Approval Status
+          default: draft
+        region:
+          type: string
+          minLength: 1
+          title: Region
+          default: Taiwan
+        pricing_basis_date:
+          type: string
+          format: date
+          title: Pricing Basis Date
+        confirmed_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confirmed By
+        confirmed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Confirmed At
+        rooms:
+          items:
+            $ref: '#/components/schemas/RoomSnapshot'
+          type: array
+          minItems: 1
+          title: Rooms
+        assumptions:
+          items:
+            type: string
+          type: array
+          title: Assumptions
+      additionalProperties: false
+      type: object
+      required:
+      - project_id
+      - project_name
+      - revision
+      - source_project_revision
+      - pricing_basis_date
+      - rooms
+      title: ProjectSnapshot
+    ProjectSummary:
+      properties:
+        project_id:
+          type: string
+          title: Project Id
+        name:
+          type: string
+          title: Name
+        notes:
+          type: string
+          title: Notes
+        current_step:
+          type: string
+          title: Current Step
+        revision:
+          type: integer
+          title: Revision
+        project_role:
+          type: string
+          enum:
+          - owner
+          - editor
+          - viewer
+          title: Project Role
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - project_id
+      - name
+      - notes
+      - current_step
+      - revision
+      - project_role
+      - created_at
+      - updated_at
+      title: ProjectSummary
+      description: 「我的專案」列表用；不含 workflow 內容，避免列表頁載入整份場景。
+    QuantityResult:
+      properties:
+        rooms:
+          items:
+            $ref: '#/components/schemas/RoomQuantity'
+          type: array
+          title: Rooms
+        total_floor_area_m2:
+          type: number
+          title: Total Floor Area M2
+        total_ceiling_area_m2:
+          type: number
+          title: Total Ceiling Area M2
+        total_net_wall_area_m2:
+          type: number
+          title: Total Net Wall Area M2
+      additionalProperties: false
+      type: object
+      required:
+      - rooms
+      - total_floor_area_m2
+      - total_ceiling_area_m2
+      - total_net_wall_area_m2
+      title: QuantityResult
+    RagSearchRequest:
+      properties:
+        query:
+          type: string
+          maxLength: 1000
+          minLength: 1
+          title: Query
+        top_k:
+          type: integer
+          maximum: 8.0
+          minimum: 1.0
+          title: Top K
+          default: 8
+      additionalProperties: false
+      type: object
+      required:
+      - query
+      title: RagSearchRequest
+    RefreshRequest:
+      properties:
+        refresh_token:
+          type: string
+          minLength: 1
+          title: Refresh Token
+      additionalProperties: false
+      type: object
+      required:
+      - refresh_token
+      title: RefreshRequest
+    RegisterRequest:
+      properties:
+        email:
+          type: string
+          title: Email
+        password:
+          type: string
+          maxLength: 1024
+          minLength: 8
+          title: Password
+        display_name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Display Name
+        role:
+          type: string
+          enum:
+          - designer
+          - client
+          title: Role
+          default: designer
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      - password
+      - display_name
+      title: RegisterRequest
+    RenderRationale:
+      properties:
+        render_id:
+          type: string
+          minLength: 1
+          title: Render Id
+        room_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Room Id
+        room_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Room Label
+        style_card_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Style Card Id
+        style_name_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Style Name Zh
+        palette_hex:
+          items:
+            type: string
+          type: array
+          title: Palette Hex
+        surfaces_zh:
+          additionalProperties:
+            type: string
+          type: object
+          title: Surfaces Zh
+        requirement_notes_zh:
+          items:
+            type: string
+          type: array
+          title: Requirement Notes Zh
+        rationale_zh:
+          type: string
+          minLength: 1
+          title: Rationale Zh
+        prompt_hash:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Prompt Hash
+        source:
+          type: string
+          const: render_prompt_log
+          title: Source
+          default: render_prompt_log
+      additionalProperties: false
+      type: object
+      required:
+      - render_id
+      - rationale_zh
+      title: RenderRationale
+      description: '第 8 步單張生圖的設計理念。
+
+
+        素材在生圖當下隨圖落地（render_outputs 的 prompt／design_context），
+
+        這裡只重排版，不生成新內容；沒有落地紀錄的圖（例如瀏覽器截圖）不會
+
+        出現在列表，缺席即如實缺席。'
+    RenderReference:
+      properties:
+        render_url:
+          type: string
+          minLength: 1
+          title: Render Url
+        view_name:
+          type: string
+          minLength: 1
+          title: View Name
+        render_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Render Id
+        prompt_hash:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Prompt Hash
+      additionalProperties: false
+      type: object
+      required:
+      - render_url
+      - view_name
+      title: RenderReference
+    ReportPayload:
+      properties:
+        schema_version:
+          type: string
+          const: roompilot.report-payload.v1
+          title: Schema Version
+          default: roompilot.report-payload.v1
+        package_id:
+          type: string
+          title: Package Id
+        project_id:
+          type: string
+          title: Project Id
+        revision:
+          type: string
+          title: Revision
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        status:
+          type: string
+          enum:
+          - completed
+          - completed_with_warnings
+          title: Status
+        snapshot_hash:
+          type: string
+          title: Snapshot Hash
+        demo_mode:
+          type: boolean
+          title: Demo Mode
+        demo_disclaimer:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Demo Disclaimer
+        snapshot:
+          $ref: '#/components/schemas/ProjectSnapshot'
+        quantities:
+          $ref: '#/components/schemas/QuantityResult'
+        retrieval:
+          $ref: '#/components/schemas/RetrievalResult'
+        risks:
+          $ref: '#/components/schemas/RiskResult'
+        estimate:
+          $ref: '#/components/schemas/EstimateResult'
+        furniture_estimate:
+          $ref: '#/components/schemas/FurnitureEstimateResult'
+        schedule:
+          $ref: '#/components/schemas/ScheduleResult'
+        narratives:
+          $ref: '#/components/schemas/NarrativeResult'
+        design_narrative:
+          $ref: '#/components/schemas/DesignNarrative'
+        render_rationales:
+          items:
+            $ref: '#/components/schemas/RenderRationale'
+          type: array
+          title: Render Rationales
+        assumptions:
+          items:
+            type: string
+          type: array
+          title: Assumptions
+        exclusions:
+          items:
+            type: string
+          type: array
+          title: Exclusions
+        documents:
+          items:
+            $ref: '#/components/schemas/DocumentManifest'
+          type: array
+          title: Documents
+      additionalProperties: false
+      type: object
+      required:
+      - package_id
+      - project_id
+      - revision
+      - generated_at
+      - status
+      - snapshot_hash
+      - demo_mode
+      - demo_disclaimer
+      - snapshot
+      - quantities
+      - retrieval
+      - risks
+      - estimate
+      - furniture_estimate
+      - schedule
+      - narratives
+      - design_narrative
+      - assumptions
+      - exclusions
+      title: ReportPayload
+    RetrievalEvidence:
+      properties:
+        source_id:
+          type: string
+          title: Source Id
+        source_type:
+          type: string
+          title: Source Type
+        score:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Score
+        confidence:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - contractor_confirmed
+          title: Confidence
+        reason:
+          type: string
+          title: Reason
+        retrieval_modes:
+          items:
+            type: string
+            enum:
+            - structured
+            - vector
+          type: array
+          title: Retrieval Modes
+      additionalProperties: false
+      type: object
+      required:
+      - source_id
+      - source_type
+      - score
+      - confidence
+      - reason
+      - retrieval_modes
+      title: RetrievalEvidence
+    RetrievalResult:
+      properties:
+        rooms:
+          items:
+            $ref: '#/components/schemas/RoomRetrieval'
+          type: array
+          title: Rooms
+        retrieval_version:
+          type: string
+          title: Retrieval Version
+          default: advanced-rag-v1
+        structured_retrieval:
+          type: string
+          const: active
+          title: Structured Retrieval
+          default: active
+        semantic_retriever:
+          $ref: '#/components/schemas/RetrieverStatus'
+      additionalProperties: false
+      type: object
+      required:
+      - rooms
+      - semantic_retriever
+      title: RetrievalResult
+    RetrievedWorkItem:
+      properties:
+        room_id:
+          type: string
+          title: Room Id
+        work_item_code:
+          type: string
+          title: Work Item Code
+        trade:
+          type: string
+          title: Trade
+        name:
+          type: string
+          title: Name
+        unit:
+          type: string
+          title: Unit
+        quantity_key:
+          type: string
+          title: Quantity Key
+        quantity:
+          type: number
+          title: Quantity
+        waste_rate:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Waste Rate
+          default: 0
+        description:
+          type: string
+          title: Description
+        professional_confirmation_required:
+          type: boolean
+          title: Professional Confirmation Required
+          default: false
+        evidence:
+          items:
+            $ref: '#/components/schemas/RetrievalEvidence'
+          type: array
+          title: Evidence
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - work_item_code
+      - trade
+      - name
+      - unit
+      - quantity_key
+      - quantity
+      - description
+      title: RetrievedWorkItem
+    RetrieverStatus:
+      properties:
+        adapter:
+          type: string
+          title: Adapter
+        mode:
+          type: string
+          enum:
+          - noop
+          - vector
+          title: Mode
+        is_real_vector_retrieval:
+          type: boolean
+          title: Is Real Vector Retrieval
+        message:
+          type: string
+          title: Message
+      additionalProperties: false
+      type: object
+      required:
+      - adapter
+      - mode
+      - is_real_vector_retrieval
+      - message
+      title: RetrieverStatus
+    RiskItem:
+      properties:
+        id:
+          type: string
+          title: Id
+        room_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Room Id
+        rule:
+          type: string
+          title: Rule
+        rule_source:
+          type: string
+          enum:
+          - ancai_engine
+          - mvp_advisory
+          - professional_confirmation
+          title: Rule Source
+        severity:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Severity
+        passed:
+          type: boolean
+          title: Passed
+        message:
+          type: string
+          title: Message
+        related_items:
+          items:
+            type: string
+          type: array
+          title: Related Items
+        measured_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Measured Value
+        threshold_value:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Threshold Value
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unit
+        professional_confirmation_required:
+          type: boolean
+          title: Professional Confirmation Required
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - rule
+      - rule_source
+      - severity
+      - passed
+      - message
+      title: RiskItem
+    RiskResult:
+      properties:
+        summary:
+          $ref: '#/components/schemas/RiskSummary'
+        results:
+          items:
+            $ref: '#/components/schemas/RiskItem'
+          type: array
+          title: Results
+        engine_adapter:
+          type: string
+          title: Engine Adapter
+      additionalProperties: false
+      type: object
+      required:
+      - summary
+      - results
+      - engine_adapter
+      title: RiskResult
+    RiskSummary:
+      properties:
+        risk_count:
+          type: integer
+          title: Risk Count
+        pass_count:
+          type: integer
+          title: Pass Count
+        status:
+          type: string
+          enum:
+          - passed
+          - has_risk
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - risk_count
+      - pass_count
+      - status
+      title: RiskSummary
+    RoomDesignNarrative:
+      properties:
+        room_id:
+          type: string
+          title: Room Id
+        room_name:
+          type: string
+          title: Room Name
+        room_type:
+          type: string
+          title: Room Type
+        room_name_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Room Name Zh
+        design_focus_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Design Focus Zh
+        circulation_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Circulation Zh
+        lighting_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lighting Zh
+        storage_zh:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Storage Zh
+        common_pitfalls_zh:
+          items:
+            type: string
+          type: array
+          title: Common Pitfalls Zh
+        furniture_summary_zh:
+          type: string
+          title: Furniture Summary Zh
+        applied_materials_zh:
+          items:
+            type: string
+          type: array
+          title: Applied Materials Zh
+        knowledge_available:
+          type: boolean
+          title: Knowledge Available
+          default: true
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - room_name
+      - room_type
+      - furniture_summary_zh
+      title: RoomDesignNarrative
+    RoomGeometry:
+      properties:
+        length_cm:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Length Cm
+        width_cm:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Width Cm
+        height_cm:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Height Cm
+        opening_area_m2:
+          type: number
+          minimum: 0.0
+          title: Opening Area M2
+          default: 0
+        polygon_cm:
+          items:
+            $ref: '#/components/schemas/PointCm'
+          type: array
+          title: Polygon Cm
+      additionalProperties: false
+      type: object
+      required:
+      - length_cm
+      - width_cm
+      - height_cm
+      title: RoomGeometry
+    RoomQuantity:
+      properties:
+        room_id:
+          type: string
+          title: Room Id
+        length_cm:
+          type: number
+          title: Length Cm
+        width_cm:
+          type: number
+          title: Width Cm
+        height_cm:
+          type: number
+          title: Height Cm
+        floor_area_m2:
+          type: number
+          title: Floor Area M2
+        ceiling_area_m2:
+          type: number
+          title: Ceiling Area M2
+        perimeter_m:
+          type: number
+          title: Perimeter M
+        gross_wall_area_m2:
+          type: number
+          title: Gross Wall Area M2
+        opening_area_m2:
+          type: number
+          title: Opening Area M2
+        net_wall_area_m2:
+          type: number
+          title: Net Wall Area M2
+        geometry_source:
+          type: string
+          enum:
+          - polygon_cm
+          - rectangle_cm
+          title: Geometry Source
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - length_cm
+      - width_cm
+      - height_cm
+      - floor_area_m2
+      - ceiling_area_m2
+      - perimeter_m
+      - gross_wall_area_m2
+      - opening_area_m2
+      - net_wall_area_m2
+      - geometry_source
+      title: RoomQuantity
+    RoomRetrieval:
+      properties:
+        room_id:
+          type: string
+          title: Room Id
+        semantic_query:
+          type: string
+          title: Semantic Query
+        work_items:
+          items:
+            $ref: '#/components/schemas/RetrievedWorkItem'
+          type: array
+          title: Work Items
+        mep_suggestions:
+          items:
+            $ref: '#/components/schemas/MEPSuggestion'
+          type: array
+          title: Mep Suggestions
+        construction_notes:
+          items:
+            $ref: '#/components/schemas/ConstructionNote'
+          type: array
+          title: Construction Notes
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - semantic_query
+      - work_items
+      - mep_suggestions
+      - construction_notes
+      title: RoomRetrieval
+    RoomSnapshot:
+      properties:
+        room_id:
+          type: string
+          minLength: 1
+          title: Room Id
+        name:
+          type: string
+          minLength: 1
+          title: Name
+        room_type:
+          type: string
+          minLength: 1
+          title: Room Type
+        style:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Style
+        style_card_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Style Card Id
+        geometry:
+          $ref: '#/components/schemas/RoomGeometry'
+        layout_json:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Layout Json
+        materials:
+          items:
+            $ref: '#/components/schemas/MaterialSelection'
+          type: array
+          title: Materials
+        furniture:
+          items:
+            $ref: '#/components/schemas/FurniturePlacement'
+          type: array
+          title: Furniture
+        equipment_requirements:
+          items:
+            $ref: '#/components/schemas/EquipmentRequirement'
+          type: array
+          title: Equipment Requirements
+        mep_points:
+          items:
+            $ref: '#/components/schemas/MEPPoint'
+          type: array
+          title: Mep Points
+        renders:
+          items:
+            $ref: '#/components/schemas/RenderReference'
+          type: array
+          title: Renders
+      additionalProperties: false
+      type: object
+      required:
+      - room_id
+      - name
+      - room_type
+      - geometry
+      title: RoomSnapshot
+    ScheduleResult:
+      properties:
+        tasks:
+          items:
+            $ref: '#/components/schemas/ScheduleTask'
+          type: array
+          title: Tasks
+        estimated_total_days:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Estimated Total Days
+        unknown_duration_count:
+          type: integer
+          title: Unknown Duration Count
+        disclaimer:
+          type: string
+          title: Disclaimer
+      additionalProperties: false
+      type: object
+      required:
+      - tasks
+      - estimated_total_days
+      - unknown_duration_count
+      - disclaimer
+      title: ScheduleResult
+    ScheduleTask:
+      properties:
+        task_id:
+          type: string
+          title: Task Id
+        room_id:
+          type: string
+          title: Room Id
+        work_item_code:
+          type: string
+          title: Work Item Code
+        name:
+          type: string
+          title: Name
+        quantity:
+          type: number
+          title: Quantity
+        unit:
+          type: string
+          title: Unit
+        daily_productivity:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Daily Productivity
+        crew_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Crew Count
+        preparation_days:
+          type: number
+          title: Preparation Days
+        construction_days:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Construction Days
+        waiting_days:
+          type: number
+          title: Waiting Days
+        total_days:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Total Days
+        predecessor_task_ids:
+          items:
+            type: string
+          type: array
+          title: Predecessor Task Ids
+        start_day:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Start Day
+        finish_day:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Finish Day
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+        confidence:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - contractor_confirmed
+          title: Confidence
+        status:
+          type: string
+          enum:
+          - estimated
+          - productivity_data_missing
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - task_id
+      - room_id
+      - work_item_code
+      - name
+      - quantity
+      - unit
+      - daily_productivity
+      - crew_count
+      - preparation_days
+      - construction_days
+      - waiting_days
+      - total_days
+      - start_day
+      - finish_day
+      - source
+      - confidence
+      - status
+      title: ScheduleTask
+    SnapshotCompleteness:
+      properties:
+        score:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Score
+        complete:
+          type: boolean
+          title: Complete
+        missing:
+          items:
+            type: string
+          type: array
+          title: Missing
+        warnings:
+          items:
+            type: string
+          type: array
+          title: Warnings
+      additionalProperties: false
+      type: object
+      required:
+      - score
+      - complete
+      - missing
+      - warnings
+      title: SnapshotCompleteness
+    SnapshotEnvelope:
+      properties:
+        snapshot:
+          $ref: '#/components/schemas/ProjectSnapshot'
+        completeness:
+          $ref: '#/components/schemas/SnapshotCompleteness'
+      additionalProperties: false
+      type: object
+      required:
+      - snapshot
+      - completeness
+      title: SnapshotEnvelope
+    StyleAssignmentInput:
+      properties:
+        style_code:
+          type: string
+          maxLength: 50
+          minLength: 1
+          pattern: ^[a-z0-9][a-z0-9_-]*$
+          title: Style Code
+        confidence:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: 'null'
+          title: Confidence
+      additionalProperties: false
+      type: object
+      required:
+      - style_code
+      title: StyleAssignmentInput
+    TokenPair:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          type: string
+          title: Refresh Token
+        token_type:
+          type: string
+          const: bearer
+          title: Token Type
+          default: bearer
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        user:
+          $ref: '#/components/schemas/UserPublic'
+      additionalProperties: false
+      type: object
+      required:
+      - access_token
+      - refresh_token
+      - expires_at
+      - user
+      title: TokenPair
+    UserPublic:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        email:
+          type: string
+          title: Email
+        display_name:
+          type: string
+          title: Display Name
+        role:
+          type: string
+          enum:
+          - admin
+          - designer
+          - client
+          title: Role
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        is_active:
+          type: boolean
+          title: Is Active
+          default: true
+      additionalProperties: false
+      type: object
+      required:
+      - user_id
+      - email
+      - display_name
+      - role
+      - created_at
+      title: UserPublic
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError

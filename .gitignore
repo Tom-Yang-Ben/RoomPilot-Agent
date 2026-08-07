@@ -36,6 +36,8 @@ docs/*
 !docs/owners/*.md
 !docs/vibecoding/
 !docs/vibecoding/*.md
+!docs/vibecoding-pilot/
+!docs/vibecoding-pilot/**
 
 # 個人或工具產生的本機設定與筆記不提交。
 .codex/
