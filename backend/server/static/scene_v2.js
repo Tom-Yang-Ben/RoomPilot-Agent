@@ -492,6 +492,9 @@ const element = {
   renderBriefSummary: $("#render-brief-summary"),
   renderBriefNotes: $("#render-brief-notes"),
   renderBriefWarning: $("#render-brief-warning"),
+  designDeliveryDialog: $("#design-delivery-dialog"),
+  designDeliveryContent: $("#design-delivery-content"),
+  roomSchemeProgress: $("#room-scheme-progress"),
   objectList: $("#scene-object-list"),
   realisticObjectList: $("#realistic-scene-object-list"),
   glbResults: $("#glb-search-results"),
@@ -3658,6 +3661,13 @@ function renderRoomSchemeSelectionDialog() {
   const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId)) || state.rooms[0];
   if (!room || !element.roomSchemeList) return;
   const selected = selectedSchemeForRoom(state.designSchemes, room.id);
+  const dialogTitle = $("#room-scheme-dialog-title");
+  if (dialogTitle) dialogTitle.textContent = `確認「${room.label || "此房間"}」的配置方案`;
+  if (element.roomSchemeProgress) {
+    const selectedRooms = state.rooms.filter((item) => state.designSchemes.room_selections?.[String(item.id)]).length;
+    const roomPosition = Math.max(1, state.rooms.findIndex((item) => String(item.id) === String(room.id)) + 1);
+    element.roomSchemeProgress.textContent = `進度 ${selectedRooms}/${state.rooms.length} 間 · 目前第 ${roomPosition} 間`;
+  }
   element.roomSchemeList.innerHTML = state.rooms.map((item) => {
     const selectedScheme = state.designSchemes.room_selections?.[String(item.id)];
     return `<button type="button" data-room-scheme-room="${escapeHtml(item.id)}"
@@ -13417,6 +13427,7 @@ async function runAiOpenrouterRender() {
     state.proposalReview.openRouterRenders = {
       results: result.results,
       editRemaining: result.edit_remaining,
+      generated_at: new Date().toISOString(),
     };
     const done = result.results.filter((row) => row.status === "completed").length;
     const failed = result.results.length - done;
@@ -13540,6 +13551,8 @@ async function submitAiOpenrouterEdit() {
     if (target) {
       target.image_data_url = result.result.image_data_url;
       target.notices = result.result.notices;
+      target.revision_image_data_url = result.result.image_data_url;
+      target.revision_submitted_at = new Date().toISOString();
     }
     data.editRemaining = result.edit_remaining;
     renderAiOpenrouterResults();
@@ -13655,6 +13668,235 @@ async function generateDeliveryProposal() {
     setDeliveryProposalStatus(errorMessage(error));
   } finally {
     element.deliveryProposalGenerate.disabled = false;
+  }
+}
+
+// ---- 第 8 步成果包（design-delivery）：五章 JSON 與設計提案 PDF 同一視窗 ----
+
+let latestDesignDelivery = null;
+
+function questionnaireContextValue(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean).join("、");
+  if (value && typeof value === "object") return "";
+  return String(value || "").trim();
+}
+
+function wholeHouseQuestionnaireNeeds() {
+  const profile = {
+    ...(state.roomRequirementModel?.globalProfile || {}),
+    ...(state.basicAnswers || {}),
+  };
+  return WHOLE_HOUSE_QUESTIONS.map((question) => {
+    const value = questionnaireContextValue(profile[question.id]);
+    return value ? `${question.label}：${value}` : "";
+  }).filter(Boolean);
+}
+
+function roomQuestionnaireContext(roomId) {
+  const requirement = state.roomRequirementModel?.roomRequirements?.[roomId] || {};
+  const room = state.rooms.find((item) => String(item.id) === String(roomId));
+  const furniture = requirement.furniture || {};
+  const generativeEquipment = requirement.generativeEquipment || {};
+  const selected = (furniture.selected || [])
+    .filter((item) => Number(item.quantity ?? 1) > 0)
+    .map((item) => item.name_zh || item.label || item.name || item.normalized_type)
+    .filter(Boolean);
+  const usageLabels = new Map(roomUsageOptions(room || {}).map((option) => [option.id, option.label]));
+  const usage = (requirement.usage || []).map((item) => usageLabels.get(item) || item).filter(Boolean);
+  const visualNotes = state.visualQuestions
+    .filter((question) => String(question.room_id || "") === String(roomId))
+    .map((question) => String(state.visualAnswers?.[question.question_id]?.custom || "").trim())
+    .filter(Boolean);
+  const roomNotes = [
+    furniture.preferenceText,
+    ...(furniture.preferenceTags || []),
+    generativeEquipment.generationNotes,
+    requirement.surfaces?.wallPreference,
+    requirement.surfaces?.floorPreference,
+    ...visualNotes,
+  ].map((item) => String(item || "").trim()).filter(Boolean);
+  const roomSummaryParts = [
+    usage.length ? `用途：${usage.join("、")}` : "",
+    selected.length ? `已選家具：${selected.join("、")}` : "",
+    ...roomNotes,
+  ].filter(Boolean);
+  const wholeHouseNeeds = wholeHouseQuestionnaireNeeds();
+  const fallbackUsed = roomSummaryParts.length === 0;
+  const note = (fallbackUsed ? wholeHouseNeeds : roomSummaryParts).join("；");
+  return {
+    note,
+    summary: note,
+    source: fallbackUsed ? "whole_house_fallback" : "room_questionnaire",
+    fallbackUsed,
+    wholeHouseNeeds,
+    lockedFurniture: selected,
+    usage,
+    surfaces: requirement.surfaces || {},
+    generativeEquipment,
+  };
+}
+
+function deliveryReadableValues(value) {
+  if (Array.isArray(value)) return value.flatMap((item) => deliveryReadableValues(item));
+  if (value && typeof value === "object") return Object.values(value).flatMap((item) => deliveryReadableValues(item));
+  const text = String(value ?? "").trim();
+  return text ? [text] : [];
+}
+
+function deliveryAmountLabel(line) {
+  const amount = Number(line?.amount_twd);
+  if (Number.isFinite(amount) && amount > 0) {
+    return new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", maximumFractionDigits: 0 }).format(amount);
+  }
+  return line?.status_label || "待報價";
+}
+
+function renderDesignDeliveryPackage(delivery) {
+  if (!element.designDeliveryContent) return;
+  const presentation = delivery?.presentation || {};
+  const engineering = delivery?.engineering_report || {};
+  const security = delivery?.security_review || presentation.security_review || {};
+  const budget = delivery?.budget_report || delivery?.budget || {};
+  const proposal = delivery?.delivery_proposal || {};
+  const rooms = Array.isArray(presentation.rooms) ? presentation.rooms : [];
+  const roomMarkup = rooms.map((room) => {
+    const decoration = room.decoration_summary || {};
+    const render = decoration.render_status || {};
+    const imageUrl = render.revision_image_data_url || render.image_data_url || "";
+    const materials = [...new Set(deliveryReadableValues(decoration.materials))].slice(0, 12).join("、") || "依第 6 步鎖定材質";
+    return `<article class="rp-delivery-room">
+      <header><div><span>${escapeHtml(room.room_type || "空間")}</span><h3>${escapeHtml(room.room_name || "未命名空間")}</h3></div><strong>${escapeHtml(room.style_card || "已選色卡")}</strong></header>
+      ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(`${room.room_name || "房間"}最終設計圖`)}">` : ""}
+      <p class="rp-delivery-designer-reference"><strong>設計師觀點參照</strong>${escapeHtml(room.designer_reference || "依專業室內設計原則整理。")}</p>
+      <p>${escapeHtml(room.design_summary || "")}</p>
+      <dl>
+        <div><dt>問卷需求</dt><dd>${escapeHtml(decoration.questionnaire_note || "採用全屋問卷與已鎖定配置")}</dd></div>
+        <div><dt>空間用途</dt><dd>${escapeHtml((decoration.usage || []).join("、") || "依已確認用途")}</dd></div>
+        <div><dt>家具</dt><dd>${escapeHtml((decoration.locked_furniture || []).join("、") || "依配置快照")}</dd></div>
+        <div><dt>材質與裝潢</dt><dd>${escapeHtml(materials)}</dd></div>
+      </dl>
+    </article>`;
+  }).join("");
+  const structureLabels = { walls: "牆", doors: "門", windows: "窗", beams: "樑", columns: "柱" };
+  const structureSummary = Object.entries(engineering.structure_counts || {})
+    .map(([key, value]) => `${structureLabels[key] || key} ${value}`)
+    .join("、") || "依第 4 步固定結構";
+  const securityChecks = (security.checks || []).map((check) => (
+    `<li><strong>${escapeHtml(check.status === "passed" ? "通過" : "已處理")}</strong><span>${escapeHtml(check.detail || "")}</span></li>`
+  )).join("");
+  const budgetRows = (budget.lines || []).map((line) => `<tr>
+    <td>${escapeHtml(line.category_label || line.category || "項目")}</td>
+    <td>${escapeHtml(line.name || "未命名項目")}</td>
+    <td>${escapeHtml(line.unit || "")}</td>
+    <td>${escapeHtml(deliveryAmountLabel(line))}</td>
+  </tr>`).join("");
+  const knownSubtotal = Number(budget.known_furniture_reference_subtotal_twd || 0);
+  element.designDeliveryContent.innerHTML = `
+    <section class="rp-delivery-hero">
+      <span class="eyebrow">WEB DESIGN DELIVERY</span>
+      <h2>${escapeHtml(presentation.title || "RoomPilot 全屋設計與裝潢簡報")}</h2>
+      <p>${escapeHtml(presentation.subtitle || "依最終設定快照組稿")}</p>
+      <div><span>房間 ${rooms.length}</span><span>快照 ${escapeHtml(delivery.snapshot_id || "已建立")}</span><span>資安 ${escapeHtml(security.status_label || "待審核")}</span></div>
+    </section>
+    <section class="rp-delivery-section"><header><span>01</span><div><h2>逐房設計與裝潢</h2><p>每間房均沿用同一份已確認的結構、家具、材質、色卡與視角。</p></div></header><div class="rp-delivery-room-grid">${roomMarkup || "<p>尚無房間成果。</p>"}</div></section>
+    <section class="rp-delivery-section"><header><span>02</span><div><h2>${escapeHtml(engineering.title || "工程報告書")}</h2><p>${escapeHtml(structureSummary)}</p></div></header><div class="rp-delivery-engineering-summary"><strong>生圖完成 ${escapeHtml(engineering.completion?.rendered_room_count ?? 0)} / ${escapeHtml(engineering.completion?.room_count ?? rooms.length)} 房</strong><span>已使用一次修改：${escapeHtml(engineering.completion?.revised_room_count ?? 0)} 房</span></div><ul>${(engineering.notes || []).map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul></section>
+    <section class="rp-delivery-section"><header><span>03</span><div><h2>資安工程審核</h2><p>${escapeHtml(security.status_label || "待審核")}</p></div></header><ul class="rp-delivery-security">${securityChecks || "<li>尚無審核紀錄。</li>"}</ul></section>
+    <section class="rp-delivery-section"><header><span>04</span><div><h2>${escapeHtml(budget.title || "裝潢與家具預算報告書")}</h2><p>家具已知參考小計：${escapeHtml(new Intl.NumberFormat("zh-TW").format(knownSubtotal))} 元；待報價 ${escapeHtml(budget.pending_quote_count ?? 0)} 項。</p></div></header><div class="rp-delivery-table-wrap"><table><thead><tr><th>類別</th><th>項目</th><th>單位</th><th>金額狀態</th></tr></thead><tbody>${budgetRows || '<tr><td colspan="4">尚無明細</td></tr>'}</tbody></table></div><p class="rp-field-hint">${escapeHtml(budget.disclaimer || "正式價格以現場丈量與廠商報價為準。")}</p></section>
+    <section class="rp-delivery-section"><header><span>05</span><div><h2>設計提案 PDF</h2><p>${escapeHtml(proposal.status === "generated" ? "已產出設計提案，可用下方按鈕下載或重新產出取代。" : "尚未產出；可用下方按鈕由 Report Agent 以 roompilot-delivery-pdf 品牌排版產出。")}</p></div></header></section>`;
+}
+
+function closeDesignDelivery() {
+  if (!element.designDeliveryDialog) return;
+  if (typeof element.designDeliveryDialog.close === "function") element.designDeliveryDialog.close();
+  else element.designDeliveryDialog.removeAttribute("open");
+}
+
+function downloadDesignDeliveryJson() {
+  if (!latestDesignDelivery) return;
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(latestDesignDelivery, null, 2)], { type: "application/json" }));
+  link.download = `roompilot-design-delivery-${state.projectId || "project"}.json`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+async function generateDesignDelivery() {
+  if (!state.sceneData || !state.projectId) {
+    if (element.aiRenderStatus) element.aiRenderStatus.textContent = "請先完成第 6 步配置，才能產出成果包。";
+    return;
+  }
+  const trigger = $("#design-delivery-generate");
+  if (trigger) trigger.disabled = true;
+  if (element.aiRenderStatus) element.aiRenderStatus.textContent = "正在建立裝潢簡報、工程報告、資安審核與預算明細…";
+  state.designSchemes.configuration_snapshot = state.designSchemes.configuration_snapshot
+    || configurationSnapshot();
+  const baseSnapshot = state.designSchemes.configuration_snapshot;
+  const configuration = {
+    ...baseSnapshot,
+    snapshot_id: baseSnapshot.snapshot_id || baseSnapshot.created_at,
+    furniture: composeSelectedRoomFurniture().map((item) => ({
+      ...item,
+      room_id: item.room_id || item.roomId || null,
+    })),
+    fixed_structure: {
+      walls: state.structures?.walls || [],
+      doors: state.structures?.doors || [],
+      windows: state.structures?.windows || [],
+      beams: state.structures?.beams || [],
+      columns: state.structures?.columns || [],
+    },
+  };
+  const stylePack = STYLE_PACKS.find((item) => item.id === state.proposalReview.confirmedStyleCardId);
+  const results = state.proposalReview.openRouterRenders?.results || [];
+  const generatedAt = state.proposalReview.openRouterRenders?.generated_at || null;
+  const rooms = state.rooms.map((room) => {
+    const row = results.find((item) => item.room_id === room.id && item.status === "completed" && item.image_data_url);
+    return {
+      room_id: room.id,
+      room_name: room.label,
+      room_type: room.type || room.room_type || room.visual_space_type || null,
+      questionnaire: roomQuestionnaireContext(room.id),
+      view: state.proposalReview.roomViews?.[room.id] || null,
+      render: row ? {
+        image_data_url: row.image_data_url,
+        model: row.model || "",
+        submitted_at: generatedAt || new Date().toISOString(),
+        revision_image_data_url: row.revision_image_data_url || null,
+        revision_submitted_at: row.revision_submitted_at || null,
+      } : null,
+    };
+  });
+  const payload = {
+    project_id: state.projectId,
+    style_card: stylePack ? {
+      id: stylePack.id,
+      name: stylePack.name,
+      style_id: stylePack.styleId,
+      palette_hex: stylePack.palette,
+    } : { id: state.proposalReview.confirmedStyleCardId },
+    generated_at: new Date().toISOString(),
+    configuration_snapshot: configuration,
+    rooms,
+  };
+  try {
+    latestDesignDelivery = await api(`/api/projects/${state.projectId}/design-delivery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    renderDesignDeliveryPackage(latestDesignDelivery);
+    showDeliveryProposalDownload(
+      latestDesignDelivery.delivery_proposal?.status === "generated"
+        ? latestDesignDelivery.delivery_proposal
+        : state.project?.workflow?.delivery_proposal,
+    );
+    if (typeof element.designDeliveryDialog?.showModal === "function") element.designDeliveryDialog.showModal();
+    else element.designDeliveryDialog?.setAttribute("open", "");
+    if (element.aiRenderStatus) element.aiRenderStatus.textContent = "成果包已完成並通過後端資安審核；設計提案 PDF 可在同一視窗產出。";
+  } catch (error) {
+    if (element.aiRenderStatus) element.aiRenderStatus.textContent = `成果包建立失敗：${errorMessage(error)}`;
+  } finally {
+    if (trigger) trigger.disabled = false;
   }
 }
 
@@ -14192,6 +14434,9 @@ function bindEvents() {
   $("#confirm-dimensioned-plan")?.addEventListener("click", confirmDimensionedPlan);
   $("#confirm-basic-questionnaire")?.addEventListener("click", confirmBasicQuestionnaire);
   element.randomizeRequirements?.addEventListener("click", () => {
+    void skipQuestionnaireWithDefaults();
+  });
+  $("#randomize-requirements-summary")?.addEventListener("click", () => {
     void skipQuestionnaireWithDefaults();
   });
   element.questionnaireStageNav?.addEventListener("click", (event) => {
@@ -15029,6 +15274,12 @@ function bindEvents() {
   $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
   element.deliveryProposalGenerate?.addEventListener("click", generateDeliveryProposal);
   $("#ai-openrouter-edit-close")?.addEventListener("click", closeAiOpenrouterEditDialog);
+  $("#design-delivery-generate")?.addEventListener("click", () => {
+    void generateDesignDelivery();
+  });
+  $("#close-design-delivery")?.addEventListener("click", closeDesignDelivery);
+  $("#design-delivery-done")?.addEventListener("click", closeDesignDelivery);
+  $("#download-design-delivery-json")?.addEventListener("click", downloadDesignDeliveryJson);
   $("#close-render-brief")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-cancel")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-confirm")?.addEventListener("click", () => {

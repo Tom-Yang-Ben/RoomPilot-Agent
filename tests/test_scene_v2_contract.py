@@ -1359,7 +1359,7 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "selectedFurniture.filter((item) => item.model_url)" in viewer
     assert "尚未找到可用的資料庫 GLB" in viewer
     assert "selected_furniture_exact: !allowPendingFurniture" in viewer
-    assert "完成需求並建立 2D+3D 配置" in html
+    assert "完成需求，建立配置方案" in html
 
 
 def test_requirement_generation_defers_a_single_failed_room_without_breaking_step_six() -> None:
