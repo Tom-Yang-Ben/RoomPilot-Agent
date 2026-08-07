@@ -15702,3 +15702,49 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
   .rp-delivery-room-grid { grid-template-columns: 1fr; }
   .rp-delivery-room > header { align-items: stretch; flex-direction: column; }
 }
+
+/* ---- 第 6 步材質/燈光任務對話框（step-six task dialogs） ---- */
+
+.rp-step-six-task-launcher {
+  display: grid;
+  gap: 8px;
+}
+
+.rp-step-six-task-dialog {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.rp-step-six-task-dialog .rp-task-dialog-shell {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(760px, calc(100dvh - 34px));
+}
+
+.rp-step-six-task-content {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.rp-step-six-task-content .rp-surface-editor,
+.rp-step-six-task-content .rp-ceiling-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.rp-toolbar-toggle {
+  padding: 6px 10px;
+  border: 1px solid #c9c5bd;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  font: inherit;
+  font-size: 13px;
+}
+
+.rp-toolbar-toggle.is-active {
+  border-color: #27715d;
+  background: #edf5f1;
+  color: #185b48;
+}

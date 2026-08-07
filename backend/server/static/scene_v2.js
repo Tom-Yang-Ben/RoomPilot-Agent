@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-7bede239da5d";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-0617c18a768b";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -192,6 +192,7 @@ const state = {
   pendingWallDeleteId: null,
   selectedStructure: null,
   windowNormalizationRemoved: 0,
+  showFurnitureNumbers: true,
   basicAnswers: {},
   basicConfirmed: false,
   questionnaireStage: "profile",
@@ -3681,7 +3682,8 @@ function renderRoomSchemeSelectionDialog() {
     const scheme = state.designSchemes.schemes[schemeId];
     const furniture = schemeFurnitureForRoom(schemeId, room.id);
     const unavailable = !scheme || scheme.stale;
-    const preview = roomSchemePreviewCache.get(schemeId);
+    const preview = roomSchemePreviewCache.get(roomSchemePreviewKey(schemeId, room))
+      || roomSchemePreviewCache.get(schemeId);
     return `<article class="rp-scheme-choice-card ${selected === schemeId ? "is-selected" : ""}">
       <header><strong>方案 ${schemeId}</strong><span>${unavailable ? "需要重新配置" : `${furniture.length} 件家具`}</span></header>
       <div class="rp-scheme-preview-grid">
@@ -3705,15 +3707,24 @@ function renderRoomSchemeSelectionDialog() {
     : `尚有 ${missing.map((item) => item.label || "未命名空間").join("、")} 未選擇方案；家具微調仍會保持鎖定。`;
 }
 
+function roomSchemePreviewKey(schemeId, room) {
+  return room ? `${schemeId}:${room.id}` : schemeId;
+}
+
 async function ensureRoomScheme3dPreviews() {
   if (roomSchemePreviewInFlight || !element.roomSchemeDialog?.open) return roomSchemePreviewInFlight;
+  const activeRoom = state.rooms.find(
+    (item) => String(item.id) === String(state.selectedRoomSchemeId),
+  ) || state.rooms[0];
   const candidates = ["A", "B"].filter((schemeId) => (
     state.designSchemes.schemes[schemeId]?.sceneData?.scene_objects
-    && !roomSchemePreviewCache.has(schemeId)
+    && !roomSchemePreviewCache.has(roomSchemePreviewKey(schemeId, activeRoom))
   ));
   if (!candidates.length) return null;
-  // 背景建立 A/B 預覽：走離屏縮圖 viewer 的序列佇列，前景 whiteViewer
-  // 的場景與相機完全不動；佇列與 GLB 縮圖共用，避免並發 loadScene 互清。
+  // 背景建立 A/B 逐房預覽：沿用離屏縮圖 viewer 的序列佇列，前景 whiteViewer
+  // 的場景與相機完全不動。逐房視角以 setWalkRoom 進到目前比較的房間拍攝，
+  // 找不到可站位（或房間資料不足）時退回全屋 corner 快照；只為當前房間
+  // 建圖、拍完即卸載，避免一次生出整屋 × 全房的場景造成效能問題。
   roomSchemePreviewInFlight = (async () => {
     try {
       for (const schemeId of candidates) {
@@ -3721,10 +3732,17 @@ async function ensureRoomScheme3dPreviews() {
           .catch(() => null)
           .then(async () => {
             await glbThumbnailViewer.loadScene(state.designSchemes.schemes[schemeId].sceneData);
-            glbThumbnailViewer.setViewMode("orbit");
-            glbThumbnailViewer.setCameraPreset("corner");
+            const walkPayload = roomWalkPayload(activeRoom);
+            const entered = walkPayload ? glbThumbnailViewer.setWalkRoom(walkPayload) : false;
+            if (!entered) {
+              glbThumbnailViewer.setViewMode("orbit");
+              glbThumbnailViewer.setCameraPreset("corner");
+            }
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            roomSchemePreviewCache.set(schemeId, glbThumbnailViewer.capturePng());
+            roomSchemePreviewCache.set(
+              roomSchemePreviewKey(schemeId, activeRoom),
+              glbThumbnailViewer.capturePng(),
+            );
           });
         await glbThumbnailSequence;
       }
@@ -3736,7 +3754,10 @@ async function ensureRoomScheme3dPreviews() {
         .catch(() => null)
         .then(() => { glbThumbnailViewer.unloadScene(); });
       roomSchemePreviewInFlight = null;
-      if (element.roomSchemeDialog?.open) renderRoomSchemeSelectionDialog();
+      if (element.roomSchemeDialog?.open) {
+        renderRoomSchemeSelectionDialog();
+        void ensureRoomScheme3dPreviews();   // 拍攝期間使用者可能已切到別的房間
+      }
     }
   })();
   return roomSchemePreviewInFlight;
@@ -10054,8 +10075,20 @@ function configurationFurnitureNumber(item, fallbackIndex = state.furniture2d.in
   return sceneIndex >= 0 ? sceneIndex + 1 : fallbackIndex + 1;
 }
 
+function renderFurnitureNumberToggle() {
+  const button = $("#toggle-furniture-numbers");
+  if (button) {
+    button.classList.toggle("is-active", state.showFurnitureNumbers);
+    button.setAttribute("aria-pressed", String(state.showFurnitureNumbers));
+    button.textContent = state.showFurnitureNumbers ? "隱藏編號" : "顯示編號";
+  }
+  // 只同步白模 viewer；生圖與離屏預覽的 viewer 維持預設關閉，截圖不帶編號。
+  whiteViewer?.setFurnitureNumberMarkersVisible?.(state.showFurnitureNumbers);
+}
+
 function renderConfigurationPlan() {
   if (!element.configurationPlanImage) return;
+  renderFurnitureNumberToggle();
   pruneRetiredAppliances();
   const planSource = element.layoutImage.currentSrc || element.layoutImage.src;
   if (planSource && element.configurationPlanImage.src !== planSource) {
@@ -11519,10 +11552,7 @@ function renderWhiteWalkRoomSelector() {
   if (state.selectedWalkRoomId) element.whiteWalkRoom.value = state.selectedWalkRoomId;
 }
 
-function selectedWhiteWalkRoomPayload() {
-  const room = state.rooms.find(
-    (candidate) => String(candidate.id) === String(state.selectedWalkRoomId),
-  ) || state.rooms[0];
+function roomWalkPayload(room) {
   if (!room?.polygon_cm?.length) return null;
   const center = planCenterCm();
   const roomMiddle = roomCenter(room);
@@ -11538,6 +11568,13 @@ function selectedWhiteWalkRoomPayload() {
       z: point.y - center.y,
     })),
   };
+}
+
+function selectedWhiteWalkRoomPayload() {
+  const room = state.rooms.find(
+    (candidate) => String(candidate.id) === String(state.selectedWalkRoomId),
+  ) || state.rooms[0];
+  return roomWalkPayload(room);
 }
 
 function activateWhiteWalkMode() {
@@ -13339,7 +13376,13 @@ function confirmRenderPalette() {
 
 async function prepareAiRender() {
   if (!state.sceneData || !state.proposalReview.masterView) return;
-  await aiRenderViewer.loadScene(state.sceneData);
+  // 第 8 步入口要整場重建（viewer 無 GLB 快取），沒有遮罩會像當機。
+  beginPlacementBusy("正在準備第 8 步渲染場景，請稍候…");
+  try {
+    await aiRenderViewer.loadScene(state.sceneData);
+  } finally {
+    endPlacementBusy();
+  }
   aiRenderViewer.setCameraState(state.proposalReview.masterView.camera);
   aiRenderViewer.lockRenderCamera(true);
   renderPaletteOptions();
@@ -15117,6 +15160,10 @@ function bindEvents() {
     saveSelectedSceneAppearance();
     scheduleSave("white_model_3d");
   }));
+  $("#toggle-furniture-numbers")?.addEventListener("click", () => {
+    state.showFurnitureNumbers = !state.showFurnitureNumbers;
+    renderFurnitureNumberToggle();
+  });
   $("#open-furniture-catalog")?.addEventListener("click", () => setFurnitureCatalogOpen(true));
   element.openRoomSchemeSelection?.addEventListener("click", openRoomSchemeSelectionDialog);
   $("#close-room-scheme-selection")?.addEventListener("click", closeRoomSchemeSelectionDialog);
@@ -15126,6 +15173,7 @@ function bindEvents() {
     if (!button) return;
     state.selectedRoomSchemeId = button.dataset.roomSchemeRoom;
     renderRoomSchemeSelectionDialog();
+    void ensureRoomScheme3dPreviews();   // 換房時補拍該房的 A/B 視角
   });
   element.roomSchemeChoiceGrid?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-room-scheme-choice]");

@@ -17,7 +17,8 @@ def test_step_six_requires_every_room_to_choose_a_scheme_before_micro_adjustment
     assert "configuration_scene_generation_failed" in source
     assert "function ensureRoomScheme3dPreviews()" in source
     assert "roomSchemePreviewCache" in source
-    assert "whiteViewer.capturePng()" in source
+    # 預覽改走離屏縮圖 viewer 拍照（拍完卸載），前景 whiteViewer 場景與相機不動。
+    assert "glbThumbnailViewer.capturePng()" in source
 
 
 def test_render_submission_requires_a_user_visible_render_brief() -> None:

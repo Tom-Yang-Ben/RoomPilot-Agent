@@ -3019,11 +3019,22 @@ export function createSceneViewer(
       && roomGroup.userData.ceilingStyle !== "exposed";
   }
 
+  // 編號 sprite 是場景內物件，會被 capturePng 拍進去；預設關閉，只有
+  // 白模 viewer 由前端 toggle 打開——生圖參考截圖與離屏預覽因此不帶編號。
+  let showFurnitureNumberMarkers = false;
+  let numberMarkerRoomId = "";
+
   function configurePlanLabels(mode) {
     const visible = viewPresentation(mode).showFurniturePlanLabels;
     furnitureGroup.traverse((object) => {
       if (object.userData.roompilotPlanLabel) object.visible = visible;
-      if (object.userData.roompilotNumberMarker) object.visible = mode !== "walk";
+      if (object.userData.roompilotNumberMarker) {
+        const roomId = String(object.parent?.userData?.sceneObject?.room_id
+          || object.parent?.userData?.sceneObject?.roomId || "");
+        object.visible = showFurnitureNumberMarkers
+          && mode !== "walk"
+          && (!numberMarkerRoomId || roomId === numberMarkerRoomId);
+      }
     });
   }
 
@@ -5208,6 +5219,11 @@ export function createSceneViewer(
     setCameraPreset,
     setViewMode,
     setWalkRoom,
+    setFurnitureNumberMarkersVisible(visible, roomId = "") {
+      showFurnitureNumberMarkers = Boolean(visible);
+      numberMarkerRoomId = String(roomId || "");
+      configurePlanLabels(viewMode.mode);
+    },
     setInteractionMode,
     toggleCameraLock,
     capturePng,

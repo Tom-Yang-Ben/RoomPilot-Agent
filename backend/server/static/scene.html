@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-8f83237fcdf3" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-d0ca29ddcd5f" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -641,7 +641,9 @@
       </section>
 
       <section id="layout-2d-step" class="rp-step-panel" data-panel="layout-2d" hidden>
-        <div id="layout-scheme-bar" class="rp-scheme-toolbar">
+        <!-- 方案 A/B 於第 6 步逐房比較視窗中選定；工具列保留 DOM 供既有
+             renderSchemeControls 與契約測試（恰 3 對按鈕）使用，但不再顯示。 -->
+        <div id="layout-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true">
           <div class="rp-segmented" role="tablist" aria-label="家具配置方案">
             <button type="button" data-design-scheme="A" class="is-active">方案 A</button>
             <button type="button" data-design-scheme="B" hidden>方案 B</button>
@@ -696,7 +698,7 @@
       </section>
 
       <section id="white-model-3d-step" class="rp-step-panel" data-panel="white-model-3d" hidden>
-        <div class="rp-scheme-toolbar">
+        <div id="white-model-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true">
           <div class="rp-segmented" role="tablist" aria-label="3D 家具配置方案">
             <button type="button" data-design-scheme="A" class="is-active">方案 A</button>
             <button type="button" data-design-scheme="B" hidden>方案 B</button>
@@ -712,6 +714,8 @@
                   <button type="button" data-view-mode="orbit" class="is-active">自由旋轉</button>
                   <button type="button" data-view-mode="topdown">正俯視</button>
                 </div>
+                <button id="toggle-furniture-numbers" type="button" class="rp-toolbar-toggle"
+                  aria-pressed="true" title="顯示或隱藏 3D 場景中的家具編號">隱藏編號</button>
               </div>
               <div class="rp-toolbar-group" aria-label="操作方式">
                 <span class="rp-toolbar-group-label">操作</span>
@@ -792,7 +796,7 @@
       </section>
 
       <section id="realistic-3d-step" class="rp-step-panel" data-panel="realistic-3d" hidden>
-        <div class="rp-scheme-toolbar">
+        <div id="realistic-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true">
           <div class="rp-segmented" role="tablist" aria-label="即時寫實方案">
             <button type="button" data-design-scheme="A" class="is-active">方案 A</button>
             <button type="button" data-design-scheme="B" hidden>方案 B</button>
@@ -814,16 +818,25 @@
             <p id="realistic-status" class="rp-viewer-status">選擇色卡後會立即同步牆面、地板、家具、燈光與 PBR 參數。</p>
           </div>
           <aside class="rp-control-pane rp-style-sidebar">
-            <span class="eyebrow">6 種風格 · 18 張色卡</span>
-            <h2>StylePack 即時切換</h2>
+            <span class="eyebrow">第 6 步｜材質與燈光微調</span>
+            <h2>確認家具與空間材質</h2>
             <section class="rp-editor-box">
               <h3>寫實家具</h3>
               <div id="realistic-scene-object-list" class="rp-object-list"></div>
               <button id="delete-realistic-furniture" type="button" class="danger-action">刪除選取家具</button>
             </section>
-            <div id="style-pack-tabs" class="rp-style-tabs"></div>
-            <div id="style-pack-grid" class="rp-style-pack-grid"></div>
-            <section class="rp-surface-editor">
+            <section class="rp-editor-box rp-step-six-task-launcher">
+              <h3>材質與燈光</h3>
+              <p class="rp-control-hint">在專屬視窗集中調整；3D 會即時預覽套用結果。</p>
+              <button id="open-surface-adjustment" type="button" class="secondary-action">調整牆面、地板與色卡</button>
+              <button id="open-lighting-adjustment" type="button" class="secondary-action">調整天花與燈具</button>
+            </section>
+            <div id="style-pack-dialog-origin" hidden aria-hidden="true">
+              <div id="style-pack-tabs" class="rp-style-tabs"></div>
+              <div id="style-pack-grid" class="rp-style-pack-grid"></div>
+            </div>
+            <div id="surface-editor-origin" hidden aria-hidden="true">
+            <section id="surface-editor" class="rp-surface-editor">
               <h3>逐項材質設定</h3>
               <p class="rp-control-hint">3D 上即時預覽此風格的牆面、地板與燈光。</p>
               <label><span>套用範圍</span><select id="surface-scope"><option value="room">選取房間</option><option value="house">全屋</option></select></label>
@@ -859,12 +872,15 @@
               </div>
               <p id="material-boundary-status">尚未建立混搭界線。</p>
             </section>
-            <section class="rp-ceiling-editor">
+            </div>
+            <div id="lighting-editor-origin" hidden aria-hidden="true">
+            <section id="lighting-editor" class="rp-ceiling-editor">
               <h3>天花與風格燈具</h3>
               <label><span>天花方案</span><select id="ceiling-style"></select></label>
               <label><span>燈具</span><select id="light-style"></select></label>
               <div id="ceiling-conflicts" class="rp-conflict-list"></div>
             </section>
+            </div>
             <button id="undo-style-change" type="button" class="secondary-action">復原上一次 StylePack</button>
             <button id="save-realistic-scene" type="button" class="primary-action">保存即時寫實方案</button>
           </aside>
@@ -1014,6 +1030,32 @@
             </div>
             <button id="download-design-delivery-json" type="button" class="secondary-action">下載成果包 JSON</button>
             <button id="design-delivery-done" type="button" class="primary-action">完成檢視</button>
+          </footer>
+        </div>
+      </dialog>
+
+      <dialog id="surface-adjustment-dialog" class="rp-task-dialog rp-step-six-task-dialog" aria-labelledby="surface-adjustment-title">
+        <div class="rp-task-dialog-shell">
+          <header class="rp-task-dialog-header">
+            <div><p class="eyebrow">第 6 步 · 材質調整</p><h2 id="surface-adjustment-title">調整牆面、地板與色卡</h2></div>
+            <button id="close-surface-adjustment" type="button" class="rp-icon-command" aria-label="關閉材質調整" title="關閉">×</button>
+          </header>
+          <div id="surface-adjustment-content" class="rp-step-six-task-content" aria-live="polite"></div>
+          <footer class="rp-task-dialog-actions">
+            <button id="surface-adjustment-done" type="button" class="primary-action">完成材質調整</button>
+          </footer>
+        </div>
+      </dialog>
+
+      <dialog id="lighting-adjustment-dialog" class="rp-task-dialog rp-step-six-task-dialog" aria-labelledby="lighting-adjustment-title">
+        <div class="rp-task-dialog-shell">
+          <header class="rp-task-dialog-header">
+            <div><p class="eyebrow">第 6 步 · 燈光調整</p><h2 id="lighting-adjustment-title">調整天花與燈具</h2></div>
+            <button id="close-lighting-adjustment" type="button" class="rp-icon-command" aria-label="關閉燈光調整" title="關閉">×</button>
+          </header>
+          <div id="lighting-adjustment-content" class="rp-step-six-task-content" aria-live="polite"></div>
+          <footer class="rp-task-dialog-actions">
+            <button id="lighting-adjustment-done" type="button" class="primary-action">完成燈光調整</button>
           </footer>
         </div>
       </dialog>
@@ -1179,6 +1221,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-34b6c06d563e"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-0c75285c14b5"></script>
   </body>
 </html>
