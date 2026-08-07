@@ -31,7 +31,7 @@
 <body>
 <main>
 <h1>RoomPilot API 功能總覽</h1>
-<p class="meta">整理日期：2026-08-01（分支 <code>yen</code>）。所有端點皆定義於 <code>backend/server/main.py</code>，無外部 APIRouter、無 WebSocket。共 <strong>44 個端點</strong>：4 個頁面路由 + 40 個 API。</p>
+<p class="meta">整理日期：2026-08-06（分支 <code>feat/step1-4-ben-port</code>；行號對 <code>backend/server/main.py</code> 重新校準）。所有端點皆定義於 <code>backend/server/main.py</code>，無外部 APIRouter、無 WebSocket。共 <strong>52 個端點</strong>：4 個頁面路由 + 48 個 API。</p>
 
 <ul class="notes">
   <li><strong>框架</strong>：FastAPI；<code>startup</code> 時執行 <code>warm_catalog_cache()</code> 預熱型錄快取。</li>
@@ -47,92 +47,100 @@
 
 <h2>1. 頁面路由</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m GET">GET</span></td><td><code>/</code></td><td class="loc">main.py:1391</td><td>首頁（index.html）</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/styles</code></td><td class="loc">main.py:1396</td><td>風格頁</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/library</code></td><td class="loc">main.py:1401</td><td>家具型錄頁</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/scene</code></td><td class="loc">main.py:1406</td><td>3D 場景編輯頁（no-cache）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/</code></td><td class="loc">main.py:1637</td><td>首頁（index.html）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/styles</code></td><td class="loc">main.py:1642</td><td>風格頁</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/library</code></td><td class="loc">main.py:1647</td><td>家具型錄頁</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/scene</code></td><td class="loc">main.py:1652</td><td>3D 場景編輯頁（no-cache）</td></tr>
 </tbody></table>
 
 <h2>2. 專案管理</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/projects</code>（201）</td><td class="loc">main.py:1476</td><td>建立新專案。Body：<code>{name, notes}</code> → <code>{project}</code></td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}</code></td><td class="loc">main.py:1492</td><td>取得專案資料</td></tr>
-<tr><td><span class="m PUT">PUT</span></td><td><code>/api/projects/{project_id}/workflow</code></td><td class="loc">main.py:1497</td><td>保存工作流程狀態；以 <code>expected_revision</code>、<code>base_updated_at</code> 做樂觀鎖防衝突</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects</code>（201）</td><td class="loc">main.py:1772</td><td>建立新專案。Body：<code>{name, notes}</code> → <code>{project}</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}</code></td><td class="loc">main.py:1788</td><td>取得專案資料</td></tr>
+<tr><td><span class="m PUT">PUT</span></td><td><code>/api/projects/{project_id}/workflow</code></td><td class="loc">main.py:1794</td><td>保存工作流程狀態；以 <code>expected_revision</code>、<code>base_updated_at</code> 做樂觀鎖防衝突。宣告 <code>space_confirmation</code> 完成、但 <code>recognition.spatial_report.review_items</code> 指到的房間仍未確認時，回 <span class="badge-note">422 recognition_review_unresolved</span>（<code>detail.rooms</code> 列出待處理房間）</td></tr>
 </tbody></table>
 
 <h2>3. 平面圖（專案綁定）</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/floorplan</code>（201）</td><td class="loc">main.py:1558</td><td>上傳平面圖（multipart，DXF/PNG/JPG）+ <code>expected_revision</code></td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/floorplan/source</code></td><td class="loc">main.py:1607</td><td>下載已上傳的平面圖原始檔</td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/floorplan/analyze</code></td><td class="loc">main.py:1762</td><td>執行平面圖辨識（Cody 影像引擎或 DXF 引擎）→ <code>{analysis, geometry_engine}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/floorplan</code>（201）</td><td class="loc">main.py:1858</td><td>上傳平面圖（multipart，DXF/PNG/JPG）+ <code>expected_revision</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/floorplan/source</code></td><td class="loc">main.py:1907</td><td>下載已上傳的平面圖原始檔</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/floorplan/analyze</code></td><td class="loc">main.py:2342</td><td>執行平面圖辨識（Cody 影像引擎或 DXF 引擎）→ <code>{analysis, geometry_engine}</code></td></tr>
 </tbody></table>
 
-<h2>4. 渲染輸出與遠端渲染</h2>
+<h2>4. 渲染輸出、AI 生圖與報告產出</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/renders</code>（201）</td><td class="loc">main.py:1625</td><td>上傳最終 PNG 渲染（瀏覽器截圖），附版本欄位 <code>white_model_version</code>、<code>viewpoint_version</code>、<code>style_version</code>、<code>style_card_id</code>、<code>provider</code></td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/renders</code></td><td class="loc">main.py:1688</td><td>列出專案的所有 PNG 輸出</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/renders/{render_id}/png</code></td><td class="loc">main.py:1699</td><td>下載指定 PNG 渲染</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/render-provider/status</code></td><td class="loc">main.py:1716</td><td>查詢遠端渲染服務狀態</td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/render-jobs</code>（202）</td><td class="loc">main.py:1721</td><td>提交遠端 AI 渲染任務（色卡對比／正式渲染）→ <code>{jobs}</code>。契約：<code>docs/contracts/REMOTE_RENDER_CONTRACT.md</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/renders</code>（201）</td><td class="loc">main.py:1925</td><td>上傳最終 PNG 渲染（瀏覽器截圖），附版本欄位 <code>white_model_version</code>、<code>viewpoint_version</code>、<code>style_version</code>、<code>style_card_id</code>、<code>provider</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/renders</code></td><td class="loc">main.py:1988</td><td>列出專案的所有 PNG 輸出</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/renders/{render_id}/png</code></td><td class="loc">main.py:1999</td><td>下載指定 PNG 渲染</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/render-provider/status</code></td><td class="loc">main.py:2016</td><td>查詢遠端渲染服務狀態</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/render-jobs</code>（202）</td><td class="loc">main.py:2021</td><td>提交遠端 AI 渲染任務（色卡對比／正式渲染）→ <code>{jobs}</code>。契約：<code>docs/contracts/REMOTE_RENDER_CONTRACT.md</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/ai-render/status</code></td><td class="loc">main.py:2052</td><td>查詢第 8 步 AI 生圖服務（OpenRouter nano banana）是否可用；不外洩 token</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/ai-renders</code>（201）</td><td class="loc">main.py:2058</td><td>逐房視角經 nano banana 生成寫實室內圖（不移動擺設）。前端送 <code>scene</code> ＋逐房第 7 步鎖定視角截圖；伺服器補需求／材質／家電／色卡後逐房呼叫 Gen_Pic Agent。未設金鑰回 503</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/ai-renders/{room_id}/edit</code>（201）</td><td class="loc">main.py:2117</td><td>整批一次改圖：只改指定內容、其餘鎖定不動。額度用完回 409 <code>ai_edit_budget_exhausted</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/design-manual</code>（201）</td><td class="loc">main.py:2188</td><td>八章設計手冊 PDF（比較後未採用為正式版；端點保留供獨立呼叫，第 8 步 UI 不再觸發）。未設 <code>OPENROUTER_API_KEY</code> 時走 deterministic 底稿照樣輸出</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/design-manual/pdf</code></td><td class="loc">main.py:2222</td><td>下載已產出的設計手冊 PDF；未產出回 404、檔案遺失回 410</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/delivery-proposal/status</code></td><td class="loc">main.py:2266</td><td>設計提案排版引擎（playwright Chromium）是否可用；未安裝時回報安裝指引</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/projects/{project_id}/delivery-proposal</code>（201）</td><td class="loc">main.py:2272</td><td>正式成果報告：roompilot-delivery-pdf skill 排版的設計提案 PDF（第 8 步「產出設計提案」按鈕唯一觸發的報告）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/projects/{project_id}/delivery-proposal/pdf</code></td><td class="loc">main.py:2309</td><td>下載已產出的設計提案 PDF；未產出回 404、檔案遺失回 410</td></tr>
 </tbody></table>
 
 <h2>5. Agent 需求訪談與家具選件</h2>
 <p class="meta">契約：<code>docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md</code></p>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/intake/start</code></td><td class="loc">main.py:2081</td><td>啟動需求訪談。回傳 <code>{session_id, mode, step, question, client_brief, ready_for_confirmation}</code></td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/intake/answer</code></td><td class="loc">main.py:2088</td><td>進行一輪訪談（可選 LLM，<code>llm_selection</code>）。回傳新的 <code>step</code>、<code>question</code>、<code>reply</code>、<code>client_brief</code></td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/furniture/select</code></td><td class="loc">main.py:2185</td><td>家具選件與規則驗證（LLM 或本地 fallback）。Body：<code>{rooms, offers, style_id, context, llm_selection}</code> → <code>{source, model, warnings, rooms[{room_id, items}]}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/intake/start</code></td><td class="loc">main.py:2697</td><td>啟動需求訪談。回傳 <code>{session_id, mode, step, question, client_brief, ready_for_confirmation}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/intake/answer</code></td><td class="loc">main.py:2704</td><td>進行一輪訪談（可選 LLM，<code>llm_selection</code>）。回傳新的 <code>step</code>、<code>question</code>、<code>reply</code>、<code>client_brief</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/agent/furniture/select</code></td><td class="loc">main.py:2801</td><td>家具選件與規則驗證（LLM 或本地 fallback）。Body：<code>{rooms, offers, style_id, context, llm_selection}</code> → <code>{source, model, warnings, rooms[{room_id, items}]}</code></td></tr>
 </tbody></table>
 
 <h2>6. 場景生成與配置</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/generate</code></td><td class="loc">main.py:2249</td><td>生成 3D 場景：家具選件 + AN 擺放引擎。回傳 <code>{selected_furniture, scene_objects, placement_resolution_report, placement}</code></td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/layout</code></td><td class="loc">main.py:2295</td><td>使用者編輯後重算場景配置 → <code>{scene_objects}</code></td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/decorate</code></td><td class="loc">main.py:2414</td><td>依風格自動加入軟裝（地毯／植栽／燈具／布簾）→ <code>{scene_objects, decor_summary}</code>。可帶 <code>dismissed_roles: [role]</code> 跳過使用者刪除過的軟裝角色，不再自動補回</td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/validate</code></td><td class="loc">main.py:2568</td><td>驗證單件家具拖曳位置（碰撞／淨空）→ <code>{valid, message, conflicts}</code></td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/scene/provider-status</code></td><td class="loc">main.py:2076</td><td>查詢 OpenRouter／LLM 服務狀態</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/scene/bootstrap</code></td><td class="loc">main.py:1939</td><td>場景編輯初始化資料 → <code>{styles, taiwan_style_cards, surface_catalog, catalog_status}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/generate</code></td><td class="loc">main.py:2865</td><td>生成 3D 場景：家具選件 + AN 擺放引擎。回傳 <code>{selected_furniture, scene_objects, placement_resolution_report, placement}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/layout</code></td><td class="loc">main.py:2916</td><td>使用者編輯後重算場景配置 → <code>{scene_objects}</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/decorate</code></td><td class="loc">main.py:3068</td><td>依風格自動加入軟裝（地毯／植栽／燈具／布簾）→ <code>{scene_objects, decor_summary}</code>。可帶 <code>dismissed_roles: [role]</code> 跳過使用者刪除過的軟裝角色，不再自動補回</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/scene/validate</code></td><td class="loc">main.py:3267</td><td>驗證單件家具拖曳位置（碰撞／淨空）→ <code>{valid, message, conflicts}</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/scene/provider-status</code></td><td class="loc">main.py:2692</td><td>查詢 OpenRouter／LLM 服務狀態</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/scene/bootstrap</code></td><td class="loc">main.py:2546</td><td>場景編輯初始化資料 → <code>{styles, taiwan_style_cards, surface_catalog, catalog_status}</code></td></tr>
 </tbody></table>
 
 <h2>7. 家具型錄</h2>
 <p class="meta">契約：<code>docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md</code></p>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture</code></td><td class="loc">main.py:1983</td><td>型錄搜尋（分頁／篩選）。Query：<code>style</code>、<code>group</code>、<code>type</code>、<code>q</code>、<code>page</code>、<code>page_size</code>、<code>has_model</code>、<code>detail</code>、<code>color</code>、<code>material</code>、<code>size</code></td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/model</code></td><td class="loc">main.py:2582</td><td>下載家具 GLB（本機直傳或 CloudFront 重定向）</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/model.gltf</code></td><td class="loc">main.py:2588</td><td>將 GLB 拆為 glTF JSON + 分離 buffer（本機 GLB 用）</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/buffer.bin</code></td><td class="loc">main.py:2597</td><td>下載 GLB binary buffer</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/images/{image_index}</code></td><td class="loc">main.py:2607</td><td>下載 GLB 內嵌貼圖（WebP 自動轉 PNG）</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/sample-furniture</code></td><td class="loc">main.py:2732</td><td>列出範例 GLB 檔名</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{name}</code></td><td class="loc">main.py:2748</td><td>下載範例 GLB（<code>.glb</code> 結尾）或家具詳情頁 payload。<span class="badge-note">與上方 {furniture_id} 系列路由共用前綴，靠註冊順序與路徑後綴區分</span></td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/catalog/status</code></td><td class="loc">main.py:1898</td><td>型錄提供者狀態（本機／CloudFront／AWS）→ <code>{furniture, surfaces, doors, style_cards}</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture</code></td><td class="loc">main.py:2590</td><td>型錄搜尋（分頁／篩選）。Query：<code>style</code>、<code>group</code>、<code>type</code>、<code>q</code>、<code>page</code>、<code>page_size</code>、<code>has_model</code>、<code>detail</code>、<code>color</code>、<code>material</code>、<code>size</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/model</code></td><td class="loc">main.py:3281</td><td>下載家具 GLB（本機直傳或 CloudFront 重定向）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/model.gltf</code></td><td class="loc">main.py:3290</td><td>將 GLB 拆為 glTF JSON + 分離 buffer（本機 GLB 用）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/buffer.bin</code></td><td class="loc">main.py:3299</td><td>下載 GLB binary buffer</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/images/{image_index}</code></td><td class="loc">main.py:3309</td><td>下載 GLB 內嵌貼圖（WebP 自動轉 PNG）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/sample-furniture</code></td><td class="loc">main.py:3443</td><td>列出範例 GLB 檔名</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{name}</code></td><td class="loc">main.py:3459</td><td>下載範例 GLB（<code>.glb</code> 結尾）或家具詳情頁 payload。<span class="badge-note">與上方 {furniture_id} 系列路由共用前綴，靠註冊順序與路徑後綴區分</span></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/catalog/status</code></td><td class="loc">main.py:2505</td><td>型錄提供者狀態（本機／CloudFront／AWS）→ <code>{furniture, surfaces, doors, style_cards}</code></td></tr>
 </tbody></table>
 
 <h2>8. 風格與站點資料</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/home-data</code></td><td class="loc">main.py:1903</td><td>首頁資料（統計／前 6 風格／色卡）</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/styles</code></td><td class="loc">main.py:1921</td><td>全風格與統計（含表面型錄、各風格家具數）</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/site-data</code></td><td class="loc">main.py:1861</td><td>完整站點資料（不含家具清單）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/home-data</code></td><td class="loc">main.py:2510</td><td>首頁資料（統計／前 6 風格／色卡）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/styles</code></td><td class="loc">main.py:2528</td><td>全風格與統計（含表面型錄、各風格家具數）</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/site-data</code></td><td class="loc">main.py:2444</td><td>完整站點資料（不含家具清單）</td></tr>
 </tbody></table>
 
 <h2>9. 問卷圖像系統</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/questionnaire/visual-catalog</code></td><td class="loc">main.py:1949</td><td>問卷視覺型錄（含圖像索引）。Query：<code>space_type</code>、<code>ready_only</code></td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/questionnaire/visual-images/{image_id}</code></td><td class="loc">main.py:1972</td><td>下載單張問卷圖像</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/questionnaire/visual-catalog</code></td><td class="loc">main.py:2556</td><td>問卷視覺型錄（含圖像索引）。Query：<code>space_type</code>、<code>ready_only</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/questionnaire/visual-images/{image_id}</code></td><td class="loc">main.py:2579</td><td>下載單張問卷圖像</td></tr>
 </tbody></table>
 
 <h2>10. 平面圖分析（3D 編輯器用，非專案綁定）</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/plans</code></td><td class="loc">main.py:2622</td><td>列出可用平面圖</td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/plan</code></td><td class="loc">main.py:2627</td><td>解析指定 DXF。Query：<code>name</code>、<code>scale_m</code>、<code>thickness</code>、<code>height</code></td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/upload</code></td><td class="loc">main.py:2643</td><td>直接上傳並解析 DXF</td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/floorplan/analyze</code></td><td class="loc">main.py:2666</td><td>新版平面圖分析（Cody + 手動修正）。multipart：檔案 + <code>calibration_json</code>、<code>ocr_json</code>、<code>geometry_json</code>、<code>observed_utilities_json</code>、<code>brief_json</code></td></tr>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/floorplan/confirm</code></td><td class="loc">main.py:2707</td><td>確認分析結果並套用使用者修正 → <code>{confirmed_floorplan}</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/plans</code></td><td class="loc">main.py:3324</td><td>列出可用平面圖</td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/plan</code></td><td class="loc">main.py:3329</td><td>解析指定 DXF。Query：<code>name</code>、<code>scale_m</code>、<code>thickness</code>、<code>height</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/upload</code></td><td class="loc">main.py:3345</td><td>直接上傳並解析 DXF</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/floorplan/analyze</code></td><td class="loc">main.py:3375</td><td>新版平面圖分析（Cody + 手動修正）。multipart：檔案 + <code>calibration_json</code>、<code>ocr_json</code>、<code>geometry_json</code>、<code>observed_utilities_json</code>、<code>brief_json</code></td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/floorplan/confirm</code></td><td class="loc">main.py:3418</td><td>確認分析結果並套用使用者修正 → <code>{confirmed_floorplan}</code></td></tr>
 </tbody></table>
 
 <h2>11. 其他</h2>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
-<tr><td><span class="m POST">POST</span></td><td><code>/api/cost/estimate</code></td><td class="loc">main.py:2720</td><td>概念工程概算（台灣公開行情）。Body：<code>{items}</code> → <code>{estimate, summary}</code></td></tr>
-<tr><td><span class="m GET">GET</span></td><td><code>/api/floorplan/sample/630</code></td><td class="loc">main.py:1850</td><td>下載示範平面圖 PNG</td></tr>
+<tr><td><span class="m POST">POST</span></td><td><code>/api/cost/estimate</code></td><td class="loc">main.py:3431</td><td>概念工程概算（台灣公開行情）。Body：<code>{items}</code> → <code>{estimate, summary}</code></td></tr>
+<tr><td><span class="m GET">GET</span></td><td><code>/api/floorplan/sample/630</code></td><td class="loc">main.py:2433</td><td>下載示範平面圖 PNG</td></tr>
 </tbody></table>
 
 <h2>相關契約文件對照</h2>

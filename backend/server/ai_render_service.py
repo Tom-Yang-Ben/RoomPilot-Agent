@@ -121,7 +121,9 @@ def _room_dims(scene: dict) -> tuple[float, float]:
 
 
 def _placed_rows(objects: list[dict]) -> list[dict]:
-    """取 genpic 畫面描述需要的欄位：名稱、類型與材質（數值與座標不進提示詞）。"""
+    """取 genpic 畫面描述需要的欄位：名稱、類型、材質與型錄外觀描述
+    （數值與座標不進提示詞）。``description`` 是 Kai 型錄的 VLM 描述，
+    由 genpic_info 裁成純外觀敘述後入提示詞。"""
     return [
         {
             "id": obj.get("id") or obj.get("furniture_id") or "",
@@ -131,6 +133,7 @@ def _placed_rows(objects: list[dict]) -> list[dict]:
             or "家具",
             "type": obj.get("normalized_type") or "",
             "material": str(obj.get("material") or "").strip(),
+            "description": str(obj.get("description") or "").strip(),
         }
         for obj in objects
     ]

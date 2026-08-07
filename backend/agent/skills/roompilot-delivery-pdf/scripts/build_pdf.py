@@ -147,6 +147,26 @@ def render_whats_new(wn, no='01'):
 </section>"""
 
 
+def render_table(table):
+    """通用表格（目前用於全案速覽的空間一覽）：columns + rows，沿用規格表樣式。
+
+    速覽只放四五格事實會整頁發空，而屋主翻開最想先看到的就是「哪幾間、多大、
+    放了什麼」。把它列成一張表比再多寫兩段形容詞有用。
+    """
+    if not isinstance(table, dict):
+        return ""
+    rows = [r for r in (table.get("rows") or []) if r]
+    if not rows:
+        return ""
+    head = "".join(f"<th>{esc(c)}</th>" for c in (table.get("columns") or []))
+    head_html = f"<tr>{head}</tr>" if head else ""
+    body = "".join(
+        "<tr>" + "".join(f"<td>{esc(cell)}</td>" for cell in row) + "</tr>"
+        for row in rows
+    )
+    return f'<table class="spec">{head_html}{body}</table>'
+
+
 def render_overview(ov, base_dir, no='02'):
     facts = "".join(
         f'<div><span class="k">{esc(f.get("label"))}</span><span class="v">{esc(f.get("value"))}</span></div>'
@@ -161,6 +181,7 @@ def render_overview(ov, base_dir, no='02'):
   {section_head(no, ov.get('title', '全案速覽'), ov.get('title_en', 'At a Glance'))}
   {para(ov.get('intro'))}
   {facts_html}
+  {render_table(ov.get('table'))}
   {plan}
 </section>"""
 

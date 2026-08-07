@@ -1,6 +1,5 @@
-# 交付提案 PDF（roompilot-delivery-pdf 打包 skill）排版引擎的選用依賴。
-# 未安裝時第 8 步「產出兩份成果報告」的交付提案版會回 503 並附本安裝指引；
-# 八章設計手冊（Pillow 排版）不受影響。
+# 設計提案 PDF（roompilot-delivery-pdf 打包 skill）排版引擎的依賴。
+# 未安裝時第 8 步「產出設計提案」會回 503 並附本安裝指引。
 #
 # 安裝：
 #   uv pip install --python .venv\Scripts\python.exe -r requirements-delivery.txt

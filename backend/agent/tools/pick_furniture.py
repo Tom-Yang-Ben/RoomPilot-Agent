@@ -244,6 +244,8 @@ class PickFurnitureTool:
             hint=hint,
             clearance=candidate.clearance,
             reason=reason,
+            description=candidate.description,
+            material=candidate.material,
         )
 
     def _fill_anchors(self, doc: FurnitureListDoc) -> None:

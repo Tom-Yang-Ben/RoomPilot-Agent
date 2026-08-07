@@ -29,14 +29,32 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
 
 
 def test_space_editor_exposes_only_the_canonical_room_taxonomy() -> None:
+    """房名下拉的唯一權威是 scene_v2.js 的 ROOM_NAME_OPTIONS。
+
+    ben 步驟 1–4 移植前，scene.html 自己寫死 12 個 <option>，與這張 10 類表
+    脫鉤：6 個選項存不進去、4 個 id 無法回顯。現在 select 留空由
+    renderRoomNameSelect() 生成，值域檢查因此改看 JS 表。
+    """
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     expected = {
         "entryway", "living_room", "kitchen", "bedroom", "bathroom",
         "storage", "balcony", "hallway", "stair", "garage",
     }
-    actual = set(re.findall(r'<option value="([a-z_]+)">', html))
-    assert expected <= actual
-    assert not {"dining_room", "primary_bedroom", "secondary_bedroom", "multi_purpose", "circulation", "study"} & actual
+    legacy = {
+        "dining_room", "primary_bedroom", "secondary_bedroom",
+        "multi_purpose", "circulation", "study",
+    }
+
+    assert '<select id="room-name"></select>' in html
+    assert "function renderRoomNameSelect(room)" in source
+    assert "renderRoomNameSelect(selectedRoom)" in source
+    assert "ROOM_NAME_OPTIONS.map" in source
+
+    table = source.split("const ROOM_NAME_OPTIONS = Object.freeze([", 1)[1].split("]);", 1)[0]
+    actual = set(re.findall(r'id:\s*"([a-z_]+)"', table))
+    assert expected == actual
+    assert not legacy & set(re.findall(r'<option value="([a-z_]+)">', html))
 
 
 def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
@@ -1341,7 +1359,7 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "selectedFurniture.filter((item) => item.model_url)" in viewer
     assert "尚未找到可用的資料庫 GLB" in viewer
     assert "selected_furniture_exact: !allowPendingFurniture" in viewer
-    assert "完成需求並建立 2D+3D 配置" in html
+    assert "完成需求，建立配置方案" in html
 
 
 def test_requirement_generation_defers_a_single_failed_room_without_breaking_step_six() -> None:
@@ -2278,22 +2296,30 @@ def test_structure_legend_uses_heading_space_and_window_markers_match_review_num
     assert '$("#plan-structure-legend").hidden = rooms;' in source
 
 
-def test_room_editor_is_embedded_in_the_plan_heading() -> None:
+def test_room_editor_exists_exactly_once_inside_the_guided_review_card() -> None:
+    """房間編輯器只有一份，且在第 4 步引導卡裡（ben 步驟 1–4 移植）。
+
+    先前這一份掛在圖面標題工具列，另一份留在引導卡：七組 id 重複，
+    querySelector 一半接到工具列、一半接到引導卡。移植後統一收在
+    `#current-room-review`，圖面標題只留「查看全部空間框選」。
+    """
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
-    stage_start = html.index('id="space-plan-stage"')
     heading_html = _space_heading_html(html)
+    card_start = html.index('id="current-room-review"')
+    card_end = html.index('id="room-list"')
 
     assert 'class="rp-plan-heading-tools"' in heading_html
-    assert 'id="room-editor"' in heading_html
-    assert 'class="rp-editor-box rp-room-toolbar-editor"' in heading_html
-    assert 'id="room-editor"' not in html[stage_start:]
+    assert html.count('id="room-editor"') == 1
+    assert 'id="room-editor"' not in heading_html
+    assert 'id="room-editor"' in html[card_start:card_end]
+    assert 'class="rp-room-review-editor"' in html[card_start:card_end]
     assert ".rp-room-floating-editor" not in css
     assert "#space-step .rp-plan-heading-tools" in css
     assert "#space-step .rp-room-editor-summary" in css
+    assert "#space-step .rp-guided-room-review .rp-room-editor-summary" in css
     assert "display: contents" in css
     assert "#space-step #show-all-rooms" in css
-    assert "height: 38px" in css
 
 
 def test_all_structure_kinds_share_numbering_sizing_and_crud_contract() -> None:
@@ -2480,7 +2506,10 @@ def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() ->
     assert 'data-room-geometry-mode="split"' in html
     assert 'id="apply-room-merge"' in html
     assert 'id="cancel-room-geometry"' in html
-    assert 'data-confirm-room="${escapeHtml(room.id)}"' in source
+    # 逐房確認改走引導卡：佇列只負責選取，確認由「確認並查看下一間」發動。
+    assert 'data-room-id="${escapeHtml(room.id)}"' in source
+    assert 'id="confirm-current-room"' in html
+    assert "function confirmCurrentRoomAndAdvance()" in source
     assert 'state.spaceMode === "structure" ? renderStructureSvg() : ""' in source
     assert "function confirmRoom(roomId)" in source
     assert "function mergeSelectedRooms()" in source

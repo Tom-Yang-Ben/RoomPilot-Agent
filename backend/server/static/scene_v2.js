@@ -11,6 +11,11 @@ import {
   repairLoadedRoomPolygon,
 } from "./scene_room_geometry.js?v=sha256-d863939b9c06";
 import {
+  reviewItemsFromAnalysis,
+  reviewReasonLabel,
+  unresolvedReviewRooms,
+} from "./scene_recognition_review.js?v=sha256-14ba9b03b7c5";
+import {
   createWorkflow,
   restoreWorkflow,
   shouldReplayPendingSave,
@@ -316,7 +321,16 @@ const element = {
   calibrationReadout: $("#calibration-readout"),
   scaleError: $("#scale-error"),
   applyCalibration: $("#apply-floorplan-calibration"),
+  resetCalibration: $("#reset-floorplan-calibration"),
+  calibrationPointTask: $("#calibration-task-points"),
+  calibrationMeasureTask: $("#calibration-task-measure"),
+  calibrationConfirmTask: $("#calibration-task-confirm"),
+  calibrationPointStatus: $("#calibration-task-points-status"),
+  calibrationMeasureStatus: $("#calibration-task-measure-status"),
+  calibrationConfirmStatus: $("#calibration-task-confirm-status"),
   recognitionSummary: $("#recognition-summary"),
+  recognitionReviewSummary: $("#recognition-review-summary"),
+  recognitionReviewList: $("#recognition-review-list"),
   spaceImage: $("#space-plan-image"),
   spaceStage: $("#space-plan-stage"),
   spaceOverlay: $("#space-plan-overlay"),
@@ -340,6 +354,10 @@ const element = {
   roomName: $("#room-name"),
   roomArea: $("#room-area"),
   roomConfirmationProgress: $("#room-confirmation-progress"),
+  currentRoomReview: $("#current-room-review"),
+  currentRoomStatus: $("#current-room-status"),
+  skipCurrentRoom: $("#skip-current-room"),
+  confirmCurrentRoom: $("#confirm-current-room"),
   roomGeometryGuidance: $("#room-geometry-guidance"),
   roomNodeGuidance: $("#room-node-guidance"),
   structureCounts: $("#structure-counts"),
@@ -347,6 +365,9 @@ const element = {
   structureEditor: $("#selected-structure-editor"),
   openingWidthSlider: $("#opening-width-slider"),
   openingWidthValue: $("#opening-width-value"),
+  spaceCompletionSummary: $("#space-completion-summary"),
+  spaceCompletionHint: $("#space-completion-hint"),
+  confirmSpace: $("#confirm-space"),
   spaceError: $("#space-error"),
   wholeHouseFields: $("#whole-house-fields"),
   wholeHouseStyleTabs: $("#whole-house-style-tabs"),
@@ -471,6 +492,9 @@ const element = {
   renderBriefSummary: $("#render-brief-summary"),
   renderBriefNotes: $("#render-brief-notes"),
   renderBriefWarning: $("#render-brief-warning"),
+  designDeliveryDialog: $("#design-delivery-dialog"),
+  designDeliveryContent: $("#design-delivery-content"),
+  roomSchemeProgress: $("#room-scheme-progress"),
   objectList: $("#scene-object-list"),
   realisticObjectList: $("#realistic-scene-object-list"),
   glbResults: $("#glb-search-results"),
@@ -513,10 +537,8 @@ const element = {
   aiOpenrouterEditRoom: $("#ai-openrouter-edit-room"),
   aiOpenrouterEditFeedback: $("#ai-openrouter-edit-feedback"),
   aiOpenrouterEditStatus: $("#ai-openrouter-edit-status"),
-  designManualStatus: $("#design-manual-status"),
-  designManualGenerate: $("#design-manual-generate"),
-  designManualDownload: $("#design-manual-download"),
   deliveryProposalStatus: $("#delivery-proposal-status"),
+  deliveryProposalGenerate: $("#delivery-proposal-generate"),
   deliveryProposalDownload: $("#delivery-proposal-download"),
 };
 
@@ -1587,7 +1609,7 @@ async function confirmUpload() {
       doors: state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0,
       windows: state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0,
     };
-    element.recognitionSummary.textContent = `辨識結果：牆 ${count.walls}、門 ${count.doors}、窗 ${count.windows}`;
+    element.recognitionSummary.textContent = `辨識結果：牆 ${count.walls}、門 ${count.doors}、窗 ${count.windows}${recognitionReviewSuffix()}`;
     if (Number(state.analysis.scale?.distance_cm) > 0) {
       element.scaleInput.value = Number(state.analysis.scale.distance_cm);
     } else if (Number(state.analysis.scale?.distance_m) > 0) {
@@ -1739,13 +1761,24 @@ function renderCalibration() {
   element.scaleOverlay.innerHTML = `${line}${points}`;
   if (start && end) {
     const pixels = Math.hypot(end.x - start.x, end.y - start.y);
-    element.calibrationReadout.textContent = `已定位兩點，圖上距離 ${pixels.toFixed(1)} px。可拖曳圓點微調。`;
+    element.calibrationReadout.textContent = pixels > 0
+      ? `兩個端點已選好，圖上距離 ${pixels.toFixed(1)} px；仍可拖曳微調。`
+      : "兩個端點重疊，請拖曳其中一點。";
   } else if (start) {
-    element.calibrationReadout.textContent = "已定位起點，請再點一下終點。";
+    element.calibrationReadout.textContent = "起點已選好，請再點一下終點。";
   } else {
-    element.calibrationReadout.textContent = "尚未定位兩點，請先點起點。";
+    element.calibrationReadout.textContent = "請先在圖面點選起點。";
   }
   updateCalibrationAction();
+}
+
+function setCalibrationTaskState(task, status, stateName, label) {
+  task.classList.toggle("is-active", stateName === "active");
+  task.classList.toggle("is-complete", stateName === "complete");
+  task.classList.toggle("is-pending", stateName === "pending");
+  if (stateName === "active") task.setAttribute("aria-current", "step");
+  else task.removeAttribute("aria-current");
+  status.textContent = label;
 }
 
 function updateCalibrationAction({ showMessage = true } = {}) {
@@ -1753,9 +1786,36 @@ function updateCalibrationAction({ showMessage = true } = {}) {
     state.calibrationPoints,
     element.scaleInput.value,
   );
+  const [start, end] = state.calibrationPoints;
+  const pixelDistance = start && end
+    ? Math.hypot(end.x - start.x, end.y - start.y)
+    : 0;
+  const pointsReady = state.calibrationPoints.length === 2 && pixelDistance > 0;
+  const measurementReady = pointsReady && Number(element.scaleInput.value) > 0;
+
+  element.scaleInput.disabled = !pointsReady;
+  element.resetCalibration.hidden = state.calibrationPoints.length === 0;
+  setCalibrationTaskState(
+    element.calibrationPointTask,
+    element.calibrationPointStatus,
+    pointsReady ? "complete" : "active",
+    pointsReady ? "完成" : "進行中",
+  );
+  setCalibrationTaskState(
+    element.calibrationMeasureTask,
+    element.calibrationMeasureStatus,
+    measurementReady ? "complete" : pointsReady ? "active" : "pending",
+    measurementReady ? "完成" : pointsReady ? "進行中" : "待選點",
+  );
+  setCalibrationTaskState(
+    element.calibrationConfirmTask,
+    element.calibrationConfirmStatus,
+    action.ready ? "active" : "pending",
+    action.ready ? "可確認" : "待完成",
+  );
   element.applyCalibration.disabled = !action.ready;
   if (showMessage) {
-    element.scaleError.textContent = action.message;
+    element.scaleError.textContent = pointsReady ? action.message : "";
     element.scaleError.dataset.kind = action.ready ? "ready" : "instruction";
   }
   return action;
@@ -2623,51 +2683,132 @@ function roomReviewHint(room) {
   if (reasons.includes("room_icon_low_confidence")) {
     return "圖示辨識信心不足，請確認空間名稱。";
   }
+  // 統一複核清單（spatial_report.review_items）的理由。圖示層的提示比較具體
+  // 所以在前面優先；沒有圖示提示時退到這裡，幾何信心與不規則形狀只有這一層。
+  const reviewReasons = reviewReasonsForRoom(room.id);
+  if (reviewReasons.length) return reviewReasonLabel(reviewReasons[0]);
   return "";
 }
 
+function analysisReviewItems() {
+  return reviewItemsFromAnalysis(state.analysis);
+}
+
+function reviewReasonsForRoom(roomId) {
+  const key = String(roomId);
+  const reasons = [];
+  for (const item of analysisReviewItems()) {
+    if (String(item.room_id) !== key) continue;
+    if (!reasons.includes(item.reason)) reasons.push(item.reason);
+  }
+  return reasons;
+}
+
+function unresolvedRecognitionReviewRooms() {
+  return unresolvedReviewRooms(analysisReviewItems(), state.rooms);
+}
+
+function recognitionReviewSuffix() {
+  const items = analysisReviewItems();
+  if (!items.length) return "";
+  // 第 3 步時 state.rooms 尚未 ingestion，以房間清單為基準會算成 0；
+  // 房間還沒進來就直接數被標記的房間數。
+  const flagged = state.rooms.length
+    ? unresolvedReviewRooms(items, state.rooms).length
+    : new Set(items.map((item) => String(item.room_id))).size;
+  return flagged ? `；系統標記 ${flagged} 間房需人工複核` : "";
+}
+
+function renderRecognitionReviewSummary() {
+  if (!element.recognitionReviewSummary || !element.recognitionReviewList) return;
+  const pending = unresolvedRecognitionReviewRooms();
+  element.recognitionReviewSummary.hidden = pending.length === 0;
+  if (!pending.length) {
+    element.recognitionReviewList.innerHTML = "";
+    return;
+  }
+  element.recognitionReviewList.innerHTML = pending.map(({ room, reasons }) => `
+    <li class="rp-review-summary-item">
+      <button type="button" data-review-room-id="${escapeHtml(room.id)}" class="rp-review-room-jump">
+        <strong>${escapeHtml(room.label || "未命名空間")}</strong>
+        ${reasons.map((reason) => `<small>${escapeHtml(reviewReasonLabel(reason))}</small>`).join("")}
+      </button>
+    </li>
+  `).join("");
+}
+
+// 標題列與畫布工具列各有一顆「查看全部空間」。以前兩顆共用同一個 id，
+// $() 只會抓到第一顆，第二顆完全沒有綁定也不會更新狀態。
+const SHOW_ALL_ROOMS_BUTTONS = ["#show-all-rooms", "#show-all-rooms-canvas"];
+
 function updateShowAllRoomsButton() {
-  const button = $("#show-all-rooms");
-  if (!button) return;
   const hasMultipleRooms = state.rooms.length > 1;
-  button.disabled = !hasMultipleRooms;
-  button.setAttribute(
-    "aria-disabled",
-    hasMultipleRooms ? "false" : "true",
-  );
-  button.title = hasMultipleRooms
-    ? "顯示所有已框選的空間"
-    : "目前只有一個空間，沒有其他框選可顯示";
+  SHOW_ALL_ROOMS_BUTTONS.map((selector) => $(selector)).filter(Boolean).forEach((button) => {
+    button.disabled = !hasMultipleRooms;
+    button.setAttribute(
+      "aria-disabled",
+      hasMultipleRooms ? "false" : "true",
+    );
+    button.title = hasMultipleRooms
+      ? "顯示所有已框選的空間"
+      : "目前只有一個空間，沒有其他框選可顯示";
+  });
+}
+
+function roomsAfter(roomId) {
+  const currentIndex = state.rooms.findIndex((room) => room.id === roomId);
+  if (currentIndex < 0) return [...state.rooms];
+  return [
+    ...state.rooms.slice(currentIndex + 1),
+    ...state.rooms.slice(0, currentIndex),
+  ];
+}
+
+function nextRoomForReview(roomId) {
+  return roomsAfter(roomId).find((room) => room.confirmed !== true) || null;
+}
+
+function nextRoomInQueue(roomId) {
+  return roomsAfter(roomId)[0] || null;
 }
 
 function renderRooms() {
-  element.roomList.innerHTML = state.rooms.map((room) => {
+  if (!state.rooms.some((room) => room.id === state.selectedRoomId)) {
+    state.selectedRoomId = state.rooms[0]?.id || null;
+  }
+  const selectedRoom = state.rooms.find((room) => room.id === state.selectedRoomId) || null;
+  const currentIndex = selectedRoom
+    ? state.rooms.findIndex((room) => room.id === selectedRoom.id)
+    : -1;
+  const queuedRooms = state.rooms.filter((room) => room.id !== state.selectedRoomId);
+  element.roomList.innerHTML = queuedRooms.length ? queuedRooms.map((room) => {
     const dimensions = roomDimensions(room);
-    const active = room.id === state.selectedRoomId;
     const merging = state.mergeRoomIds.includes(room.id);
     const reviewHint = roomReviewHint(room);
+    const roomIndex = state.rooms.findIndex((item) => item.id === room.id);
     return `
-      <article class="rp-room-item ${active ? "is-active" : ""} ${merging ? "is-merge-selected" : ""}">
+      <article class="rp-room-item rp-room-queue-item ${merging ? "is-merge-selected" : ""}">
         <button type="button" data-room-id="${escapeHtml(room.id)}" class="rp-room-select">
-          <strong>${escapeHtml(room.label)}</strong>
-          <span>${dimensions.areaM2.toFixed(2)} m²</span>
-          <small>${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm</small>
-          <small>${room.confirmed ? "已確認" : `信心 ${(Number(room.confidence || room.polygon_confidence || 0.7) * 100).toFixed(0)}%`}</small>
+          <span class="rp-room-queue-index">${roomIndex + 1}</span>
+          <span class="rp-room-queue-copy">
+            <strong>${escapeHtml(room.label)}</strong>
+            <small>${dimensions.areaM2.toFixed(2)} m² · ${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm</small>
+          </span>
+          <span class="rp-room-queue-status ${room.confirmed ? "is-confirmed" : ""}">
+            ${room.confirmed ? "已確認" : "待確認"}
+          </span>
           ${reviewHint ? `<small class="rp-room-review-hint">${escapeHtml(reviewHint)}</small>` : ""}
-        </button>
-        <button type="button" data-confirm-room="${escapeHtml(room.id)}"
-          class="rp-room-confirm ${room.confirmed ? "is-confirmed" : ""}">
-          ${room.confirmed ? "已確認" : "確認"}
-        </button>
-        <button type="button" data-delete-room="${escapeHtml(room.id)}" class="rp-room-delete danger-action">
-          刪除
         </button>
       </article>
     `;
-  }).join("");
+  }).join("") : '<p class="rp-room-queue-empty">沒有其他房間。</p>';
   const confirmedCount = state.rooms.filter((room) => room.confirmed).length;
   element.roomConfirmationProgress.textContent =
-    `已確認 ${confirmedCount} / ${state.rooms.length} 個房間`;
+    `${currentIndex + 1} / ${state.rooms.length}`;
+  element.roomConfirmationProgress.setAttribute(
+    "aria-label",
+    `目前第 ${Math.max(0, currentIndex + 1)} 個房間，已確認 ${confirmedCount} / ${state.rooms.length} 個房間`,
+  );
   const confirmAllRoomsButton = $("#confirm-all-rooms");
   if (confirmAllRoomsButton) {
     const allConfirmed = state.rooms.length > 0 && confirmedCount === state.rooms.length;
@@ -2676,17 +2817,27 @@ function renderRooms() {
       ? "全部房間已確認"
       : "一鍵確認全部房間";
   }
+  const deleteCurrentRoomButton = $("#delete-current-room");
+  if (deleteCurrentRoomButton) deleteCurrentRoomButton.disabled = state.rooms.length <= 1;
+  renderRecognitionReviewSummary();
   updateShowAllRoomsButton();
-  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
-  if (room) {
-    const dimensions = roomDimensions(room);
+  element.currentRoomReview.hidden = !selectedRoom;
+  if (selectedRoom) {
+    const dimensions = roomDimensions(selectedRoom);
     element.roomEditor.hidden = false;
-    element.roomName.value = roomNameOptionFor(room).id;
+    // disabled 是閂鎖：else 分支鎖上後，沒有這兩行就永遠不會解鎖——任何
+    // 一次無選中房間的渲染（如還原時的輪廓修復重算）都會把按鈕鎖死。
+    element.skipCurrentRoom.disabled = false;
+    element.confirmCurrentRoom.disabled = false;
+    renderRoomNameSelect(selectedRoom);
     element.roomArea.textContent =
       `系統依目前框選計算：${dimensions.widthCm.toFixed(0)} × ${dimensions.depthCm.toFixed(0)} cm，${dimensions.areaM2.toFixed(2)} m²`;
   } else {
     element.roomEditor.hidden = true;
+    element.skipCurrentRoom.disabled = true;
+    element.confirmCurrentRoom.disabled = true;
   }
+  updateSpaceCompletionState();
 }
 
 function confirmRoom(roomId) {
@@ -2704,9 +2855,46 @@ function confirmRoom(roomId) {
   setStatus(`已確認「${room.label}」；請繼續確認其他房間。`);
 }
 
+function openStructureReview() {
+  const structureTab = $("[data-space-tab='structure']");
+  if (structureTab && !structureTab.classList.contains("is-active")) structureTab.click();
+}
+
+function confirmCurrentRoomAndAdvance() {
+  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
+  if (!room) return;
+  if (room.confirmed !== true) confirmRoom(room.id);
+  const nextRoom = nextRoomForReview(room.id);
+  if (nextRoom) {
+    selectRoom(nextRoom.id);
+    setStatus(`已確認「${room.label}」；接著檢查「${nextRoom.label}」。`);
+    return;
+  }
+  openStructureReview();
+  setStatus("所有房間都已確認；接著檢查牆、門、窗、樑與柱。");
+}
+
+function skipCurrentRoomReview() {
+  const room = state.rooms.find((item) => item.id === state.selectedRoomId);
+  if (!room) return;
+  const nextRoom = nextRoomForReview(room.id) || nextRoomInQueue(room.id);
+  if (!nextRoom) {
+    setStatus("目前只有這一個房間，請確認名稱與範圍後繼續。");
+    return;
+  }
+  selectRoom(nextRoom.id);
+  setStatus(`已暫時略過「${room.label}」；目前檢查「${nextRoom.label}」。`);
+}
+
 function confirmAllRooms() {
   if (!state.rooms.length) return;
-  state.rooms.forEach((room) => {
+  // 系統標記需複核的房間不吃一鍵確認：複核訊號的意義就是「這幾間要人看過」，
+  // 讓它們留在待確認狀態，逐一經 confirmRoom 才算數。
+  const flaggedIds = new Set(
+    unresolvedRecognitionReviewRooms().map(({ room }) => String(room.id)),
+  );
+  const confirmable = state.rooms.filter((room) => !flaggedIds.has(String(room.id)));
+  confirmable.forEach((room) => {
     room.confirmed = true;
     room.confidence = 1;
     room.source = "manual_confirmation";
@@ -2716,7 +2904,11 @@ function confirmAllRooms() {
   renderRooms();
   renderSpaceOverlay();
   scheduleSave("space_confirmation");
-  setStatus(`已一次確認 ${state.rooms.length} 個房間；仍可逐房修改名稱或框選。`);
+  setStatus(
+    flaggedIds.size
+      ? `已確認 ${confirmable.length} 個房間；另有 ${flaggedIds.size} 間被系統標記需逐一檢查，清單見「系統標記需人工複核」。`
+      : `已一次確認 ${state.rooms.length} 個房間；仍可逐房修改名稱或框選。`,
+  );
 }
 
 function deleteRoom(roomId = state.selectedRoomId) {
@@ -3093,6 +3285,40 @@ const structureCollections = {
   column: "columns",
 };
 
+function updateSpaceCompletionState() {
+  if (!element.confirmSpace) return;
+  const confirmedRooms = state.rooms.filter((room) => room.confirmed === true).length;
+  const pendingRooms = Math.max(0, state.rooms.length - confirmedRooms);
+  const pendingStructures = Object.values(structureCollections).reduce(
+    (total, collection) => total + (state.structures[collection] || [])
+      .filter((item) => item.confirmed !== true).length,
+    0,
+  );
+  const structuresAcknowledged = $("#structure-confirmed")?.checked === true;
+  const estimatedSizeAcknowledged = $("#estimated-size-ack")?.checked === true;
+  const ready = state.rooms.length > 0
+    && pendingRooms === 0
+    && pendingStructures === 0
+    && structuresAcknowledged
+    && estimatedSizeAcknowledged;
+
+  element.spaceCompletionSummary.textContent =
+    `已確認 ${confirmedRooms} / ${state.rooms.length} 個房間`;
+  if (!state.rooms.length) {
+    element.spaceCompletionHint.textContent = "目前沒有可確認的房間，請先新增或重新辨識空間。";
+  } else if (pendingRooms > 0) {
+    element.spaceCompletionHint.textContent = `尚有 ${pendingRooms} 個房間待確認。`;
+  } else if (pendingStructures > 0) {
+    element.spaceCompletionHint.textContent = `房間已完成，尚有 ${pendingStructures} 個結構項目待確認。`;
+  } else if (!structuresAcknowledged || !estimatedSizeAcknowledged) {
+    element.spaceCompletionHint.textContent = "結構項目已完成，請勾選結構與估計尺寸確認。";
+  } else {
+    element.spaceCompletionHint.textContent = "房間與結構皆已確認，可以檢查尺寸標註。";
+  }
+  element.confirmSpace.disabled = !ready;
+  element.confirmSpace.setAttribute("aria-disabled", ready ? "false" : "true");
+}
+
 function attachedOpeningUpdates(oldWall, newWall, openingSnapshots) {
   const oldDx = oldWall.end.x - oldWall.start.x;
   const oldDy = oldWall.end.y - oldWall.start.y;
@@ -3435,6 +3661,13 @@ function renderRoomSchemeSelectionDialog() {
   const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId)) || state.rooms[0];
   if (!room || !element.roomSchemeList) return;
   const selected = selectedSchemeForRoom(state.designSchemes, room.id);
+  const dialogTitle = $("#room-scheme-dialog-title");
+  if (dialogTitle) dialogTitle.textContent = `確認「${room.label || "此房間"}」的配置方案`;
+  if (element.roomSchemeProgress) {
+    const selectedRooms = state.rooms.filter((item) => state.designSchemes.room_selections?.[String(item.id)]).length;
+    const roomPosition = Math.max(1, state.rooms.findIndex((item) => String(item.id) === String(room.id)) + 1);
+    element.roomSchemeProgress.textContent = `進度 ${selectedRooms}/${state.rooms.length} 間 · 目前第 ${roomPosition} 間`;
+  }
   element.roomSchemeList.innerHTML = state.rooms.map((item) => {
     const selectedScheme = state.designSchemes.room_selections?.[String(item.id)];
     return `<button type="button" data-room-scheme-room="${escapeHtml(item.id)}"
@@ -5221,6 +5454,19 @@ function selectRoom(roomId) {
   renderSpaceOverlay();
 }
 
+function renderRoomNameSelect(room) {
+  // 選項一律由 ROOM_NAME_OPTIONS 生成。寫死在 scene.html 的舊 12 類會與這張表
+  // 脫鉤：臥室選不到、主臥／次臥等舊值按套用時被判成「請選擇空間名稱」。
+  if (!element.roomName) return;
+  const current = roomNameOptionFor(room || {}).id;
+  element.roomName.innerHTML = ROOM_NAME_OPTIONS.map(
+    (option) =>
+      `<option value="${escapeHtml(option.id)}" ${option.id === current ? "selected" : ""}>`
+      + `${escapeHtml(option.label)}</option>`,
+  ).join("");
+  element.roomName.value = current;
+}
+
 function saveRoom() {
   const room = state.rooms.find((item) => item.id === state.selectedRoomId);
   if (!room) return;
@@ -5519,6 +5765,7 @@ function renderStructureCounts() {
   element.structureCounts.textContent =
     `辨識＋人工修正：牆 ${s.walls.length}、門 ${s.doors.length}、窗 ${s.windows.length}、樑 ${s.beams.length}、柱 ${s.columns.length}${review}`;
   renderDoorReviewList();
+  updateSpaceCompletionState();
 }
 
 function confirmSpace() {
@@ -5526,8 +5773,8 @@ function confirmSpace() {
   if (!state.rooms.every((room) => room.confirmed === true)) {
     const pendingCount = state.rooms.filter((room) => !room.confirmed).length;
     element.spaceError.textContent =
-      `尚有 ${pendingCount} 個房間未確認，請逐一按右側房間的「確認」鍵。`;
-    element.roomList.querySelector("[data-confirm-room]:not(.is-confirmed)")?.focus();
+      `尚有 ${pendingCount} 個房間未確認，請依序檢查目前房間。`;
+    element.confirmCurrentRoom?.focus();
     return;
   }
   const pendingStructureKind = Object.keys(structureCollections).find((kind) => {
@@ -5641,6 +5888,10 @@ function confirmDimensionedPlan() {
     proportionsConfirmed: true,
     dimensionedPlanConfirmed: true,
     totalAreaM2: annotation.totalAreaM2,
+    // 完成當下不可能還有未複核房間（未確認的房間到不了這裡），記數字供
+    // 伺服器端 recognition_review_unresolved 閘門與之後追溯。
+    recognitionReviewItemCount: analysisReviewItems().length,
+    recognitionReviewResolved: true,
   });
   renderWholeHouseQuestionnaire();
   setStatus("尺寸標註平面圖與結構均已確認。現在開始基本問卷。");
@@ -8638,6 +8889,10 @@ function knownUnavailableCatalogFurnitureIds() {
   );
 }
 
+// 離屏檢視器是全域單例、驗證走同一條 glbThumbnailSequence 佇列，所以一個卡住
+// 的網址會擋住後面每一件。逾時就當作不可用，寧可少推薦一件也不要讓問卷停住。
+const CATALOG_MODEL_VERIFY_TIMEOUT_MS = 15_000;
+
 async function verifyQuestionnaireCatalogModel(offer) {
   const modelUrl = String(offer?.model_url || "");
   if (!modelUrl || unavailableCatalogModelUrls.has(modelUrl)) return false;
@@ -8646,8 +8901,26 @@ async function verifyQuestionnaireCatalogModel(offer) {
   glbThumbnailSequence = glbThumbnailSequence
     .catch(() => null)
     .then(async () => {
-      await glbThumbnailViewer.loadScene(glbThumbnailScene(offer));
-      available = !(glbThumbnailViewer.getDiagnostics()?.failedFurniture || []).length;
+      let timer = null;
+      try {
+        // loadScene 失敗必須在這裡收斂：讓它往外拋會連同整個房間的推薦一起
+        // 進 ensureQuestionnaireFurnitureRecommendations 的 catch，變成
+        // 「資料庫推薦暫時無法載入」而不是「這一件不能用」。
+        await Promise.race([
+          glbThumbnailViewer.loadScene(glbThumbnailScene(offer)),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error("catalog_model_verify_timeout")),
+              CATALOG_MODEL_VERIFY_TIMEOUT_MS,
+            );
+          }),
+        ]);
+        available = !(glbThumbnailViewer.getDiagnostics()?.failedFurniture || []).length;
+      } catch {
+        available = false;
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
       if (available) {
         verifiedCatalogModelUrls.add(modelUrl);
       } else {
@@ -8656,6 +8929,42 @@ async function verifyQuestionnaireCatalogModel(offer) {
     });
   await glbThumbnailSequence;
   return available;
+}
+
+/**
+ * 依序真的把候選的 GLB 載一次，回傳第一個載得動的（載不動就不推薦）。
+ *
+ * f0f1139f 為了問卷速度把這層拿掉、改成 model_load_verification: "deferred"，
+ * 但 verifyQuestionnaireCatalogModel 從此沒有呼叫點，兩個 Set 永遠是空的——
+ * 剩下的 Boolean(model_url) 只證明資料庫欄位有填字串，不證明抓得到。壞掉的
+ * GLB 因此一路混到第 6 步才被 confirmWhiteModel 硬擋住。
+ *
+ * 上游 catalogOffersForSpec 已用 questionnaireOffersWithSizeChoices 收斂到 4 件
+ * 以內，所以每個家具類型最多驗 4 次；驗過的網址進 verifiedCatalogModelUrls，
+ * 跨房間重複命中不會再載一次。
+ */
+async function firstVerifiedQuestionnaireOffer(offers, room, unavailableCatalogIds) {
+  const usable = (offers || []).filter((offer) => (
+    !unavailableCatalogIds.has(String(offer.furniture_id))
+    && Boolean(offer.model_url)
+    && !unavailableCatalogModelUrls.has(String(offer.model_url))
+  ));
+  // 先試放得進房間的；全部載不動時才退到放不下的候選，並照實標記 fit 風險。
+  const fitting = usable.filter((offer) => replacementCandidateFitsRoom(offer, room));
+  const fittingIds = new Set(fitting.map((offer) => String(offer.furniture_id)));
+  const ordered = [
+    ...fitting,
+    ...usable.filter((offer) => !fittingIds.has(String(offer.furniture_id))),
+  ];
+  for (const offer of ordered) {
+    if (!await verifyQuestionnaireCatalogModel(offer)) continue;
+    return {
+      ...offer,
+      room_fit_checked: fittingIds.has(String(offer.furniture_id)),
+      model_load_verified: true,
+    };
+  }
+  return null;
 }
 
 function renderQuestionnaireFurnitureRecommendations(room = activeQuestionnaireRoom()) {
@@ -8811,26 +9120,16 @@ async function ensureQuestionnaireFurnitureRecommendations(
       if (!offers.length) {
         offers = await catalogFallbackOffersForSpec(room, spec, index);
       }
-      let candidates = offers.filter((offer) =>
-        !unavailableCatalogIds.has(String(offer.furniture_id))
-        && Boolean(offer.model_url)
-        && !unavailableCatalogModelUrls.has(String(offer.model_url)),
-      );
-      if (!candidates.length) {
-        offers = await catalogFallbackOffersForSpec(room, spec, index);
-        candidates = offers.filter((offer) =>
-          !unavailableCatalogIds.has(String(offer.furniture_id))
-          && Boolean(offer.model_url)
-          && !unavailableCatalogModelUrls.has(String(offer.model_url)),
+      let picked = await firstVerifiedQuestionnaireOffer(offers, room, unavailableCatalogIds);
+      if (!picked) {
+        // 主候選全部載不動時再撈一次寬鬆候選，行為與原本的 candidates 二次查詢一致。
+        picked = await firstVerifiedQuestionnaireOffer(
+          await catalogFallbackOffersForSpec(room, spec, index),
+          room,
+          unavailableCatalogIds,
         );
       }
-      const fittingCandidates = candidates.filter((offer) => replacementCandidateFitsRoom(offer, room));
-      return questionnaireOffersWithSizeChoices(spec[0], candidates).map((offer) => ({
-        ...offer,
-        room_fit_checked: fittingCandidates.includes(offer),
-        model_load_verified: verifiedCatalogModelUrls.has(String(offer.model_url)),
-        model_load_verification: "deferred",
-      }));
+      return picked ? [picked] : [];
     }));
     let recommendedOffers = groups.flat();
     const program = questionnaireFurnitureProgram(room);
@@ -8843,18 +9142,9 @@ async function ensureQuestionnaireFurnitureRecommendations(
         if (!offers.length) {
           offers = await catalogFallbackOffersForSpec(room, [type, "standard"], specs.length + index);
         }
-        const candidates = offers.filter((offer) =>
-          !unavailableCatalogIds.has(String(offer.furniture_id))
-          && Boolean(offer.model_url)
-          && !unavailableCatalogModelUrls.has(String(offer.model_url))
-          && replacementCandidateFitsRoom(offer, room),
-        );
-        return questionnaireOffersWithSizeChoices(type, candidates).map((offer) => ({
-          ...offer,
-          room_fit_checked: true,
-          model_load_verified: verifiedCatalogModelUrls.has(String(offer.model_url)),
-          model_load_verification: "deferred",
-        }));
+        // 這一段是「補上預設家具」，放不進房間就沒有意義，維持硬性要求 fit。
+        const picked = await firstVerifiedQuestionnaireOffer(offers, room, unavailableCatalogIds);
+        return picked?.room_fit_checked ? [picked] : [];
       }));
       recommendedOffers = [...recommendedOffers, ...fallbackGroups.flat()];
     }
@@ -13072,7 +13362,7 @@ async function prepareAiRender() {
   }
   void refreshAiOpenrouterStatus();
   renderAiOpenrouterResults();
-  restoreDesignManualPanel();
+  restoreDeliveryProposalPanel();
 }
 
 // ---- 第 8 步：OpenRouter nano banana 逐房寫實生圖（不移動擺設）＋整批一次改圖 ----
@@ -13137,6 +13427,7 @@ async function runAiOpenrouterRender() {
     state.proposalReview.openRouterRenders = {
       results: result.results,
       editRemaining: result.edit_remaining,
+      generated_at: new Date().toISOString(),
     };
     const done = result.results.filter((row) => row.status === "completed").length;
     const failed = result.results.length - done;
@@ -13260,6 +13551,8 @@ async function submitAiOpenrouterEdit() {
     if (target) {
       target.image_data_url = result.result.image_data_url;
       target.notices = result.result.notices;
+      target.revision_image_data_url = result.result.image_data_url;
+      target.revision_submitted_at = new Date().toISOString();
     }
     data.editRemaining = result.edit_remaining;
     renderAiOpenrouterResults();
@@ -13283,7 +13576,7 @@ function roomBoundsCm(room) {
   };
 }
 
-function designManualRoomsPayload() {
+function deliveryRoomsPayload() {
   const results = state.proposalReview.openRouterRenders?.results || [];
   return state.rooms.map((room) => {
     const render = results.find(
@@ -13299,17 +13592,6 @@ function designManualRoomsPayload() {
   });
 }
 
-function showDesignManualDownload(record) {
-  if (!element.designManualDownload) return;
-  if (!record) {
-    element.designManualDownload.hidden = true;
-    return;
-  }
-  element.designManualDownload.href = `/api/projects/${state.projectId}/design-manual/pdf`;
-  element.designManualDownload.textContent = `下載設計手冊 PDF（${(record.sections || []).length || 8} 章）`;
-  element.designManualDownload.hidden = false;
-}
-
 function showDeliveryProposalDownload(record) {
   if (!element.deliveryProposalDownload) return;
   if (!record) {
@@ -13317,7 +13599,7 @@ function showDeliveryProposalDownload(record) {
     return;
   }
   element.deliveryProposalDownload.href = `/api/projects/${state.projectId}/delivery-proposal/pdf`;
-  element.deliveryProposalDownload.textContent = "下載交付提案 PDF（品牌版）";
+  element.deliveryProposalDownload.textContent = "下載設計提案 PDF";
   element.deliveryProposalDownload.hidden = false;
 }
 
@@ -13327,21 +13609,19 @@ function setDeliveryProposalStatus(text) {
   element.deliveryProposalStatus.hidden = !text;
 }
 
-function restoreDesignManualPanel() {
-  const workflow = state.project?.workflow || {};
-  showDesignManualDownload(workflow.design_manual);
-  showDeliveryProposalDownload(workflow.delivery_proposal);
-  if (workflow.design_manual && element.designManualStatus) {
-    element.designManualStatus.textContent = "已有先前產出的成果報告，可直接下載或重新產出取代紀錄。";
-  }
+function restoreDeliveryProposalPanel() {
+  const record = state.project?.workflow?.delivery_proposal;
+  showDeliveryProposalDownload(record);
+  setDeliveryProposalStatus(record
+    ? "已有先前產出的設計提案，可直接下載或重新產出取代紀錄。"
+    : "完成上方生圖後產出效果最好；未生圖也可先輸出文字版。");
   void checkDeliveryEngine();
 }
 
 async function checkDeliveryEngine() {
   try {
     const status = await api("/api/delivery-proposal/status");
-    if (!status.available) setDeliveryProposalStatus(status.reason || "交付提案排版引擎尚未安裝。");
-    else if (!state.project?.workflow?.delivery_proposal) setDeliveryProposalStatus("");
+    if (!status.available) setDeliveryProposalStatus(status.reason || "設計提案排版引擎尚未安裝。");
   } catch {
     /* 狀態查不到不擋操作，錯誤會在實際產出時回報 */
   }
@@ -13355,47 +13635,268 @@ function rememberReportRecord(key, record) {
   };
 }
 
-async function generateDesignManual() {
+async function generateDeliveryProposal() {
   if (!state.sceneData || !state.projectId) {
-    if (element.designManualStatus) {
-      element.designManualStatus.textContent = "請先完成第 6 步配置，才能產出成果報告。";
-    }
+    setDeliveryProposalStatus("請先完成第 6 步配置，才能產出設計提案。");
     return;
   }
-  const rooms = designManualRoomsPayload();
+  const rooms = deliveryRoomsPayload();
   const renderedCount = rooms.filter((room) => room.image_data_url).length;
-  const body = JSON.stringify({ project_id: state.projectId, scene: state.sceneData, rooms });
-  const post = { method: "POST", headers: { "Content-Type": "application/json" }, body };
-  element.designManualGenerate.disabled = true;
-  element.designManualStatus.textContent = renderedCount
-    ? `正在組稿兩份成果報告（含 ${renderedCount} 個房間的生圖成果）…`
-    : "正在組稿兩份成果報告（尚無生圖，圖面標記待補）…";
+  element.deliveryProposalGenerate.disabled = true;
+  setDeliveryProposalStatus(renderedCount
+    ? `正在排版設計提案（含 ${renderedCount} 個房間的生圖成果）…`
+    : "正在排版設計提案（尚無生圖，圖面標記待補）…");
   try {
-    const result = await api(`/api/projects/${state.projectId}/design-manual`, post);
-    syncProjectRevision(result);
-    rememberReportRecord("design_manual", result.manual);
-    showDesignManualDownload(result.manual);
-    element.designManualStatus.textContent =
-      `設計手冊完成（${(result.manual.sections || []).length} 章`
-      + (renderedCount ? `，含 ${renderedCount} 房生圖）。` : "，未含生圖）。");
-  } catch (error) {
-    element.designManualStatus.textContent = `設計手冊：${errorMessage(error)}`;
-  }
-  // 交付提案接續產出（Chromium 排版較慢）；一份失敗不影響另一份。
-  setDeliveryProposalStatus("正在排版交付提案（品牌版）…");
-  try {
-    const result = await api(`/api/projects/${state.projectId}/delivery-proposal`, post);
+    const result = await api(`/api/projects/${state.projectId}/delivery-proposal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_id: state.projectId, scene: state.sceneData, rooms }),
+    });
     syncProjectRevision(result);
     rememberReportRecord("delivery_proposal", result.proposal);
     showDeliveryProposalDownload(result.proposal);
     const warnings = result.proposal.warnings || [];
+    // 只報數量的話，「文案走離線底稿」這種會影響交付品質的提醒等於沒說；
+    // 第一則直接顯示出來，其餘才用數量帶過。
     setDeliveryProposalStatus(
-      warnings.length ? `交付提案完成，${warnings.length} 項排版提醒。` : "交付提案完成。",
+      (renderedCount ? `設計提案完成（含 ${renderedCount} 房生圖）` : "設計提案完成（未含生圖）")
+      + (warnings.length
+        ? `。${warnings[0]}${warnings.length > 1 ? `（另有 ${warnings.length - 1} 項提醒）` : ""}`
+        : "。"),
     );
   } catch (error) {
-    setDeliveryProposalStatus(`交付提案：${errorMessage(error)}`);
+    setDeliveryProposalStatus(errorMessage(error));
   } finally {
-    element.designManualGenerate.disabled = false;
+    element.deliveryProposalGenerate.disabled = false;
+  }
+}
+
+// ---- 第 8 步成果包（design-delivery）：五章 JSON 與設計提案 PDF 同一視窗 ----
+
+let latestDesignDelivery = null;
+
+function questionnaireContextValue(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean).join("、");
+  if (value && typeof value === "object") return "";
+  return String(value || "").trim();
+}
+
+function wholeHouseQuestionnaireNeeds() {
+  const profile = {
+    ...(state.roomRequirementModel?.globalProfile || {}),
+    ...(state.basicAnswers || {}),
+  };
+  return WHOLE_HOUSE_QUESTIONS.map((question) => {
+    const value = questionnaireContextValue(profile[question.id]);
+    return value ? `${question.label}：${value}` : "";
+  }).filter(Boolean);
+}
+
+function roomQuestionnaireContext(roomId) {
+  const requirement = state.roomRequirementModel?.roomRequirements?.[roomId] || {};
+  const room = state.rooms.find((item) => String(item.id) === String(roomId));
+  const furniture = requirement.furniture || {};
+  const generativeEquipment = requirement.generativeEquipment || {};
+  const selected = (furniture.selected || [])
+    .filter((item) => Number(item.quantity ?? 1) > 0)
+    .map((item) => item.name_zh || item.label || item.name || item.normalized_type)
+    .filter(Boolean);
+  const usageLabels = new Map(roomUsageOptions(room || {}).map((option) => [option.id, option.label]));
+  const usage = (requirement.usage || []).map((item) => usageLabels.get(item) || item).filter(Boolean);
+  const visualNotes = state.visualQuestions
+    .filter((question) => String(question.room_id || "") === String(roomId))
+    .map((question) => String(state.visualAnswers?.[question.question_id]?.custom || "").trim())
+    .filter(Boolean);
+  const roomNotes = [
+    furniture.preferenceText,
+    ...(furniture.preferenceTags || []),
+    generativeEquipment.generationNotes,
+    requirement.surfaces?.wallPreference,
+    requirement.surfaces?.floorPreference,
+    ...visualNotes,
+  ].map((item) => String(item || "").trim()).filter(Boolean);
+  const roomSummaryParts = [
+    usage.length ? `用途：${usage.join("、")}` : "",
+    selected.length ? `已選家具：${selected.join("、")}` : "",
+    ...roomNotes,
+  ].filter(Boolean);
+  const wholeHouseNeeds = wholeHouseQuestionnaireNeeds();
+  const fallbackUsed = roomSummaryParts.length === 0;
+  const note = (fallbackUsed ? wholeHouseNeeds : roomSummaryParts).join("；");
+  return {
+    note,
+    summary: note,
+    source: fallbackUsed ? "whole_house_fallback" : "room_questionnaire",
+    fallbackUsed,
+    wholeHouseNeeds,
+    lockedFurniture: selected,
+    usage,
+    surfaces: requirement.surfaces || {},
+    generativeEquipment,
+  };
+}
+
+function deliveryReadableValues(value) {
+  if (Array.isArray(value)) return value.flatMap((item) => deliveryReadableValues(item));
+  if (value && typeof value === "object") return Object.values(value).flatMap((item) => deliveryReadableValues(item));
+  const text = String(value ?? "").trim();
+  return text ? [text] : [];
+}
+
+function deliveryAmountLabel(line) {
+  const amount = Number(line?.amount_twd);
+  if (Number.isFinite(amount) && amount > 0) {
+    return new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", maximumFractionDigits: 0 }).format(amount);
+  }
+  return line?.status_label || "待報價";
+}
+
+function renderDesignDeliveryPackage(delivery) {
+  if (!element.designDeliveryContent) return;
+  const presentation = delivery?.presentation || {};
+  const engineering = delivery?.engineering_report || {};
+  const security = delivery?.security_review || presentation.security_review || {};
+  const budget = delivery?.budget_report || delivery?.budget || {};
+  const proposal = delivery?.delivery_proposal || {};
+  const rooms = Array.isArray(presentation.rooms) ? presentation.rooms : [];
+  const roomMarkup = rooms.map((room) => {
+    const decoration = room.decoration_summary || {};
+    const render = decoration.render_status || {};
+    const imageUrl = render.revision_image_data_url || render.image_data_url || "";
+    const materials = [...new Set(deliveryReadableValues(decoration.materials))].slice(0, 12).join("、") || "依第 6 步鎖定材質";
+    return `<article class="rp-delivery-room">
+      <header><div><span>${escapeHtml(room.room_type || "空間")}</span><h3>${escapeHtml(room.room_name || "未命名空間")}</h3></div><strong>${escapeHtml(room.style_card || "已選色卡")}</strong></header>
+      ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(`${room.room_name || "房間"}最終設計圖`)}">` : ""}
+      <p class="rp-delivery-designer-reference"><strong>設計師觀點參照</strong>${escapeHtml(room.designer_reference || "依專業室內設計原則整理。")}</p>
+      <p>${escapeHtml(room.design_summary || "")}</p>
+      <dl>
+        <div><dt>問卷需求</dt><dd>${escapeHtml(decoration.questionnaire_note || "採用全屋問卷與已鎖定配置")}</dd></div>
+        <div><dt>空間用途</dt><dd>${escapeHtml((decoration.usage || []).join("、") || "依已確認用途")}</dd></div>
+        <div><dt>家具</dt><dd>${escapeHtml((decoration.locked_furniture || []).join("、") || "依配置快照")}</dd></div>
+        <div><dt>材質與裝潢</dt><dd>${escapeHtml(materials)}</dd></div>
+      </dl>
+    </article>`;
+  }).join("");
+  const structureLabels = { walls: "牆", doors: "門", windows: "窗", beams: "樑", columns: "柱" };
+  const structureSummary = Object.entries(engineering.structure_counts || {})
+    .map(([key, value]) => `${structureLabels[key] || key} ${value}`)
+    .join("、") || "依第 4 步固定結構";
+  const securityChecks = (security.checks || []).map((check) => (
+    `<li><strong>${escapeHtml(check.status === "passed" ? "通過" : "已處理")}</strong><span>${escapeHtml(check.detail || "")}</span></li>`
+  )).join("");
+  const budgetRows = (budget.lines || []).map((line) => `<tr>
+    <td>${escapeHtml(line.category_label || line.category || "項目")}</td>
+    <td>${escapeHtml(line.name || "未命名項目")}</td>
+    <td>${escapeHtml(line.unit || "")}</td>
+    <td>${escapeHtml(deliveryAmountLabel(line))}</td>
+  </tr>`).join("");
+  const knownSubtotal = Number(budget.known_furniture_reference_subtotal_twd || 0);
+  element.designDeliveryContent.innerHTML = `
+    <section class="rp-delivery-hero">
+      <span class="eyebrow">WEB DESIGN DELIVERY</span>
+      <h2>${escapeHtml(presentation.title || "RoomPilot 全屋設計與裝潢簡報")}</h2>
+      <p>${escapeHtml(presentation.subtitle || "依最終設定快照組稿")}</p>
+      <div><span>房間 ${rooms.length}</span><span>快照 ${escapeHtml(delivery.snapshot_id || "已建立")}</span><span>資安 ${escapeHtml(security.status_label || "待審核")}</span></div>
+    </section>
+    <section class="rp-delivery-section"><header><span>01</span><div><h2>逐房設計與裝潢</h2><p>每間房均沿用同一份已確認的結構、家具、材質、色卡與視角。</p></div></header><div class="rp-delivery-room-grid">${roomMarkup || "<p>尚無房間成果。</p>"}</div></section>
+    <section class="rp-delivery-section"><header><span>02</span><div><h2>${escapeHtml(engineering.title || "工程報告書")}</h2><p>${escapeHtml(structureSummary)}</p></div></header><div class="rp-delivery-engineering-summary"><strong>生圖完成 ${escapeHtml(engineering.completion?.rendered_room_count ?? 0)} / ${escapeHtml(engineering.completion?.room_count ?? rooms.length)} 房</strong><span>已使用一次修改：${escapeHtml(engineering.completion?.revised_room_count ?? 0)} 房</span></div><ul>${(engineering.notes || []).map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul></section>
+    <section class="rp-delivery-section"><header><span>03</span><div><h2>資安工程審核</h2><p>${escapeHtml(security.status_label || "待審核")}</p></div></header><ul class="rp-delivery-security">${securityChecks || "<li>尚無審核紀錄。</li>"}</ul></section>
+    <section class="rp-delivery-section"><header><span>04</span><div><h2>${escapeHtml(budget.title || "裝潢與家具預算報告書")}</h2><p>家具已知參考小計：${escapeHtml(new Intl.NumberFormat("zh-TW").format(knownSubtotal))} 元；待報價 ${escapeHtml(budget.pending_quote_count ?? 0)} 項。</p></div></header><div class="rp-delivery-table-wrap"><table><thead><tr><th>類別</th><th>項目</th><th>單位</th><th>金額狀態</th></tr></thead><tbody>${budgetRows || '<tr><td colspan="4">尚無明細</td></tr>'}</tbody></table></div><p class="rp-field-hint">${escapeHtml(budget.disclaimer || "正式價格以現場丈量與廠商報價為準。")}</p></section>
+    <section class="rp-delivery-section"><header><span>05</span><div><h2>設計提案 PDF</h2><p>${escapeHtml(proposal.status === "generated" ? "已產出設計提案，可用下方按鈕下載或重新產出取代。" : "尚未產出；可用下方按鈕由 Report Agent 以 roompilot-delivery-pdf 品牌排版產出。")}</p></div></header></section>`;
+}
+
+function closeDesignDelivery() {
+  if (!element.designDeliveryDialog) return;
+  if (typeof element.designDeliveryDialog.close === "function") element.designDeliveryDialog.close();
+  else element.designDeliveryDialog.removeAttribute("open");
+}
+
+function downloadDesignDeliveryJson() {
+  if (!latestDesignDelivery) return;
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(latestDesignDelivery, null, 2)], { type: "application/json" }));
+  link.download = `roompilot-design-delivery-${state.projectId || "project"}.json`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+async function generateDesignDelivery() {
+  if (!state.sceneData || !state.projectId) {
+    if (element.aiRenderStatus) element.aiRenderStatus.textContent = "請先完成第 6 步配置，才能產出成果包。";
+    return;
+  }
+  const trigger = $("#design-delivery-generate");
+  if (trigger) trigger.disabled = true;
+  if (element.aiRenderStatus) element.aiRenderStatus.textContent = "正在建立裝潢簡報、工程報告、資安審核與預算明細…";
+  state.designSchemes.configuration_snapshot = state.designSchemes.configuration_snapshot
+    || configurationSnapshot();
+  const baseSnapshot = state.designSchemes.configuration_snapshot;
+  const configuration = {
+    ...baseSnapshot,
+    snapshot_id: baseSnapshot.snapshot_id || baseSnapshot.created_at,
+    furniture: composeSelectedRoomFurniture().map((item) => ({
+      ...item,
+      room_id: item.room_id || item.roomId || null,
+    })),
+    fixed_structure: {
+      walls: state.structures?.walls || [],
+      doors: state.structures?.doors || [],
+      windows: state.structures?.windows || [],
+      beams: state.structures?.beams || [],
+      columns: state.structures?.columns || [],
+    },
+  };
+  const stylePack = STYLE_PACKS.find((item) => item.id === state.proposalReview.confirmedStyleCardId);
+  const results = state.proposalReview.openRouterRenders?.results || [];
+  const generatedAt = state.proposalReview.openRouterRenders?.generated_at || null;
+  const rooms = state.rooms.map((room) => {
+    const row = results.find((item) => item.room_id === room.id && item.status === "completed" && item.image_data_url);
+    return {
+      room_id: room.id,
+      room_name: room.label,
+      room_type: room.type || room.room_type || room.visual_space_type || null,
+      questionnaire: roomQuestionnaireContext(room.id),
+      view: state.proposalReview.roomViews?.[room.id] || null,
+      render: row ? {
+        image_data_url: row.image_data_url,
+        model: row.model || "",
+        submitted_at: generatedAt || new Date().toISOString(),
+        revision_image_data_url: row.revision_image_data_url || null,
+        revision_submitted_at: row.revision_submitted_at || null,
+      } : null,
+    };
+  });
+  const payload = {
+    project_id: state.projectId,
+    style_card: stylePack ? {
+      id: stylePack.id,
+      name: stylePack.name,
+      style_id: stylePack.styleId,
+      palette_hex: stylePack.palette,
+    } : { id: state.proposalReview.confirmedStyleCardId },
+    generated_at: new Date().toISOString(),
+    configuration_snapshot: configuration,
+    rooms,
+  };
+  try {
+    latestDesignDelivery = await api(`/api/projects/${state.projectId}/design-delivery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    renderDesignDeliveryPackage(latestDesignDelivery);
+    showDeliveryProposalDownload(
+      latestDesignDelivery.delivery_proposal?.status === "generated"
+        ? latestDesignDelivery.delivery_proposal
+        : state.project?.workflow?.delivery_proposal,
+    );
+    if (typeof element.designDeliveryDialog?.showModal === "function") element.designDeliveryDialog.showModal();
+    else element.designDeliveryDialog?.setAttribute("open", "");
+    if (element.aiRenderStatus) element.aiRenderStatus.textContent = "成果包已完成並通過後端資安審核；設計提案 PDF 可在同一視窗產出。";
+  } catch (error) {
+    if (element.aiRenderStatus) element.aiRenderStatus.textContent = `成果包建立失敗：${errorMessage(error)}`;
+  } finally {
+    if (trigger) trigger.disabled = false;
   }
 }
 
@@ -13706,6 +14207,15 @@ function bindEvents() {
     const button = event.target.closest("[data-room-id]");
     if (button) selectRoom(button.dataset.roomId);
   });
+  element.recognitionReviewList?.addEventListener("click", (event) => {
+    const jump = event.target.closest("[data-review-room-id]");
+    if (!jump) return;
+    selectRoom(jump.dataset.reviewRoomId);
+    element.currentRoomReview?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  element.skipCurrentRoom?.addEventListener("click", skipCurrentRoomReview);
+  element.confirmCurrentRoom?.addEventListener("click", confirmCurrentRoomAndAdvance);
+  $("#delete-current-room")?.addEventListener("click", () => deleteRoom());
   $$("[data-room-geometry-mode]").forEach((button) => {
     button.addEventListener("click", () => setRoomGeometryMode(button.dataset.roomGeometryMode));
   });
@@ -13717,16 +14227,21 @@ function bindEvents() {
   $("#apply-node-merge")?.addEventListener("click", mergeSelectedRoomNodes);
   $("#cancel-node-edit")?.addEventListener("click", () => setRoomNodeMode(null));
   $("#add-missed-room")?.addEventListener("click", addMissedRoom);
-  $("#confirm-all-rooms")?.addEventListener("click", confirmAllRooms);
-  $("#show-all-rooms")?.addEventListener("click", () => {
-    if (state.rooms.length <= 1) {
-      setStatus("目前只有一個空間，沒有其他框選可顯示。");
-      updateShowAllRoomsButton();
-      return;
-    }
-    state.showAllRooms = true;
-    renderSpaceOverlay();
-    setStatus("已顯示全部空間框選。");
+  $("#confirm-all-rooms").addEventListener("click", confirmAllRooms);
+  ["#structure-confirmed", "#estimated-size-ack"].forEach((selector) => {
+    $(selector)?.addEventListener("change", updateSpaceCompletionState);
+  });
+  SHOW_ALL_ROOMS_BUTTONS.map((selector) => $(selector)).filter(Boolean).forEach((button) => {
+    button.addEventListener("click", () => {
+      if (state.rooms.length <= 1) {
+        setStatus("目前只有一個空間，沒有其他框選可顯示。");
+        updateShowAllRoomsButton();
+        return;
+      }
+      state.showAllRooms = true;
+      renderSpaceOverlay();
+      setStatus("已顯示全部空間框選。");
+    });
   });
   $("#save-room")?.addEventListener("click", saveRoom);
   element.spaceOverlay?.addEventListener("pointerdown", spacePointerDown);
@@ -13919,6 +14434,9 @@ function bindEvents() {
   $("#confirm-dimensioned-plan")?.addEventListener("click", confirmDimensionedPlan);
   $("#confirm-basic-questionnaire")?.addEventListener("click", confirmBasicQuestionnaire);
   element.randomizeRequirements?.addEventListener("click", () => {
+    void skipQuestionnaireWithDefaults();
+  });
+  $("#randomize-requirements-summary")?.addEventListener("click", () => {
     void skipQuestionnaireWithDefaults();
   });
   element.questionnaireStageNav?.addEventListener("click", (event) => {
@@ -14754,8 +15272,14 @@ function bindEvents() {
   });
   $("#ai-openrouter-edit-submit")?.addEventListener("click", submitAiOpenrouterEdit);
   $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
-  element.designManualGenerate?.addEventListener("click", generateDesignManual);
+  element.deliveryProposalGenerate?.addEventListener("click", generateDeliveryProposal);
   $("#ai-openrouter-edit-close")?.addEventListener("click", closeAiOpenrouterEditDialog);
+  $("#design-delivery-generate")?.addEventListener("click", () => {
+    void generateDesignDelivery();
+  });
+  $("#close-design-delivery")?.addEventListener("click", closeDesignDelivery);
+  $("#design-delivery-done")?.addEventListener("click", closeDesignDelivery);
+  $("#download-design-delivery-json")?.addEventListener("click", downloadDesignDeliveryJson);
   $("#close-render-brief")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-cancel")?.addEventListener("click", closeRenderBriefDialog);
   $("#render-brief-confirm")?.addEventListener("click", () => {
@@ -14996,7 +15520,7 @@ async function restoreProject() {
       element.scaleInput.value = Math.round(Number(state.analysis.scale.distance_m) * 1000) / 10;
     }
     if (state.analysis) {
-      element.recognitionSummary.textContent = `辨識結果：牆 ${state.analysis.walls?.length || state.analysis.floorplan?.wall_count || 0}、門 ${state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0}、窗 ${state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0}`;
+      element.recognitionSummary.textContent = `辨識結果：牆 ${state.analysis.walls?.length || state.analysis.floorplan?.wall_count || 0}、門 ${state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0}、窗 ${state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0}${recognitionReviewSuffix()}`;
       element.uploadFileState.textContent =
         state.analysis.filename || state.workflow.data.upload?.filename || "已上傳平面圖";
     }

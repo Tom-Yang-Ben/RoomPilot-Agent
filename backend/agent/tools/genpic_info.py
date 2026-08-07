@@ -1,12 +1,16 @@
 """生圖資訊整理 tool：組出生圖提示詞包與鎖定清單（deterministic）。
 
 依定案：視角畫面（Three.js 截圖）作構圖參考、提示詞素材來自需求文件
-（含材質與家電 context）、色卡與場景配置。改圖時額外產出「鎖定清單」，
-明確告訴模型只能改使用者指定的內容、其餘元素保持不變。
+（含材質與家電 context）、色卡與場景配置。家具逐件附型錄／RAG 的 VLM
+外觀描述（顏色、材質、腿型、線條），讓模型畫對每件家具而不是照名稱猜。
+改圖時額外產出「鎖定清單」，明確告訴模型只能改使用者指定的內容、
+其餘元素保持不變。
 
 家電只在這裡進入畫面描述（渲染 context），不影響任何配置決策。
 """
 from __future__ import annotations
+
+import re
 
 from ..documents import (
     LayoutRoom,
@@ -17,26 +21,131 @@ from ..documents import (
 from .base import ToolContract
 from .design_knowledge import style_note
 
+# 型錄 primary_material 有近三成是這個佔位字串（Kai 的 VLM 未標示材質時的
+# 預設值）。放進提示詞只會讓模型去猜「GLB」是什麼材質，逐筆濾掉。
+MATERIAL_PLACEHOLDERS = {"glb材質（未標示）", "未標示", "unknown", "none"}
 
-def furniture_lines(scene: SceneDoc, room: LayoutRoom) -> list[str]:
+# RAG／型錄的 VLM 描述（``roompilot.furniture_catalog_current.description``，
+# 平均約 120 字）是家具外觀的唯一文字證據：顏色、布料或皮革、腿型、線條。
+# 只有生圖提示詞吃它；報告與鎖定清單仍用短標籤。
+DESCRIPTION_MAX_CHARS = 90
+# 描述結尾常是「適合現代客廳…」這類用途建議，對畫面沒有貢獻，整句丟棄。
+USAGE_SENTENCE_PREFIXES = ("適合", "無論", "可搭配")
+
+# 尺寸不進生圖提示詞（定案）：畫面比例由 img2img 視角截圖鎖定，文字給了數字
+# 只會讓模型照數字重新推比例。型錄名稱有一半帶規格（8076 件中 4130 件，如
+# 「206x46x54 公分」「88"W」「5' 3"」），描述偶爾也帶（201 件）。
+# 鎖定清單與設計手冊要保留規格，所以只在提示詞這條路上清掉。
+_UNIT = (
+    r"公分|公尺|公厘|毫米|釐米|厘米|英呎|英尺|英吋|英寸|吋|米"
+    # 英文單位：ft 可省略句點，in 一律要求句點，否則會誤吃「Set of 3 in Black」
+    r"|cm|mm|inches|inch|feet|foot|ft\.?|in\."
+    r"|[\"'‘’“”′″]"
+)
+_NUM = r"[0-9０-９]+(?:[.,][0-9０-９]+)?"
+# 88"W、35cm L 這種軸向後綴（W 寬 / D 深 / H 高 / L 長）
+_AXIS = r"(?:\s*[WDHLwdhl]\b)?"
+_SEGMENT = rf"{_NUM}\s*(?:{_UNIT})?{_AXIS}"
+# 順序即優先序：整條尺寸串要一次吃完，否則只清掉頭一段、留下孤立乘號
+# （`6'×9'` → `×`）。一次吃完就不需要事後補救孤立符號，也就不會誤傷
+# 「X型交叉支撐」「X大碼」這類真的有意義的 X。
+_MEASUREMENT_PATTERNS = (
+    # 逐段帶單位的串：6'×9'、1.72 cm x 20.32 cm、35cm L x 77cm W x 185cm H
+    re.compile(
+        rf"{_NUM}\s*(?:{_UNIT}){_AXIS}(?:\s*[xX×*]\s*{_SEGMENT})+",
+        re.IGNORECASE,
+    ),
+    # 數字串後接單位：206x46x54 公分、148公分、88"W
+    re.compile(
+        rf"{_NUM}(?:\s*[xX×*]\s*{_NUM})*\s*(?:{_UNIT}){_AXIS}",
+        re.IGNORECASE,
+    ),
+    # 無單位的尺寸串（型錄常把單位截掉）：200x41x95
+    re.compile(rf"{_NUM}\s*[xX×*]\s*{_NUM}(?:\s*[xX×*]\s*{_NUM})*"),
+)
+# 規格被清掉後留下的空括號：「（約 22.9 釐米）高」→「（約 ）高」
+_EMPTY_BRACKETS = re.compile(r"[（(]\s*(?:約|approx\.?|about)?\s*[)）]", re.IGNORECASE)
+# 清規格後留下的孤立分隔符與空白（「地毯,8 x 10 英尺,藍色」→「地毯,,藍色」）
+_DANGLING_SEPARATORS = re.compile(r"\s*([,，、;；/])\s*(?=[,，、;；/])")
+_EDGE_SEPARATORS = re.compile(r"^[\s,，、;；/：:\-–—]+|[\s,，、;；/：:\-–—]+$")
+
+
+def strip_measurements(text: object) -> str:
+    """清掉尺寸規格；名稱本體、型號與顏色留著。
+
+    只針對「數字＋長度單位」與「數字x數字」的尺寸串，不動 `2L`、`A8910`、
+    `2 SEATER` 這類型號與件數——那些對畫面有意義。
+    """
+    out = str(text or "")
+    for pattern in _MEASUREMENT_PATTERNS:
+        out = pattern.sub("", out)
+    out = _EMPTY_BRACKETS.sub("", out)
+    out = re.sub(r"[ \t　]{2,}", " ", out)
+    out = re.sub(r"[ \t　]+(?=[,，、;；。)）])", "", out)  # 「Bookcase , Gray」
+    out = _DANGLING_SEPARATORS.sub("", out)
+    return _EDGE_SEPARATORS.sub("", out)
+
+
+def _material(row: dict) -> str:
+    material = str(row.get("material") or "").strip()
+    return "" if material.casefold() in MATERIAL_PLACEHOLDERS else material
+
+
+def _label(row: dict, *, keep_measurements: bool = True) -> str:
     # 定案：數值與相對位置措辭都不進提示詞——畫面位置由 img2img 視角
     # 截圖鎖定，文字只補名稱、類型與材質描述。
+    name = str(row.get("name") or row.get("id") or "家具")
+    if not keep_measurements:
+        name = strip_measurements(name) or str(row.get("type") or "家具")
+    details = "，".join(
+        value
+        for value in (str(row.get("type") or "").strip(), _material(row))
+        if value
+    )
+    return f"{name}（{details}）" if details else name
+
+
+def visual_description(text: object) -> str:
+    """把型錄描述裁成純外觀敘述：丟用途句，其餘整句取到字數上限為止。
+
+    只在句號邊界切，不從句中截斷——半句話進提示詞比沒有描述更糟。
+    """
+    sentences = [s.strip() for s in re.split(r"[。\n]+", str(text or "")) if s.strip()]
+    kept: list[str] = []
+    used = 0
+    for sentence in sentences:
+        if sentence.startswith(USAGE_SENTENCE_PREFIXES):
+            continue
+        if kept and used + len(sentence) > DESCRIPTION_MAX_CHARS:
+            break
+        kept.append(sentence)
+        used += len(sentence)
+    return "。".join(kept) + "。" if kept else ""
+
+
+def furniture_lines(scene: SceneDoc, room: LayoutRoom) -> list[str]:
+    """短標籤：名稱（類型，材質）。給鎖定清單與設計手冊用，規格原樣保留。"""
+    return [_label(row) for row in scene.placed_in(room.room_id)]
+
+
+def furniture_prompt_lines(scene: SceneDoc, room: LayoutRoom) -> list[str]:
+    """生圖用：短標籤再接型錄／RAG 的外觀描述，名稱與描述都先清掉尺寸規格。"""
     lines = []
     for row in scene.placed_in(room.room_id):
-        name = str(row.get("name") or row.get("id") or "家具")
-        details = "，".join(
-            str(row.get(key) or "").strip()
-            for key in ("type", "material")
-            if str(row.get(key) or "").strip()
-        )
-        lines.append(f"{name}（{details}）" if details else name)
+        label = _label(row, keep_measurements=False)
+        # 先清規格再裁字數，字數上限才是花在外觀敘述上
+        description = visual_description(strip_measurements(row.get("description")))
+        lines.append(f"{label}：{description}" if description else label)
     return lines
 
 
 class GenPicInfoTool:
     contract = ToolContract(
         name="genpic_info",
-        description="整理生圖提示詞包（需求＋材質＋色卡＋場景＋家電 context）與鎖定清單。",
+        description=(
+            "整理生圖提示詞包（需求＋材質＋色卡＋場景＋家具外觀描述＋家電 context）"
+            "與鎖定清單。"
+        ),
         input_schema={
             "type": "object",
             "properties": {
@@ -96,6 +205,8 @@ class GenPicInfoTool:
                 segments.append(f"{label}：{materials[key]}")
         
         furniture = furniture_lines(scene, room)
+        # 提示詞用帶外觀描述的版本；鎖定清單仍存短標籤（改圖指令要精簡）。
+        described = furniture_prompt_lines(scene, room)
         '''
         if furniture:
             segments.append(
@@ -103,10 +214,10 @@ class GenPicInfoTool:
                 + "、".join(furniture)
             )
         '''
-        if furniture:
+        if described:
             segments.append(
                 "家具配置：\n"
-                + "、\n\t".join(furniture)
+                + "、\n\t".join(described)
             )
 
         appliances = [

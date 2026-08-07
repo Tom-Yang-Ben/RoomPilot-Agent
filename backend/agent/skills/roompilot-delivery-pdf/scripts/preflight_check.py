@@ -57,6 +57,21 @@ def check_meta(content):
           "沒有 cover_image，封面會是空白色塊", level="WARN")
 
 
+# 敘述裡不該出現的東西：家具型號／品牌與製程用語。
+# 括號裡的中英並陳是刻意的（「橡木海島型 (oak engineered)」方便發包），先剝掉再比對；
+# 抓的是連續兩個以上的拉丁詞、全大寫品牌（BESTÅ／HEMNES／POÄNG）與英寸標示。
+PARENS = re.compile(r"[（(][^）)]*[）)]")
+MODEL_NUMBER = re.compile(
+    r"[A-ZÅÄÖÆØ]{4,}"
+    r"|[A-Za-zÀ-ÿ]{2,}(?:[\s&\-–]+[A-Za-z0-9À-ÿ][\w.]*)+"
+    r"|\d+(?:\.\d+)?\s*[\"”']\s*[WDHwdh]"
+)
+PROCESS_WORDS = ["幾何引擎", "淨空", "碰撞", "不重疊", "第 5 步", "第 6 步", "第 7 步",
+                 "見下方規格表", "圖面與清單一致", "正式家具庫"]
+# 這兩種空間不在軟裝提案範圍，不排篇章。比對字根，「主浴」「工作陽台」也算。
+OUT_OF_SCOPE_ROOMS = ["浴", "廁", "陽台", "露台"]
+
+
 def check_rooms(content, base_dir):
     rooms = content.get("rooms", [])
     check("至少有一個空間篇章", len(rooms) > 0, "rooms 是空的")
@@ -71,14 +86,81 @@ def check_rooms(content, base_dir):
             # 生圖失敗的房間可以沒有圖，但一定要在已知限制裡交代，否則屋主以為你漏做。
             check(f"「{n}」無圖但已在限制中說明", n in limits_text,
                   f"「{n}」沒有 hero_image，appendix.limits 也沒提到，屋主會以為漏了這個空間")
-        check(f"「{n}」寫了空間樣貌", len(str(r.get("look", "")).strip()) >= 40,
+        look = str(r.get("look", "")).strip()
+        check(f"「{n}」寫了空間樣貌", len(look) >= 40,
               "look 太短或缺漏，屋主看不出這個空間長什麼樣")
-        check(f"「{n}」有兩條以上設計理由", len(r.get("rationale", [])) >= 2,
-              "rationale 少於 2 條，說服力不足")
+        # 型號倒進敘述裡是這份文件最常見的毛病：屋主讀到第三個破折號就放棄了。
+        hit = MODEL_NUMBER.search(PARENS.sub("", look))
+        check(f"「{n}」敘述沒有家具型號", not hit,
+              f"look 裡出現「{hit.group(0)[:32] if hit else ''}」——型號與品牌留在 specs，"
+              "敘述只用通用中文名（床、衣櫃、餐桌）")
+        check(f"「{n}」至少有一條設計理由", len(r.get("rationale", [])) >= 1,
+              "rationale 是空的，屋主看不出為什麼這樣設計")
         check(f"「{n}」有生活場景句", bool(r.get("scene_line")),
               "缺 scene_line，整段會變成規格說明而不是提案", level="WARN")
         check(f"「{n}」有關鍵配置規格", len(r.get("specs", [])) >= 1,
               "沒有 specs，屋主無從核對家具與尺寸", level="WARN")
+        seen, dup = set(), []
+        for s in r.get("specs", []):
+            key = (str(s.get("label")), str(s.get("value")))
+            if key in seen:
+                dup.append(str(s.get("label"))[:20])
+            seen.add(key)
+        check(f"「{n}」規格表沒有重複列", not dup,
+              f"同款同尺寸要合併成一列加數量（重複：{'; '.join(dup[:3])}）")
+
+    out = [str(r.get("name", "")) for r in rooms
+           if any(w in str(r.get("name", "")) for w in OUT_OF_SCOPE_ROOMS)]
+    check("沒有排出範圍外的空間", not out,
+          f"「{'」「'.join(out)}」不在軟裝提案範圍，不排篇章；"
+          "在 overview.intro 交代不列的原因即可")
+
+
+def check_process_talk(content):
+    """屋主付錢買的是空間，不是製程說明。
+
+    「位置由幾何引擎計算與驗證：不重疊、留走道、不擋門窗」這種句子讀起來像
+    系統日誌。家具放得下是我們的義務，不是設計理由。
+    """
+    hits = []
+    for path, text in walk_strings(content):
+        if path.startswith("appendix"):  # 已知限制本來就要講清楚缺什麼
+            continue
+        for w in PROCESS_WORDS:
+            if w in text:
+                hits.append(f"{path}: 「{w}」")
+    check("沒有製程說明混進文案", not hits,
+          "把它換成空間本身的事實或屋主的需求：" + "; ".join(hits[:8]))
+
+
+def check_repetition(content):
+    """同一句話在八個空間各寫一次，屋主翻到第三頁就開始跳著看。"""
+    sentences = {}
+    for room in content.get("rooms", []):
+        for field in ("look", "scene_line"):
+            for sent in re.split(r"[。！？]", str(room.get(field, ""))):
+                sent = sent.strip()
+                if len(sent) >= 12:
+                    sentences.setdefault(sent, []).append(str(room.get("name", "")))
+    dup = {s: names for s, names in sentences.items() if len(names) > 1}
+    check("各空間的敘述沒有整句重複", not dup,
+          "全案共用的事實在總論與色彩章講一次就好："
+          + "; ".join(f"「{s[:20]}…」出現在 {'、'.join(n)}" for s, n in list(dup.items())[:3]))
+
+
+def check_statement(content):
+    """設計總論的 pillars 是後續每一章的摘要，不是三個抽象主張。"""
+    st = content.get("statement")
+    if not st:
+        return
+    chapter_names = {"全案速覽", "色彩與材質", "燈光與氛圍", "接下來"} | {
+        str(r.get("name", "")) for r in content.get("rooms", [])
+    }
+    titles = [str(p.get("title", "")) for p in st.get("pillars") or []]
+    matched = [t for t in titles if t in chapter_names]
+    check("設計總論是後續章節的摘要", titles and len(matched) >= len(titles) - 1,
+          f"pillars 的 title 要對上章名（目前 {len(matched)}/{len(titles)} 條對得上）；"
+          "抽象主張換哪個案子都成立，屋主看不出這份文件裡有什麼")
 
 
 # 建案廣告腔與 AI 高頻詞。抓得到的只是冰山一角，還是要自己讀一次。
@@ -232,8 +314,11 @@ def main():
 
     check_meta(content)
     check_rooms(content, base_dir)
+    check_statement(content)
     check_placeholders(content)
     check_ai_tells(content)
+    check_process_talk(content)
+    check_repetition(content)
     check_rhythm(content)
     check_numbers(content, args.data)
     check_pdf(args.pdf, content)

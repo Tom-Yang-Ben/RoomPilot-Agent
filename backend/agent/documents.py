@@ -170,6 +170,10 @@ class CandidateItem:
     reason: str = ""
     clearance: dict | None = None  # {"side": "front", "depth_cm": 60.0}
     image_url: str | None = None
+    # 型錄／RAG 的 VLM 外觀描述（顏色、材質、腿型、線條）；只餵生圖提示詞，
+    # 不參與選件排序，更不參與幾何。
+    description: str = ""
+    material: str = ""
 
 
 @dataclass
@@ -228,6 +232,8 @@ class ChosenItem:
     hint: PlacementHint = field(default_factory=PlacementHint)
     clearance: dict | None = None
     reason: str = ""
+    description: str = ""  # 型錄／RAG 外觀描述，隨場景條目帶到生圖提示詞
+    material: str = ""
 
 
 @dataclass

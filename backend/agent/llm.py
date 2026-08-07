@@ -240,8 +240,6 @@ class OpenRouterGateway:
         used_model = model or self.image_model
         content: list[dict] = [{"type": "text", "text": prompt}]
 
-        print('remake', prompt)
-
         for image_b64 in images:
             url = image_b64
             if not url.startswith("data:"):
