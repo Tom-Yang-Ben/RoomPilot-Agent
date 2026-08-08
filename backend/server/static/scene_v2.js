@@ -35,9 +35,10 @@ import {
   toSceneFurniture,
 } from "./scene_layout2d.js?v=sha256-b6f034658424";
 import {
+  reconcileFurniture2dAfterGeneration,
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-4229260e286c";
+} from "./scene_configuration_sync.js?v=sha256-4bc92d4c915c";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
@@ -1683,6 +1684,9 @@ function showStep(step, { preparePanel = true } = {}) {
     syncFurnitureNumberVisibility();
     const confirmConfiguration = $("#confirm-white-model");
     if (confirmConfiguration) confirmConfiguration.hidden = step === "realistic_3d";
+    if (step === "realistic_3d") {
+      focusStepSixRoom(state.selectedRoomId || state.selectedWalkRoomId || state.rooms[0]?.id);
+    }
   }
   const currentPublicStep = publicWorkflowStep(step);
   const currentPublicIndex = PUBLIC_WORKFLOW_STEPS.indexOf(currentPublicStep);
@@ -7316,9 +7320,10 @@ async function skipQuestionnaireWithDefaults() {
     element.randomizeRequirementsSummary,
   ].filter(Boolean);
   if (!buttons.length || buttons.some((button) => button.disabled)) return;
-  buttons.forEach((button) => {
-    button.disabled = true;
-    button.setAttribute("aria-busy", "true");
+  const controls = [...buttons, element.confirmRequirements].filter(Boolean);
+  controls.forEach((control) => {
+    control.disabled = true;
+    control.setAttribute("aria-busy", "true");
   });
   element.requirementsError.textContent = "";
   setStatus("正在帶入系統預設需求…");
@@ -7330,9 +7335,9 @@ async function skipQuestionnaireWithDefaults() {
     element.requirementsError.textContent = message;
     setStatus(message, "error");
   } finally {
-    buttons.forEach((button) => {
-      button.disabled = false;
-      button.removeAttribute("aria-busy");
+    controls.forEach((control) => {
+      control.disabled = false;
+      control.removeAttribute("aria-busy");
     });
   }
 }
@@ -8409,11 +8414,6 @@ function confirmQuestionnaireFinishes() {
   );
   applyWholeHouseSurfaceConsistency();
   state.roomRequirementModel.roomRequirements[room.id].confirmed = true;
-  if (scope !== "room") {
-    state.roomFinishDrafts = serverState.realistic_3d?.roomSurfaceDrafts
-      || serverState.requirements?.roomFinishDrafts
-      || {};
-  }
   element.requirementsError.textContent = "";
   invalidateDownstreamFrom("requirements", "風格與材質偏好已修改，後續配置需要重新產生。");
   state.activeStylePackId = pack.id;
@@ -10875,6 +10875,7 @@ function applyVerifiedRandomQuestionnaireFurniture(room) {
     ...questionnaireFurnitureSelectionItem(offer, index + 1),
     default_recommendation: true,
     selection_source: "test_random_verified_catalog",
+    user_selected: false,
   }));
   furniture.required = furniture.selected.map((item) => item.normalized_type).filter(Boolean);
   furniture.optional = [];
@@ -12100,8 +12101,12 @@ function updateSelectedFurnitureDimensions() {
 }
 
 async function resolveCatalogFurniture(item) {
+  const positionLocked = item.locked === true;
   if (item.model_url && item.catalogFurnitureId) {
-    return toSceneFurniture(item);
+    return {
+      ...toSceneFurniture(item),
+      position_locked: positionLocked,
+    };
   }
   try {
     const room = state.rooms.find((candidate) => candidate.id === item.roomId);
@@ -12122,20 +12127,40 @@ async function resolveCatalogFurniture(item) {
       payload = await api(`/api/furniture?${params.toString()}`);
     }
     const candidates = rankCatalogFurniture(payload.items || [], request);
-    if (!candidates.length) return toSceneFurniture(item);
-    return mergeCatalogFurniture(item, candidates[0]);
+    if (!candidates.length) {
+      return {
+        ...toSceneFurniture(item),
+        position_locked: positionLocked,
+      };
+    }
+    return {
+      ...mergeCatalogFurniture(item, candidates[0]),
+      position_locked: positionLocked,
+    };
   } catch (error) {
     console.warn(error);
-    return toSceneFurniture(item);
+    return {
+      ...toSceneFurniture(item),
+      position_locked: positionLocked,
+    };
   }
 }
 
 function placementResolutionText(report = []) {
   if (!report.length) return "";
-  return report
-    .map((item) => item.message_zh || `${item.action || "adjust"}：${item.from || item.furniture_id || item.type || ""}`)
-    .filter(Boolean)
-    .join("；");
+  const replaced = report.filter((item) => item.action === "replace").length;
+  const removed = report.filter((item) => item.action === "remove").length;
+  const needsAttention = report.length - replaced - removed;
+  const changes = [
+    replaced ? `替換 ${replaced} 件` : "",
+    removed ? `移除 ${removed} 件` : "",
+  ].filter(Boolean);
+  const summary = changes.length
+    ? `系統已依空間尺寸調整家具：${changes.join("、")}`
+    : "系統已完成家具配置檢查";
+  return needsAttention > 0
+    ? `${summary}；另有 ${needsAttention} 件需要手動處理，請查看待處理清單。`
+    : `${summary}；目前配置已通過檢查。`;
 }
 
 function assertGeneratedSceneMatchesSelectedFurniture(sceneObjects = [], selectedFurniture = []) {
@@ -12350,12 +12375,12 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
       style_id: "white_model",
       palette_hex: ["#f4f1ec", "#e9e6e1", "#d8d3cc", "#bcb4aa"],
     };
-    state.sceneData.scene_objects.forEach((sceneObject) => {
-      state.furniture2d = upsertFurniture2dFromSceneObject(
-        state.furniture2d,
-        sceneObject,
-      );
-    });
+    state.furniture2d = reconcileFurniture2dAfterGeneration(
+      state.furniture2d,
+      sceneFurniture,
+      state.sceneData.scene_objects,
+      furniture2dDefaultsForSceneObject,
+    );
     const selectedSceneIndex = sceneObjectIndexByFurnitureId(state.selectedFurniture2dId);
     if (selectedSceneIndex >= 0) state.selectedSceneIndex = selectedSceneIndex;
     const generatedScheme = activeScheme();
@@ -15285,11 +15310,27 @@ function confirmRenderPalette() {
 
   state.proposalReview.confirmedStyleCardId = selected.value;
   state.proposalReview.styleCardLockedAt = new Date().toISOString();
+  state.proposalReview.masterView = {
+    ...(state.proposalReview.masterView || {}),
+    style_card_id: selected.value,
+    configuration_snapshot_id: refreshConfigurationSnapshot().snapshot_id,
+  };
   state.selectedRenderRoomId = state.proposalReview.representativeRoomId
     || state.selectedProposalRoomId
     || state.rooms[0]?.id
     || null;
-  scheduleSave("ai_render");
+  const completed = state.workflow.complete("proposal_review", {
+    confirmed: true,
+    masterView: state.proposalReview.masterView,
+  });
+  if (!completed) {
+    const message = "第 7 步視角資料尚未完整，請重新確認逐房視角後再選色卡。";
+    if (element.aiRenderStatus) element.aiRenderStatus.textContent = message;
+    const status = $("#proposal-style-stage-status");
+    if (status) status.textContent = message;
+    return;
+  }
+  scheduleSave("proposal_review");
   goTo("ai_render");
 }
 
@@ -18039,8 +18080,12 @@ function bindEvents() {
       goTo(state.workflow.completed.includes("calibration") ? "calibration" : "recognition");
       return;
     }
-    if (step === "layout_2d" && state.workflow?.canEnter("white_model_3d")) {
-      goTo("white_model_3d");
+    if (step === "layout_2d") {
+      const stepSixTarget = state.workflow?.canEnter("realistic_3d")
+        ? "realistic_3d"
+        : (state.workflow?.canEnter("white_model_3d") ? "white_model_3d" : "layout_2d");
+      if (state.workflow?.canEnter(stepSixTarget)) goTo(stepSixTarget);
+      else setStatus(firstWorkflowBlocker(stepSixTarget), "error");
       return;
     }
     if (state.workflow?.canEnter(step)) goTo(step);
@@ -18289,7 +18334,9 @@ async function restoreProject() {
         finishes: state.questionnaireFinishes,
       },
     );
-    state.roomFinishDrafts = {};
+    state.roomFinishDrafts = serverState.realistic_3d?.roomSurfaceDrafts
+      || serverState.requirements?.roomFinishDrafts
+      || {};
     const questionnairePack = STYLE_PACKS.find(
       (pack) => pack.id === state.questionnaireFinishes.stylePackId,
     );

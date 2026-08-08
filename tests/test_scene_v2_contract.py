@@ -42,6 +42,21 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
 
 
+def test_mobile_workflow_header_keeps_project_status_inside_the_topbar() -> None:
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    assert "grid-template-columns: auto minmax(0, 1fr);" in css
+    assert "body.rp-workflow-page #project-save-status {" in css
+    status_rule = css.split(
+        "body.rp-workflow-page #project-save-status {",
+        1,
+    )[1].split("}", 1)[0]
+    assert "overflow: hidden;" in status_rule
+    assert "text-overflow: ellipsis;" in status_rule
+    assert "white-space: nowrap;" in status_rule
+    assert "body.rp-workflow-page .app-brand {\n    min-height: 66px;\n  }" in css
+
+
 def test_space_editor_exposes_only_the_canonical_room_taxonomy() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
@@ -79,6 +94,20 @@ def test_palette_confirmation_event_has_a_defined_handler() -> None:
     assert 'element.confirmRenderPalette?.addEventListener("click", confirmRenderPalette);' in source
 
 
+def test_palette_confirmation_completes_step_seven_before_entering_step_eight() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    confirmation = _javascript_function(source, "confirmRenderPalette")
+
+    completion = 'state.workflow.complete("proposal_review"'
+    navigation = 'goTo("ai_render")'
+    assert completion in confirmation
+    assert 'masterView: state.proposalReview.masterView' in confirmation
+    assert 'if (!completed)' in confirmation
+    assert 'scheduleSave("proposal_review")' in confirmation
+    assert confirmation.index(completion) < confirmation.index(navigation)
+    assert "state.proposalReview.roomViews = {}" not in confirmation
+
+
 def test_2d_uses_synchronized_3d_placement_as_the_collision_authority() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
@@ -101,6 +130,43 @@ def test_requirements_step_has_randomized_test_skip_button() -> None:
     assert "state.basicConfirmed = true" in source
     assert "requirement.confirmed = true" in source
     assert 'showQuestionnaireStage("summary")' in source
+
+
+def test_randomized_questionnaire_furniture_remains_system_adjustable() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    user_selection = _javascript_function(source, "questionnaireFurnitureSelectionItem")
+    random_selection = _javascript_function(
+        source,
+        "applyVerifiedRandomQuestionnaireFurniture",
+    )
+
+    assert "user_selected: true" in user_selection
+    assert 'selection_source: "test_random_verified_catalog"' in random_selection
+    assert "user_selected: false" in random_selection
+
+
+def test_system_selected_furniture_is_not_position_locked_for_generation() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    resolver = _javascript_function(source, "resolveCatalogFurniture")
+
+    assert "const positionLocked = item.locked === true" in resolver
+    assert resolver.count("position_locked: positionLocked") == 4
+
+
+def test_questionnaire_submit_is_locked_while_test_defaults_are_loading() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    skip_defaults = _javascript_function(source, "skipQuestionnaireWithDefaults")
+
+    assert "element.confirmRequirements" in skip_defaults
+    assert "control.disabled = true" in skip_defaults
+    assert "control.disabled = false" in skip_defaults
+
+
+def test_questionnaire_finish_scope_does_not_reference_load_only_state() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    confirmation = _javascript_function(source, "confirmQuestionnaireFinishes")
+
+    assert "serverState" not in confirmation
 
 
 def test_questionnaire_allows_empty_furniture_for_rooms_without_required_furniture() -> None:
@@ -1566,12 +1632,72 @@ def test_scene_configuration_sync_keeps_2d_inventory_aligned_with_scene_objects(
     assert "syncFinalValidationToConfiguration" in controller
 
 
-def test_step_six_progress_entry_prefers_the_integrated_3d_workspace() -> None:
+def test_generated_scene_replaces_submitted_2d_inventory_without_stale_duplicates() -> None:
+    module_uri = (STATIC / "scene_configuration_sync.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ reconcileFurniture2dAfterGeneration }} from {json.dumps(module_uri)};
+
+        const result = reconcileFurniture2dAfterGeneration(
+          [
+            {{ id: "large-bed", label: "大型床", roomId: "bedroom" }},
+            {{ id: "missing-model", label: "待補模型", roomId: "bedroom" }},
+          ],
+          [{{ furniture_id: "large-bed" }}],
+          [{{
+            furniture_id: "small-bed",
+            normalized_type: "bed",
+            name_zh_raw: "小型床",
+            placement_room_id: "bedroom",
+            position_cm: {{ x: 10, z: 20 }},
+            size_cm: {{ width: 90, depth: 190, height: 45 }},
+          }}],
+        );
+        console.log(JSON.stringify(result));
+        """,
+    )
+
+    assert [item["id"] for item in result] == ["missing-model", "small-bed"]
+
+
+def test_placement_resolution_uses_a_concise_summary_instead_of_every_item_message() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    resolver = _javascript_function(source, "placementResolutionText")
+    result = run_workflow_script(
+        f"""
+        {resolver}
+        console.log(JSON.stringify(placementResolutionText([
+          {{ action: "replace", message_zh: "大型床已替換成小型床。" }},
+          {{ action: "replace", message_zh: "大型衣櫃已替換成小型衣櫃。" }},
+          {{ action: "remove", message_zh: "休閒椅已移除。" }},
+        ])));
+        """,
+    )
+
+    assert result == "系統已依空間尺寸調整家具：替換 2 件、移除 1 件；目前配置已通過檢查。"
+    assert "大型床" not in result
+
+
+def test_step_six_progress_entry_prefers_the_deepest_integrated_3d_workspace() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    show_step = _javascript_function(source, "showStep")
 
     assert 'if (step === "layout_2d")' in source
+    assert 'const stepSixTarget = state.workflow?.canEnter("realistic_3d")' in source
+    assert '? "realistic_3d"' in source
     assert 'state.workflow?.canEnter("white_model_3d")' in source
-    assert 'goTo("white_model_3d")' in source
+    assert 'goTo(stepSixTarget)' in source
+    assert (
+        "focusStepSixRoom(state.selectedRoomId || state.selectedWalkRoomId "
+        "|| state.rooms[0]?.id)"
+    ) in show_step
+
+
+def test_saved_room_surface_drafts_are_restored_for_step_six() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "state.roomFinishDrafts = serverState.realistic_3d?.roomSurfaceDrafts" in source
+    assert "|| serverState.requirements?.roomFinishDrafts" in source
 
 
 def test_single_furniture_reflow_is_locked_until_the_request_finishes() -> None:

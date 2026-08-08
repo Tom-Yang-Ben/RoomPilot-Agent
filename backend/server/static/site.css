@@ -16890,24 +16890,45 @@ body.rp-workflow-page {
 }
 
 body.rp-workflow-page .app-topbar {
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-items: stretch;
+  gap: clamp(10px, 2vw, 24px);
   min-height: 76px;
   height: 76px;
   padding: 0 clamp(20px, 3vw, 48px);
+  text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   background: #37302a;
   box-shadow: 0 3px 18px rgba(38, 30, 24, 0.18);
 }
 
 body.rp-workflow-page .app-brand {
+  justify-self: start;
   min-height: 76px;
   font-size: 1.48rem;
 }
 
-.rp-project-meta {
+body.rp-workflow-page .rp-project-meta {
+  justify-self: end;
+  min-width: 0;
+  max-width: 100%;
   gap: 14px;
+  margin-left: 0;
   color: rgba(255, 255, 255, 0.88);
   font-size: 0.82rem;
   letter-spacing: 0.04em;
+}
+
+body.rp-workflow-page #project-save-status {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.rp-workflow-page #reset-project {
+  flex: 0 0 auto;
 }
 
 .rp-icon-command {
@@ -17309,6 +17330,10 @@ body.rp-workflow-page .secondary-action:hover:not(:disabled) {
     height: 66px;
   }
 
+  body.rp-workflow-page .app-brand {
+    min-height: 66px;
+  }
+
   .rp-progress {
     top: 66px;
   }
@@ -17327,6 +17352,23 @@ body.rp-workflow-page .secondary-action:hover:not(:disabled) {
 }
 
 @media (max-width: 640px) {
+  body.rp-workflow-page .app-topbar {
+    gap: 10px;
+    padding: 0 14px;
+  }
+
+  body.rp-workflow-page .app-brand {
+    font-size: 1.25rem;
+  }
+
+  body.rp-workflow-page .rp-project-meta {
+    gap: 8px;
+  }
+
+  body.rp-workflow-page #project-save-status {
+    font-size: 0.75rem;
+  }
+
   .rp-guidance-band {
     padding: 18px 20px 18px 28px;
   }
