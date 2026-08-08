@@ -999,7 +999,7 @@
                   <span class="rp-proposal-stage-state">尚未鎖定</span>
                 </header>
                 <p class="rp-proposal-stage-description">在左側調整能清楚看見主要格局的視角，或先套用系統建議。</p>
-                <button id="suggest-master-view" type="button" class="secondary-action rp-proposal-suggest-view">套用建議視角</button>
+                <button id="suggest-master-view" type="button" class="secondary-action rp-proposal-suggest-view">回到全屋預設視角</button>
                 <div class="rp-check-row rp-proposal-confirmation">
                   <input id="proposal-content-confirmed" type="checkbox" />
                   <label for="proposal-content-confirmed">我已確認家具、牆、地板、色卡與個人需求</label>
@@ -1104,15 +1104,15 @@
               <section id="room-render-section" class="rp-ai-render-stage" data-ai-render-stage="rooms" tabindex="-1">
                 <header class="rp-ai-render-stage-heading">
                   <span>2</span>
-                  <div><h3>逐房渲染</h3><small>保存每個房間的觀看位置，再一次送出。</small></div>
+                  <div><h3>逐房渲染</h3><small>視角已在第 7 步逐房鎖定；點房間可預覽，確認後一次送出。</small></div>
                   <strong id="ai-render-room-progress">0 / 0</strong>
                 </header>
                 <div class="rp-ai-render-stage-body">
                   <p id="room-render-lock-hint" class="rp-control-hint">請先在上方選定並確認一張色卡，這一段才會解鎖。</p>
                   <div id="render-room-list" class="rp-render-room-list"></div>
                   <div class="rp-ai-render-stage-actions">
-                    <button id="save-room-view" type="button" class="secondary-action">保存目前房間視角</button>
-                    <button id="submit-room-renders" type="button" class="primary-action">送出已保存的房間渲染</button>
+                    <button id="adjust-room-views" type="button" class="secondary-action">回第 7 步調整視角</button>
+                    <button id="submit-room-renders" type="button" class="primary-action">送出已鎖定的房間渲染</button>
                   </div>
                 </div>
               </section>
@@ -1263,6 +1263,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-12e3e7b74826"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-ee3e0c801139"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-3166a91e02b2"></script>
   </body>
 </html>

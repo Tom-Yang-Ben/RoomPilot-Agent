@@ -3578,13 +3578,15 @@ def test_step_eight_uses_the_ai_render_workbench_without_changing_existing_actio
     for control_id in (
         "request-palette-renders",
         "confirm-render-palette",
-        "save-room-view",
+        "adjust-room-views",
         "submit-room-renders",
         "download-render-view",
         "save-render-view-png",
         "saved-renders-list",
     ):
         assert f'id="{control_id}"' in workbench
+    # 視角編輯只在第 7 步；第 8 步不得再出現第二套保存視角入口。
+    assert 'id="save-room-view"' not in workbench
 
     assert "function setAiRenderWorkbenchStage(stageId, focus = false)" in source
     assert 'button.setAttribute("aria-pressed"' in source

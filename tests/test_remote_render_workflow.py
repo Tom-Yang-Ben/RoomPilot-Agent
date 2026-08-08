@@ -177,7 +177,9 @@ def test_scene_contains_review_then_room_render_controls() -> None:
     assert 'data-panel="proposal-review"' in html
     assert 'data-panel="ai-render"' in html
     assert 'id="request-palette-renders"' in html
-    assert 'id="save-room-view"' in html
+    # 視角編輯收斂到第 7 步；第 8 步只留「回第 7 步調整」與批次送出。
+    assert 'id="save-room-view"' not in html
+    assert 'id="adjust-room-views"' in html
     assert 'id="submit-room-renders"' in html
     assert "function lockMasterRenderView()" in controller
     assert "function roomCameraSuggestion(room)" in controller

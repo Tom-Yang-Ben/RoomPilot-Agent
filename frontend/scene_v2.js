@@ -11013,7 +11013,7 @@ function renderRoomViewList() {
       <button type="button" data-render-room="${escapeHtml(room.id)}"
         class="${room.id === state.selectedRenderRoomId ? "is-active" : ""}">
         <span>${escapeHtml(roomDisplayLabel(room))}</span>
-        <small>${saved ? "視角已保存" : "使用建議視角"}</small>
+        <small>${saved ? "視角已鎖定" : "尚未鎖定（回第 7 步）"}</small>
       </button>
     `;
   }).join("");
@@ -11065,39 +11065,16 @@ function selectRenderRoom(roomId) {
   aiRenderViewer.setCameraState(saved || roomCameraSuggestion(room));
   element.aiRenderViewTitle.textContent = `${roomDisplayLabel(room)} · 渲染視角`;
   element.aiRenderStatus.textContent = saved
-    ? "已載入保存視角；可以小幅調整後重新保存。"
-    : "已套用房間建議視角；請確認主要家具與布局清楚可見。";
+    ? "已載入第 7 步鎖定的視角；要調整請按「回第 7 步調整視角」。"
+    : "此房間尚未鎖定視角（目前顯示建議視角），請回第 7 步鎖定後再送出。";
   renderRoomViewList();
   syncAiRenderWorkbenchStatus();
 }
 
-function saveSelectedRoomView() {
-  const room = state.rooms.find((item) => item.id === state.selectedRenderRoomId);
-  if (!room) return;
-  const camera = aiRenderViewer.getCameraState();
-  const validation = validateRoomCamera(camera, room, state.sceneData?.floorplan);
-  if (!validation.valid) {
-    element.aiRenderStatus.textContent = "目前鏡頭不在房間的可用觀看區域，請重新套用建議視角或移回房間內。";
-    return;
-  }
-  state.proposalReview.roomViews[room.id] = {
-    room_id: room.id,
-    room_label: room.label,
-    camera,
-    // 保留第 7 步選過的候選索引，回頭編輯時高亮不歸零。
-    candidate_index: state.proposalReview.roomViews[room.id]?.candidate_index ?? null,
-    scene_version: state.proposalReview.masterView?.scene_version,
-    saved_at: new Date().toISOString(),
-    // 內建生圖供應者需要逐房參考截圖（room_final 模式逐房出圖的底圖）；
-    // 缺這張時後端會退用主視角參考圖。
-    reference_png_data_url: aiRenderViewer.capturePng(),
-  };
-  element.aiRenderStatus.textContent = `${room.label || "此房間"}視角已保存。`;
-  renderRoomViewList();
-  scheduleSave("ai_render");
-  const nextRoom = state.rooms.find((item) => !state.proposalReview.roomViews[item.id]);
-  if (nextRoom) selectRenderRoom(nextRoom.id);
-}
+// 視角編輯只在第 7 步（lockSelectedProposalRoomView 已含生圖底圖）；
+// 第 8 步只預覽與送出，不再提供第二套「保存視角」——同一份
+// state.proposalReview.roomViews 被兩個 UI 編輯兩次是 2026-08-08 盤點
+// 確認的重複來源。
 
 async function downloadViewerGlb(viewer, prefix) {
   try {
@@ -11349,7 +11326,7 @@ function setRoomRenderSectionLocked(locked) {
   element.roomRenderSection.classList.toggle("is-locked", locked);
   const hint = $("#room-render-lock-hint");
   if (hint) hint.hidden = !locked;
-  ["#save-room-view", "#submit-room-renders"].forEach((selector) => {
+  ["#adjust-room-views", "#submit-room-renders"].forEach((selector) => {
     const button = $(selector);
     if (button) button.disabled = locked;
   });
@@ -11392,7 +11369,7 @@ async function prepareAiRender() {
   if (state.selectedRenderRoomId) selectRenderRoom(state.selectedRenderRoomId);
   else {
     element.aiRenderViewTitle.textContent = "色卡比較視角";
-    element.aiRenderStatus.textContent = "先建立色卡比較任務，確認後再逐房間保存視角。";
+    element.aiRenderStatus.textContent = "先建立色卡比較任務，確認色卡後即可送出第 7 步鎖定的房間視角。";
   }
 }
 
@@ -11507,7 +11484,7 @@ async function submitRoomRenders() {
   const roomViews = Object.values(state.proposalReview.roomViews);
   clearRenderActionError();
   if (!roomViews.length) {
-    reportRenderActionError(new Error("請至少保存一個房間視角。"));
+    reportRenderActionError(new Error("尚未有已鎖定的房間視角；請回第 7 步逐房鎖定。"));
     return;
   }
   const button = $("#submit-room-renders");
@@ -11547,7 +11524,7 @@ async function submitRoomRenders() {
   } finally {
     button.disabled = false;
     if (button.textContent === "正在送出房間渲染…") {
-      button.textContent = "送出已保存的房間渲染";
+      button.textContent = "送出已鎖定的房間渲染";
     }
   }
 }
@@ -12784,7 +12761,7 @@ function bindEvents() {
     $$("[data-proposal-view-mode]").forEach((item) => {
       item.classList.toggle("is-active", item.dataset.proposalViewMode === "orbit");
     });
-    element.masterViewStatus.textContent = "已套用建議透視視角；可以繼續微調。";
+    element.masterViewStatus.textContent = "已回到全屋預設視角；可以繼續微調。";
   });
   $("#lock-master-view").addEventListener("click", lockMasterRenderView);
   $("#return-to-realistic").addEventListener("click", () => goTo("realistic_3d"));
@@ -12798,7 +12775,11 @@ function bindEvents() {
     const button = event.target.closest("[data-render-room]");
     if (button) selectRenderRoom(button.dataset.renderRoom);
   });
-  $("#save-room-view").addEventListener("click", saveSelectedRoomView);
+  $("#adjust-room-views")?.addEventListener("click", () => {
+    if (goTo("proposal_review")) {
+      setStatus("回到第 7 步：請重新逐房鎖定視角，完成後再進入渲染。");
+    }
+  });
   $("#download-proposal-view")?.addEventListener("click", () => downloadViewerPng(proposalViewer, "RoomPilot-方案視角"));
   $("#save-proposal-view-png")?.addEventListener("click", async () => {
     clearRenderActionError();
