@@ -191,4 +191,4 @@ def test_questionnaire_enters_step_six_when_scheme_b_needs_adjustment() -> None:
     assert generation.count("await confirmLayout2d({ allowPendingFurniture: true })") == 2
     assert 'state.designSchemes.schemes.B.staleReason = message;' in generation
     assert '方案 A 已建立；方案 B 有待處理家具，請在第 6 步調整。' in generation
-    assert "方案 A、B 的 2D+3D 配置已建立" in generation
+    assert "問卷需求的 2D+3D 配置已建立，可開始調整。" in generation

@@ -1469,6 +1469,7 @@ async function switchDesignScheme(schemeId) {
   if (!scheme) return false;
   state.furniture2d = scheme.furniture || [];
   state.sceneData = scheme.sceneData || null;
+  proposalSceneVersionLoaded = null;   // 換方案是整場重建,第 7 步快取失效
   state.selectedFurniture2dId = state.furniture2d[0]?.id || null;
   renderSchemeControls();
   renderLayoutRoomFilter();
@@ -16375,8 +16376,13 @@ async function legacySubmitRoomRendersV2(renderBrief = null) {
  * one-at-a-time final renders.
  */
 async function prepareProposalReview() {
-  if (!state.sceneData) return;
-  await proposalViewer.loadScene(state.sceneData);
+  if (!state.sceneData) {
+    element.masterViewStatus.textContent = "尚未有可用的 3D 場景，請返回第 6 步確認方案後再進入。";
+    return;
+  }
+  // 只經快取入口載入:同一場景版本切色卡不重載(in-flight 去重),真正需要
+  // 載入(6→7 首次、換方案、場景重建)才顯示等待遮罩並重載。
+  if (!(await ensureProposalSceneLoaded())) return;
   const masterCamera = state.proposalReview.masterView?.camera;
   if (!String(masterCamera?.preset || "").startsWith("full-room-v2")) {
     const firstRoom = state.rooms[0];

@@ -131,7 +131,7 @@ def test_frontend_no_longer_maps_questionnaire_appliances_to_an_api() -> None:
     assert 'endpoint: "/api/appliances"' not in source
     assert '"/api/appliances"' not in source
     assert "catalogCandidatesForType(current.type" in source
-    assert "rankCatalogFurniture(catalogCandidates, request)" in source
+    assert "rankCatalogFurniture(catalogCandidates, rankingRequest)" in source
 
 
 def test_outdoor_named_rows_rank_below_indoor_for_indoor_rooms() -> None:
