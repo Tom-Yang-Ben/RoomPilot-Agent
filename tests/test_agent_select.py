@@ -202,11 +202,12 @@ def test_dining_furniture_is_kept_in_a_recognized_dining_room() -> None:
 
 def test_dining_furniture_is_dropped_outside_the_living_room() -> None:
     # 房型不合的選件是丟棄並記錄，不是拋錯——LLM 選錯房間不該中止整份配置。
+    # 衣櫃一併選入：它現在是臥室基礎必備（REQUIRED_FAMILIES_BY_ROOM）。
     offers = _offers()
     offers["bedroom-1"].append(_candidate("table-1", "dining-table", 130, 90))
 
     result = parse_selections(
-        {"selections": [_selection("bedroom-1", "bed-1", "table-1")]},
+        {"selections": [_selection("bedroom-1", "bed-1", "wardrobe-1", "table-1")]},
         _bedroom_only(),
         offers,
     )
@@ -220,7 +221,7 @@ def test_preselected_item_is_protected_and_takes_family_slot() -> None:
     offers = _offers()
     user_sofa = _candidate("user-sofa", "sofa-bed", 190, 88)
     offers["bedroom-1"].append(user_sofa)
-    raw = {"selections": [_selection("bedroom-1", "bed-1", "nightstand-1")]}
+    raw = {"selections": [_selection("bedroom-1", "bed-1", "wardrobe-1", "nightstand-1")]}
     result = parse_selections(
         raw, _bedroom_only(), offers, preselected={"bedroom-1": [user_sofa]}
     )
@@ -273,7 +274,8 @@ def test_request_reports_unavailable_llm() -> None:
 def test_request_returns_validated_result_and_model() -> None:
     def complete(_messages: list[dict[str, str]]) -> tuple[str, dict]:
         return "mock/select", {"selections": [
-            _selection("bedroom-1", "bed-1", {"furniture_id": "nightstand-1", "count": 2}),
+            _selection("bedroom-1", "bed-1", "wardrobe-1",
+                       {"furniture_id": "nightstand-1", "count": 2}),
             _selection("living-1", "sofa-1", "coffee-1", "invented"),
         ]}
 

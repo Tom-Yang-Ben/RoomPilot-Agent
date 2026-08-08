@@ -21,7 +21,7 @@ import {
   createFurniture2DItem,
   recommendCompanionFurniture,
   recommendedFurnitureForRoom,
-} from "./scene_layout2d.js?v=sha256-23d4de37dcfe";
+} from "./scene_layout2d.js?v=sha256-5d00a7dcfedc";
 import {
   renderMaterialPairPreviews,
 } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
@@ -58,7 +58,7 @@ import {
   questionnaireOffersWithSizeChoices,
   roomAreaM2,
   roomUsageOptions,
-} from "./scene_questionnaire_data.js?v=sha256-a86f039407d5";
+} from "./scene_questionnaire_data.js?v=sha256-38de92c56a67";
 
 // ── 家具候選集（第 5 步問卷送出時由後端 RAG 建立）──────────────────────
 // 候選集把 8,557 筆型錄縮成每房數十筆，選件與擺放都只在這個子集上跑。

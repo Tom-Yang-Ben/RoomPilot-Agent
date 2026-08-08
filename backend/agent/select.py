@@ -32,7 +32,9 @@ Complete = Callable[[list[dict[str, str]]], Optional[tuple[str, dict[str, Any]]]
 MAX_ITEMS_PER_ROOM = 8
 COUNT_MAX = 6
 REQUIRED_FAMILIES_BY_ROOM = {
-    "bedroom": ("bed",),
+    # 臥室必備床＋衣櫃：只強制床的年代，衣櫃被 LLM 丟掉毫無攔截，
+    # 2026-08-01 QA 與 2026-08-08 Ben 專案都實測整案 0 衣櫃。
+    "bedroom": ("bed", "wardrobe"),
     "living_room": ("sofa",),
     # 第 4 步房名收斂後不再有獨立餐廳。餐桌餐椅改由 ROOM_AFFINITY 開放給客廳，
     # 但不列為必備，否則每間客廳都會被硬塞一組餐桌。
@@ -425,11 +427,24 @@ def _required_families_for_room(
     問卷要了衣櫃但該房候選根本沒有衣櫃時不列入必備，否則整次選件會
     因為型錄缺貨而失敗，連帶讓使用者連床都拿不到。
     """
-    families = list(REQUIRED_FAMILIES_BY_ROOM.get(room_type, ()))
     requirement = (requirements or {}).get(room_id)
+    deferred_ids = requirement.deferred_furniture_ids if requirement else frozenset()
+    # 「有貨」不含使用者暫緩的候選：暫緩了唯一的衣櫃還把衣櫃列必備，
+    # 選件會被迫在「違反暫緩」與「整次失敗」之間二選一。
+    available = {
+        family_of(item.get("normalized_type"))
+        for furniture_id, item in offer_index.items()
+        if str(furniture_id) not in deferred_ids
+    }
+    # 房型基礎必備同樣依「候選內確實有貨」過濾：該房候選缺衣櫃時硬列必備，
+    # 整次選件會失敗退回本地規則，反而連拿得到的床都被拖累。
+    families = [
+        family
+        for family in REQUIRED_FAMILIES_BY_ROOM.get(room_type, ())
+        if family in available
+    ]
     if requirement is None:
         return tuple(families)
-    available = {family_of(item.get("normalized_type")) for item in offer_index.values()}
     for family in requirement.required_families:
         if family in available and family not in families:
             families.append(family)

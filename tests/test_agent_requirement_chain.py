@@ -186,18 +186,22 @@ def test_questionnaire_required_family_is_enforced_against_llm_output() -> None:
 
 def test_questionnaire_required_family_is_skipped_when_catalog_has_none() -> None:
     # 型錄缺貨不該讓整間房失敗，否則使用者連床都拿不到。
+    # 衣櫃列入選件是因為它現在是臥室基礎必備（REQUIRED_FAMILIES_BY_ROOM）。
     requirements = requirements_from_context(
         _context(_room_requirement(required=["piano"]))
     )
 
     result = parse_selections(
-        {"selections": [_selection("bedroom-1", "bed-1")]},
+        {"selections": [_selection("bedroom-1", "bed-1", "wardrobe-1")]},
         _bedroom(),
         _offers(),
         requirements=requirements,
     )
 
-    assert [entry.item["furniture_id"] for entry in result["bedroom-1"]] == ["bed-1"]
+    assert [entry.item["furniture_id"] for entry in result["bedroom-1"]] == [
+        "bed-1",
+        "wardrobe-1",
+    ]
 
 
 def test_parse_drops_deferred_furniture_chosen_by_llm() -> None:
