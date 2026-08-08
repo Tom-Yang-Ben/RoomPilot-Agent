@@ -45,6 +45,37 @@ def test_all_confirmed_room_regions_share_the_initial_floor_surface() -> None:
     assert all(len(item["exterior"]) == 4 for item in result)
 
 
+def test_wall_thickness_follows_confirmed_room_finished_faces() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ inferredWallThicknessCm }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        const inferred = inferredWallThicknessCm({{
+          room_regions: [
+            {{ room_id: "left", exterior: [[-400, -300], [-13.3, -300], [-13.3, 300], [-400, 300]] }},
+            {{ room_id: "right", exterior: [[13.3, -300], [400, -300], [400, 300], [13.3, 300]] }},
+          ],
+          wall_segments: [{{
+            start: {{ x: 0, z: -300 }},
+            end: {{ x: 0, z: 300 }},
+            thickness_cm: 12,
+          }}],
+        }}, 12);
+        const measuredFallback = inferredWallThicknessCm({{
+          wall_segments: [{{ thickness_cm: 20 }}],
+        }}, 12);
+        console.log(JSON.stringify({{ inferred, measuredFallback }}));
+        """
+    )
+
+    assert abs(result["inferred"] - 26.6) < 0.01
+    assert result["measuredFallback"] == 20
+
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    assert "inferredWallThicknessCm(sceneData.floorplan, 12)" in source
+
+
 def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
     result = run_workflow_script(
         f"""

@@ -109,6 +109,92 @@ export function fallbackMaterialRole(furnitureType = "") {
   return null;
 }
 
+function floorplanPoint(value = {}) {
+  return {
+    x: Number(value?.x ?? value?.[0]),
+    z: Number(value?.z ?? value?.y ?? value?.[1]),
+  };
+}
+
+function axisAlignedSpan(startValue, endValue) {
+  const start = floorplanPoint(startValue);
+  const end = floorplanPoint(endValue);
+  if (![start.x, start.z, end.x, end.z].every(Number.isFinite)) return null;
+  const dx = end.x - start.x;
+  const dz = end.z - start.z;
+  const length = Math.hypot(dx, dz);
+  if (length < 4) return null;
+  const vertical = Math.abs(dz) > Math.abs(dx);
+  const crossAxisDelta = vertical ? Math.abs(dx) : Math.abs(dz);
+  if (crossAxisDelta > Math.max(2, length * 0.02)) return null;
+  return vertical
+    ? {
+        orientation: "vertical",
+        normal: (start.x + end.x) / 2,
+        from: Math.min(start.z, end.z),
+        to: Math.max(start.z, end.z),
+      }
+    : {
+        orientation: "horizontal",
+        normal: (start.z + end.z) / 2,
+        from: Math.min(start.x, end.x),
+        to: Math.max(start.x, end.x),
+      };
+}
+
+function roomBoundarySpans(floorplan = {}) {
+  return (floorplan.room_regions || []).flatMap((region) => {
+    const points = region?.exterior || [];
+    if (points.length < 3) return [];
+    return points
+      .map((point, index) => axisAlignedSpan(point, points[(index + 1) % points.length]))
+      .filter(Boolean);
+  });
+}
+
+function median(values = []) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? sorted[middle]
+    : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+export function inferredWallThicknessCm(floorplan = {}, fallbackCm = 12) {
+  const fallback = Number(fallbackCm) > 0 ? Number(fallbackCm) : 12;
+  const walls = floorplan.wall_segments || [];
+  const boundaries = roomBoundarySpans(floorplan);
+  const inferred = walls.flatMap((wall) => {
+    const span = axisAlignedSpan(wall.start, wall.end);
+    if (!span) return [];
+    const signedDistances = boundaries
+      .filter((boundary) => (
+        boundary.orientation === span.orientation
+        && Math.min(boundary.to, span.to) - Math.max(boundary.from, span.from) >= 4
+      ))
+      .map((boundary) => boundary.normal - span.normal)
+      .filter((distance) => Math.abs(distance) >= 2 && Math.abs(distance) <= 35);
+    const positive = signedDistances.filter((distance) => distance > 0);
+    const negative = signedDistances.filter((distance) => distance < 0).map(Math.abs);
+    const positiveFace = positive.length ? Math.min(...positive) : null;
+    const negativeFace = negative.length ? Math.min(...negative) : null;
+    const thickness = positiveFace != null && negativeFace != null
+      ? positiveFace + negativeFace
+      : 2 * (positiveFace ?? negativeFace ?? 0);
+    return thickness >= 8 && thickness <= 60 ? [thickness] : [];
+  });
+  const inferredMedian = median(inferred);
+  if (inferredMedian != null) return Math.round(inferredMedian * 1000) / 1000;
+
+  const measured = [
+    Number(floorplan.wall_thickness_cm),
+    ...walls.map((wall) => Number(wall.thickness_cm)),
+  ].filter((value) => Number.isFinite(value) && value >= 8 && value <= 60);
+  const measuredMedian = median(measured);
+  return measuredMedian == null ? fallback : Math.round(measuredMedian * 1000) / 1000;
+}
+
 export function synchronizedFloorRegions(floorplan = {}, widthCm = 420, depthCm = 360) {
   const regions = (floorplan.room_regions || [])
     .filter((region) => Array.isArray(region?.exterior) && region.exterior.length >= 3)

@@ -30,9 +30,10 @@ import {
   computeExactModelScale,
   fallbackMaterialRole,
   findNearestWalkablePosition,
+  inferredWallThicknessCm,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-b73f02baf64c";
+} from "./scene_visual_contracts.js?v=sha256-826142b89982";
 import { normalizedPlanarUvs } from "./scene_texture_uv.js?v=sha256-1d68ae8102bc";
 
 const CM_PER_METER = 100;
@@ -3136,7 +3137,7 @@ export function createSceneViewer(
     applySurfaceTint(wallMaterial, wallColor);
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
-    const wallThickness = 12;
+    const wallThickness = inferredWallThicknessCm(sceneData.floorplan, 12);
     const wallSegments = sceneData.floorplan?.wall_segments || [];
     const doorSegments = dedupeArchitecturalOpeningsFor3d(
       (sceneData.floorplan?.door_segments || []).map(
