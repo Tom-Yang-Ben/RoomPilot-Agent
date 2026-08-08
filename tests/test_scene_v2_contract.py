@@ -1202,6 +1202,100 @@ def test_saved_scene_data_migrates_only_legacy_floorplan_geometry_once() -> None
     assert result["twice"] == result["once"]
 
 
+def test_legacy_wall_gap_repair_moves_only_engine_anchored_furniture() -> None:
+    module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
+    result = run_workflow_script(
+        f"""
+        import {{ repairLegacyWallFurnitureGaps }} from {json.dumps(module_uri)};
+        const sceneData = {{
+          floorplan: {{
+            room_regions: [{{
+              room_id: "bedroom-1",
+              exterior: [[0, 0], [400, 0], [400, 300], [0, 300]],
+              holes: [],
+            }}],
+          }},
+          scene_objects: [
+            {{
+              furniture_id: "legacy-wardrobe",
+              normalized_type: "wardrobe",
+              placement_engine: "furniture_engine",
+              placement_room_id: "bedroom-1",
+              position_cm: {{ x: 200, z: 38 }},
+              size_cm: {{ width: 100, depth: 60, height: 210 }},
+              footprint_cm: {{ width: 60, depth: 100 }},
+              rotation_y_deg: 0,
+              position_locked: true,
+            }},
+            {{
+              furniture_id: "intentional-gap",
+              normalized_type: "wardrobe",
+              placement_engine: "furniture_engine",
+              placement_room_id: "bedroom-1",
+              position_cm: {{ x: 200, z: 50 }},
+              size_cm: {{ width: 100, depth: 60, height: 210 }},
+              rotation_y_deg: 0,
+              position_locked: true,
+            }},
+            {{
+              furniture_id: "table-near-wall",
+              normalized_type: "dining-table",
+              placement_engine: "furniture_engine",
+              placement_room_id: "bedroom-1",
+              position_cm: {{ x: 200, z: 38 }},
+              size_cm: {{ width: 100, depth: 60, height: 75 }},
+              rotation_y_deg: 0,
+              position_locked: true,
+            }},
+            {{
+              furniture_id: "manual-wardrobe",
+              normalized_type: "wardrobe",
+              placement_engine: "manual",
+              placement_room_id: "bedroom-1",
+              position_cm: {{ x: 200, z: 38 }},
+              size_cm: {{ width: 100, depth: 60, height: 210 }},
+              rotation_y_deg: 0,
+              position_locked: true,
+            }},
+          ],
+        }};
+        const furniture2d = sceneData.scene_objects.map((item) => ({{
+          id: item.furniture_id,
+          xCm: item.position_cm.x,
+          yCm: item.position_cm.z,
+          rotationDeg: item.rotation_y_deg,
+        }}));
+        const repaired = repairLegacyWallFurnitureGaps(sceneData, furniture2d);
+        console.log(JSON.stringify(repaired));
+        """
+    )
+
+    assert result["repairedIds"] == ["legacy-wardrobe"]
+    objects = {
+        item["furniture_id"]: item
+        for item in result["sceneData"]["scene_objects"]
+    }
+    furniture = {item["id"]: item for item in result["furniture2d"]}
+    assert objects["legacy-wardrobe"]["position_cm"]["z"] == 30
+    assert objects["legacy-wardrobe"]["footprint_cm"] == {
+        "width": 100,
+        "depth": 60,
+    }
+    assert furniture["legacy-wardrobe"]["yCm"] == 30
+    assert objects["intentional-gap"]["position_cm"]["z"] == 50
+    assert objects["table-near-wall"]["position_cm"]["z"] == 38
+    assert objects["manual-wardrobe"]["position_cm"]["z"] == 38
+
+
+def test_restored_legacy_wall_gap_is_persisted_and_future_drag_has_no_gap() -> None:
+    controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    assert "repairLegacyWallFurnitureGaps" in controller
+    assert "restoredLegacyWallGapRepairs > 0" in controller
+    assert "const WALL_GAP = 0;" in viewer
+
+
 def test_saved_scene_data_migrates_mixed_floorplan_fields_independently() -> None:
     module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(

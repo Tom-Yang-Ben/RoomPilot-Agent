@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-e8fdc8a26e33";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-5f35e03ff581";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-35a0bec6dcb1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -6,7 +6,8 @@ import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-66d8d568f445";
+  repairLegacyWallFurnitureGaps,
+} from "./scene_unit_contracts.js?v=sha256-e88decde6214";
 import {
   repairLoadedRoomPolygon,
 } from "./scene_room_geometry.js?v=sha256-d863939b9c06";
@@ -18362,6 +18363,16 @@ function normalizeLegacyBedroomVisualAnswers(answers = {}) {
   }, {});
 }
 
+function repairRestoredSchemeLegacyWallGaps(scheme) {
+  if (!scheme) return 0;
+  const normalizedSceneData = normalizeSavedSceneData(scheme.sceneData);
+  if (!normalizedSceneData) return 0;
+  const repaired = repairLegacyWallFurnitureGaps(normalizedSceneData, scheme.furniture || []);
+  scheme.sceneData = repaired.sceneData;
+  scheme.furniture = repaired.furniture2d;
+  return repaired.repairedIds.length;
+}
+
 async function restoreProject() {
   if (!state.projectId) {
     state.workflow = null;
@@ -18372,6 +18383,7 @@ async function restoreProject() {
     let sceneRecoveryError = null;
     let furnitureRoomRepairError = null;
     let restoredFurnitureRoomRepairs = 0;
+    let restoredLegacyWallGapRepairs = 0;
     let result = await api(`/api/projects/${state.projectId}`);
     const pendingSave = localStorage.getItem(pendingSaveStorageKey());
     let pendingSaveDiscarded = false;
@@ -18536,6 +18548,8 @@ async function restoreProject() {
       && !(restoredSchemeB.furniture || []).length
       && !restoredSchemeB.sceneData;
     if (emptySchemeB) deleteSchemeB(state.designSchemes);
+    restoredLegacyWallGapRepairs = Object.values(state.designSchemes.schemes || {})
+      .reduce((total, scheme) => total + repairRestoredSchemeLegacyWallGaps(scheme), 0);
     const restoredScheme = activeScheme();
     state.furniture2d = restoredScheme?.furniture || legacyFurniture;
     state.sceneData = normalizeSavedSceneData(restoredScheme?.sceneData) || legacySceneData;
@@ -18610,6 +18624,7 @@ async function restoreProject() {
     if (
       sceneRecoveredFromLayout
       || restoredFurnitureRoomRepairs > 0
+      || restoredLegacyWallGapRepairs > 0
       || restoredAutomaticSoftDecorRemoved > 0
       || restoredRetiredAppliancesRemoved > 0
       || restoredWallSurfaceRepairs > 0

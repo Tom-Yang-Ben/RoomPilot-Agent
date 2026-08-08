@@ -5453,9 +5453,9 @@ function updateRoomSurfaces(sceneData, roomId = "") {
     renderer.domElement.style.cursor = "grabbing";
   });
 
-  // ── 拖曳吸附:靠近牆段時貼齊(留 10cm,大於後端 8cm 邊距故吸附後必過驗證),平時 5cm 格點 ──
+  // 房間邊界是室內完成面；靠牆家具不額外留縫，其他移動使用 5 cm 格點。
   const SNAP_RANGE = 30;
-  const WALL_GAP = 6;
+  const WALL_GAP = 0;
   const DRAG_GRID = 5;
 
   function normalizedRotationDeg(rotationDeg = 0) {
