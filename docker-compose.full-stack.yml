@@ -1,0 +1,68 @@
+# 自足模式疊加檔：連 PostgreSQL 也放進容器。
+#
+#   docker compose -f docker-compose.yml -f docker-compose.full-stack.yml up -d
+#   或 .\scripts\docker\roompilot.ps1 up -FullStack
+#
+# 用途：換機、離線展示、或想要「一個指令把整套端起來」。
+# 代價：這是**第二份**資料庫。本機那套 PostgreSQL 的資料不會自動同步過來，
+#       也不會自動同步回去。第一次啟動後要灌資料：
+#           .\scripts\docker\roompilot.ps1 seed-db
+#       它會從本機 5432 匯出再灌進容器（見 scripts/docker/seed_db.ps1）。
+#
+# 沒灌資料前 /api/health 會回 503（型錄與專案表都是空的），這是正確行為，
+# 不是容器壞掉。
+
+services:
+  db:
+    # pgvector 官方映像，內含 PostgreSQL 17 與 vector extension。
+    # 本機那套是 17.10 + pgvector 0.8.2；major 版本一致，pg_dump/pg_restore
+    # 才不會因版本落差出事。
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: "${DB_NAME:-roompilot_db}"
+      POSTGRES_USER: "${DB_USER:-postgres}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD 必須在 .env 設定}"
+      # 刻意不設 POSTGRES_INITDB_ARGS，用映像預設（UTF8 + en_US.utf8）。
+      #
+      # ⚠ 這與本機那套不同：本機 roompilot_db 的 collation 是
+      #   「Chinese (Traditional)_Taiwan.950」，那是 Windows 專有的 locale 名稱，
+      #   Linux 容器根本建不出來。所以 seed-db 的匯出刻意不帶 --create——
+      #   帶了的話 dump 裡會有一行 CREATE DATABASE ... LC_COLLATE='Chinese
+      #   (Traditional)_Taiwan.950'，在容器裡必定失敗。
+      #
+      #   實務影響只有一項：純中文字串的 ORDER BY 排序結果會與本機不同。
+      #   已確認 roompilot 與 staging 兩個 schema 沒有任何欄位寫死 COLLATE
+      #   （2026-08-09 查 pg_attribute.attcollation，0 筆），所以資料本身、
+      #   索引與 pgvector 相似度查詢都不受影響。
+    volumes:
+      - roompilot-db:/var/lib/postgresql/data
+      # 沒有 /docker-entrypoint-initdb.d 掛載是刻意的：schema、資料與
+      # CREATE EXTENSION vector／pg_trgm 全部由 seed-db 的 pg_restore 帶進來，
+      # 只留一個來源，日後不會兩邊對不上。
+
+    # 只開在 loopback，避免整個區網連得到你的開發資料庫。
+    # 想用 pgAdmin/DBeaver 連容器 DB 就靠這個埠（5433，避開本機的 5432）。
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-roompilot_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+    restart: unless-stopped
+
+  app:
+    environment:
+      # 蓋掉預設的 host.docker.internal。同一個 compose 網路內直接用服務名。
+      DB_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    # 自足模式下不需要回連 host，但留著無害；Linux daemon 上移除這行會讓
+    # 預設模式的 host.docker.internal 解析不到，所以不在這裡覆寫。
+
+volumes:
+  roompilot-db:

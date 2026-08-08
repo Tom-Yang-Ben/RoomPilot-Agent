@@ -73,6 +73,30 @@ uv sync --extra server --extra vision --extra catalog --extra semantic --group d
 會標示 `area_rules` 而非 `cubicasa_semantic`。torch 會連帶拉進 CUDA 相依套件，
 因此與 OCR 同樣不放進預設環境。
 
+### 方式三：Docker
+
+不必在機器上裝 Python、torch 或模型權重。需求：Docker Desktop 4.85 以上、
+磁碟 20GB、記憶體配額 8GB 以上。
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }   # 填入 DB_PASSWORD
+.\scripts\docker\roompilot.ps1 up
+.\scripts\docker\roompilot.ps1 smoke
+```
+
+開 <http://127.0.0.1:8002>。首次建置要下載約 4.5GB 的 BGE-M3 與 reranker 權重。
+
+預設模式的資料庫仍是本機那套 PostgreSQL（容器透過 `host.docker.internal`
+連過去，零資料搬遷）。要連資料庫也放進容器：
+
+```powershell
+.\scripts\docker\roompilot.ps1 up -FullStack
+.\scripts\docker\roompilot.ps1 seed-db -FullStack
+```
+
+與本機執行的差異、四個取捨、以及「改了程式為什麼沒生效」等常見狀況，
+見 [容器化執行指南](docs/DOCKER.md)。
+
 ## 驗證指令
 
 ```powershell

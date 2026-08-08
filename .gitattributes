@@ -14,3 +14,13 @@ frontend/**/*.jpeg binary
 frontend/**/*.wasm binary
 frontend/**/*.glb binary
 frontend/**/*.gltf binary
+
+# 容器化檔案是在 Linux 映像內被解析的，一律 LF。Windows 上 core.autocrlf 檢出
+# 成 CRLF 時，Dockerfile 的 RUN 續行與未來若加入的 .sh entrypoint 都可能出現
+# 「command not found」這種與內容無關的錯誤，而且訊息完全指不到根因。
+# roompilot.ps1 不列入：那是給 Windows PowerShell 跑的，CRLF 才是它的原生格式。
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+docker-compose.yml text eol=lf
+docker-compose.full-stack.yml text eol=lf
+scripts/docker/*.py text eol=lf

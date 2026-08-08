@@ -1,0 +1,67 @@
+# 建置上下文排除清單。刻意寫成白名單思維的反面：預設全帶，逐項剔除大宗與機密。
+# 排掉這些之後 build context 從約 900M 降到約 150M。
+#
+# ⚠ 這裡排掉的東西，Dockerfile 裡就 COPY 不到。要新增 COPY 前先確認沒被擋。
+
+# 本機環境與版控
+.venv/
+.git/
+.gitattributes
+.pytest_cache/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# 機密與本機執行資料。.runtime 內有 auth_secret.key 與 projects.sqlite3，
+# 一律走 volume，絕不燒進映像。.env 由 compose 的 env_file 在執行期帶入，
+# 同樣不進映像。
+.env
+.env.*
+!.env.example
+.runtime/
+.mcp.json
+.claude/
+.codex/
+.out-of-scope/
+
+# 開發雜物
+.tmp/
+temp/
+*.log
+*Zone.Identifier
+
+# node_modules 一律在映像內用 npm ci 重建，不搬本機那份（平台可能不同）。
+node_modules/
+
+# 前端 422M 圖片資產走唯讀掛載（見 docker-compose.yml）。
+# 剩下的 frontend/ 程式碼只有約 6MB，照常進映像。
+frontend/surface_assets/
+frontend/style_cards/
+frontend/style_images/
+
+# JSON/ 224M 是 PostgreSQL 不可用時的離線 fallback 型錄，同樣走唯讀掛載。
+JSON/
+
+# 容器用不到的研發資產
+training/
+rag/
+examples/
+MAIN_SYNC_TODO_CODY_v2.md
+design-qa.md
+
+# ── 刻意「不」排除的東西，以及理由 ───────────────────────────────
+#
+# 這份清單只控制「build context 有多大」，不控制「映像有多大」——映像內容
+# 由 Dockerfile 的 COPY 決定。所以測試要用的東西可以留在 context 裡，
+# 只 COPY 進 test stage，runtime 映像照樣乾淨。
+#
+#   tests/     test stage 要在容器內跑 pytest。
+#   scripts/   tests/test_official_catalog_sql.py 等四支會
+#              `from scripts.sql import ...`，少了它是 collection error 不是 skip。
+#   testdata/  116M，平面圖辨識測試（test_floorplan_vision.py）要用。
+#              runtime 映像不帶，改由 docker-compose.yml 裡註解掉的唯讀掛載
+#              供「第 1 步範例平面圖」使用。
+#   docs/      多支測試會讀 docs/contracts/ 的契約文件做斷言。
+#   tools/     第 9 步 XLSX 的 @oai/artifact-tool 相容層。
+#   .env.example  tests/test_env_example_contract.py 會逐欄斷言它的內容。
+#              ⚠ 這支測的是範本檔本身，不是執行環境——不要為了容器去改它。

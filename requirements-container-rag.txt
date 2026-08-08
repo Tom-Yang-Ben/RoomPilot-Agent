@@ -1,0 +1,20 @@
+# RoomPilot 容器的家具 RAG 相依（BGE-M3 檢索 + reranker 重排 + 需求解析 LLM）。
+#
+# 只有 Dockerfile 的 WITH_RAG=1（預設）才會裝這份。設 --build-arg WITH_RAG=0
+# 可以建出不含 RAG 的精簡映像，供 CI 或只跑八步流程的場合使用。
+#
+# 版本與 requirements-rag.txt 對齊，改動時兩份必須一起改。
+# torch 不列在這裡：PyPI 的 linux wheel 會拉進 nvidia CUDA runtime，
+# Dockerfile 另用官方 CPU index 裝 torch==2.13.0。
+
+# 向量編碼與重排。backend/spatial_data/rag/model_runtime.py 需要
+# SentenceTransformer（BAAI/bge-m3）與 CrossEncoder（BAAI/bge-reranker-v2-m3）。
+sentence-transformers==5.6.1
+# 建置期用它把兩份權重抓成 HF cache 版面；執行期 sentence-transformers 也依賴它
+# 做 local_files_only 的快取解析。
+huggingface-hub==1.25.1
+
+# 需求解析 LLM provider。三選一由 ROOMPILOT_RAG_PARSER_PROVIDER 決定，
+# 但三個 SDK 都裝進來，換 provider 不必重建映像。
+openai==2.50.0
+anthropic==0.117.1

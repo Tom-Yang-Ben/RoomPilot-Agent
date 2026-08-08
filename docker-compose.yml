@@ -1,0 +1,135 @@
+# RoomPilot 本機容器編排（預設模式：連 Ben 本機那套 PostgreSQL）。
+#
+#   docker compose up -d --build
+#   開 http://127.0.0.1:8002
+#
+# 想要「連資料庫也在容器裡」的自足模式，改用：
+#   docker compose -f docker-compose.yml -f docker-compose.full-stack.yml up -d
+# 或直接跑 .\scripts\docker\roompilot.ps1 up -FullStack
+#
+# 為什麼預設連本機 DB：本機那套 PostgreSQL 17.10 + pgvector 0.8.2 已匯入
+# 家具 8,557／資產 34,228／BGE-M3 向量 7,958／29 筆真實專案。預設連過去等於
+# 零資料搬遷、零分岔風險。full-stack 是給換機、展示與離線佈署用的。
+
+name: roompilot
+
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+      args:
+        # 0 = 建出不含家具 RAG 的精簡映像（少約 6GB）。
+        WITH_RAG: "${ROOMPILOT_CONTAINER_WITH_RAG:-1}"
+    image: roompilot-app:local
+    ports:
+      - "127.0.0.1:8002:8002"
+
+    # .env 帶進所有 provider 設定、DB_PASSWORD 與 LLM 金鑰；
+    # 下面的 environment 優先覆寫容器內必須不同的那幾個。
+    env_file:
+      - .env
+
+    # ⚠ 這一整段的存在理由：env_file 讀進來的值，優先序高於 Dockerfile 的 ENV。
+    #   也就是說 .env 裡任何一個 Windows 路徑（例如
+    #   ROOMPILOT_ARTIFACT_TOOL_MODULES=C:\Users\...）都會蓋掉映像裡設好的
+    #   Linux 路徑，而且不會報錯，只會在用到的時候安靜失效。
+    #   凡是「容器內必須不一樣」的變數，一律在這裡顯式覆寫，不依賴映像 ENV。
+    environment:
+      # 容器裡的 localhost 是容器自己，.env 的 DB_HOST=localhost 會連不到。
+      DB_HOST: "${ROOMPILOT_CONTAINER_DB_HOST:-host.docker.internal}"
+
+      # 路徑改由 volume 決定，繞過 runtime_paths.py:6 依賴 .git 的 _repository_root()。
+      # 值必須是 /app/.runtime——理由見 Dockerfile 同名變數上方的註解
+      # （engineering/api.py:77 寫死這條路徑，不吃這個變數）。
+      ROOMPILOT_RUNTIME_DIR: /app/.runtime
+
+      # 三個 provider 一律明寫。ROOMPILOT_PROJECT_STORE_PROVIDER 的**程式預設是
+      # sqlite**（project_store.py:655），不明寫的話容器會安靜地把專案寫進
+      # volume 裡的 SQLite，而不是 PostgreSQL——網站看起來完全正常，資料卻
+      # 存錯地方，等發現的時候已經分岔了。
+      ROOMPILOT_CATALOG_PROVIDER: postgres
+      ROOMPILOT_RUNTIME_CATALOG_PROVIDER: postgres
+      ROOMPILOT_PROJECT_STORE_PROVIDER: postgres
+
+      # 第 9 步 XLSX 匯出。映像內用 npm ci 重裝了 exceljs，路徑是 /opt/artifact-tool；
+      # .env 指的是 Windows 上那份，帶進來會讓 workbook_builder.mjs 找不到模組。
+      ROOMPILOT_ARTIFACT_TOOL_MODULES: /opt/artifact-tool
+      ROOMPILOT_ARTIFACT_NODE: node
+
+      # RAG 權重在映像內。同理，.env 的 ROOMPILOT_RAG_MODEL_CACHE（本機是
+      # Windows 路徑）會蓋掉映像設定，讓 model_runtime.py 找不到權重。
+      # 用 HF_HUB_CACHE 不用 HF_HOME，層級差一層的理由見 Dockerfile。
+      ROOMPILOT_RAG_MODEL_CACHE: /opt/rag-models
+      HF_HUB_CACHE: /opt/rag-models
+      # 沒有 GPU，直接指定省掉 torch.cuda 探測。
+      ROOMPILOT_RAG_DEVICE: cpu
+
+      # 本機離線 GLB 目錄是 Windows 路徑，容器內不存在，清空避免無謂的掃描。
+      ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS: ""
+
+      # 權重已烘進映像（Dockerfile 的 models stage 驗證過真的載得起來），
+      # 所以容器內 RAG 預設是開的——這點與 2026-08-05 那版相反，當時映像裡
+      # 沒有 sentence-transformers，不覆寫成 false 會讓 /api/rag/search 回
+      # RagDependencyError 而不是乾淨停用。
+      #
+      # ⚠ 變數刻意取名 ROOMPILOT_CONTAINER_RAG 而不是沿用 ROOMPILOT_RAG_ENABLED：
+      #   Compose 的 ${...} 代換會自動讀 ./.env，沿用同名變數的話這裡永遠被
+      #   .env 裡的 false 蓋掉，預設值形同虛設。
+      ROOMPILOT_RAG_ENABLED: "${ROOMPILOT_CONTAINER_RAG:-true}"
+
+      # 只影響 torch 的執行緒數。不設的話 torch 會依 CPU 核數開滿，
+      # 在 Docker Desktop 的 8GB VM 裡與 uvicorn 搶資源。
+      OMP_NUM_THREADS: "${ROOMPILOT_CONTAINER_OMP_THREADS:-4}"
+
+    # Docker Desktop 以外的環境（Linux daemon）需要這行才解析得到 host.docker.internal。
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      # 執行資料。掉了等於 auth_secret.key 重生（所有已簽發的 JWT 立即失效）、
+      # 既有上傳的平面圖與生成的成果圖全部 404、第 9 步工程文件歷史消失。
+      #
+      # ⚠ 掛載點是 /app/.runtime 不是 /data/runtime，且不能改：
+      #   engineering/api.py:77 把工程文件產出目錄寫死成 <repo>/.runtime/engineering，
+      #   同時 api.py:391 下載端點會檢查檔案路徑是否在 generated_dir 底下。
+      #   掛錯地方的話——網站起得來、健康檢查是綠的、第 9 步下載 404。
+      #
+      # 要把本機 .runtime/ 的既有上傳與登入金鑰搬進來：
+      #   .\scripts\docker\roompilot.ps1 seed-runtime
+      - roompilot-runtime:/app/.runtime
+
+      # 422M 圖片資產唯讀掛入，不進映像；換素材不必重建。
+      - ./frontend/surface_assets:/app/frontend/surface_assets:ro
+      - ./frontend/style_cards:/app/frontend/style_cards:ro
+      - ./frontend/style_images:/app/frontend/style_images:ro
+
+      # PostgreSQL 不可用時的離線 fallback 型錄（224M）。
+      - ./JSON:/app/JSON:ro
+
+      # 需要第 1 步的範例平面圖與 sample GLB 端點時再打開（116M，唯讀）。
+      # 不掛的話 main.py 的 is_dir() 守衛會讓 sample 清單回空陣列。
+      # - ./testdata:/app/testdata:ro
+
+    restart: unless-stopped
+
+    # tini 已經把 SIGTERM 轉給 uvicorn，正常關機是秒級。給 30 秒是留給
+    # RAG 模型載入到一半就被 stop 的情況。
+    stop_grace_period: 30s
+
+    # 專案沒有檔案型日誌，所有輸出都走 stdout（Dockerfile 設了
+    # PYTHONUNBUFFERED=1）。不設上限的話 json-file driver 會無限長，
+    # 長跑的開發機幾週後就會發現磁碟被日誌吃掉。
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+    security_opt:
+      # 容器內不需要任何 setuid 提權；uvicorn 以 uid 10001 執行，
+      # 不會也不該取得新權限。
+      - no-new-privileges:true
+
+volumes:
+  roompilot-runtime:
