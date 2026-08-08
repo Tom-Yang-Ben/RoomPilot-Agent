@@ -497,6 +497,7 @@ const element = {
   surfaceSelectedDescription: $("#surface-selected-description"),
   confirmRoomSurfaces: $("#confirm-room-surfaces"),
   unlockRoomSurfaces: $("#unlock-room-surfaces"),
+  unlockRoomSurfacesSticky: $("#unlock-room-surfaces-sticky"),
   lightingRoomQuestionnaire: $("#lighting-room-questionnaire"),
   boundarySecondaryFloor: $("#boundary-secondary-floor"),
   lightingFixtureSelect: $("#lighting-fixture-select"),
@@ -4276,6 +4277,10 @@ function setStepSixSurfaceStatus(message) {
   if (element.whiteStatus) element.whiteStatus.textContent = message;
 }
 
+function stepSixSurfaceUnlockButtons() {
+  return [element.unlockRoomSurfaces, element.unlockRoomSurfacesSticky].filter(Boolean);
+}
+
 function renderStepSixSurfaceProgress() {
   const room = selectedStepSixRoom();
   const confirmed = stepSixRoomSurfaceConfirmed(room);
@@ -4295,9 +4300,9 @@ function renderStepSixSurfaceProgress() {
   entry?.querySelectorAll("[data-step-six-surface-panel] button, [data-step-six-surface-panel] input, [data-step-six-surface-panel] select")
     .forEach((control) => { control.disabled = confirmed; });
   if (element.confirmRoomSurfaces) element.confirmRoomSurfaces.hidden = confirmed;
-  if (element.unlockRoomSurfaces) {
-    element.unlockRoomSurfaces.hidden = !confirmed || stepSixSurfacesFinalLocked();
-  }
+  stepSixSurfaceUnlockButtons().forEach((button) => {
+    button.hidden = !confirmed || stepSixSurfacesFinalLocked();
+  });
   const finishButton = $("#save-realistic-scene");
   if (finishButton) {
     const allConfirmed = allStepSixRoomSurfacesConfirmed();
@@ -18222,7 +18227,9 @@ function bindEvents() {
   element.confirmRoomSurfaces?.addEventListener("click", () => {
     void confirmStepSixRoomSurfaces().catch((error) => setStatus(errorMessage(error), "error"));
   });
-  element.unlockRoomSurfaces?.addEventListener("click", unlockStepSixRoomSurfaces);
+  stepSixSurfaceUnlockButtons().forEach((button) => {
+    button.addEventListener("click", unlockStepSixRoomSurfaces);
+  });
   $("#draw-material-boundary")?.addEventListener("click", toggleMaterialBoundary);
   $("#remove-material-boundary")?.addEventListener("click", removeMaterialBoundary);
   $("#material-boundary-position")?.addEventListener("input", () => {

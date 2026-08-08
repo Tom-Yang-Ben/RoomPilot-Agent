@@ -40,7 +40,7 @@ def test_step_six_replaces_furniture_selection_with_room_surfaces() -> None:
     assert '["plan", "issues", "surfaces"]' in SCENE_JS
 
 
-def test_locked_step_six_room_keeps_material_edit_action_beside_lock_state() -> None:
+def test_locked_step_six_room_keeps_material_edit_actions_visible_while_scrolling() -> None:
     header = SCENE_HTML.split(
         '<header class="rp-step-six-surface-header"', 1
     )[1].split("</header>", 1)[0]
@@ -51,13 +51,18 @@ def test_locked_step_six_room_keeps_material_edit_action_beside_lock_state() -> 
     assert 'id="surface-room-lock-state"' in header
     assert 'id="unlock-room-surfaces"' in header
     assert "修改此房間材質" in header
-    assert 'id="unlock-room-surfaces"' not in footer
+    assert 'id="unlock-room-surfaces-sticky"' in footer
+    assert "修改此房間材質" in footer
 
     progress = function_body("renderStepSixSurfaceProgress", "setStepSixSurfaceKind")
-    assert (
-        "element.unlockRoomSurfaces.hidden = !confirmed || "
-        "stepSixSurfacesFinalLocked();"
-    ) in progress
+    unlock_buttons = function_body(
+        "stepSixSurfaceUnlockButtons", "renderStepSixSurfaceProgress"
+    )
+    assert "element.unlockRoomSurfaces" in unlock_buttons
+    assert "element.unlockRoomSurfacesSticky" in unlock_buttons
+    assert "stepSixSurfaceUnlockButtons().forEach" in progress
+    assert "button.hidden = !confirmed || stepSixSurfacesFinalLocked();" in progress
+    assert "button.addEventListener(\"click\", unlockStepSixRoomSurfaces)" in SCENE_JS
 
 
 def test_step_six_recommendations_only_use_questionnaire_compatible_materials() -> None:
