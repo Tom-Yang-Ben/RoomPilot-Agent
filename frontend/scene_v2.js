@@ -101,7 +101,7 @@ import {
   buildRoomRequirementsPayload,
   conditionalOptionId,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-86b7bbecc47a";
+} from "./scene_room_requirements.js?v=sha256-b474fd6b8d20";
 import {
   applyStylePack,
   CEILING_STYLES,
@@ -175,10 +175,10 @@ import {
 } from "./scene_questionnaire_data.js?v=sha256-17c7e0ecc752";
 import {
   createQuestionnaireFlow,
-} from "./scene_questionnaire_flow.js?v=sha256-f1af96bb6f74";
+} from "./scene_questionnaire_flow.js?v=sha256-751a71d2e88d";
 import {
   createFurnitureOffers,
-} from "./scene_furniture_offers.js?v=sha256-2876d8a296a7";
+} from "./scene_furniture_offers.js?v=sha256-c6cab2e6d4cc";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -495,6 +495,12 @@ const element = {
   questionnaireCeilingColor: $("#questionnaire-ceiling-color"),
   questionnaireAirConditioning: $("#questionnaire-air-conditioning"),
   questionnaireRoomUsageOptions: $("#questionnaire-room-usage-options"),
+  questionnaireGenerativeEquipment: $("#questionnaire-generative-equipment"),
+  questionnaireGenerativePrimaryUse: $("#questionnaire-generative-primary-use"),
+  questionnaireGenerativeDirections: $("#questionnaire-generative-directions"),
+  questionnaireGenerativeExclusions: $("#questionnaire-generative-exclusions"),
+  questionnaireGenerationNotes: $("#questionnaire-generation-notes"),
+  questionnaireGenerationWarning: $("#questionnaire-generation-warning"),
   questionnaireFurnitureOptions: $("#questionnaire-furniture-options"),
   questionnaireFurnitureStatus: $("#questionnaire-furniture-status"),
   questionnaireFurniturePreference: $("#questionnaire-furniture-preference"),
@@ -6621,6 +6627,9 @@ const {
   questionnaireFurnitureSpecsForRoom,
   ensureRoomUsage,
   renderQuestionnaireRoomUsage,
+  renderGenerativeEquipment,
+  updateGenerativeEquipment,
+  updateGenerativeEquipmentNotes,
   roomFurnitureRequirement,
   renderQuestionnaireFurnitureRecommendations,
   ensureQuestionnaireFurnitureRecommendations,
@@ -11989,6 +11998,19 @@ function bindEvents() {
     );
     scheduleSave("requirements");
   });
+  // 家電生圖題組：select 與兩組 checkbox 走 change，補充文字走 input。
+  // 這些答案只影響第 8 步生圖，不動 2D/3D 家具，所以不呼叫
+  // invalidateDownstreamFrom，也不清掉 roomFurnitureRecommendations。
+  element.questionnaireGenerativeEquipment?.addEventListener("change", (event) => {
+    if (!event.target.closest(
+      "[data-generative-direction], [data-generative-exclusion], #questionnaire-generative-primary-use",
+    )) return;
+    updateGenerativeEquipment();
+  });
+  element.questionnaireGenerationNotes?.addEventListener(
+    "input",
+    () => updateGenerativeEquipmentNotes(),
+  );
   element.questionnaireFurnitureOptions.addEventListener("change", (event) => {
     const variant = event.target.closest("select[data-questionnaire-furniture-variant-type]");
     if (variant) {

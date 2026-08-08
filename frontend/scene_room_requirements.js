@@ -1,4 +1,4 @@
-export const ROOM_REQUIREMENTS_SCHEMA_VERSION = 1;
+export const ROOM_REQUIREMENTS_SCHEMA_VERSION = 2;
 
 const clone = (value) => {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -98,6 +98,18 @@ function emptyRoomRequirement(room = {}) {
     climate: {
       airConditioning: null,
     },
+    // 家電生圖需求：只餵第 8 步生圖與 RAG，不進 2D/3D 擺設。
+    // 廚房、衛浴、陽台的設備由生圖表現，故預設要求填答。
+    generativeEquipment: {
+      required: ["kitchen", "bathroom", "balcony"].includes(room.type || room.room_type),
+      primaryUse: null,
+      equipmentDirection: [],
+      mustNotHave: [],
+      priority: null,
+      fitStatus: "pending",
+      generationNotes: "",
+      structuralIntentAcknowledged: false,
+    },
     surfaces: {
       paletteId: null,
       // 牆地生圖偏好：自由文字，RAG 查詢與最終生圖需求都會帶上。
@@ -175,6 +187,12 @@ export function normalizeRoomRequirements(
         ...migrated.climate,
         ...(restored.climate || {}),
       },
+      generativeEquipment: {
+        ...migrated.generativeEquipment,
+        ...(restored.generativeEquipment || {}),
+        equipmentDirection: clone(restored.generativeEquipment?.equipmentDirection || []),
+        mustNotHave: clone(restored.generativeEquipment?.mustNotHave || []),
+      },
       surfaces: {
         ...migrated.surfaces,
         ...(restored.surfaces || {}),
@@ -199,6 +217,7 @@ export function normalizeRoomRequirements(
     schemaVersion: ROOM_REQUIREMENTS_SCHEMA_VERSION,
     activeRoomId: saved.activeRoomId || rooms[0]?.id || null,
     roomRequirements,
+    unassignedDeferredFurniture: clone(saved.unassignedDeferredFurniture || []),
     globalProfile: clone(saved.globalProfile || legacy.basic || {}),
     globalConfirmed: saved.globalConfirmed === true || legacy.basicConfirmed === true,
   };

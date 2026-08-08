@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-79bae8c5bc01" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-a9d8d410420c" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -564,6 +564,27 @@
                       <p>可複選。系統已依房型預設一項，用途會影響下方家具推薦。</p>
                     </div>
                     <div id="questionnaire-room-usage-options" class="rp-questionnaire-room-usage-options"></div>
+                  </section>
+                  <section id="questionnaire-generative-equipment" class="rp-questionnaire-generative-equipment" hidden>
+                    <div class="rp-questionnaire-section-heading">
+                      <div><span class="eyebrow">設備與生圖</span><h3>這個空間的設備要往哪個方向做？</h3></div>
+                      <p>廚房、衛浴、陽台的設備由第 8 步生圖呈現，不會進 2D／3D 擺設。答案會送進 RAG 與生圖需求。</p>
+                    </div>
+                    <label for="questionnaire-generative-primary-use">主要使用方式
+                      <select id="questionnaire-generative-primary-use"></select>
+                    </label>
+                    <fieldset>
+                      <legend>偏好的配置方向</legend>
+                      <div id="questionnaire-generative-directions"></div>
+                    </fieldset>
+                    <fieldset>
+                      <legend>不需要的項目</legend>
+                      <div id="questionnaire-generative-exclusions"></div>
+                    </fieldset>
+                    <label for="questionnaire-generation-notes">補充給設計與生圖（選填）</label>
+                    <textarea id="questionnaire-generation-notes" rows="3"
+                      placeholder="例如：爐具靠窗、冰箱靠入口；會保留現有房間大小與牆門窗位置。"></textarea>
+                    <p id="questionnaire-generation-warning" class="rp-field-hint" aria-live="polite"></p>
                   </section>
                   <section class="rp-questionnaire-furniture">
                     <div class="rp-questionnaire-section-heading">
@@ -1234,6 +1255,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-12e3e7b74826"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-3bbefcbe903f"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-b68fc8f982fc"></script>
   </body>
 </html>

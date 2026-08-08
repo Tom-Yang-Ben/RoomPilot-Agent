@@ -30,7 +30,7 @@ import {
 } from "./scene_plan_geometry.js?v=sha256-52ddaf293063";
 import {
   evaluateConditionalOption,
-} from "./scene_room_requirements.js?v=sha256-86b7bbecc47a";
+} from "./scene_room_requirements.js?v=sha256-b474fd6b8d20";
 import {
   CEILING_STYLES,
   LIGHT_STYLES,
@@ -78,6 +78,38 @@ const shortlistState = {
 // 原 scene_v2 模組層變數：逐房推薦進行中的房號集合，只有本模組的推薦流程
 // 讀寫，跟著搬進模組層。
 const questionnaireFurnitureInFlight = new Set();
+
+// ── 家電生圖題組（第 5 步逐房需求）────────────────────────────────────
+// 廚房、衛浴、陽台的設備由第 8 步生圖表現，不進 2D/3D 擺設，所以題目問的是
+// 「生圖要往哪個方向走」而不是要擺哪幾件家具。答案存進 roomRequirement
+// .generativeEquipment，由後端 build_agent_generation_handoff 帶進生圖 payload。
+const GENERATIVE_EQUIPMENT_OPTIONS = Object.freeze({
+  kitchen: {
+    primary: [["cook", "日常烹飪"], ["light_meals", "輕食備餐"], ["storage", "收納為主"]],
+    directions: [["base_cabinet", "基本櫥櫃"], ["tall_pantry", "高櫃／食品儲藏"], ["island", "中島或吧台"], ["dishwasher", "洗碗設備"]],
+    exclusions: [["island", "不要中島"], ["open_shelves", "不要開放層架"]],
+  },
+  bathroom: {
+    primary: [["shower", "淋浴為主"], ["bathe", "希望浴缸"], ["storage", "收納為主"]],
+    directions: [["walk_in_shower", "乾濕分離淋浴"], ["single_vanity", "單人洗手台"], ["double_vanity", "雙人洗手台"], ["bathtub", "浴缸"]],
+    exclusions: [["bathtub", "不要浴缸"], ["glass_partition", "不要玻璃隔間"]],
+  },
+  balcony: {
+    primary: [["laundry", "洗曬衣物"], ["rest", "休閒植栽"], ["storage", "儲藏為主"]],
+    directions: [["laundry_zone", "洗衣與曬衣區"], ["planters", "植栽區"], ["folding_table", "折疊桌"], ["storage_cabinet", "防潮收納"]],
+    exclusions: [["planters", "不要植栽"], ["laundry_zone", "不要洗曬區"]],
+  },
+});
+
+function generativeEquipmentDefinition(room) {
+  return GENERATIVE_EQUIPMENT_OPTIONS[room?.type || room?.room_type] || null;
+}
+
+// 補充欄位若出現改動固定結構的字眼，只提示、不阻擋——牆門窗與房間尺寸在第 4
+// 步已確認，生圖不會照著擴建，使用者要知道這件事。
+function structuralIntentInText(value = "") {
+  return /擴建|延伸|移牆|拆牆|加房間|隔間|改門|改窗|打掉牆/.test(String(value));
+}
 
 export function createFurnitureOffers({
   state,
@@ -218,6 +250,7 @@ function renderQuestionnaireFinishes() {
     ? `確認${room.label}的用途與家具`
     : "確認設備與材質";
   renderQuestionnaireRoomUsage(room);
+  renderGenerativeEquipment(room);
   renderQuestionnaireFurnitureRecommendations(room);
   void ensureQuestionnaireFurnitureRecommendations(room);
   const stylePreview = roomNeedsOnly ? wholeHouseFinishDraft() : draft;
@@ -788,6 +821,109 @@ function renderQuestionnaireRoomUsage(room = activeQuestionnaireRoom()) {
   `).join("");
 }
 
+function generativeEquipmentNodesReady() {
+  return Boolean(
+    element.questionnaireGenerativeEquipment
+    && element.questionnaireGenerativePrimaryUse
+    && element.questionnaireGenerativeDirections
+    && element.questionnaireGenerativeExclusions
+    && element.questionnaireGenerationNotes
+    && element.questionnaireGenerationWarning,
+  );
+}
+
+function generativeEquipmentWarningText(notes) {
+  return structuralIntentInText(notes)
+    ? "偵測到可能影響固定結構或空間大小的描述。生圖仍會遵守第 4 步已確認的牆、門、窗與房間尺寸，請確認這是風格想像而非施工指示。"
+    : "此說明會一起送入 RAG 與最終生圖；系統不會擴建空間或移動固定結構。";
+}
+
+function renderGenerativeEquipment(room = activeQuestionnaireRoom()) {
+  if (!generativeEquipmentNodesReady()) return;
+  const definition = generativeEquipmentDefinition(room);
+  element.questionnaireGenerativeEquipment.hidden = !definition;
+  if (!definition || !room) return;
+  const requirement = state.roomRequirementModel?.roomRequirements?.[room.id];
+  if (!requirement) return;
+  const equipment = requirement.generativeEquipment || {};
+  element.questionnaireGenerativePrimaryUse.innerHTML = [
+    '<option value="">請選擇</option>',
+    ...definition.primary.map(([id, label]) =>
+      `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`),
+  ].join("");
+  element.questionnaireGenerativePrimaryUse.value = equipment.primaryUse || "";
+  const selected = new Set(equipment.equipmentDirection || []);
+  const excluded = new Set(equipment.mustNotHave || []);
+  element.questionnaireGenerativeDirections.innerHTML = definition.directions.map(([id, label]) => `
+    <label class="${selected.has(id) ? "is-selected" : ""}">
+      <input type="checkbox" data-generative-direction="${escapeHtml(id)}"
+        ${selected.has(id) ? "checked" : ""}>
+      <span>${escapeHtml(label)}</span>
+    </label>
+  `).join("");
+  element.questionnaireGenerativeExclusions.innerHTML = definition.exclusions.map(([id, label]) => `
+    <label class="${excluded.has(id) ? "is-selected" : ""}">
+      <input type="checkbox" data-generative-exclusion="${escapeHtml(id)}"
+        ${excluded.has(id) ? "checked" : ""}>
+      <span>${escapeHtml(label)}</span>
+    </label>
+  `).join("");
+  if (document.activeElement !== element.questionnaireGenerationNotes) {
+    element.questionnaireGenerationNotes.value = equipment.generationNotes || "";
+  }
+  element.questionnaireGenerationWarning.textContent =
+    generativeEquipmentWarningText(equipment.generationNotes);
+}
+
+function updateGenerativeEquipment(room = activeQuestionnaireRoom()) {
+  if (!generativeEquipmentNodesReady()) return;
+  const definition = generativeEquipmentDefinition(room);
+  const requirement = room && state.roomRequirementModel?.roomRequirements?.[room.id];
+  if (!definition || !requirement) return;
+  const directions = [
+    ...element.questionnaireGenerativeDirections
+      .querySelectorAll("[data-generative-direction]:checked"),
+  ].map((input) => input.dataset.generativeDirection);
+  const exclusions = [
+    ...element.questionnaireGenerativeExclusions
+      .querySelectorAll("[data-generative-exclusion]:checked"),
+  ].map((input) => input.dataset.generativeExclusion);
+  const notes = element.questionnaireGenerationNotes.value.trim();
+  requirement.generativeEquipment = {
+    ...(requirement.generativeEquipment || {}),
+    required: true,
+    primaryUse: element.questionnaireGenerativePrimaryUse.value || null,
+    equipmentDirection: directions,
+    mustNotHave: exclusions,
+    priority: directions[0] || null,
+    // 同一項同時被選為方向又被排除時標記取捨，交由第 8 步生圖決定，不在此擋。
+    fitStatus: directions.some((id) => exclusions.includes(id)) ? "tradeoff_required" : "pending",
+    generationNotes: notes,
+    structuralIntentAcknowledged: structuralIntentInText(notes),
+  };
+  requirement.confirmed = false;
+  renderGenerativeEquipment(room);
+  scheduleSave("requirements");
+}
+
+function updateGenerativeEquipmentNotes(room = activeQuestionnaireRoom()) {
+  if (!generativeEquipmentNodesReady()) return;
+  const definition = generativeEquipmentDefinition(room);
+  const requirement = room && state.roomRequirementModel?.roomRequirements?.[room.id];
+  if (!definition || !requirement) return;
+  const notes = element.questionnaireGenerationNotes.value.trim();
+  requirement.generativeEquipment = {
+    ...(requirement.generativeEquipment || {}),
+    required: true,
+    generationNotes: notes,
+    structuralIntentAcknowledged: structuralIntentInText(notes),
+  };
+  requirement.confirmed = false;
+  // 只更新提示文字，不重繪整塊——使用者正在這個 textarea 裡打字。
+  element.questionnaireGenerationWarning.textContent = generativeEquipmentWarningText(notes);
+  scheduleSave("requirements");
+}
+
 function roomFurnitureRequirement(roomId) {
   const requirement = state.roomRequirementModel.roomRequirements[roomId];
   if (!requirement) return null;
@@ -1225,6 +1361,9 @@ function refreshQuestionnaireFurnitureRecommendations() {
     questionnaireFurnitureSpecsForRoom,
     ensureRoomUsage,
     renderQuestionnaireRoomUsage,
+    renderGenerativeEquipment,
+    updateGenerativeEquipment,
+    updateGenerativeEquipmentNotes,
     roomFurnitureRequirement,
     questionnaireFurnitureOffers,
     questionnaireFurnitureGroups,

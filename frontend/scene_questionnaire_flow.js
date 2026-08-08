@@ -21,7 +21,7 @@ import {
   applyRoomFinishScope,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-86b7bbecc47a";
+} from "./scene_room_requirements.js?v=sha256-b474fd6b8d20";
 import {
   CEILING_STYLES,
   LIGHT_STYLES,
