@@ -7,7 +7,7 @@
 // const，呼叫端零改動。這裡收四群：全屋表面一致性、初談流程、材質草稿層、
 // renderDetailChoices。
 
-import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-76c03a72e265";
+import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-91f25f855a9c";
 import {
   FIRST_MEETING_BUDGETS,
   FIRST_MEETING_GOALS,
@@ -26,7 +26,7 @@ import {
   CEILING_STYLES,
   LIGHT_STYLES,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-fd8fa1eb64b1";
+} from "./scene_style_packs.js?v=sha256-f28f0442dde0";
 import {
   RENDER_DETAIL_FIELDS,
   firstMeetingCountOptions,
@@ -35,7 +35,7 @@ import {
   roomAllowsIndependentFloor,
   roomKeepsExplicitWallOverride,
   trimAccentWallSurfaces,
-} from "./scene_questionnaire_data.js?v=sha256-17c7e0ecc752";
+} from "./scene_questionnaire_data.js?v=sha256-a86f039407d5";
 
 export function createQuestionnaireFlow({
   state,

@@ -49,6 +49,11 @@ export function resolveSurfaceOption(surfaceCatalog, usage, option) {
   const surfaces = surfaceCatalog?.surfaces || [];
   const supportsUsage = (surface) =>
     surface?.surface_id && surface.usage?.includes(usage) && surface.texture_url;
+  // 遠端貼圖離線載不到，viewer 端會整批退回同一張本機貼圖，十個牆選項就
+  // 長得一模一樣。preset 選項不解析到這種 surface，讓 viewer 走各選項自有
+  // 的程序化材質；使用者直接指定 catalog id（direct）時仍照原樣返回。
+  const usableOffline = (surface) =>
+    !String(surface.texture_url || "").startsWith("http");
 
   const direct = surfaces.find(
     (surface) => surface.surface_id === requested && supportsUsage(surface),
@@ -57,7 +62,8 @@ export function resolveSurfaceOption(surfaceCatalog, usage, option) {
 
   const mappedId = PRESET_SURFACE_IDS[usage]?.[requested];
   const mapped = surfaces.find(
-    (surface) => surface.surface_id === mappedId && supportsUsage(surface),
+    (surface) => surface.surface_id === mappedId && supportsUsage(surface)
+      && usableOffline(surface),
   );
   return mapped?.surface_id || requested;
 }

@@ -317,8 +317,8 @@ export const STYLE_FAMILIES = Object.freeze(
 export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   scandinavian: {
     wall: [
-      { id: "warm_white", label: "暖白礦物漆", color: "#F7F3EA", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "乾淨、明亮，適合小宅放大感" },
-      { id: "limewash", label: "柔霧石灰洗", color: "#EDE5D8", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "低對比紋理，搭配淺木家具" },
+      { id: "warm_white", label: "暖白礦物漆", color: "#F7F3EA", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/smooth-paint-base.jpg", note: "乾淨、明亮，適合小宅放大感" },
+      { id: "limewash", label: "柔霧石灰洗", color: "#EDE5D8", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/limewash-cloud-white-matte.jpg", note: "低對比紋理，搭配淺木家具" },
     ],
     floor: [
       { id: "light_oak", label: "淺橡木地板", color: "#D9B985", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks039.jpg", note: "北歐風主材質" },
@@ -327,8 +327,8 @@ export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   },
   japanese: {
     wall: [
-      { id: "limewash", label: "米白土佐壁", color: "#EFE6D6", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "和紙與木質感的底色" },
-      { id: "warm_white", label: "暖白抹面", color: "#F3EFE6", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "保留空間留白" },
+      { id: "limewash", label: "米白土佐壁", color: "#EFE6D6", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/limewash-cloud-white-matte.jpg", note: "和紙與木質感的底色" },
+      { id: "warm_white", label: "暖白抹面", color: "#F3EFE6", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/smooth-paint-base.jpg", note: "保留空間留白" },
     ],
     floor: [
       { id: "light_oak", label: "淺木地板", color: "#C9AD7E", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks039.jpg", note: "自然、安定" },
@@ -337,8 +337,8 @@ export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   },
   modern_minimal: {
     wall: [
-      { id: "warm_white", label: "極簡白牆", color: "#F5F4F0", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "乾淨背景，突出家具線條" },
-      { id: "light_gray", label: "霧灰塗料", color: "#C9C9C6", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Tiles008.jpg", note: "現代感更強" },
+      { id: "warm_white", label: "極簡白牆", color: "#F5F4F0", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/smooth-paint-base.jpg", note: "乾淨背景，突出家具線條" },
+      { id: "light_gray", label: "霧灰塗料", color: "#C9C9C6", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/cement-paint-cool-gray-matte.jpg", note: "現代感更強" },
     ],
     floor: [
       { id: "stone_gray", label: "灰石地坪", color: "#AFAEAA", materialPreview: "/static/surface_assets/tile/ccity-CAL288001.png", note: "適合無縫感" },
@@ -347,8 +347,8 @@ export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   },
   cream: {
     wall: [
-      { id: "limewash", label: "奶油石灰洗", color: "#F6E9D7", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "柔和包覆感" },
-      { id: "warm_white", label: "暖奶白牆", color: "#FAF0E4", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "明亮不刺眼" },
+      { id: "limewash", label: "奶油石灰洗", color: "#F6E9D7", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/limewash-cloud-white-matte.jpg", note: "柔和包覆感" },
+      { id: "warm_white", label: "暖奶白牆", color: "#FAF0E4", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/smooth-paint-base.jpg", note: "明亮不刺眼" },
     ],
     floor: [
       { id: "light_oak", label: "奶茶淺木", color: "#E0C69C", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks039.jpg", note: "搭配奶油家具" },
@@ -357,8 +357,8 @@ export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   },
   industrial: {
     wall: [
-      { id: "light_gray", label: "清水模灰牆", color: "#B9B7B1", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Tiles009.jpg", note: "工業風主牆面" },
-      { id: "charcoal", label: "炭黑重點牆", color: "#3C3D3B", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Tiles009.jpg", note: "用於局部立面" },
+      { id: "light_gray", label: "清水模灰牆", color: "#B9B7B1", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/cement-paint-cool-gray-matte.jpg", note: "工業風主牆面" },
+      { id: "charcoal", label: "炭黑重點牆", color: "#3C3D3B", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/blackboard-paint-matte.jpg", note: "用於局部立面" },
     ],
     floor: [
       { id: "microcement", label: "微水泥地坪", color: "#9B9992", materialPreview: "/static/surface_assets/tile/ccity-CAL288001.png", note: "霧面、耐看" },
@@ -367,8 +367,8 @@ export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   },
   american: {
     wall: [
-      { id: "warm_white", label: "美式暖白牆", color: "#F4EFE4", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "搭配線板與深木" },
-      { id: "limewash", label: "柔霧米牆", color: "#EDE3D3", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", note: "降低厚重感" },
+      { id: "warm_white", label: "美式暖白牆", color: "#F4EFE4", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/smooth-paint-base.jpg", note: "搭配線板與深木" },
+      { id: "limewash", label: "柔霧米牆", color: "#EDE3D3", materialPreview: "/static/surface_assets/wall_generated_candidates_20260723/previews/limewash-cloud-white-matte.jpg", note: "降低厚重感" },
     ],
     floor: [
       { id: "walnut", label: "胡桃木地板", color: "#8C735A", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-WoodFloor039.jpg", note: "美式經典主材" },

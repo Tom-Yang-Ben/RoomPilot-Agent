@@ -41,17 +41,19 @@ def test_style_presets_resolve_to_real_catalog_textures() -> None:
     )
 
     assert result["floorId"] == "wood_cc0_wood_textures_planks039"
-    assert result["wallId"] == "wall_json_ambientcg_wall_paint_plaster002"
-    assert result["warmWallId"] == "wall_json_ambientcg_wall_paint_paintedplaster017"
-    assert result["sageWallId"] == "wall_json_ambientcg_wall_wallpaper_fabric018"
     assert result["floorTexture"] == (
         "/static/surface_assets/_import_all/cc0-wood-textures/"
         "ambientcg-Planks039.jpg"
     )
-    assert result["wallTexture"]
-    assert result["warmWallTexture"]
-    assert result["sageWallTexture"]
-    assert len({result["wallTexture"], result["warmWallTexture"], result["sageWallTexture"]}) == 3
+    # 牆 preset 不再解析到「貼圖在遠端」的型錄筆：那些貼圖離線載不到，
+    # viewer 會整批退回同一張本機 plaster，十個牆選項就長得一模一樣。
+    # 保留選項 id，讓 viewer 走各選項獨立的程序化材質。
+    assert result["wallId"] == "limewash"
+    assert result["warmWallId"] == "warm_white"
+    assert result["sageWallId"] == "sage"
+    assert result["wallTexture"] is None
+    assert result["warmWallTexture"] is None
+    assert result["sageWallTexture"] is None
 
 
 def test_realtime_surface_recommendations_explain_and_vary_options() -> None:

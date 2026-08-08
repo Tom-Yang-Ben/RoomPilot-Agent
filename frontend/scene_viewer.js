@@ -1394,10 +1394,11 @@ export function createSceneViewer(
   function createWallMaterial(wallOption, surfaceCatalog, { tintOnly = false } = {}) {
     const requestedSurface = findSurface(surfaceCatalog, wallOption, "wall");
     // Most imported wall records retain their original remote preview URL.
-    // The viewer must still work offline, so render those with our bundled
-    // plaster texture while preserving the selected wall colour and ID in data.
+    // The viewer must still work offline, so those fall through to the
+    // per-option procedural presets below — substituting a single bundled
+    // plaster texture here made every wall option render identically.
     const surface = requestedSurface?.texture_url?.startsWith("http")
-      ? findSurface(surfaceCatalog, "wall_ambientcg_plaster006", "wall")
+      ? null
       : requestedSurface;
     if (surface) {
       const material = createSurfaceImageMaterial(surface, "wall", {
@@ -1504,6 +1505,11 @@ export function createSceneViewer(
     };
 
     const material = (presets[wallOption] ?? presets.auto)();
+    if (tintOnly) {
+      // 全屋一致色時同樣以問卷選色為準，不讓程序化紋理的底色疊進來。
+      material.map = null;
+      material.userData.roompilotWallTintOnly = true;
+    }
     material.transparent = false;
     material.opacity = 1;
     material.depthWrite = true;

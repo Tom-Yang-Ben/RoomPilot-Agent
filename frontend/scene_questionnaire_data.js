@@ -18,7 +18,7 @@ import {
   LIGHT_STYLES,
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-fd8fa1eb64b1";
+} from "./scene_style_packs.js?v=sha256-f28f0442dde0";
 
 const QUESTIONNAIRE_STAGES = Object.freeze([
   "profile",
