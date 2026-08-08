@@ -514,23 +514,20 @@
                   <section class="rp-questionnaire-furniture">
                     <div class="rp-questionnaire-section-heading">
                       <div><span class="eyebrow">本房家具</span><h3>勾選想帶入配置的資料庫家具</h3></div>
-                      <p id="questionnaire-furniture-status" aria-live="polite">系統依房型、全屋風格與你的選擇推薦，並先確認每件家具的資料庫 GLB 真的載得起來。第 5 步不會阻擋；第 6 步仍會驗證實際位置。</p>
+                      <button id="open-questionnaire-furniture-catalog" type="button" class="secondary-action" data-open-questionnaire-furniture-catalog="">＋ 新增家具</button>
+                      <p id="questionnaire-furniture-status" aria-live="polite">系統依房型、全屋風格與你的選擇推薦。第 5 步不會阻擋；第 6 步會驗證實際 GLB 與位置。</p>
                     </div>
                     <div class="rp-questionnaire-furniture-preference">
                       <label for="questionnaire-furniture-preference">本房想呈現的氛圍與家具偏好（選填）</label>
                       <div>
                         <textarea id="questionnaire-furniture-preference" rows="2"
                           placeholder="例如：明亮安靜、淺木色、圓角收納；想要一張靠窗閱讀椅。"></textarea>
-                        <button id="refresh-questionnaire-furniture" type="button" class="secondary-action">更新推薦</button>
                       </div>
                       <p class="rp-field-hint">確認本房後，系統會用此描述搜尋相似家具，並連同房間尺寸、已選家具與設計需求交給後續 Agent 生圖。此欄不會變更已確認的房間大小、門窗或牆體。</p>
                       <div id="questionnaire-furniture-preference-tags" class="rp-questionnaire-preference-tags" aria-label="家具特徵快速選擇"></div>
                     </div>
                     <div id="questionnaire-furniture-options"
                       class="rp-questionnaire-furniture-options"></div>
-                    <div class="rp-action-row">
-                      <button id="open-questionnaire-furniture-catalog" type="button" class="secondary-action" data-open-questionnaire-furniture-catalog="">＋ 新增家具</button>
-                    </div>
                   </section>
                   <div id="questionnaire-style-tabs" class="rp-style-tabs" aria-label="六種風格" hidden></div>
                   <div id="questionnaire-style-grid" class="rp-style-grid rp-questionnaire-style-grid" hidden></div>
@@ -1100,20 +1097,19 @@
           <button id="close-furniture-catalog" type="button" class="rp-icon-button"
             aria-label="關閉新增家具" title="關閉">×</button>
         </header>
-        <label id="standard-catalog-search" class="rp-search-field">
+        <label class="rp-search-field">
           <span>搜尋資料庫家具</span>
-          <input id="glb-furniture-search-fallback" type="search" placeholder="輸入家具名稱" />
+          <input id="glb-furniture-search" type="search" placeholder="輸入家具名稱" />
         </label>
         <button id="search-glb-furniture" type="button" class="secondary-action">搜尋可用 GLB</button>
         <section id="questionnaire-catalog-controls" class="rp-catalog-filter-controls" hidden aria-label="家具篩選">
-          <label class="rp-search-field">
-            <span>搜尋本房家具</span>
-            <input id="glb-furniture-search" type="search" placeholder="輸入家具名稱" />
-          </label>
-          <label>
-            <span>類別</span>
-            <select id="questionnaire-catalog-type"><option value="">全部類別</option></select>
-          </label>
+          <div class="rp-catalog-scope" role="group" aria-label="家具瀏覽範圍">
+            <button type="button" data-questionnaire-catalog-scope="room" class="is-active">目前房間</button>
+            <button type="button" data-questionnaire-catalog-scope="all">全部空間</button>
+          </div>
+          <div id="questionnaire-catalog-space-groups" class="rp-catalog-choice-groups" aria-label="空間分類"></div>
+          <div id="questionnaire-catalog-purpose-groups" class="rp-catalog-choice-groups" aria-label="家具用途分類"></div>
+          <select id="questionnaire-catalog-type" hidden aria-hidden="true"><option value="">全部類別</option></select>
           <label>
             <span>顏色</span>
             <select id="questionnaire-catalog-color"><option value="">全部顏色</option></select>
@@ -1122,6 +1118,10 @@
             <span>材質</span>
             <select id="questionnaire-catalog-material"><option value="">全部材質</option></select>
           </label>
+          <div id="questionnaire-catalog-batch" class="rp-catalog-batch" hidden>
+            <span id="questionnaire-catalog-selected-count">尚未選擇家具</span>
+            <button id="add-selected-questionnaire-furniture" type="button" class="primary-action" disabled>加入本房</button>
+          </div>
         </section>
         <div id="glb-search-results" class="rp-glb-results rp-catalog-results" aria-live="polite"></div>
       </div>
@@ -1134,7 +1134,7 @@
           <h3 id="questionnaire-material-catalog-title">選擇材質</h3>
           <p id="questionnaire-material-catalog-help" class="rp-field-hint"></p>
         </div>
-        <form method="dialog"><button type="submit" class="rp-icon-button" aria-label="關閉材質資料庫" title="關閉">×</button></form>
+        <button type="button" class="rp-icon-button" data-close-material-catalog aria-label="關閉材質資料庫" title="關閉">×</button>
       </header>
       <label class="rp-material-catalog-search">
         <span>搜尋材質</span>
