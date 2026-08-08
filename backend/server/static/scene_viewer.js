@@ -14,7 +14,7 @@ import {
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=sha256-075ad1cedc62";
+} from "./scene_pbr_contracts.js?v=sha256-e2a4e5e31adf";
 import {
   doorOpeningForWallTopology,
   openingBelongsToWall,
@@ -30,9 +30,12 @@ import {
   computeExactModelScale,
   fallbackMaterialRole,
   findNearestWalkablePosition,
+  inferredWallThicknessCm,
+  snapFurnitureToRoomSurface,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-ffab73a6296a";
+} from "./scene_visual_contracts.js?v=sha256-21f70e95c7c9";
+import { normalizedPlanarUvs } from "./scene_texture_uv.js?v=sha256-d6416b081798";
 
 const CM_PER_METER = 100;
 
@@ -2404,6 +2407,16 @@ export function createSceneViewer(
       && point.z <= Number(bounds.maxZ) + padding;
   }
 
+  function applyNormalizedPlanarUvs(geometry) {
+    const position = geometry?.getAttribute?.("position");
+    if (!position?.array?.length) return geometry;
+    geometry.setAttribute(
+      "uv",
+      new THREE.Float32BufferAttribute(normalizedPlanarUvs(position.array), 2),
+    );
+    return geometry;
+  }
+
   function createRoomSurfaceOverrides(roomGroupRef, sceneData) {
     (sceneData.surface_overrides || []).forEach((override, index) => {
       const bounds = override.room_bounds_cm;
@@ -2429,6 +2442,7 @@ export function createSceneViewer(
         });
         shape.closePath();
         geometry = new THREE.ShapeGeometry(shape);
+        applyNormalizedPlanarUvs(geometry);
       } else {
         geometry = new THREE.PlaneGeometry(width, depth);
       }
@@ -2994,7 +3008,7 @@ export function createSceneViewer(
     applySurfaceTint(wallMaterial, wallColor);
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
-    const wallThickness = 12;
+    const wallThickness = inferredWallThicknessCm(sceneData.floorplan, 12);
     const wallSegments = sceneData.floorplan?.wall_segments || [];
     const doorSegments = dedupeArchitecturalOpeningsFor3d(
       (sceneData.floorplan?.door_segments || []).map(
@@ -4389,6 +4403,7 @@ export function createSceneViewer(
       <button type="button" data-object-move="left">左</button>
       <button type="button" data-object-move="back">後</button>
       <button type="button" data-object-move="right">右</button>
+      <button type="button" class="scene-object-rotate-quarter-turn" data-object-rotate="90" title="旋轉 90 度">旋轉 90°</button>
     </div>
     <button type="button" class="scene-object-lock-button" data-object-lock>鎖定此家具</button>
   `;
@@ -5044,9 +5059,9 @@ export function createSceneViewer(
     renderer.domElement.style.cursor = "grabbing";
   });
 
-  // ── 拖曳吸附:靠近牆段時貼齊(留 10cm,大於後端 8cm 邊距故吸附後必過驗證),平時 5cm 格點 ──
+  // 房間邊界是室內完成面；靠牆家具不額外留縫，其他移動使用 5 cm 格點。
   const SNAP_RANGE = 30;
-  const WALL_GAP = 6;
+  const WALL_GAP = 0;
   const DRAG_GRID = 5;
 
   function normalizedRotationDeg(rotationDeg = 0) {
@@ -5282,12 +5297,22 @@ export function createSceneViewer(
   }
 
   function snapDragPositionV3(item, x, z) {
-    return constrainTransform(
+    const snapped = snapFurnitureToRoomSurface({
+      floorplan: lastWorldSceneData?.floorplan || {},
+      roomId: item.placement_room_id || item.room_id || item.roomId || "",
+      sizeCm: sizeCentimeters(item),
+      position: { x, z },
+      rotationDeg: sceneToWorldRotationDeg(item.rotation_y_deg || 0),
+      snapRangeCm: SNAP_RANGE,
+      gridCm: DRAG_GRID,
+    }) || snapDragPositionV2(item, x, z);
+    const constrained = constrainTransform(
       item,
-      Math.round(x / DRAG_GRID) * DRAG_GRID,
-      Math.round(z / DRAG_GRID) * DRAG_GRID,
-      sceneToWorldRotationDeg(item.rotation_y_deg || 0)
+      snapped.x,
+      snapped.z,
+      snapped.rotationDeg ?? sceneToWorldRotationDeg(item.rotation_y_deg || 0)
     );
+    return constrained;
   }
 
   window.addEventListener("pointermove", (event) => {

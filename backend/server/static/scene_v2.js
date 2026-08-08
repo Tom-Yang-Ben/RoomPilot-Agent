@@ -1,12 +1,13 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-d4112a931128";
-import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-25568bdd96c1";
-import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
-import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
-import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-21fd27184d7e";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-9fc7df6fd295";
+import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-4e6be1d95f62";
+import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-536f7186bfd3";
+import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-e48e66f9829a";
+import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-ec29c3988ca1";
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-6a193452d1e5";
+  repairLegacyWallFurnitureGaps,
+} from "./scene_unit_contracts.js?v=sha256-363838ea8f45";
 import {
   repairLoadedRoomPolygon,
 } from "./scene_room_geometry.js?v=sha256-d863939b9c06";
@@ -14,7 +15,7 @@ import {
   reviewItemsFromAnalysis,
   reviewReasonLabel,
   unresolvedReviewRooms,
-} from "./scene_recognition_review.js?v=sha256-14ba9b03b7c5";
+} from "./scene_recognition_review.js?v=sha256-0a495b440399";
 import {
   createWorkflow,
   restoreWorkflow,
@@ -38,19 +39,19 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-b6f034658424";
+} from "./scene_layout2d.js?v=sha256-2cadf10ca9fd";
 import {
   reconcileFurniture2dAfterGeneration,
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-5d58be033c8a";
+} from "./scene_configuration_sync.js?v=sha256-51d8fa7788ce";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
 } from "./scene_furniture_retrieval.js?v=sha256-222deaca47ed";
 import {
   WHOLE_HOUSE_QUESTIONS,
-} from "./scene_requirements.js?v=sha256-b4b03dbe76aa";
+} from "./scene_requirements.js?v=sha256-d52e62baac8d";
 import {
   applyVisualPreferencesToSpecs,
   finishesGate,
@@ -72,7 +73,7 @@ import {
   conditionalOptionId,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-d07a1e5499ca";
+} from "./scene_room_requirements.js?v=sha256-fc211c401dd8";
 import {
   applyStylePack,
   CEILING_DESIGN_PACKS,
@@ -82,7 +83,7 @@ import {
   STYLE_FAMILIES,
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-e8e4ed1badaf";
+} from "./scene_style_packs.js?v=sha256-379294afa8c6";
 import {
   beamDragGeometry,
   canMarkWallForDemolition,
@@ -4420,6 +4421,7 @@ async function completeRoomSchemeSelection() {
       throw new Error(state.lastWhiteModelGenerationError || "configuration_scene_generation_failed");
     }
     state.designSchemes.configuration_snapshot = configurationSnapshot();
+    roomSchemePreviewCache.clear();   // 已進入下一流程，清除不再需要的逐房方案預覽快照
     renderRoomSchemeGate();
     closeRoomSchemeSelectionDialog();
     scheduleSave("white_model_3d");
@@ -11260,7 +11262,7 @@ async function reflowSingleConfigurationFurniture(furnitureId) {
   const room = configurationRoomById(item.roomId);
   if (!room) {
     setStatus(
-      `${item.label} 目前未指定空間；請先回第 5 步指定房間。家具會保留，不會因重新擺位而略過或刪除。`,
+      `${item.label} 目前未指定空間；請先回第 5 步指定房間，或按「同意擇優配置」先略過。`,
       "error",
     );
     return;
@@ -11291,19 +11293,10 @@ async function reflowSingleConfigurationFurniture(furnitureId) {
     state.furniture2d = upsertFurniture2dFromSceneObject(
       state.furniture2d,
       sceneObject,
-      { roomId: item.roomId },
     );
-    // A/B previews and the live editor read from the same active-scheme
-    // snapshot. Persist this one-item repair immediately so a room switch
-    // cannot bring back the stale position.
-    const scheme = activeScheme();
-    if (scheme) {
-      scheme.furniture = JSON.parse(JSON.stringify(state.furniture2d));
-      scheme.sceneData = JSON.parse(JSON.stringify(state.sceneData));
-    }
     state.selectedFurniture2dId = item.id;
     state.selectedSceneIndex = sceneIndex;
-    await whiteViewer.loadScene(state.sceneData);
+    await whiteViewer.updateObject(sceneObject);   // 只重擺這一件，其餘家具與房殼不動
     whiteViewer.setViewMode("orbit");
     renderLayoutFurniture();
     renderSceneObjectList();
@@ -12832,6 +12825,16 @@ async function deleteSelectedSceneFurniture() {
     return;
   }
   objects.splice(state.selectedSceneIndex, 1);
+  if (selected.auto_decor_role) {
+    // 記住「這個房間不要這類軟裝」——否則下次重跑軟裝時,錨點推導
+    // 會以同角色的另一件品項把它補回來。
+    const decorRoomId = String(
+      selected.auto_decor_room_id || selected.placement_room_id || "default",
+    );
+    const dismissed = new Set(state.dismissedDecorRoles[decorRoomId] || []);
+    dismissed.add(String(selected.auto_decor_role));
+    state.dismissedDecorRoles[decorRoomId] = [...dismissed];
+  }
   state.furniture2d = removeFurniture2dBySceneObject(
     state.furniture2d,
     selected,
@@ -12845,7 +12848,10 @@ async function deleteSelectedSceneFurniture() {
   renderSceneObjectList();
   loadSelectedSceneAppearance();
   if (state.workflow.currentStep === "white_model_3d") {
-    await reloadWhiteViewerPreservingCamera();
+    // 只拆掉被刪的那一件並重編號；viewer 尚未載入場景時才整包重載。
+    if (!whiteViewer.removeObject(selected.furniture_id)) {
+      await reloadWhiteViewerPreservingCamera();
+    }
     renderConfigurationPlan();
     if (nextSelected) {
       selectSceneObjectByFurnitureId(nextSelected.furniture_id, {
@@ -12856,8 +12862,10 @@ async function deleteSelectedSceneFurniture() {
     }
     scheduleSave("white_model_3d");
   } else {
-    await realisticViewer.loadScene(state.sceneData);
-    realisticViewer.setViewMode("orbit");
+    if (!realisticViewer.removeObject(selected.furniture_id)) {
+      await realisticViewer.loadScene(state.sceneData);
+      realisticViewer.setViewMode("orbit");
+    }
     renderConfigurationPlan();
     scheduleSave("realistic_3d");
   }
@@ -13505,7 +13513,7 @@ async function replaceSceneFurniture(furnitureId) {
   );
   syncFurnitureInventoryAcrossSchemes();
   renderLayoutFurniture();
-  await reloadWhiteViewerPreservingCamera();
+  await whiteViewer.updateObject(current);   // 只換這一件的模型，其餘不動
   renderSceneObjectList();
   loadSelectedSceneAppearance();
   scheduleSave("white_model_3d");
@@ -13594,7 +13602,7 @@ function addSceneFurniture(furnitureId) {
       renderLayoutFurniture();
       state.selectedSceneIndex = state.sceneData.scene_objects.length - 1;
       state.selectedFurniture2dId = candidate.furniture_id;
-      await reloadWhiteViewerPreservingCamera();
+      await whiteViewer.addObject(candidate);   // 只加這一件，場景與其他家具不動
       renderSceneObjectList();
       renderConfigurationPlan();
       loadSelectedSceneAppearance();
@@ -18774,6 +18782,16 @@ async function recoverSceneDataFromSavedLayout() {
   return true;
 }
 
+function repairRestoredSchemeLegacyWallGaps(scheme) {
+  if (!scheme) return 0;
+  const normalizedSceneData = normalizeSavedSceneData(scheme.sceneData);
+  if (!normalizedSceneData) return 0;
+  const repaired = repairLegacyWallFurnitureGaps(normalizedSceneData, scheme.furniture || []);
+  scheme.sceneData = repaired.sceneData;
+  scheme.furniture = repaired.furniture2d;
+  return repaired.repairedIds.length;
+}
+
 async function restoreProject() {
   if (!state.projectId) {
     state.workflow = null;
@@ -18782,6 +18800,9 @@ async function restoreProject() {
   }
   try {
     let sceneRecoveryError = null;
+    let furnitureRoomRepairError = null;
+    let restoredFurnitureRoomRepairs = 0;
+    let restoredLegacyWallGapRepairs = 0;
     let result = await api(`/api/projects/${state.projectId}`);
     const pendingSave = localStorage.getItem(pendingSaveStorageKey());
     let pendingSaveDiscarded = false;
@@ -18916,7 +18937,9 @@ async function restoreProject() {
         finishes: state.questionnaireFinishes,
       },
     );
-    state.roomFinishDrafts = {};
+    state.roomFinishDrafts = serverState.realistic_3d?.roomSurfaceDrafts
+      || serverState.requirements?.roomFinishDrafts
+      || {};
     const questionnairePack = STYLE_PACKS.find(
       (pack) => pack.id === state.questionnaireFinishes.stylePackId,
     );
@@ -18953,6 +18976,8 @@ async function restoreProject() {
       && !(restoredSchemeB.furniture || []).length
       && !restoredSchemeB.sceneData;
     if (emptySchemeB) deleteSchemeB(state.designSchemes);
+    restoredLegacyWallGapRepairs = Object.values(state.designSchemes.schemes || {})
+      .reduce((total, scheme) => total + repairRestoredSchemeLegacyWallGaps(scheme), 0);
     const restoredScheme = activeScheme();
     state.furniture2d = restoredScheme?.furniture || legacyFurniture;
     state.sceneData = normalizeSavedSceneData(restoredScheme?.sceneData) || legacySceneData;
@@ -18993,6 +19018,12 @@ async function restoreProject() {
       sceneRecoveryError = error;
       console.warn("Unable to rebuild saved 3D scene from layout.", error);
     }
+    try {
+      restoredFurnitureRoomRepairs = await repairFurnitureRoomPlacements();
+    } catch (error) {
+      furnitureRoomRepairError = error;
+      console.warn("Unable to repair furniture assigned outside its room.", error);
+    }
     hydrateSceneWallMass();
     state.sourceUrl = state.sourceExtension === ".dxf"
       ? configureDxfPreview(state.analysis)
@@ -19015,6 +19046,8 @@ async function restoreProject() {
     }
     if (
       sceneRecoveredFromLayout
+      || restoredFurnitureRoomRepairs > 0
+      || restoredLegacyWallGapRepairs > 0
       || restoredRetiredAppliancesRemoved > 0
       || restoredWallSurfaceRepairs > 0
       || restoredDoorSwingEndpoints > 0
@@ -19038,6 +19071,16 @@ async function restoreProject() {
       setStatus(
         `已恢復專案「${state.project.name}」，但 3D 場景暫時無法重建：${errorMessage(sceneRecoveryError)}`,
         "error",
+      );
+    } else if (furnitureRoomRepairError) {
+      setStatus(
+        `已恢復專案「${state.project.name}」，但部分家具無法回到指定房間：${errorMessage(furnitureRoomRepairError)}`,
+        "warning",
+      );
+    } else if (restoredFurnitureRoomRepairs > 0) {
+      setStatus(
+        `已恢復專案「${state.project.name}」，並修正 ${restoredFurnitureRoomRepairs} 件跨房間家具的位置。`,
+        "success",
       );
     } else {
       setStatus(pendingSaveDiscarded
