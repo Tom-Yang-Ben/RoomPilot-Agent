@@ -239,8 +239,8 @@ def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation
 
 
 def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
-    """牆段切分/開口件/頂蓋來自 SceneModel;踢腳板由 buildShellBoxes 沿
-    wall-section 佈置。窗帶被切出、上下補實與玻璃齊備、每段一個頂蓋。"""
+    """viewer 內聯 buildSegmentWalls:牆段切分、窗上下補實、踢腳板與每段頂蓋
+    直接建 mesh。純函式層(scene_shell_geometry)保留同等行為供 node 單測。"""
     shell_module = ROOT / "backend" / "server" / "static" / "scene_shell_geometry.js"
     result = run_workflow_script(
         f"""
@@ -269,12 +269,13 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    shell_boxes = source.split("function buildShellBoxes", 1)[1].split(
-        "function buildOpeningAssembly", 1
+    segment_walls = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildConfirmedDoorLeaves", 1
     )[0]
-    assert 'roompilotArchitecturalDetail = "baseboard"' in shell_boxes
-    assert 'if (desc.role === "top-cap")' in shell_boxes
-    assert "roomGroupRef.add(registerWall(wallMesh))" in shell_boxes
+    assert 'roompilotArchitecturalDetail = "baseboard"' in segment_walls
+    assert "const topCap = new THREE.Mesh(" in segment_walls
+    assert "wallHeight + 1.25" in segment_walls
+    assert "roomGroupRef.add(registerWall(wallMesh, { segment, exteriorSideSign }))" in segment_walls
 
 
 def test_confirmed_step4_wall_junctions_fill_only_micro_gaps_outside_openings() -> None:
@@ -350,8 +351,8 @@ def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    wall_builder = source.split("function buildShellBoxes", 1)[1].split(
-        "function buildOpeningAssembly", 1
+    wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildConfirmedDoorLeaves", 1
     )[0]
     resolver = source.split("function wallMaterialResolver", 1)[1].split(
         "function polygonShape", 1
@@ -373,9 +374,9 @@ def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -
     assert "return materialForOverride(roomOverrideForInteriorPoint(sample));" in resolver
     assert "resolveWallMaterial.exteriorMaterial" not in resolver
     assert "isExteriorWallSegment(segment, floorplan, wallThickness)" in wall_builder
-    assert "exteriorWallOutwardSideSign(segment, floorplan, dx / length, dz / length)" in wall_builder
+    assert "exteriorWallOutwardSideSign(segment, floorplan, unitX, unitZ)" in wall_builder
     assert "wallMaterial.faceMaterials(segment, exteriorSideSign)" in wall_builder
-    assert "walls: sceneData.floorplan?.wall_segments || []" in create_room
+    assert "const wallSegments = sceneData.floorplan?.wall_segments || [];" in create_room
 
 
 def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> None:
@@ -385,7 +386,7 @@ def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> No
     resolver = source.split("function wallMaterialResolver", 1)[1].split(
         "function wallSegmentPoint", 1
     )[0]
-    shell_boxes = source.split("function buildShellBoxes", 1)[1].split(
+    door_leaves = source.split("function buildConfirmedDoorLeaves", 1)[1].split(
         "function buildOpeningAssembly", 1
     )[0]
 
@@ -393,10 +394,10 @@ def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> No
     assert "const roomOverrides = [...canonicalOverrides.values()]" in resolver
     assert "function roomOverrideForInteriorPoint" in resolver
     assert "roomOverrideForInteriorPoint(sample)" in resolver
-    # 門楣(door-lintel)是 SceneModel 牆盒:材質經 openingId 找回開口,
-    # 由 resolver 依中點採樣同房間牆面,與相鄰牆共用面材。
-    assert "openingById.get(String(desc.meta?.openingId" in shell_boxes
-    assert "return wallMaterial(source).clone()" in shell_boxes
+    # 門楣(door-header-wall)沿第 4 步牆縫線段建盒:材質經 resolver 的
+    # faceMaterials 依線段中點採樣同房間牆面,與相鄰牆共用面材。
+    assert "wallMaterial.faceMaterials({ start, end }, 0)" in door_leaves
+    assert '"door-header-wall"' in door_leaves
 
 
 def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf() -> None:
@@ -406,8 +407,8 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
-    standalone = viewer.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
-        "function buildStructuralMembers", 1
+    door_leaves = viewer.split("function buildConfirmedDoorLeaves", 1)[1].split(
+        "function buildOpeningAssembly", 1
     )[0]
 
     assert "function confirmedWallGapForDoor" in architecture
@@ -416,18 +417,19 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     assert "start: closedLeaf.start" in architecture
     assert "end: closedLeaf.end" in architecture
     assert "closed_leaf_segment: closedLeafSegment" in architecture
-    # 門葉組件以第 4 步牆縫線段定位;門楣由 SceneModel 的 door-lintel 供給。
-    assert "opening.wall_opening_segment || opening.closed_leaf_segment || opening" in standalone
+    # 門楣與門葉組件都以第 4 步牆縫線段(wall_opening_segment)定位;
+    # step4 已確認但無牆縫的門不得憑門扇符號另開口。
+    assert "const headerSegment = door?.wall_opening_segment || door?.closed_leaf_segment;" in door_leaves
+    assert "if (door?.step4_confirmed === true && !door?.wall_opening_segment) return;" in door_leaves
 
-    # 門片本體也吸牆縫線段(closed_leaf 是門扇符號、離牆線 7~16cm,吸過去
-    # 就是門與牆之間一條大縫);寬貼縫寬 −2cm、厚 = 牆厚 −1cm。
+    # 門片本體置於呼叫端給的牆縫錨點;寬=縫寬−0.6cm 門縫、厚=牆厚−1.2cm
+    # 且封頂 5cm,不與牆面共面。
     opening_builder = viewer.split("function buildOpeningAssembly", 1)[1].split(
         "function buildStandaloneOpeningAssemblies", 1
     )[0]
-    assert "interval.opening?.wall_opening_segment" in opening_builder
-    assert "|| interval.opening?.closed_leaf_segment" in opening_builder
-    assert "Math.max((leafLength || interval.width) - 2, 60)" in opening_builder
-    assert "Math.max(Number(anchor.wallThickness || 12) - 1, 3)" in opening_builder
+    assert "const doorLeafInsetCm = 0.6;" in opening_builder
+    assert "Math.max(interval.width - doorLeafInsetCm, 60)" in opening_builder
+    assert "Math.min(Number(anchor.wallThickness || 12) - 1.2, 5)" in opening_builder
     assert "* 0.94" not in opening_builder
 
 

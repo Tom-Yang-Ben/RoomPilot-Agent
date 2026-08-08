@@ -60,21 +60,30 @@ def test_every_backend_review_reason_has_a_frontend_label() -> None:
     )
 
 
-def test_step_four_consumes_review_items_and_bulk_confirm_skips_flagged() -> None:
+def test_step_four_surfaces_review_items_in_the_recognition_summary() -> None:
+    """第 4 步採 backup/yen-2026-08-06 版後，複核清單區塊與逐間引導卡不存在。
+
+    仍必須保留的最小消費端：第 3 步辨識摘要要把「幾間房需人工複核」講出來，
+    否則 spatial_report 的訊號整條沒有出口。
+
+    已知缺口：一鍵確認**不再**跳過被標記的房間（yen 版 confirmAllRooms 一律
+    全確認）。伺服器閘門（下面四支測試）因此不會被觸發——它只在有房間未確認
+    時才擋，而 yen 版走到宣告完成時所有房間都已是 confirmed。
+    """
     scene_v2 = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
-    scene_html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
 
     assert "./scene_recognition_review.js?v=sha256-" in scene_v2
     assert "unresolvedReviewRooms" in scene_v2
-    assert 'id="recognition-review-summary"' in scene_html
-    assert 'id="recognition-review-list"' in scene_html
+    assert "function recognitionReviewSuffix()" in scene_v2
+    assert "系統標記 ${flagged} 間房需人工複核" in scene_v2
+    assert "recognitionReviewSuffix()" in scene_v2
 
     confirm_all = re.search(
         r"function confirmAllRooms\(\) \{.*?\n\}", scene_v2, re.DOTALL
     )
     assert confirm_all, "confirmAllRooms 不存在"
-    assert "unresolvedRecognitionReviewRooms" in confirm_all.group(0), (
-        "一鍵確認必須跳過被系統標記需複核的房間"
+    assert "unresolvedRecognitionReviewRooms" not in confirm_all.group(0), (
+        "yen 版一鍵確認不做旗標房排除；若要改回排除，請一併恢復複核清單 UI"
     )
 
 

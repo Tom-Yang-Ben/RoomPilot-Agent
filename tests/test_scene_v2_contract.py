@@ -28,33 +28,40 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
 
 
-def test_space_editor_exposes_only_the_canonical_room_taxonomy() -> None:
-    """房名下拉的唯一權威是 scene_v2.js 的 ROOM_NAME_OPTIONS。
+def test_space_editor_room_taxonomy_desync_is_recorded() -> None:
+    """第 4 步採 backup/yen-2026-08-06 版：房名 <option> 寫死在 scene.html。
 
-    ben 步驟 1–4 移植前，scene.html 自己寫死 12 個 <option>，與這張 10 類表
-    脫鉤：6 個選項存不進去、4 個 id 無法回顯。現在 select 留空由
-    renderRoomNameSelect() 生成，值域檢查因此改看 JS 表。
+    已知缺口（本測試就是它的登記處）：寫死的選單與 scene_v2.js 的
+    ROOM_NAME_OPTIONS 是兩份互不同步的詞彙表。saveRoom() 只認 JS 表
+    （`ROOM_NAME_OPTIONS.find((item) => item.id === element.roomName.value)`），
+    因此只在 HTML 出現的選項會查表失敗、跳「請選擇空間名稱。」而存不進去；
+    只在 JS 表出現的類別則永遠無法被選到。使用者資料不會遺失，但選單有死選項。
+
+    若日後要修，正解是把 select 留空、由 JS 依 ROOM_NAME_OPTIONS 生成
+    （見 ben 步驟 1–4 移植的 renderRoomNameSelect）。
     """
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    expected = {
-        "entryway", "living_room", "kitchen", "bedroom", "bathroom",
-        "storage", "balcony", "hallway", "stair", "garage",
-    }
-    legacy = {
-        "dining_room", "primary_bedroom", "secondary_bedroom",
-        "multi_purpose", "circulation", "study",
-    }
 
-    assert '<select id="room-name"></select>' in html
-    assert "function renderRoomNameSelect(room)" in source
-    assert "renderRoomNameSelect(selectedRoom)" in source
-    assert "ROOM_NAME_OPTIONS.map" in source
+    assert '<select id="room-name">' in html
+    assert '<option value="entryway">' in html
 
     table = source.split("const ROOM_NAME_OPTIONS = Object.freeze([", 1)[1].split("]);", 1)[0]
-    actual = set(re.findall(r'id:\s*"([a-z_]+)"', table))
-    assert expected == actual
-    assert not legacy & set(re.findall(r'<option value="([a-z_]+)">', html))
+    js_ids = set(re.findall(r'id:\s*"([a-z_]+)"', table))
+    select_html = html.split('<select id="room-name">', 1)[1].split("</select>", 1)[0]
+    html_ids = set(re.findall(r'<option value="([a-z_]+)">', select_html))
+
+    # saveRoom() 的值域仍由 JS 表決定，這條不能鬆動。
+    assert "ROOM_NAME_OPTIONS.find((item) => item.id === element.roomName.value)" in source
+
+    # 登記目前的脫鉤範圍；數量一變（有人修了或又惡化）就要回來更新這裡。
+    assert html_ids - js_ids == {
+        "dining_room", "primary_bedroom", "secondary_bedroom",
+        "multi_purpose", "circulation", "study",
+    }, "HTML 專有（選了會存不進去）的選項集合改變了"
+    assert js_ids - html_ids == {"hallway", "bedroom", "stair", "garage"}, (
+        "JS 表專有（永遠選不到）的類別集合改變了"
+    )
 
 
 def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
@@ -430,7 +437,6 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_structure_geometry.js",
             "scene_window_types.js",
             "scene_visual_contracts.js",
-            "scene_shell_geometry.js",
         ],
         "scene_shell_geometry.js": [
             "scene_architecture.js",
@@ -1169,7 +1175,7 @@ def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() 
         "const builtWallMass = !singleRoomMode && hasAccurateFloorplan && !wallSegments.length"
         in viewer
     )
-    assert "buildShellBoxes(" in viewer
+    assert "buildSegmentWalls(" in viewer
     assert "buildStandaloneOpeningAssemblies(" in viewer
     assert "const mullionPositions = [0];" in viewer
     # 牆段只被 hosted 窗切分;門縫由第 4 步牆段自帶,門只補門楣。
@@ -1177,7 +1183,7 @@ def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() 
     assert "const intervals = windows" in shell
     assert '"door-lintel"' in shell
 
-    # 行為驗證:牆段中間的門不切牆(仍是一整段),門楣件照出。
+    # 行為驗證(純函式層,供 node 單測沿用):牆段中間的門不切牆,門楣件照出。
     result = run_workflow_script(
         f"""
         import {{ buildSceneModel, shellConfig }} from {json.dumps((STATIC / "scene_shell_geometry.js").as_uri())};
@@ -1218,12 +1224,14 @@ def test_ceiling_picker_uses_the_selected_ceiling_photo_not_a_lighting_sprite() 
 
 
 def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
-    # 門先經 doorOpeningForWallTopology 映射到第 4 步牆縫,再由 Union-Find
-    # 群聚去重;兩者都在純函式層完成,viewer 只消費 shellModel.openings。
+    # viewer 內聯管線:門先經 doorOpeningForWallTopology 映射到第 4 步牆縫,
+    # 再由 dedupeArchitecturalOpeningsFor3d 去重(ID 保護 + 覆蓋比對)。
+    # 純函式層的 Union-Find 群聚(clusterOpeningSegments)保留給 node 單測。
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
     shell = (STATIC / "scene_shell_geometry.js").read_text(encoding="utf-8")
 
-    assert "const doorSegments = shellModel.openings.doors" in viewer
+    assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
+    assert "(door) => doorOpeningForWallTopology(wallSegments, door, wallThickness)" in viewer
     assert (
         "doorOpeningForWallTopology(walls, door, cfg.wallThicknessCm)" in shell
     )
@@ -1335,7 +1343,11 @@ def test_step4_can_lock_a_manually_corrected_door_opening() -> None:
     assert 'id="lock-selected-door-opening"' in html
     assert "function lockSelectedDoorOpening()" in viewer
     assert 'item.opening_source = "manual_confirmed";' in viewer
-    assert '$("#lock-selected-door-opening").addEventListener("click", lockSelectedDoorOpening);' in viewer
+    # 綁定走 optional chaining：離屏／縮圖版面沒有這顆鈕，缺元素時不得整段 bindEvents 中斷。
+    assert (
+        '$("#lock-selected-door-opening")?.addEventListener("click", lockSelectedDoorOpening);'
+        in viewer
+    )
 
 
 def test_requirements_generate_the_white_model_without_an_intermediate_2d_confirmation() -> None:
@@ -2185,16 +2197,28 @@ def test_beam_drag_guidance_only_appears_during_draw_mode() -> None:
     assert "function cancelStructureInteraction()" in source
 
 
-def test_wall_review_has_one_fixed_structure_and_no_demolition_preview() -> None:
+def test_wall_review_keeps_one_fixed_structure_and_a_dormant_preview() -> None:
+    """牆體在第 4 步是全案基準：不提供逐面「可拆／保留」切換。
+
+    第 4 步採 backup/yen-2026-08-06 版後，A/B 格局預覽的標記與函式都在，
+    但**沒有任何呼叫點**——yen 本身就是這個狀態，區塊永遠 hidden、兩張 SVG
+    永遠空的。這裡把「休眠」釘住：要嘛哪天接上 renderWallRemovalPreviews()
+    並改這條測試，要嘛整組移除，別讓它以「看起來有功能」的樣子長期躺著。
+    """
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
-    assert 'id="wall-removal-preview"' not in html
-    assert 'id="wall-retained-preview-svg"' not in html
-    assert 'id="wall-demolished-preview-svg"' not in html
+    assert 'id="wall-removal-preview"' in html
+    assert 'id="wall-retained-preview-svg"' in html
+    assert 'id="wall-demolished-preview-svg"' in html
+    assert "僅供規劃比較" in html
+    assert "function renderWallRemovalPreviews()" in source
+    assert source.count("renderWallRemovalPreviews") == 1, (
+        "renderWallRemovalPreviews 目前是死碼；若已接上呼叫點請更新這條測試"
+    )
+    # 逐面切換 UI 仍不得回來，牆一律鎖定為基準。
     assert "${wallTypeToggle}" not in source
     assert "${wallState}" not in source
-    assert "renderWallRemovalPreviews();" not in source
     assert "demolition_candidate = false" in source
 
 
@@ -2262,7 +2286,7 @@ def test_selected_door_has_large_drag_target_and_resizable_endpoint_handles() ->
     assert "function resizeOpeningFromPointer(" in source
     assert "function snapOpeningToHostWall(" in source
     assert "function setSelectedOpeningWidthCm(" in source
-    assert 'openingWidthSlider.addEventListener("input"' in source
+    assert 'openingWidthSlider?.addEventListener("input"' in source
     assert "nearestPointOnLine(requested, item.start, item.end)" in source
     assert "item.width_cm = Math.hypot(" in source
     assert "item.confirmed = false" in source
@@ -2296,28 +2320,25 @@ def test_structure_legend_uses_heading_space_and_window_markers_match_review_num
     assert '$("#plan-structure-legend").hidden = rooms;' in source
 
 
-def test_room_editor_exists_exactly_once_inside_the_guided_review_card() -> None:
-    """房間編輯器只有一份，且在第 4 步引導卡裡（ben 步驟 1–4 移植）。
+def test_room_editor_exists_exactly_once_inside_the_plan_heading_toolbar() -> None:
+    """房間編輯器只有一份，且掛在圖面標題工具列（backup/yen-2026-08-06 第 4 步）。
 
-    先前這一份掛在圖面標題工具列，另一份留在引導卡：七組 id 重複，
-    querySelector 一半接到工具列、一半接到引導卡。移植後統一收在
-    `#current-room-review`，圖面標題只留「查看全部空間框選」。
+    重點是「只有一份」：先前曾同時存在工具列與引導卡兩份，七組 id 重複，
+    querySelector 一半接到工具列、一半接到引導卡。yen 版把它收在
+    `.rp-room-toolbar-editor`，引導卡不存在。
     """
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
     heading_html = _space_heading_html(html)
-    card_start = html.index('id="current-room-review"')
-    card_end = html.index('id="room-list"')
 
     assert 'class="rp-plan-heading-tools"' in heading_html
     assert html.count('id="room-editor"') == 1
-    assert 'id="room-editor"' not in heading_html
-    assert 'id="room-editor"' in html[card_start:card_end]
-    assert 'class="rp-room-review-editor"' in html[card_start:card_end]
+    assert 'id="room-editor"' in heading_html
+    assert 'class="rp-editor-box rp-room-toolbar-editor"' in heading_html
+    assert 'id="current-room-review"' not in html
     assert ".rp-room-floating-editor" not in css
     assert "#space-step .rp-plan-heading-tools" in css
     assert "#space-step .rp-room-editor-summary" in css
-    assert "#space-step .rp-guided-room-review .rp-room-editor-summary" in css
     assert "display: contents" in css
     assert "#space-step #show-all-rooms" in css
 
@@ -2506,10 +2527,10 @@ def test_room_confirmation_is_isolated_and_supports_confirm_merge_and_split() ->
     assert 'data-room-geometry-mode="split"' in html
     assert 'id="apply-room-merge"' in html
     assert 'id="cancel-room-geometry"' in html
-    # 逐房確認改走引導卡：佇列只負責選取，確認由「確認並查看下一間」發動。
+    # 逐房確認走清單本身：每張房間卡自帶「確認」與「刪除」鍵。
     assert 'data-room-id="${escapeHtml(room.id)}"' in source
-    assert 'id="confirm-current-room"' in html
-    assert "function confirmCurrentRoomAndAdvance()" in source
+    assert 'data-confirm-room="${escapeHtml(room.id)}"' in source
+    assert 'data-delete-room="${escapeHtml(room.id)}"' in source
     assert 'state.spaceMode === "structure" ? renderStructureSvg() : ""' in source
     assert "function confirmRoom(roomId)" in source
     assert "function mergeSelectedRooms()" in source
@@ -2543,7 +2564,7 @@ def test_room_review_can_confirm_all_rooms_at_once() -> None:
     assert "一鍵確認全部房間" in html
     assert "function confirmAllRooms()" in source
     assert 'room.source = "manual_confirmation"' in source
-    assert '$("#confirm-all-rooms").addEventListener("click", confirmAllRooms)' in source
+    assert '$("#confirm-all-rooms")?.addEventListener("click", confirmAllRooms)' in source
     assert 'confirmAllRoomsButton.disabled = !state.rooms.length || allConfirmed' in source
 
 
@@ -2719,7 +2740,10 @@ def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> No
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function confirmedFloorplanEditor(schemeId = activeSchemeId())" in controller
-    assert "structures: structuresForScheme(state.structures, schemeId)" in controller
+    # 第 4 步完成後以確認快照為準（舊專案沒有快照才退回 state.structures），
+    # 否則第 6 步會讀到使用者在第 4 步之後又動過、但未重新確認的結構。
+    assert "state.confirmedStructureSnapshot || state.structures," in controller
+    assert "structures: structuresForScheme(" in controller
     assert "floorplan_editor: confirmedFloorplanEditor()" in controller
     assert "floorplan_dxf_text: state.confirmedFloorplan?.dxf_text" not in controller
     assert "floorplan.beam_segments" in viewer

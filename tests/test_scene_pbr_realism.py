@@ -572,8 +572,10 @@ def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
 
     viewer = VIEWER.read_text(encoding="utf-8")
     assert "buildStandaloneOpeningAssemblies(" in viewer
-    assert "const doorSegments = shellModel.openings.doors" in viewer
-    assert "const windowSegments = shellModel.openings.windows" in viewer
+    assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
+    assert "const windowSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
+    # viewer 內聯 fallback:未 hosted 的開口仍出組件與上下補實牆
+    assert "const missingWindows = windowSegments.filter((opening) => !segments.some(" in viewer
 
 
 def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
@@ -660,15 +662,14 @@ def test_gap_window_uses_its_own_host_wall_for_surface_material() -> None:
     assert result["id"] == "wall-14"
     assert result["material_id"] == "white-wall"
 
-    # 開口補實件以 openingId 找回開口線段取材質(resolver 依中點採樣房間),
-    # 不得退回 segments[0] 之類與開口無關的牆。
+    # 縫內開口的補實件先以 wallSegmentForOpening 找回自己的 host 牆取材質,
+    # 找不到才退回 segments[0](resolver 依線段中點採樣房間)。
     viewer = VIEWER.read_text(encoding="utf-8")
-    shell_boxes = viewer.split("function buildShellBoxes", 1)[1].split(
-        "function buildOpeningAssembly", 1
+    segment_walls = viewer.split("function buildSegmentWalls", 1)[1].split(
+        "function buildConfirmedDoorLeaves", 1
     )[0]
-    assert "openingById.get(String(desc.meta?.openingId" in shell_boxes
-    assert "return wallMaterial(source).clone()" in shell_boxes
-    assert "wallMaterial(segments[0] || {})" not in viewer
+    assert "const hostSegment = wallSegmentForOpening(segments, opening, wallThickness);" in segment_walls
+    assert "return wallMaterial(hostSegment || segments[0] || {});" in segment_walls
 
 
 def test_gap_window_wall_sections_end_flush_with_the_opening() -> None:
@@ -760,10 +761,11 @@ def test_realistic_views_hide_planning_circulation_overlay() -> None:
     assert "configureCirculationForView(mode)" in source
 
 
-def test_floor_is_a_structure_bbox_slab_from_scene_model() -> None:
-    # 依 docs/3D房屋場景建置流程.md §5.6:基底樓板 = 結構 bbox 各向外擴
-    # floorMarginCm 的薄盒(y ∈ [-厚,0]),門檻/牆底破口由全覆蓋保證;
-    # 逐房材質 override 仍用房間多邊形(createRoomSurfaceOverrides 不變)。
+def test_floor_is_a_room_region_plane_with_module_slab_reserved() -> None:
+    # viewer 基底樓板 = synchronizedFloorRegions 房間多邊形平面(y=0、
+    # roompilotBaseFloor 旗標,presentation ground 藏於 -3.2);逐房材質
+    # override 仍用房間多邊形(createRoomSurfaceOverrides 不變)。
+    # 純函式層的 bbox 薄盒樓板(§5.6)保留給 node 單測沿用。
     result = run_workflow_script(
         f"""
         import {{ buildSceneModel, shellConfig }} from {json.dumps(SHELL_MODULE.as_uri())};
@@ -781,11 +783,10 @@ def test_floor_is_a_structure_bbox_slab_from_scene_model() -> None:
     assert result["size"] == [500, 5, 400]
 
     source = VIEWER.read_text(encoding="utf-8")
-    assert "if (shellModel.floor && !catalogThumbnailMode)" in source
-    assert "shellModel.floor.size[0]" in source
-    assert "shellModel.floor.center[0]" in source
+    assert "createFloorGeometry(sceneData.floorplan, widthCm, depthCm)" in source
+    assert "floor.userData.roompilotBaseFloor = true" in source
+    assert "presentationGround.position.y = -3.2" in source
     assert "createRoomSurfaceOverrides(roomGroup, sceneData)" in source
-    assert "createFloorGeometry" not in source
     assert "FLOOR_SLAB_BLEED_CM" not in source
 
 
@@ -794,9 +795,9 @@ def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:
 
     assert "function buildWallMass" in source
     assert "new THREE.ExtrudeGeometry" in source
-    assert "wallPolygons: sceneData.floorplan?.wall_polys || []" in source
+    assert "const wallMassRegions = (floorplan?.wall_polys || []).filter(" in source
     assert "const builtWallMass =" in source
-    assert "? buildWallMass(roomGroup, shellModel, wallMaterial)" in source
+    assert "? buildWallMass(" in source
     assert "} else if (!builtWallMass && !singleRoomMode" in source
     assert 'roompilotWallHeightAxis = "z"' in source
     assert 'heightAxis === "z"' in source

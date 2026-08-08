@@ -3033,9 +3033,6 @@ body[data-page="styles"] .style-tabs-shell {
   box-shadow: 0 20px 48px rgba(20, 12, 8, 0.18);
 }
 
-@media (max-width: 1100px) {
-}
-
 @media (max-width: 920px) {
   body[data-page="library"] .axis-note-strong {
     grid-template-columns: 1fr;
@@ -6125,18 +6122,6 @@ body.rp-workflow-page .rp-wall-type-toggle button:disabled {
   color: #77716a;
 }
 
-body.rp-workflow-page .rp-wall-removal-preview {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #cbc6bf;
-}
-
-body.rp-workflow-page .rp-wall-removal-preview[hidden] {
-  display: none;
-}
-
 body.rp-workflow-page .rp-design-scheme-compare {
   display: grid;
   gap: 14px;
@@ -6211,6 +6196,18 @@ body.rp-workflow-page .rp-scheme-toolbar > span {
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+body.rp-workflow-page .rp-wall-removal-preview {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #cbc6bf;
+}
+
+body.rp-workflow-page .rp-wall-removal-preview[hidden] {
+  display: none;
 }
 
 body.rp-workflow-page .rp-wall-removal-preview > header {
@@ -6360,12 +6357,6 @@ body.rp-workflow-page .rp-legend-line.is-window {
 body.rp-workflow-page .rp-legend-line.is-removable-wall {
   border-color: #c54c4c;
   border-top-style: dashed;
-}
-
-@media (max-width: 720px) {
-  body.rp-workflow-page .rp-wall-removal-compare {
-    grid-template-columns: 1fr;
-  }
 }
 
 body.rp-workflow-page .primary-action {
@@ -11534,6 +11525,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
     grid-template-columns: 1fr;
   }
 }
+
 /* Test2 questionnaire, integrated into the ten-step Bella workflow. */
 #requirements-step .rp-questionnaire-workspace {
   display: block;
@@ -13206,6 +13198,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-questionnaire-room-action-bar p { margin: 0; color: #6d716c; font-size: 14px; }.rp-questionnaire-room-action-bar > div { display: flex; gap: 10px; }.rp-questionnaire-room-action-bar button { min-height: 44px; }
 .rp-questionnaire-room-review { display: grid; gap: 18px; }.rp-room-review-list { display: grid; gap: 8px; }.rp-room-review-list button { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 58px; padding: 12px 14px; border: 1px solid #ddd9d0; border-radius: 8px; background: #fff; text-align: left; }.rp-room-review-list button span { color: #6d716c; }.rp-room-review-list button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.rp-room-review-list button em { color: #216b59; font-style: normal; }
 @media (max-width: 980px) { .rp-room-questionnaire-layout { grid-template-columns: 1fr; }.rp-room-questionnaire-plan { position: static; }.rp-room-questionnaire-editor { grid-template-columns: 1fr; }.rp-questionnaire-room-section-nav { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }.rp-room-finish-editor, .rp-questionnaire-room-action-bar { grid-column: 1; } }
+
 @media (max-width: 640px) { #requirements-step .rp-test2-questionnaire { width: min(100% - 24px, 1360px); }.rp-questionnaire-stage-nav { display: grid; width: 100%; grid-template-columns: 1fr; }.rp-questionnaire-stage-nav button { justify-content: flex-start; border-right: 0; border-bottom: 1px solid #ddd9d0; }.rp-questionnaire-room-section-nav { grid-template-columns: 1fr 1fr; }.rp-room-questionnaire-editor-heading, .rp-questionnaire-room-action-bar { align-items: stretch; flex-direction: column; }.rp-questionnaire-room-action-bar > div { display: grid; grid-template-columns: 1fr 1fr; }.rp-room-review-list button { grid-template-columns: 1fr auto; }.rp-room-review-list button strong { grid-column: 1 / -1; } }
 
 /* Focus the global workflow on Step 5 while this questionnaire is open. */
@@ -13364,38 +13357,6 @@ body.rp-workflow-page #space-step {
   background: #f2eee7;
 }
 
-#space-step .rp-space-review-workspace {
-  grid-template-columns: minmax(0, 1.58fr) minmax(390px, 0.82fr);
-  grid-template-rows: auto auto;
-  align-items: start;
-  gap: 18px;
-  min-height: calc(100vh - 195px);
-  padding: 22px clamp(20px, 3vw, 42px) 24px;
-  background: #f2eee7;
-}
-
-#space-step .rp-space-review-workspace > .rp-plan-pane,
-#space-step .rp-space-review-workspace > .rp-space-controls {
-  min-height: 0;
-  border: 1px solid #dcd2c7;
-  border-radius: 20px;
-  background: #fffdfa;
-  box-shadow: 0 12px 30px rgba(57, 45, 35, 0.06);
-}
-
-#space-step .rp-space-review-workspace > .rp-plan-pane {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  overflow: hidden;
-}
-
-#space-step .rp-space-review-workspace > .rp-space-controls {
-  max-height: none;
-  padding: 16px;
-  overflow: auto;
-}
-
 /* Keep the plan visible while the Step 4 review rail scrolls independently. */
 /* 注意：以下三條 body[data-workflow-step="space_confirmation"] 規則目前是
    inert —— 全站沒有任何程式碼寫入 body 的 data-workflow-step（scene_v2.js 只
@@ -13508,38 +13469,6 @@ body.rp-workflow-page #space-step {
   margin-top: 4px;
 }
 
-#space-step .rp-space-canvas-toolbar {
-  display: flex;
-  min-height: 54px;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 16px;
-  border-bottom: 1px solid #e7dfd5;
-  background: #fbf8f3;
-}
-
-#space-step .rp-space-canvas-toolbar > span {
-  color: #62584f;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-
-#space-step .rp-space-canvas-toolbar button {
-  min-height: 36px;
-  padding: 7px 13px;
-  border-color: #cfc2b5;
-  border-radius: 9px;
-  background: #fffdfa;
-  font-size: 13px;
-}
-
-#space-step .rp-space-canvas-toolbar p {
-  margin: 0 0 0 auto;
-  color: #81766c;
-  font-size: 12px;
-}
-
 #space-step #space-plan-stage {
   flex: 1 1 auto;
   height: clamp(340px, calc(100vh - 555px), 620px);
@@ -13579,11 +13508,6 @@ body.rp-workflow-page #space-step {
   color: #fff;
 }
 
-#space-step .rp-guided-room-review {
-  display: grid;
-  gap: 14px;
-}
-
 #space-step .rp-room-review-heading {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -13614,45 +13538,6 @@ body.rp-workflow-page #space-step {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
   letter-spacing: 0.12em;
-}
-
-#space-step .rp-current-room-card {
-  display: grid;
-  gap: 14px;
-  padding: 18px;
-  border: 1px solid #cfc1b3;
-  border-radius: 16px;
-  background: #fffdfa;
-  box-shadow: 0 8px 20px rgba(57, 45, 35, 0.045);
-}
-
-#space-step .rp-current-room-card[hidden] {
-  display: none;
-}
-
-#space-step .rp-current-room-label {
-  width: fit-content;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: #eee7dd;
-  color: #6d5c4e;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-}
-
-#space-step .rp-current-room-label.is-confirmed {
-  background: #e3eee8;
-  color: #355d4d;
-}
-
-#space-step .rp-room-review-editor {
-  display: grid;
-  gap: 13px;
-}
-
-#space-step .rp-room-review-editor[hidden] {
-  display: none;
 }
 
 #space-step .rp-room-editor-summary {
@@ -13687,286 +13572,8 @@ body.rp-workflow-page #space-step {
   border-radius: 10px;
 }
 
-#space-step .rp-current-room-metrics {
-  display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
-  gap: 12px;
-  margin-top: 4px;
-  padding: 13px 0;
-  border-top: 1px solid #e8e0d7;
-  border-bottom: 1px solid #e8e0d7;
-}
-
-#space-step .rp-current-room-metrics > span {
-  display: grid;
-  gap: 4px;
-}
-
-#space-step .rp-current-room-metrics > span + span {
-  padding-left: 12px;
-  border-left: 1px solid #e8e0d7;
-}
-
-#space-step .rp-current-room-metrics small {
-  color: #80756b;
-  font-size: 11px;
-}
-
-#space-step .rp-current-room-metrics strong {
-  color: #39322d;
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-}
-
-#space-step .rp-current-room-metrics > .rp-room-review-hint {
-  grid-column: 1 / -1;
-  color: #936342;
-  line-height: 1.45;
-}
-
-#space-step .rp-room-outline-tools {
-  padding-top: 1px;
-}
-
-#space-step .rp-room-outline-tools summary,
-#space-step .rp-room-more-actions summary {
-  color: #61564d;
-  font-size: 13px;
-  font-weight: 750;
-  cursor: pointer;
-}
-
-#space-step .rp-room-outline-tools[open] summary,
-#space-step .rp-room-more-actions[open] summary {
-  margin-bottom: 10px;
-  color: #302722;
-}
-
 #space-step .rp-room-node-tools {
   margin: 0 0 7px;
-}
-
-#space-step .rp-room-node-tools button,
-#space-step .rp-room-more-actions button {
-  min-height: 38px;
-  padding: 7px 9px;
-  border-radius: 9px;
-  font-size: 12px;
-}
-
-#space-step .rp-current-room-actions {
-  display: grid;
-  grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.45fr);
-  gap: 10px;
-}
-
-#space-step .rp-current-room-actions button {
-  min-height: 48px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-#space-step .rp-current-room-actions .primary-action,
-#space-step #confirm-space {
-  border-color: #302722;
-  background: #302722;
-  color: #fff;
-}
-
-#space-step .rp-room-queue-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 1px;
-}
-
-#space-step .rp-room-queue-heading strong {
-  color: #3c3530;
-  font-size: 13px;
-}
-
-#space-step .rp-room-queue-heading span {
-  color: #8a8178;
-  font-size: 11px;
-}
-
-#space-step .rp-room-review-queue {
-  gap: 8px;
-}
-
-#space-step .rp-room-review-queue .rp-room-queue-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid #e0d7ce;
-  border-radius: 11px;
-  background: #fffdfa;
-}
-
-#space-step .rp-room-review-queue .rp-room-select {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  min-height: 56px;
-  padding: 9px 10px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-#space-step .rp-room-review-queue .rp-room-select:hover,
-#space-step .rp-room-review-queue .rp-room-select:focus-visible {
-  background: #f7f2ec;
-}
-
-#space-step .rp-room-queue-index {
-  display: grid;
-  width: 25px;
-  height: 25px;
-  place-items: center;
-  border: 1px solid #d7ccc0;
-  border-radius: 50%;
-  color: #645a52;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-#space-step .rp-room-queue-copy {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-#space-step .rp-room-queue-copy strong,
-#space-step .rp-room-queue-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-#space-step .rp-room-queue-copy strong {
-  color: #38312c;
-  font-size: 13px;
-}
-
-#space-step .rp-room-queue-copy small {
-  color: #81776e;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-#space-step .rp-room-queue-status {
-  color: #8a6a50;
-  font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-#space-step .rp-room-queue-status.is-confirmed {
-  color: #3c6a57;
-}
-
-#space-step .rp-room-review-queue .rp-room-review-hint {
-  grid-column: 2 / -1;
-  color: #936342;
-  font-size: 10px;
-}
-
-#space-step .rp-room-review-queue .rp-room-delete {
-  display: grid;
-  width: 48px;
-  min-height: 56px;
-  place-items: center;
-  padding: 6px;
-  border: 0;
-  border-left: 1px solid #eee6de;
-  border-radius: 0;
-  background: transparent;
-  color: #9b6254;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-#space-step .rp-room-queue-empty {
-  margin: 0;
-  padding: 13px;
-  border: 1px dashed #d8cec3;
-  border-radius: 10px;
-  color: #877d74;
-  font-size: 12px;
-  text-align: center;
-}
-
-#space-step .rp-room-more-actions {
-  padding-top: 2px;
-  border-top: 1px solid #e8e0d7;
-}
-
-#space-step .rp-room-more-actions[open] {
-  padding: 12px;
-  border: 1px solid #ddd2c7;
-  border-radius: 12px;
-  background: #faf6f1;
-}
-
-#space-step .rp-room-more-actions .rp-room-review-actions,
-#space-step .rp-room-more-actions .rp-room-geometry-tools {
-  gap: 7px;
-  margin-bottom: 7px;
-}
-
-#space-step .rp-room-more-actions .rp-room-review-actions {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-#space-step .rp-room-more-actions #delete-current-room {
-  grid-column: 1 / -1;
-}
-
-#space-step .rp-space-completion-bar {
-  /* 完成列原本在整頁最下方（實測 y=1138，1000px 視窗看不到），使用者找不到
-     「還缺兩個勾選」的提示與按鈕，會以為第 4 步壞掉。釘在視窗底部。 */
-  position: sticky;
-  bottom: 12px;
-  z-index: 5;
-  grid-column: 1 / -1;
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 15px 18px;
-  border: 1px solid #d8cbbb;
-  border-radius: 16px;
-  background: #fffaf4;
-  box-shadow: 0 10px 24px rgba(57, 45, 35, 0.045);
-}
-
-#space-step .rp-space-completion-bar > div {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-#space-step .rp-space-completion-bar strong {
-  color: #453b34;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-#space-step .rp-space-completion-bar span {
-  color: #7d7268;
-  font-size: 11px;
-}
-
-#space-step .rp-space-completion-bar .rp-field-error {
-  margin-top: 2px;
 }
 
 #space-step #confirm-space {
@@ -14019,55 +13626,19 @@ body.rp-workflow-page #space-step {
   border-radius: 9px;
 }
 
-@media (max-width: 1080px) {
-  #space-step .rp-space-review-workspace {
-    grid-template-columns: minmax(0, 1.4fr) minmax(350px, 0.86fr);
-    padding-inline: 20px;
-  }
-
-  #space-step .rp-space-canvas-toolbar p,
-  #space-step .rp-plan-pane > .rp-pane-heading > p {
-    display: none;
-  }
-
-  #space-step .rp-plan-pane > .rp-pane-heading {
+@media (max-width: 1080px) {  #space-step .rp-plan-pane > .rp-pane-heading {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 860px) {
-  #space-step .rp-space-review-workspace {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-  }
-
-  #space-step #space-plan-stage {
+@media (max-width: 860px) {  #space-step #space-plan-stage {
     height: min(68vh, 560px);
   }
 
-  #space-step .rp-space-completion-bar {
-    grid-column: 1;
-  }
 }
 
-@media (max-width: 560px) {
-  #space-step .rp-space-review-workspace {
-    gap: 12px;
-    padding: 14px;
-  }
-
-  #space-step .rp-space-review-workspace > .rp-plan-pane,
-  #space-step .rp-space-review-workspace > .rp-space-controls {
-    border-radius: 15px;
-  }
-
-  #space-step .rp-plan-pane > .rp-pane-heading {
+@media (max-width: 560px) {  #space-step .rp-plan-pane > .rp-pane-heading {
     padding: 16px;
-  }
-
-  #space-step .rp-space-canvas-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
   }
 
   #space-step #space-plan-stage {
@@ -14075,54 +13646,10 @@ body.rp-workflow-page #space-step {
     min-height: 320px;
   }
 
-  #space-step .rp-current-room-metrics,
-  #space-step .rp-current-room-actions,
-  #space-step .rp-room-more-actions .rp-room-review-actions,
-  #space-step .rp-room-geometry-tools {
-    grid-template-columns: 1fr;
-  }
-
-  #space-step .rp-current-room-metrics > span + span {
-    padding: 10px 0 0;
-    border-top: 1px solid #e8e0d7;
-    border-left: 0;
-  }
-
-  #space-step .rp-room-more-actions #delete-current-room {
-    grid-column: 1;
-  }
-
-  #space-step .rp-space-completion-bar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
   #space-step #confirm-space {
     flex-basis: auto;
     width: 100%;
   }
-}
-
-/* ── Step 4 引導卡與結構面板覆寫（同上 6882-7000） ── */
-/* Keep the Step 4 guided card independent from the former heading-toolbar layout. */
-#space-step .rp-space-canvas-toolbar #show-all-rooms {
-  position: static;
-  inset: auto;
-}
-
-#space-step .rp-guided-room-review .rp-room-editor-summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-#space-step .rp-guided-room-review .rp-room-editor-summary > label,
-#space-step .rp-guided-room-review .rp-room-name-control,
-#space-step .rp-guided-room-review #room-area {
-  grid-column: auto;
-}
-
-#space-step .rp-guided-room-review .rp-room-name-control {
-  width: 100%;
 }
 
 #space-step .rp-space-controls .rp-door-review {
@@ -14177,17 +13704,8 @@ body.rp-workflow-page #space-step {
   min-height: 17px;
 }
 
-@media (min-width: 861px) {
-  #space-step .rp-space-review-workspace > .rp-space-controls {
-    padding: 14px;
-  }
-
-  #space-step .rp-space-controls > .rp-segmented {
+@media (min-width: 861px) {  #space-step .rp-space-controls > .rp-segmented {
     margin-bottom: 14px;
-  }
-
-  #space-step .rp-guided-room-review {
-    gap: 11px;
   }
 
   #space-step .rp-room-review-heading h2 {
@@ -14198,31 +13716,13 @@ body.rp-workflow-page #space-step {
     line-height: 1.45;
   }
 
-  #space-step .rp-current-room-card {
-    gap: 10px;
-    padding: 14px;
-  }
-
   #space-step .rp-room-name-control input,
   #space-step .rp-room-name-control button {
     height: 42px;
     min-height: 42px;
   }
 
-  #space-step .rp-current-room-metrics {
-    padding: 10px 0;
-  }
-
-  #space-step .rp-current-room-actions button {
-    min-height: 44px;
-  }
-
-  #space-step .rp-room-review-queue .rp-room-select,
-  #space-step .rp-room-review-queue .rp-room-delete {
-    min-height: 50px;
-  }
 }
-
 
 /* ── Step 1–2 版面（同上 13856-14320） ── */
 /* Step 1–2 visual refresh: extend the warm, editorial homepage language. */
@@ -14690,7 +14190,6 @@ body.rp-workflow-page #space-step {
   }
 }
 
-
 /* ── Step 3 單任務校正流程（同上 14321-14762） ── */
 /* Step 3: one focused calibration task at a time. */
 body[data-workflow-step="recognition"] .rp-guidance-band {
@@ -15134,7 +14633,6 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
   }
 }
 
-
 /* ── 辨識複核清單（同上 15867-15923） ── */
 /* ── 辨識複核：系統標記需人工確認的房間清單（第 4 步房間面板） ────────── */
 #recognition-review-summary {
@@ -15149,12 +14647,6 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
   margin: 0 0 4px;
   font-size: 14px;
   color: #8a5c10;
-}
-#recognition-review-summary .rp-review-summary-hint {
-  margin: 0 0 10px;
-  font-size: 12.5px;
-  color: rgba(90, 70, 30, 0.85);
-  line-height: 1.6;
 }
 #recognition-review-list {
   list-style: none;

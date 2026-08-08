@@ -1,8 +1,9 @@
 // 房屋 3D 場景外殼 — 純函式幾何層。
 //
 // 依 docs/3D房屋場景建置流程.md 實作:幾何運算全在本模組(可用 node 單測,
-// 見 tests/test_scene_shell_geometry.py),scene_viewer.js 只做「描述 → mesh」
-// 與材質。所有數值常數集中在 DEFAULT_SCENE_CONFIG,禁止散落硬編碼。
+// 見 tests/test_scene_shell_geometry.py)。scene_viewer.js 已改回內聯外殼
+// 管線(feat/scene3d-modeling-swap),本模組目前僅由 node 測試消費,保留
+// 為文件化的參考實作。所有數值常數集中在 DEFAULT_SCENE_CONFIG。
 //
 // 座標約定(對映文件 §1):本 repo 前端已是公分制、{x, z} 世界對齊座標
 // (z 已於後端邊界翻轉一次)。文件的平面 (x,y) → 世界 [x,0,-y] 在此等價於
