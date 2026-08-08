@@ -341,9 +341,6 @@ export function createSceneViewer(
     : null;
   const outputPass = usePostProcessing ? new OutputPass() : null;
   const composer = usePostProcessing ? new EffectComposer(renderer) : null;
-  const performanceElement = usePostProcessing
-    ? container.parentElement?.querySelector("#render-performance")
-    : null;
   let lastMeasuredFps = 0;
   let performanceWindowStart = globalThis.performance.now();
   let performanceFrames = 0;
@@ -5970,19 +5967,18 @@ export function createSceneViewer(
     updateWallVisibility();
     if (composer) composer.render();
     else renderer.render(scene, camera);
-    if (performanceElement) {
+    // FPS 只量測不上畫面（2026-08-08 Ben：技術數字不給末端使用者看）；
+    // 量測仍供診斷 API 與低於 30 FPS 的自動降解析度使用。
+    if (usePostProcessing) {
       performanceFrames += 1;
       const elapsed = time - performanceWindowStart;
       if (elapsed >= 1000) {
         lastMeasuredFps = Math.round((performanceFrames * 1000) / elapsed);
-        performanceElement.textContent = `${lastMeasuredFps} FPS · HDR／GTAO／ACES`;
-        const occlusionLabel = gtaoPass?.enabled ? "GTAO" : "接觸陰影";
-        performanceElement.textContent = `${lastMeasuredFps} FPS · HDR／${occlusionLabel}／ACES`;
         if (lastMeasuredFps < 30 && !reducedPixelRatio) {
           reducedPixelRatio = true;
           renderer.setPixelRatio(1);
           onResize();
-          performanceElement.textContent = `${lastMeasuredFps} FPS · 已自動降低解析度維持互動`;
+          console.info(`[roompilot] ${lastMeasuredFps} FPS，已自動降低解析度維持互動`);
         }
         performanceFrames = 0;
         performanceWindowStart = time;

@@ -2757,7 +2757,10 @@ def test_realistic_viewer_uses_a_real_pbr_environment_and_gtao_pipeline() -> Non
     assert "OutputPass" in viewer
     assert "composer.render" in viewer
     assert "ACESFilmicToneMapping" in viewer
-    assert "render-performance" in viewer
+    # FPS/HDR 讀數不再上畫面（2026-08-08），但低 FPS 自動降解析度必須留著。
+    assert "render-performance" not in viewer
+    assert "reducedPixelRatio" in viewer
+    assert "renderer.setPixelRatio(1)" in viewer
     assert "wall_color_hex" in controller
     assert "floor_color_hex" in controller
 
