@@ -31,8 +31,8 @@ def _generate(payload_extra: dict) -> dict:
     return response.json()
 
 
-def test_removed_furniture_is_not_re_added_by_auto_fill() -> None:
-    """「移除此家具」後，下一次重算的自動補件不得把同類型再補回來。
+def test_removed_auto_furniture_type_is_not_re_added() -> None:
+    """移除「自動補件」（實例 id 即型錄 id）後，同類型不得再被自動補回。
 
     2026-08-08 Ben 實測：移除的櫃體在下一次 /api/scene/generate 被
     choose_furniture_items 以同款或同類型補回，使用者永遠移除不掉。
@@ -40,15 +40,41 @@ def test_removed_furniture_is_not_re_added_by_auto_fill() -> None:
     first = _generate({})
     objects = first["scene_objects"]
     assert objects, "auto-fill 應該會為客廳挑出家具"
-    target_type = objects[0]["normalized_type"]
+    target = objects[0]
+    target_id = str(target.get("catalog_furniture_id") or target["furniture_id"])
 
     second = _generate({
         "removed_furniture": [
-            {"id": "", "catalog_furniture_id": None, "normalized_type": target_type},
+            {
+                "id": target_id,
+                "catalog_furniture_id": target_id,
+                "normalized_type": target["normalized_type"],
+            },
         ],
     })
     remaining_types = {item["normalized_type"] for item in second["scene_objects"]}
-    assert target_type not in remaining_types
+    assert target["normalized_type"] not in remaining_types
+
+
+def test_removed_room_instance_blocks_only_that_item_not_the_type() -> None:
+    """移除房間實例（如 room-1-bed-1）只擋那一件；類型仍可自動補。
+
+    否則使用者刪掉一張有問題的床，臥室從此永遠不會再有床。
+    """
+    first = _generate({})
+    target = first["scene_objects"][0]
+
+    second = _generate({
+        "removed_furniture": [
+            {
+                "id": f"room-1-{target['normalized_type']}-1",
+                "catalog_furniture_id": None,
+                "normalized_type": target["normalized_type"],
+            },
+        ],
+    })
+    remaining_types = {item["normalized_type"] for item in second["scene_objects"]}
+    assert target["normalized_type"] in remaining_types
 
 
 def test_removed_catalog_id_is_excluded_but_type_can_be_rechosen_exactly() -> None:

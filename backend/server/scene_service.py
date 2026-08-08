@@ -2888,9 +2888,11 @@ def build_scene_payload(
         effective_depth_cm,
         plan.get("preferred_colors", []) + questionnaire.get("custom_colors", []),
     )
-    # 使用者移除過的家具不得由自動補件復原：同 catalog id 一律排除，
-    # 同 normalized_type 也不再自動補（使用者親手再選同型時走 exact 清單，
-    # 不受此過濾影響）。
+    # 使用者移除過的家具不得由自動補件復原：同 catalog id 一律排除。
+    # 類型層排除只適用「移除自動補件」的紀錄（特徵：實例 id 就是型錄 id）——
+    # 否則自動補件換一款同型再塞回來，使用者永遠移除不掉。移除房間實例
+    # （如 room-1-bed-1）只擋那一件，不得把整個類型（床）永久擋在自動補件
+    # 之外。使用者親手再選同型走 exact 清單，不受此過濾影響。
     removed_records = questionnaire.get("removed_furniture") or []
     removed_ids = {
         str(value)
@@ -2903,6 +2905,8 @@ def build_scene_payload(
         str(record.get("normalized_type"))
         for record in removed_records
         if isinstance(record, dict) and record.get("normalized_type")
+        and record.get("id") and record.get("catalog_furniture_id")
+        and str(record.get("id")) == str(record.get("catalog_furniture_id"))
     }
     if removed_ids or removed_types:
         selected_items = [

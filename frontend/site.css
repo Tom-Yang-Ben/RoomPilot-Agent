@@ -9197,12 +9197,14 @@ body.rp-workflow-page .danger-action {
 .rp-configuration-furniture {
   position: absolute;
   display: grid;
-  min-width: 20px;
-  min-height: 20px;
   place-items: center;
-  border: 2px solid #286b59;
-  border-radius: 4px;
-  background: rgba(222, 240, 234, 0.88);
+  /* 框框依家具真實尺寸等比縮放（furnitureFootprintStyle），不設最小寬高；
+     編號徽章會溢出小框，兼作點擊目標。 */
+  overflow: visible;
+  padding: 0;
+  border: 1.5px solid #286b59;
+  border-radius: 3px;
+  background: rgba(222, 240, 234, 0.72);
   color: #174b3b;
   cursor: pointer;
   z-index: 1;
@@ -9210,14 +9212,15 @@ body.rp-workflow-page .danger-action {
 
 .rp-configuration-furniture b {
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
+  flex: none;
   place-items: center;
-  border: 2px solid #fff;
+  border: 1.5px solid #fff;
   border-radius: 50%;
   background: #185b49;
   color: #fff;
-  font-size: 12px;
+  font-size: 10px;
   box-shadow: 0 1px 4px rgba(20, 49, 41, 0.38);
 }
 

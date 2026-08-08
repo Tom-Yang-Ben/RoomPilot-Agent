@@ -354,9 +354,11 @@ export function furnitureCollisionFootprintCm(item) {
 
 export function furnitureFootprintStyle(item, pixelsPerCm) {
   const scale = Math.max(Number(pixelsPerCm) || 0, 0.05);
+  // 框框大小照家具實際尺寸等比呈現——床頭櫃跟沙發不可以一樣大。下限只留
+  // 可辨識的 8px；點擊目標由置中編號徽章補足，不靠放大框框。
   return {
-    width: `${Math.max(item.widthCm * scale, 28)}px`,
-    height: `${Math.max(item.depthCm * scale, 28)}px`,
+    width: `${Math.max(item.widthCm * scale, 8)}px`,
+    height: `${Math.max(item.depthCm * scale, 8)}px`,
     transform: `translate(-50%, -50%) rotate(${Number(item.rotationDeg) || 0}deg)`,
   };
 }

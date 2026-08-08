@@ -3624,3 +3624,11 @@ def test_placement_busy_overlay_announces_waiting_during_layout() -> None:
     assert source.count("beginPlacementBusy(") >= 4
     assert source.count("endPlacementBusy(") >= source.count("beginPlacementBusy(") - 1
     assert ".rp-placement-busy" in css
+
+
+def test_agent_selection_cannot_drop_essential_room_furniture() -> None:
+    """選件代理的回覆整包取代預設清單時，臥室的床與衣櫃等必備類型必須從
+    預設補回——2026-08-08 Ben 專案的臥室從頭到尾長不出衣櫃即此因。"""
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    assert "function ensureEssentialRoomSpecs" in source
+    assert "ensureEssentialRoomSpecs(agentSpecs, specs)" in source

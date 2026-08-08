@@ -72,7 +72,7 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-23d4de37dcfe";
+} from "./scene_layout2d.js?v=sha256-5d00a7dcfedc";
 import {
   furniture2dItemForSceneObject,
   removeFurniture2dBySceneObject,
@@ -172,13 +172,13 @@ import {
   surfaceMaterialLabel,
   surfacePhrase,
   uniqueMaterialOptions,
-} from "./scene_questionnaire_data.js?v=sha256-a86f039407d5";
+} from "./scene_questionnaire_data.js?v=sha256-38de92c56a67";
 import {
   createQuestionnaireFlow,
-} from "./scene_questionnaire_flow.js?v=sha256-56e55e516548";
+} from "./scene_questionnaire_flow.js?v=sha256-5df97947c433";
 import {
   createFurnitureOffers,
-} from "./scene_furniture_offers.js?v=sha256-bbd722b59912";
+} from "./scene_furniture_offers.js?v=sha256-2cf7c37a0c84";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -6838,7 +6838,7 @@ async function autoLayoutFurniture() {
     console.warn("Yen furniture selection fallback", error);
   }
   for (const { room, specs, userSelectedSpecs, placementPreferences } of roomPlans) {
-    const selectedSpecs = userSelectedSpecs.length
+    const agentSpecs = userSelectedSpecs.length
       ? specs
       : selection
       ? specsAllowedByRoomFeasibility(
@@ -6846,6 +6846,13 @@ async function autoLayoutFurniture() {
         specsFromSelectionResponse(room, selection, specs),
       )
       : specs;
+    // 選件代理的回覆會整包取代預設清單；它掉了哪個必備家具（臥室的床與
+    // 衣櫃、客廳的沙發），該房就永遠長不出來——2026-08-08 Ben 專案的臥室
+    // 從頭到尾沒出現過衣櫃即此因。缺的必備類型從預設補回，塞不下由擺放
+    // 引擎實擺判定，不在這裡預先放棄。
+    const selectedSpecs = userSelectedSpecs.length
+      ? agentSpecs
+      : ensureEssentialRoomSpecs(agentSpecs, specs);
     const roomItems = [];
     selectedSpecs.forEach(([type, variant, reason, autoAdded, catalogItem], index) => {
       try {
@@ -6987,6 +6994,17 @@ async function relayoutFurnitureForScheme(sourceFurniture, schemeId) {
   // 卡死）。失敗件帶 placementFailed 標記回傳，由呼叫端以 deferFailedPlacements
   // 列入「暫不放入」，其餘照常成案。
   return placedFurniture;
+}
+
+// 必備家具保底：預設清單（recommendedFurnitureForRoom，已過尺寸預檢）裡的
+// 非陪襯類型，若被選件代理的回覆漏掉，就從預設補回一件。陪襯件（autoAdded）
+// 不補——它們本來就是錦上添花。
+function ensureEssentialRoomSpecs(agentSpecs, fallbackSpecs) {
+  const present = new Set(agentSpecs.map(([type]) => type));
+  const missing = (fallbackSpecs || []).filter(
+    ([type, , , autoAdded]) => !autoAdded && !present.has(type),
+  );
+  return missing.length ? [...agentSpecs, ...missing] : agentSpecs;
 }
 
 function specFitsRoomDimensions(spec, room) {
