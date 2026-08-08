@@ -3603,3 +3603,22 @@ def test_step_eight_palette_options_keep_multi_select_behavior_and_add_visual_sw
     assert 'class="rp-render-palette-option"' in palette
     assert 'class="rp-render-palette-swatches"' in palette
     assert "pack.palette.map(escapeHtml).join" in palette
+
+
+def test_placement_busy_overlay_announces_waiting_during_layout() -> None:
+    """agent 還在擺放時,畫面必須明確顯示「請稍候」並擋住操作;
+    擺完才一次呈現最終結果(不逐步上畫面)。"""
+    html = (STATIC_DIR / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC_DIR / "site.css").read_text(encoding="utf-8")
+
+    assert 'id="placement-busy"' in html
+    assert 'id="placement-busy-text"' in html
+    assert "AI 正在擺放家具" in html
+    assert "function beginPlacementBusy" in source
+    assert "function endPlacementBusy" in source
+    # 長時操作入口都要有等待提示:問卷確認、逐房擇優、2D 生成 3D、
+    # 進第 6/7/8 步、重新配置
+    assert source.count("beginPlacementBusy(") >= 4
+    assert source.count("endPlacementBusy(") >= source.count("beginPlacementBusy(") - 1
+    assert ".rp-placement-busy" in css

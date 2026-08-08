@@ -1,10 +1,10 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-a9d8d410420c" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-3161c54ea5cb" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -1246,6 +1246,14 @@
     <div id="glb-thumbnail-viewer" class="rp-offscreen-thumbnail-viewer" aria-hidden="true"></div>
     <p id="glb-thumbnail-status" hidden aria-hidden="true"></p>
 
+    <div id="placement-busy" class="rp-placement-busy" hidden role="status" aria-live="polite">
+      <div class="rp-placement-busy-card">
+        <span class="rp-placement-busy-spinner" aria-hidden="true"></span>
+        <p id="placement-busy-text">AI 正在擺放家具，請稍候…</p>
+        <small>擺放與驗證完成後會一次顯示最終結果。</small>
+      </div>
+    </div>
+
     <script type="importmap">
       {
         "imports": {
@@ -1255,6 +1263,6 @@
       }
     </script>
   <script type="module" src="/static/engineering_link.js?v=sha256-12e3e7b74826"></script>
-  <script type="module" src="/static/scene_v2.js?v=sha256-d166a041b00d"></script>
+  <script type="module" src="/static/scene_v2.js?v=sha256-cd48678b12df"></script>
   </body>
 </html>

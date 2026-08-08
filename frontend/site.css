@@ -17711,3 +17711,47 @@ body[data-page="projects"] {
     overflow-wrap: anywhere;
   }
 }
+
+/* 擺放中的全畫面等待提示:agent 還在算,擋操作並明說要等 */
+.rp-placement-busy {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  display: grid;
+  place-items: center;
+  background: rgba(24, 28, 26, 0.46);
+  backdrop-filter: blur(2px);
+}
+
+.rp-placement-busy-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 34px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(15, 23, 20, 0.28);
+  max-width: min(420px, 86vw);
+  text-align: center;
+}
+
+.rp-placement-busy-card p {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2a24;
+}
+
+.rp-placement-busy-card small { color: #5f6c64; }
+
+.rp-placement-busy-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 4px solid #dbe4de;
+  border-top-color: #2f6f4f;
+  animation: rp-placement-busy-spin 0.9s linear infinite;
+}
+
+@keyframes rp-placement-busy-spin {
+  to { transform: rotate(360deg); }
+}

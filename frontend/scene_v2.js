@@ -477,6 +477,8 @@ const element = {
   requirementsError: $("#requirements-error"),
   randomizeRequirements: $("#randomize-requirements"),
   confirmRequirements: $("#confirm-requirements"),
+  placementBusy: $("#placement-busy"),
+  placementBusyText: $("#placement-busy-text"),
   questionnaireStageNav: $("#questionnaire-stage-nav"),
   roomQuestionnaireSectionNav: $("#room-questionnaire-section-nav"),
   visualSpaceNav: $("#visual-space-nav"),
@@ -1349,6 +1351,22 @@ function markRealisticSceneEdited() {
     setStatus("即時寫實方案已修改；請重新保存並鎖定渲染視角。");
   }
   scheduleSave("realistic_3d");
+}
+
+// 全畫面等待遮罩用引用計數：巢狀流程（問卷確認→自動擺位→逐房擇優→生 3D）
+// 各自 begin/end，只有最外層結束時才收掉，避免中途閃爍。
+let placementBusyDepth = 0;
+
+function beginPlacementBusy(text) {
+  placementBusyDepth += 1;
+  if (!element.placementBusy) return;
+  if (text && element.placementBusyText) element.placementBusyText.textContent = text;
+  element.placementBusy.hidden = false;
+}
+
+function endPlacementBusy() {
+  placementBusyDepth = Math.max(0, placementBusyDepth - 1);
+  if (placementBusyDepth === 0 && element.placementBusy) element.placementBusy.hidden = true;
 }
 
 function activePanelName(step) {
@@ -6428,6 +6446,7 @@ async function confirmRequirements() {
   const originalLabel = element.confirmRequirements.textContent;
   element.confirmRequirements.disabled = true;
   element.confirmRequirements.textContent = "正在建立 2D 與 3D 配置…";
+  beginPlacementBusy("AI 正在擺放家具並建立方案 A、B，請稍候…");
   try {
     setStatus("正在檢查空間規則並建立方案 A、B…");
     ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });
@@ -6476,6 +6495,7 @@ async function confirmRequirements() {
     element.firstMeetingError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
   } finally {
+    endPlacementBusy();
     confirmRequirementsInFlight = false;
     element.confirmRequirements.disabled = false;
     element.confirmRequirements.textContent = originalLabel;
@@ -7893,6 +7913,7 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
   );
   let placedObjects = [];
   setStatus(`正在為「${room.label}」擇優配置，會保留優先家具並記錄未放入項目…`);
+  beginPlacementBusy(`正在為「${room.label}」擇優配置家具，請稍候…`);
   try {
     while (retained.length) {
       const layout = await api("/api/scene/layout", {
@@ -7981,6 +8002,8 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
     );
   } catch (error) {
     setStatus(errorMessage(error), "error");
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -8649,6 +8672,7 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       activeScheme().staleReason || "方案 B 尚未產生合法家具配置。";
     return;
   }
+  beginPlacementBusy("正在驗證擺位並載入 3D 家具，請稍候…");
   try {
     if (state.furniture2d.length) {
       const validation = await api("/api/scene/layout", {
@@ -8865,6 +8889,8 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
   } catch (error) {
     element.layoutError.textContent = errorMessage(error);
     setStatus(errorMessage(error), "error");
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -9881,32 +9907,37 @@ async function confirmWhiteModel() {
   renderStyleControls();
   state.workflow.goTo("realistic_3d");
   showStep("realistic_3d");
-  await realisticViewer.loadScene(state.sceneData);
-  realisticViewer.setViewMode("orbit");
-  await applyStylePackToScene(preferredPack);
-  const finishOptions = STYLE_MATERIAL_OPTIONS[preferredPack.styleId] || {};
-  const wallFinish = finishOptions.wall?.find(
-    (option) => option.id === state.questionnaireFinishes.wallMaterial,
-  );
-  const floorFinish = finishOptions.floor?.find(
-    (option) => option.id === state.questionnaireFinishes.floorMaterial,
-  );
-  $("#wall-color").value =
-    state.questionnaireFinishes.wallColor || wallFinish?.color || preferredPack.wall.color;
-  $("#wall-material").value =
-    state.questionnaireFinishes.wallMaterial || wallFinish?.id || preferredPack.wall.surfaceOption;
-  $("#floor-material").value =
-    state.questionnaireFinishes.floorMaterial || floorFinish?.id || preferredPack.floor.surfaceOption;
-  await applySurfaceOverrides();
-  element.ceilingStyle.value =
-    state.questionnaireFinishes.ceilingStyle || element.ceilingStyle.value;
-  element.lightStyle.value =
-    state.questionnaireFinishes.lightStyle || element.lightStyle.value;
-  state.sceneData.design_choices.ceiling_material =
-    state.questionnaireFinishes.ceilingMaterial;
-  state.sceneData.design_choices.ceiling_color_hex =
-    state.questionnaireFinishes.ceilingColor;
-  await evaluateCeilingConflicts();
+  beginPlacementBusy("正在套用色卡與材質，建立寫實 3D 方案…");
+  try {
+    await realisticViewer.loadScene(state.sceneData);
+    realisticViewer.setViewMode("orbit");
+    await applyStylePackToScene(preferredPack);
+    const finishOptions = STYLE_MATERIAL_OPTIONS[preferredPack.styleId] || {};
+    const wallFinish = finishOptions.wall?.find(
+      (option) => option.id === state.questionnaireFinishes.wallMaterial,
+    );
+    const floorFinish = finishOptions.floor?.find(
+      (option) => option.id === state.questionnaireFinishes.floorMaterial,
+    );
+    $("#wall-color").value =
+      state.questionnaireFinishes.wallColor || wallFinish?.color || preferredPack.wall.color;
+    $("#wall-material").value =
+      state.questionnaireFinishes.wallMaterial || wallFinish?.id || preferredPack.wall.surfaceOption;
+    $("#floor-material").value =
+      state.questionnaireFinishes.floorMaterial || floorFinish?.id || preferredPack.floor.surfaceOption;
+    await applySurfaceOverrides();
+    element.ceilingStyle.value =
+      state.questionnaireFinishes.ceilingStyle || element.ceilingStyle.value;
+    element.lightStyle.value =
+      state.questionnaireFinishes.lightStyle || element.lightStyle.value;
+    state.sceneData.design_choices.ceiling_material =
+      state.questionnaireFinishes.ceilingMaterial;
+    state.sceneData.design_choices.ceiling_color_hex =
+      state.questionnaireFinishes.ceilingColor;
+    await evaluateCeilingConflicts();
+  } finally {
+    endPlacementBusy();
+  }
   setStatus(expectedFurnitureCount
     ? "家具可見性已通過。現在可即時切換問卷主風格的 3 張色卡。"
     : "純結構配置已確認。現在可即時切換問卷主風格的 3 張色卡。");
@@ -10617,7 +10648,12 @@ async function prepareProposalReview() {
   if (!state.sceneData) return;
   renderProposalSummary();
   renderProposalPaletteSelection();
-  await proposalViewer.loadScene(state.sceneData);
+  beginPlacementBusy("正在載入方案鎖定與視角畫面，請稍候…");
+  try {
+    await proposalViewer.loadScene(state.sceneData);
+  } finally {
+    endPlacementBusy();
+  }
   const saved = state.proposalReview.masterView?.camera;
   if (saved) proposalViewer.setCameraState(saved);
   else {
@@ -11301,7 +11337,12 @@ async function prepareAiRender() {
   setAiRenderWorkbenchStage("palette");
   syncAiRenderWorkbenchStatus();
   setRoomRenderSectionLocked(!state.proposalReview.confirmedStyleCardId);
-  await aiRenderViewer.loadScene(state.sceneData);
+  beginPlacementBusy("正在載入 AI 渲染工作台的 3D 場景，請稍候…");
+  try {
+    await aiRenderViewer.loadScene(state.sceneData);
+  } finally {
+    endPlacementBusy();
+  }
   aiRenderViewer.setCameraState(state.proposalReview.masterView.camera);
   aiRenderViewer.lockRenderCamera(true);
   element.aiRenderProviderState.textContent = "正在檢查遠端服務…";
@@ -12281,6 +12322,7 @@ function bindEvents() {
   });
   $("#auto-layout-furniture").addEventListener("click", async () => {
     element.layoutError.textContent = "";
+    beginPlacementBusy("家具引擎正在重新配置合法位置，請稍候…");
     try {
       setStatus("正在由家具引擎重新配置合法位置…");
       if (activeSchemeId() === "B" && state.designSchemes.schemes.A.furniture.length) {
@@ -12307,6 +12349,8 @@ function bindEvents() {
     } catch (error) {
       element.layoutError.textContent = errorMessage(error);
       setStatus(errorMessage(error), "error");
+    } finally {
+      endPlacementBusy();
     }
   });
   element.furnitureSearch.addEventListener("input", () => renderFurnitureLibrary(element.furnitureSearch.value));
