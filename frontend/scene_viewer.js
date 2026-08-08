@@ -3518,7 +3518,8 @@ export function createSceneViewer(
       hangingLightGroup.add(light);
       return;
     }
-    positions.forEach((x, index) => {
+    // 吊燈語意是「主燈」，固定一盞置中；依房寬展開的多點佈局只屬於軌道燈與崁燈。
+    [0].forEach((x, index) => {
       const pendant = new THREE.Group();
       pendant.position.set(x, room.wallHeight - 8, 0);
 
@@ -3549,7 +3550,7 @@ export function createSceneViewer(
       bulb.position.y = -82;
       pendant.add(bulb);
 
-      const pointLight = new THREE.PointLight(0xffd6a0, 1.15, 480, 2);
+      const pointLight = new THREE.PointLight(0xffd6a0, 1.8, 520, 2);
       pointLight.position.y = -86;
       pointLight.castShadow = true;
       pendant.add(pointLight);
