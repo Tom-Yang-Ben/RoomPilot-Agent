@@ -10953,6 +10953,9 @@ function lockSelectedProposalRoomView() {
     candidate_index: state.selectedProposalRoomCandidateIndex,
     scene_version: state.proposalReview.masterView?.scene_version,
     saved_at: new Date().toISOString(),
+    // 逐房生圖（room_final）的參考底圖。第 7 步鎖定就要抓：否則使用者在
+    // 第 8 步直接送出時，後端會退用主視角截圖，所有房間共用同一張底圖。
+    reference_png_data_url: proposalViewer.capturePng(),
   };
   scheduleSave("proposal_review");
   const nextRoom = state.rooms.find((item) => !state.proposalReview.roomViews[item.id]);
@@ -11051,6 +11054,8 @@ function saveSelectedRoomView() {
     room_id: room.id,
     room_label: room.label,
     camera,
+    // 保留第 7 步選過的候選索引，回頭編輯時高亮不歸零。
+    candidate_index: state.proposalReview.roomViews[room.id]?.candidate_index ?? null,
     scene_version: state.proposalReview.masterView?.scene_version,
     saved_at: new Date().toISOString(),
     // 內建生圖供應者需要逐房參考截圖（room_final 模式逐房出圖的底圖）；
