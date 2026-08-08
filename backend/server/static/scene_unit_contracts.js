@@ -174,6 +174,142 @@ function polygonPoints(polygons = []) {
   ]);
 }
 
+const WALL_ANCHORED_FURNITURE_TYPES = new Set([
+  "appliance-cabinet",
+  "bathroom-vanity",
+  "bed",
+  "bed-frame",
+  "bookcase",
+  "cabinet",
+  "desk",
+  "mirror-cabinet",
+  "refrigerator",
+  "sideboard",
+  "sofa",
+  "sofa-bed",
+  "storage-cabinet",
+  "tv-bench",
+  "wardrobe",
+  "washer",
+]);
+
+function axisAlignedRegionBounds(region = {}) {
+  if ((region.holes || []).length) return null;
+  const points = (region.exterior || [])
+    .map((point) => [Number(point?.[0] ?? point?.x), Number(point?.[1] ?? point?.z ?? point?.y)])
+    .filter(([x, z]) => Number.isFinite(x) && Number.isFinite(z));
+  const xs = [...new Set(points.map(([x]) => x))];
+  const zs = [...new Set(points.map(([, z]) => z))];
+  const corners = new Set(points.map(([x, z]) => `${x}:${z}`));
+  if (xs.length !== 2 || zs.length !== 2 || corners.size !== 4) return null;
+  return {
+    minX: Math.min(...xs),
+    maxX: Math.max(...xs),
+    minZ: Math.min(...zs),
+    maxZ: Math.max(...zs),
+  };
+}
+
+function rotatedFootprintCm(item = {}) {
+  const width = Number(item.size_cm?.width);
+  const depth = Number(item.size_cm?.depth);
+  if (!(width > 0) || !(depth > 0)) return null;
+  const radians = Math.abs((Number(item.rotation_y_deg) || 0) % 180) * Math.PI / 180;
+  const cos = Math.abs(Math.cos(radians));
+  const sin = Math.abs(Math.sin(radians));
+  return {
+    width: width * cos + depth * sin,
+    depth: width * sin + depth * cos,
+  };
+}
+
+function legacyWallGapPosition(item, bounds) {
+  const footprint = rotatedFootprintCm(item);
+  const x = Number(item.position_cm?.x);
+  const z = Number(item.position_cm?.z);
+  if (!footprint || !Number.isFinite(x) || !Number.isFinite(z)) return null;
+  const halfWidth = footprint.width / 2;
+  const halfDepth = footprint.depth / 2;
+  const gaps = {
+    left: x - halfWidth - bounds.minX,
+    right: bounds.maxX - x - halfWidth,
+    top: z - halfDepth - bounds.minZ,
+    bottom: bounds.maxZ - z - halfDepth,
+  };
+  if (Object.values(gaps).some((gap) => gap < -0.5)) return null;
+
+  const isLegacyGap = (gap) => gap >= 7.5 && gap <= 8.5;
+  const next = { x, z };
+  let changed = false;
+  if (isLegacyGap(gaps.left)) {
+    next.x = bounds.minX + halfWidth;
+    changed = true;
+  } else if (isLegacyGap(gaps.right)) {
+    next.x = bounds.maxX - halfWidth;
+    changed = true;
+  }
+  if (isLegacyGap(gaps.top)) {
+    next.z = bounds.minZ + halfDepth;
+    changed = true;
+  } else if (isLegacyGap(gaps.bottom)) {
+    next.z = bounds.maxZ - halfDepth;
+    changed = true;
+  }
+  if (!changed) return null;
+  return {
+    position: {
+      x: Math.round(next.x * 1000) / 1000,
+      z: Math.round(next.z * 1000) / 1000,
+    },
+    footprint: {
+      width: Math.round(footprint.width * 1000) / 1000,
+      depth: Math.round(footprint.depth * 1000) / 1000,
+    },
+  };
+}
+
+export function repairLegacyWallFurnitureGaps(sceneData, furniture2d = []) {
+  if (!sceneData || typeof sceneData !== "object") {
+    return { sceneData: null, furniture2d: [...(furniture2d || [])], repairedIds: [] };
+  }
+  const regions = new Map(
+    (sceneData.floorplan?.room_regions || [])
+      .map((region) => [String(region.room_id || region.id || ""), axisAlignedRegionBounds(region)])
+      .filter(([roomId, bounds]) => roomId && bounds),
+  );
+  const repairedPositions = new Map();
+  const repairedSceneObjects = (sceneData.scene_objects || []).map((item) => {
+    const furnitureId = String(item.furniture_id || "");
+    const roomBounds = regions.get(String(item.placement_room_id || ""));
+    if (
+      !furnitureId
+      || !roomBounds
+      || item.placement_engine !== "furniture_engine"
+      || item.position_locked !== true
+      || !WALL_ANCHORED_FURNITURE_TYPES.has(String(item.normalized_type || ""))
+    ) {
+      return item;
+    }
+    const repaired = legacyWallGapPosition(item, roomBounds);
+    if (!repaired) return item;
+    repairedPositions.set(furnitureId, repaired.position);
+    return {
+      ...item,
+      position_cm: { ...(item.position_cm || {}), ...repaired.position },
+      footprint_cm: repaired.footprint,
+    };
+  });
+  const repairedFurniture2d = (furniture2d || []).map((item) => {
+    const position = repairedPositions.get(String(item.id || ""));
+    return position ? { ...item, xCm: position.x, yCm: position.z } : item;
+  });
+  return {
+    sceneData: { ...sceneData, scene_objects: repairedSceneObjects },
+    furniture2d: repairedFurniture2d,
+    repairedIds: [...repairedPositions.keys()],
+  };
+}
+
 export function normalizeSavedSceneData(saved) {
   if (!saved || typeof saved !== "object") return null;
   const floorplan = saved.floorplan || {};

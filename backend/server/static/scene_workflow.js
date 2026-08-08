@@ -24,7 +24,7 @@ export const WORKFLOW_PANEL_BY_STEP = Object.freeze({
   requirements: "requirements",
   layout_2d: "layout-2d",
   white_model_3d: "white-model-3d",
-  realistic_3d: "realistic-3d",
+  realistic_3d: "white-model-3d",
   proposal_review: "proposal-review",
   ai_render: "ai-render",
 });
