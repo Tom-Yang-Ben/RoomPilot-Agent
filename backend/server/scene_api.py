@@ -397,6 +397,7 @@ def build_scene_router(
             "required_furniture": payload.get("required_furniture", []),
             "selected_furniture": payload.get("selected_furniture", []),
             "selected_furniture_exact": payload.get("selected_furniture_exact") is True,
+            "removed_furniture": payload.get("removed_furniture", []),
             "custom_furniture": payload.get("custom_furniture", []),
             "preferred_colors": payload.get("preferred_colors") or brief_style.get("colors", []),
             "custom_colors": payload.get("custom_colors", []),

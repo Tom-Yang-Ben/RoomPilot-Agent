@@ -8811,6 +8811,14 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
         required_furniture: [...new Set(placeableFurniture.map((item) => item.type))],
         selected_furniture: sceneFurniture,
         selected_furniture_exact: !allowPendingFurniture,
+        // 使用者移除過的家具：後端自動補件不得把同款或同類型再補回來，
+        // 否則「移除此家具」在下一次重算就被默默復原。
+        removed_furniture: (state.furnitureLedger?.removed || []).map((item) => ({
+          id: String(item.id || ""),
+          catalog_furniture_id: item.catalogFurnitureId
+            || item.catalog_furniture_id || null,
+          normalized_type: item.type || item.normalized_type || null,
+        })),
       }),
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);

@@ -2888,6 +2888,29 @@ def build_scene_payload(
         effective_depth_cm,
         plan.get("preferred_colors", []) + questionnaire.get("custom_colors", []),
     )
+    # 使用者移除過的家具不得由自動補件復原：同 catalog id 一律排除，
+    # 同 normalized_type 也不再自動補（使用者親手再選同型時走 exact 清單，
+    # 不受此過濾影響）。
+    removed_records = questionnaire.get("removed_furniture") or []
+    removed_ids = {
+        str(value)
+        for record in removed_records
+        if isinstance(record, dict)
+        for value in (record.get("catalog_furniture_id"), record.get("id"))
+        if value
+    }
+    removed_types = {
+        str(record.get("normalized_type"))
+        for record in removed_records
+        if isinstance(record, dict) and record.get("normalized_type")
+    }
+    if removed_ids or removed_types:
+        selected_items = [
+            item
+            for item in selected_items
+            if str(item.get("furniture_id")) not in removed_ids
+            and str(item.get("normalized_type")) not in removed_types
+        ]
     exact_selected_items = selected_furniture_items_from_questionnaire(
         questionnaire,
         site_payload["furniture"],
