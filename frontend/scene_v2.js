@@ -77,7 +77,7 @@ import {
   furniture2dItemForSceneObject,
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-579f9d6450b9";
+} from "./scene_configuration_sync.js?v=sha256-abf80e18b1fe";
 import {
   rankCatalogFurniture,
 } from "./scene_furniture_retrieval.js?v=sha256-6772c0c167b3";
@@ -966,12 +966,23 @@ function syncSceneSelectionTo2dFurniture(sceneObject) {
 }
 
 function syncMovedSceneFurnitureTo2d(sceneObject) {
-  if (!furniture2dItemForSceneObject(state.furniture2d, sceneObject)) return false;
+  // 3D 有、2D 沒有的家具（後端自動補件或舊存檔）以前在這裡被靜默放棄，
+  // 拖曳後 2D 永遠停在舊狀態。改為一律 upsert：找不到對應就補成新的
+  // 2D 實例，兩邊從此收斂。
+  if (!furniture2dItemForSceneObject(state.furniture2d, sceneObject)) {
+    console.warn("[roompilot] 3D 家具沒有 2D 對應，已補建 2D 實例：", sceneObjectDebugLabel(sceneObject));
+  }
   state.furniture2d = upsertFurniture2dFromSceneObject(
     state.furniture2d,
     sceneObject,
+    furniture2dDefaultsForSceneObject(sceneObject),
   );
   return true;
+}
+
+function sceneObjectDebugLabel(sceneObject) {
+  return sceneObject?.name_zh || sceneObject?.name_zh_raw
+    || sceneObject?.normalized_type || sceneObject?.furniture_id || "unknown";
 }
 
 function workflowPayload() {
@@ -6621,9 +6632,15 @@ function renderRequirementsDigest() {
 
 function planCenterCm() {
   const { bbox, scale } = planGeometry();
+  // 後端 centered_point() 用 confirmedFloorplanEditor 的 width_cm/depth_cm
+  // 置中；2D 這側必須用同一份數字，否則兩邊所有家具座標差一個固定平移
+  // （confirmed 尺寸與辨識 bbox 推得的尺寸不保證相等）。fallback 的
+  // max(120, …) 對應 confirmedFloorplanEditor 的 max(240, …) 下限。
+  const confirmedWidth = Number(state.confirmedFloorplan?.floorplan?.width_cm);
+  const confirmedDepth = Number(state.confirmedFloorplan?.floorplan?.depth_cm);
   return {
-    x: (bbox[2] - bbox[0]) * scale / 2,
-    y: (bbox[3] - bbox[1]) * scale / 2,
+    x: confirmedWidth > 0 ? confirmedWidth / 2 : Math.max(120, (bbox[2] - bbox[0]) * scale / 2),
+    y: confirmedDepth > 0 ? confirmedDepth / 2 : Math.max(120, (bbox[3] - bbox[1]) * scale / 2),
   };
 }
 
@@ -7425,13 +7442,17 @@ function syncFinalValidationToConfiguration(validatedObjects = []) {
       size_cm: { ...(item.size_cm || {}), ...(validated.size_cm || {}) },
     };
   });
-  state.sceneData.scene_objects.forEach((item) => {
-    state.furniture2d = upsertFurniture2dFromSceneObject(
-      state.furniture2d,
-      item,
-      furniture2dDefaultsForSceneObject(item),
-    );
-  });
+  {
+    const claimed2dIds = new Set();
+    state.sceneData.scene_objects.forEach((item) => {
+      state.furniture2d = upsertFurniture2dFromSceneObject(
+        state.furniture2d,
+        item,
+        furniture2dDefaultsForSceneObject(item),
+        claimed2dIds,
+      );
+    });
+  }
   syncFurnitureInventoryAcrossSchemes();
   renderLayoutRoomFilter();
   renderLayoutFurniture();
@@ -7738,6 +7759,7 @@ async function reflowSingleConfigurationFurniture(furnitureId) {
     state.furniture2d = upsertFurniture2dFromSceneObject(
       state.furniture2d,
       sceneObject,
+      furniture2dDefaultsForSceneObject(sceneObject),
     );
     state.selectedFurniture2dId = item.id;
     state.selectedSceneIndex = sceneIndex;
@@ -8831,12 +8853,20 @@ async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
       style_id: "white_model",
       palette_hex: ["#f4f1ec", "#e9e6e1", "#d8d3cc", "#bcb4aa"],
     };
-    state.sceneData.scene_objects.forEach((sceneObject) => {
-      state.furniture2d = upsertFurniture2dFromSceneObject(
-        state.furniture2d,
-        sceneObject,
-      );
-    });
+    {
+      // 後端會在 allowPendingFurniture 下自動補型錄家具進 scene_objects；
+      // 這些新實例必須帶 defaults（icon 等）落成新的 2D 家具，且不得經
+      // 模糊比對搶走使用者既有 2D 家具的位置。
+      const claimed2dIds = new Set();
+      state.sceneData.scene_objects.forEach((sceneObject) => {
+        state.furniture2d = upsertFurniture2dFromSceneObject(
+          state.furniture2d,
+          sceneObject,
+          furniture2dDefaultsForSceneObject(sceneObject),
+          claimed2dIds,
+        );
+      });
+    }
     // 對帳：3D 只畫 scene_objects。後端修復迴圈換小/移除、或前端缺 GLB 濾掉的家具
     // 都只會在 scene_objects 消失，furniture2d 這側不會自己少一件。不補標的話
     // 2D 清單會繼續寫「合法」，使用者看到的是 2D 有、3D 沒有卻沒有任何說明。
@@ -12957,13 +12987,17 @@ async function recoverSceneDataFromSavedLayout() {
     },
     placement_resolution_report: [],
   };
-  state.sceneData.scene_objects.forEach((item) => {
-    state.furniture2d = upsertFurniture2dFromSceneObject(
-      state.furniture2d,
-      item,
-      furniture2dDefaultsForSceneObject(item),
-    );
-  });
+  {
+    const claimed2dIds = new Set();
+    state.sceneData.scene_objects.forEach((item) => {
+      state.furniture2d = upsertFurniture2dFromSceneObject(
+        state.furniture2d,
+        item,
+        furniture2dDefaultsForSceneObject(item),
+        claimed2dIds,
+      );
+    });
+  }
   persistActiveScheme(state.designSchemes, {
     furniture: state.furniture2d,
     sceneData: state.sceneData,

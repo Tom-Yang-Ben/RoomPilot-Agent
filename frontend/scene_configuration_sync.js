@@ -38,7 +38,7 @@ function furnitureDistance(item, sceneObject) {
   );
 }
 
-export function furniture2dIndexForSceneObject(furniture2d, sceneObject) {
+export function furniture2dIndexForSceneObject(furniture2d, sceneObject, claimedIds = null) {
   const items = furniture2d || [];
   const instanceIds = sceneObjectInstanceIds(sceneObject);
   const exactIndex = items.findIndex((item) => instanceIds.has(stringId(item?.id)));
@@ -47,11 +47,15 @@ export function furniture2dIndexForSceneObject(furniture2d, sceneObject) {
   // Some scene providers return the catalog product id in furniture_id and keep the
   // layout instance id separately. If the instance field is absent, narrow catalog
   // matches by room/type and finally by the nearest saved 2D position.
+  // 批次同步時，已被同批其他 scene object 認領的 2D 家具不得再被模糊比對
+  // 搶走：同型錄款放兩件時，第二件必須落到「新實例」，不能把第一件的
+  // 位置蓋掉（3D 兩件、2D 一件的主要來源）。
   const catalogId = sceneObjectCatalogId(sceneObject)
     || stringId(sceneObject?.furniture_id);
   let candidates = items
     .map((item, index) => ({ item, index }))
-    .filter(({ item }) => sameValue(item?.catalogFurnitureId, catalogId));
+    .filter(({ item }) => sameValue(item?.catalogFurnitureId, catalogId)
+      && !(claimedIds && claimedIds.has(stringId(item?.id))));
   if (!candidates.length) return -1;
 
   const roomMatches = candidates.filter(({ item }) =>
@@ -87,12 +91,14 @@ export function upsertFurniture2dFromSceneObject(
   furniture2d,
   sceneObject,
   defaults = {},
+  claimedIds = null,
 ) {
   const items = (furniture2d || []).map((item) => ({ ...item }));
-  const index = furniture2dIndexForSceneObject(items, sceneObject);
+  const index = furniture2dIndexForSceneObject(items, sceneObject, claimedIds);
   const current = index >= 0 ? items[index] : {};
   const id = stringId(current.id) || sceneObjectInstanceId(sceneObject);
   if (!id) return items;
+  claimedIds?.add(id);
   const size = sceneObject.size_cm || {};
   const position = sceneObject.position_cm || {};
   const next = {
