@@ -518,43 +518,55 @@ const twd = (value) => (
 function renderReportSummary(report) {
   const design = report.design_narrative || {};
   const furniture = report.furniture_estimate || {};
+  const scheduleDays = report.schedule.estimated_total_days;
+  const schedulePending = scheduleDays === null || scheduleDays === undefined;
+  // 值為 null 的欄位標 pending：數字必須有工率／報價來源才會出現，
+  // 這裡只負責把「還缺什麼」講得體面，不編造數字。
   const entries = [
-    ["設計風格", design.style_name_zh || "未設定"],
+    ["設計風格", design.style_name_zh || "未設定", false],
     [
       "家具採購",
       furniture.estimated_total_twd !== null
       && furniture.estimated_total_twd !== undefined
         ? twd(furniture.estimated_total_twd)
-        : `${twd(furniture.known_subtotal_twd)}（尚有 ${furniture.unpriced_count || 0} 項待詢價）`,
+        : `${twd(furniture.known_subtotal_twd)} 起`,
+      furniture.estimated_total_twd === null
+      || furniture.estimated_total_twd === undefined,
     ],
     [
       "工程施工費",
       report.estimate.estimated_total !== null
       && report.estimate.estimated_total !== undefined
         ? twd(report.estimate.estimated_total)
-        : `${twd(report.estimate.known_subtotal)}（尚有 ${report.estimate.pending_quote_count} 項待詢價）`,
+        : `${twd(report.estimate.known_subtotal)} 起`,
+      report.estimate.estimated_total === null
+      || report.estimate.estimated_total === undefined,
     ],
-    [
-      "初步工期",
-      report.schedule.estimated_total_days !== null
-      && report.schedule.estimated_total_days !== undefined
-        ? `${report.schedule.estimated_total_days} 日`
-        : `無法推算（${report.schedule.unknown_duration_count} 項缺工率）`,
-    ],
-    ["風險與待確認", `${report.risks.summary.risk_count} 項`],
+    ["初步工期", schedulePending ? "待工率確認" : `${scheduleDays} 日`, schedulePending],
+    ["風險與待確認", `${report.risks.summary.risk_count} 項`, false],
   ];
   const grid = $("#report-summary-grid");
   grid.replaceChildren();
-  entries.forEach(([label, value]) => {
+  entries.forEach(([label, value, pending]) => {
     const term = window.document.createElement("dt");
     term.textContent = label;
     const definition = window.document.createElement("dd");
     definition.textContent = value;
+    if (pending) definition.dataset.pending = "true";
     grid.append(term, definition);
   });
+  const pendingNotes = [];
+  if (furniture.unpriced_count) pendingNotes.push(`家具尚有 ${furniture.unpriced_count} 項待詢價`);
+  if (report.estimate.pending_quote_count) {
+    pendingNotes.push(`工程尚有 ${report.estimate.pending_quote_count} 項待詢價`);
+  }
+  if (schedulePending) {
+    pendingNotes.push(`工期需補 ${report.schedule.unknown_duration_count} 項工率確認後顯示天數`);
+  }
   // 兩種金額分開列示；相加會混淆「買家具」與「做工程」兩種預算。
   $("#report-summary-note").textContent =
     "家具採購與工程施工費為兩筆獨立預算，報告不予合計。"
+    + (pendingNotes.length ? `（${pendingNotes.join("；")}）` : "")
     + (design.disclaimer_zh ? ` ${design.disclaimer_zh}` : "");
   $("#report-summary").hidden = false;
 }
