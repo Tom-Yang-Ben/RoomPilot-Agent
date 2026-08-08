@@ -76,6 +76,105 @@ def test_wall_thickness_follows_confirmed_room_finished_faces() -> None:
     assert "inferredWallThicknessCm(sceneData.floorplan, 12)" in source
 
 
+def test_every_furniture_type_snaps_to_its_room_finished_surface() -> None:
+    result = run_workflow_script(
+        f"""
+        import {{ snapFurnitureToRoomSurface }} from {json.dumps(VISUAL_MODULE.as_uri())};
+        const floorplan = {{
+          room_regions: [{{
+            room_id: "room-right",
+            exterior: [[13.3, 100], [460, 100], [460, 510], [13.3, 510]],
+          }}],
+          wall_segments: [
+            {{ start: {{ x: 0, z: 100 }}, end: {{ x: 0, z: 510 }} }},
+            {{ start: {{ x: 13.3, z: 86.7 }}, end: {{ x: 460, z: 86.7 }} }},
+          ],
+        }};
+        const furniture = [
+          {{ type: "bed", width: 152, depth: 200 }},
+          {{ type: "dining-table", width: 110, depth: 110 }},
+          {{ type: "dining-chair", width: 48, depth: 52 }},
+          {{ type: "storage-cabinet", width: 90, depth: 45 }},
+          {{ type: "coffee-table", width: 110, depth: 60 }},
+          {{ type: "flower-pots-planter", width: 35, depth: 35 }},
+        ];
+        const snapped = furniture.map((item) => snapFurnitureToRoomSurface({{
+          floorplan,
+          roomId: "room-right",
+          sizeCm: {{ width: item.width, depth: item.depth }},
+          position: {{ x: 13.3 + item.depth / 2 + 12, z: 300 }},
+          rotationDeg: 0,
+          snapRangeCm: 30,
+          gridCm: 5,
+        }}));
+        const corner = snapFurnitureToRoomSurface({{
+          floorplan,
+          roomId: "room-right",
+          sizeCm: {{ width: 90, depth: 45 }},
+          position: {{ x: 47.8, z: 155 }},
+        }});
+        const shallowCorner = snapFurnitureToRoomSurface({{
+          floorplan,
+          roomId: "room-right",
+          sizeCm: {{ width: 75, depth: 18 }},
+          position: {{ x: 40, z: 115 }},
+        }});
+        const missingRoom = snapFurnitureToRoomSurface({{
+          floorplan,
+          roomId: "missing",
+          sizeCm: {{ width: 90, depth: 45 }},
+          position: {{ x: 47.8, z: 155 }},
+        }});
+        const doorwayGap = snapFurnitureToRoomSurface({{
+          floorplan: {{
+            room_regions: floorplan.room_regions,
+            wall_segments: [
+              {{ start: {{ x: 0, z: 100 }}, end: {{ x: 0, z: 240 }} }},
+              {{ start: {{ x: 0, z: 360 }}, end: {{ x: 0, z: 510 }} }},
+            ],
+          }},
+          roomId: "room-right",
+          sizeCm: {{ width: 48, depth: 52 }},
+          position: {{ x: 51.3, z: 300 }},
+        }});
+        console.log(JSON.stringify({{
+          furniture,
+          snapped,
+          corner,
+          shallowCorner,
+          missingRoom,
+          doorwayGap,
+        }}));
+        """
+    )
+
+    assert len(result["snapped"]) == len(result["furniture"])
+    for item, snapped in zip(result["furniture"], result["snapped"], strict=True):
+        assert snapped["kind"] == "wall"
+        assert snapped["rotationDeg"] == 90
+        assert abs(snapped["x"] - (13.3 + item["depth"] / 2)) < 0.01
+        assert abs((snapped["x"] - item["depth"] / 2) - 13.3) < 0.01
+    assert result["corner"] == {
+        "x": 35.8,
+        "z": 145,
+        "rotationDeg": 90,
+        "kind": "corner",
+    }
+    assert result["shallowCorner"] == {
+        "x": 50.8,
+        "z": 109,
+        "rotationDeg": 0,
+        "kind": "corner",
+    }
+    assert result["missingRoom"] is None
+    assert result["doorwayGap"]["kind"] == "grid"
+
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
+    )
+    assert "snapFurnitureToRoomSurface" in source
+
+
 def test_door_leaf_rotates_from_the_confirmed_hinge_endpoint() -> None:
     result = run_workflow_script(
         f"""

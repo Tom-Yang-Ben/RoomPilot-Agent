@@ -31,9 +31,10 @@ import {
   fallbackMaterialRole,
   findNearestWalkablePosition,
   inferredWallThicknessCm,
+  snapFurnitureToRoomSurface,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-826142b89982";
+} from "./scene_visual_contracts.js?v=sha256-a32064110ccd";
 import { normalizedPlanarUvs } from "./scene_texture_uv.js?v=sha256-1d68ae8102bc";
 
 const CM_PER_METER = 100;
@@ -5697,9 +5698,15 @@ function updateRoomSurfaces(sceneData, roomId = "") {
   }
 
   function snapDragPositionV3(item, x, z) {
-    // All draggable furniture follows the same wall/corner snap path before
-    // checking boundaries and collisions. Previously V3 skipped this step.
-    const snapped = snapDragPositionV2(item, x, z);
+    const snapped = snapFurnitureToRoomSurface({
+      floorplan: lastWorldSceneData?.floorplan || {},
+      roomId: item.placement_room_id || item.room_id || item.roomId || "",
+      sizeCm: sizeCentimeters(item),
+      position: { x, z },
+      rotationDeg: sceneToWorldRotationDeg(item.rotation_y_deg || 0),
+      snapRangeCm: SNAP_RANGE,
+      gridCm: DRAG_GRID,
+    }) || snapDragPositionV2(item, x, z);
     const constrained = constrainTransform(
       item,
       snapped.x,

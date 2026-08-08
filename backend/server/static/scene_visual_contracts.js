@@ -195,6 +195,128 @@ export function inferredWallThicknessCm(floorplan = {}, fallbackCm = 12) {
   return measuredMedian == null ? fallback : Math.round(measuredMedian * 1000) / 1000;
 }
 
+function normalizedDegrees(value = 0) {
+  const degrees = Number(value);
+  return ((Number.isFinite(degrees) ? degrees : 0) % 360 + 360) % 360;
+}
+
+function furnitureHalfExtents(sizeCm = {}, rotationDeg = 0) {
+  const width = Number(sizeCm.width);
+  const depth = Number(sizeCm.depth);
+  if (!(width > 0) || !(depth > 0)) return null;
+  const radians = normalizedDegrees(rotationDeg) * Math.PI / 180;
+  return {
+    x: (width * Math.abs(Math.cos(radians)) + depth * Math.abs(Math.sin(radians))) / 2,
+    z: (width * Math.abs(Math.sin(radians)) + depth * Math.abs(Math.cos(radians))) / 2,
+  };
+}
+
+function finishedSurfaceSpans(floorplan = {}, roomId = "") {
+  const expectedId = String(roomId || "");
+  const region = (floorplan.room_regions || []).find((candidate, index) => (
+    String(candidate?.room_id || candidate?.id || `room-${index + 1}`) === expectedId
+  ));
+  const points = (region?.exterior || []).map(floorplanPoint)
+    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.z));
+  if (points.length < 3) return [];
+  const center = points.reduce((total, point) => ({
+    x: total.x + point.x / points.length,
+    z: total.z + point.z / points.length,
+  }), { x: 0, z: 0 });
+  const boundaries = points.map((point, index) => {
+    const span = axisAlignedSpan(point, points[(index + 1) % points.length]);
+    if (!span) return null;
+    const inwardDirection = Math.sign(
+      (span.orientation === "vertical" ? center.x : center.z) - span.normal,
+    );
+    return { ...span, inwardDirection: inwardDirection || 1 };
+  }).filter(Boolean);
+  const walls = (floorplan.wall_segments || [])
+    .map((wall) => axisAlignedSpan(wall.start, wall.end))
+    .filter(Boolean);
+  if (!walls.length) return boundaries;
+  return boundaries.flatMap((boundary) => walls.flatMap((wall) => {
+    if (wall.orientation !== boundary.orientation || Math.abs(wall.normal - boundary.normal) > 35) {
+      return [];
+    }
+    const from = Math.max(boundary.from, wall.from);
+    const to = Math.min(boundary.to, wall.to);
+    return to - from >= 4 ? [{ ...boundary, from, to }] : [];
+  }));
+}
+
+function roundedCoordinate(value) {
+  return Math.round(value * 1000) / 1000;
+}
+
+export function snapFurnitureToRoomSurface({
+  floorplan = {},
+  roomId = "",
+  sizeCm = {},
+  position = {},
+  rotationDeg = 0,
+  snapRangeCm = 30,
+  gridCm = 5,
+} = {}) {
+  const surfaces = finishedSurfaceSpans(floorplan, roomId);
+  const width = Number(sizeCm.width);
+  const depth = Number(sizeCm.depth);
+  const x = Number(position.x);
+  const z = Number(position.z);
+  if (!surfaces.length || !(width > 0) || !(depth > 0) || !Number.isFinite(x) || !Number.isFinite(z)) {
+    return null;
+  }
+
+  const snapRange = Math.max(Number(snapRangeCm) || 30, 0);
+  const grid = Math.max(Number(gridCm) || 5, 1);
+  const candidates = surfaces.flatMap((surface) => {
+    const targetRotation = surface.orientation === "vertical" ? 90 : 0;
+    const half = furnitureHalfExtents({ width, depth }, targetRotation);
+    const along = surface.orientation === "vertical" ? z : x;
+    const alongHalf = surface.orientation === "vertical" ? half.z : half.x;
+    if (along < surface.from - alongHalf || along > surface.to + alongHalf) return [];
+    const normalHalf = surface.orientation === "vertical" ? half.x : half.z;
+    const value = surface.normal + surface.inwardDirection * normalHalf;
+    const distance = Math.abs((surface.orientation === "vertical" ? x : z) - value);
+    return distance <= snapRange
+      ? [{ ...surface, value, distance, rotationDeg: targetRotation }]
+      : [];
+  }).sort((left, right) => left.distance - right.distance);
+
+  const primary = candidates[0];
+  if (!primary) {
+    return {
+      x: Math.round(x / grid) * grid,
+      z: Math.round(z / grid) * grid,
+      rotationDeg: normalizedDegrees(rotationDeg),
+      kind: "grid",
+    };
+  }
+
+  const snapped = { x, z };
+  snapped[primary.orientation === "vertical" ? "x" : "z"] = primary.value;
+  const finalHalf = furnitureHalfExtents({ width, depth }, primary.rotationDeg);
+  const secondary = surfaces.filter((surface) => surface.orientation !== primary.orientation)
+    .flatMap((surface) => {
+      const along = surface.orientation === "vertical" ? snapped.z : snapped.x;
+      const alongHalf = surface.orientation === "vertical" ? finalHalf.z : finalHalf.x;
+      if (along < surface.from - alongHalf || along > surface.to + alongHalf) return [];
+      const normalHalf = surface.orientation === "vertical" ? finalHalf.x : finalHalf.z;
+      const value = surface.normal + surface.inwardDirection * normalHalf;
+      const distance = Math.abs((surface.orientation === "vertical" ? x : z) - value);
+      return distance <= snapRange ? [{ ...surface, value, distance }] : [];
+    })
+    .sort((left, right) => left.distance - right.distance)[0];
+  if (secondary) snapped[secondary.orientation === "vertical" ? "x" : "z"] = secondary.value;
+
+  return {
+    x: roundedCoordinate(snapped.x),
+    z: roundedCoordinate(snapped.z),
+    rotationDeg: primary.rotationDeg,
+    kind: secondary ? "corner" : "wall",
+  };
+}
+
 export function synchronizedFloorRegions(floorplan = {}, widthCm = 420, depthCm = 360) {
   const regions = (floorplan.room_regions || [])
     .filter((region) => Array.isArray(region?.exterior) && region.exterior.length >= 3)
