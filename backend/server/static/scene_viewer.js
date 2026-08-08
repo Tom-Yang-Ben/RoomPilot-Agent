@@ -33,6 +33,7 @@ import {
   synchronizedFloorRegions,
   viewPresentation,
 } from "./scene_visual_contracts.js?v=sha256-b73f02baf64c";
+import { normalizedPlanarUvs } from "./scene_texture_uv.js?v=sha256-1d68ae8102bc";
 
 const CM_PER_METER = 100;
 
@@ -2362,6 +2363,16 @@ export function createSceneViewer(
       && point.z <= Number(bounds.maxZ) + padding;
   }
 
+  function applyNormalizedPlanarUvs(geometry) {
+    const position = geometry?.getAttribute?.("position");
+    if (!position?.array?.length) return geometry;
+    geometry.setAttribute(
+      "uv",
+      new THREE.Float32BufferAttribute(normalizedPlanarUvs(position.array), 2),
+    );
+    return geometry;
+  }
+
   function createRoomSurfaceOverrideMesh(sceneData, override, index = 0) {
     const bounds = override?.room_bounds_cm;
     if (!bounds) return null;
@@ -2386,6 +2397,7 @@ export function createSceneViewer(
       });
       shape.closePath();
       geometry = new THREE.ShapeGeometry(shape);
+      applyNormalizedPlanarUvs(geometry);
     } else {
       geometry = new THREE.PlaneGeometry(width, depth);
     }

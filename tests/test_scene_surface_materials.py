@@ -99,3 +99,16 @@ def test_floor_texture_repeat_uses_catalog_physical_size() -> None:
     assert "Number(physicalSize[1])" in source
     assert "Number(physicalSize[1]) / 100" not in source
     assert "return { x: 240, y: 240 }" in source
+
+
+def test_room_polygon_floor_normalizes_uvs_before_applying_texture_repeat() -> None:
+    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    override_mesh = source.split("function createRoomSurfaceOverrideMesh", 1)[1].split(
+        "function createRoomSurfaceOverrides", 1
+    )[0]
+
+    assert 'from "./scene_texture_uv.js?v=' in source
+    assert "function applyNormalizedPlanarUvs" in source
+    assert "normalizedPlanarUvs(position.array)" in source
+    assert "geometry = new THREE.ShapeGeometry(shape);" in override_mesh
+    assert "applyNormalizedPlanarUvs(geometry);" in override_mesh
