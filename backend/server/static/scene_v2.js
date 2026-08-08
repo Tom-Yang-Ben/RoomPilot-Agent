@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-42abd94033b8";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-e70d7cacee3f";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-35a0bec6dcb1";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -1046,34 +1046,61 @@ function restoreDoorSwingEndpointsFromConfirmedStructures(sceneData) {
   return repaired;
 }
 
+function furnitureIdentifiers(item, fallbackId = null) {
+  return new Set([
+    fallbackId,
+    item?.id,
+    item?.furniture_id,
+    item?.catalog_furniture_id,
+    item?.catalogFurnitureId,
+    item?.layout_furniture_id,
+    item?.source_furniture_id,
+  ].filter(Boolean).map(String));
+}
+
+function sceneObjectIndexMapByFurnitureId() {
+  const sceneObjects = state.sceneData?.scene_objects || [];
+  const layoutItems = state.furniture2d || [];
+  const mapped = new Map();
+  const usedSceneIndices = new Set();
+
+  layoutItems.forEach((layoutItem) => {
+    const id = String(layoutItem?.id || "");
+    if (!id) return;
+    const exactIndex = sceneObjects.findIndex((sceneObject, index) => (
+      !usedSceneIndices.has(index)
+      && String(sceneObject.furniture_id || "") === id
+    ));
+    if (exactIndex < 0) return;
+    mapped.set(id, exactIndex);
+    usedSceneIndices.add(exactIndex);
+  });
+
+  layoutItems.forEach((layoutItem) => {
+    const id = String(layoutItem?.id || "");
+    if (!id || mapped.has(id)) return;
+    const layoutIdentifiers = furnitureIdentifiers(layoutItem, id);
+    const fallbackIndex = sceneObjects.findIndex((sceneObject, index) => {
+      if (usedSceneIndices.has(index)) return false;
+      return [...furnitureIdentifiers(sceneObject)].some(
+        (candidate) => layoutIdentifiers.has(candidate),
+      );
+    });
+    if (fallbackIndex < 0) return;
+    mapped.set(id, fallbackIndex);
+    usedSceneIndices.add(fallbackIndex);
+  });
+  return mapped;
+}
+
 function sceneObjectIndexByFurnitureId(furnitureId) {
   if (!furnitureId || !state.sceneData?.scene_objects?.length) return -1;
   const id = String(furnitureId);
-  // `furniture_id` is the editable scene-instance ID. Prefer an exact match so
-  // duplicate catalog items can never overwrite each other during a reflow.
-  const exactIndex = state.sceneData.scene_objects.findIndex(
+  const mappedIndex = sceneObjectIndexMapByFurnitureId().get(id);
+  if (mappedIndex != null) return mappedIndex;
+  return state.sceneData.scene_objects.findIndex(
     (item) => String(item.furniture_id || "") === id,
   );
-  if (exactIndex >= 0) return exactIndex;
-  const layoutItem = state.furniture2d.find(
-    (item) => String(item.id) === id,
-  );
-  const identifiers = new Set([
-    id,
-    layoutItem?.catalogFurnitureId,
-    layoutItem?.furniture_id,
-  ].filter(Boolean).map(String));
-  return state.sceneData.scene_objects.findIndex((item) => {
-    const sceneIdentifiers = [
-      item.furniture_id,
-      item.catalog_furniture_id,
-      item.catalogFurnitureId,
-      item.layout_furniture_id,
-      item.source_furniture_id,
-      item.id,
-    ].filter(Boolean).map(String);
-    return sceneIdentifiers.some((candidate) => identifiers.has(candidate));
-  });
 }
 
 function setSceneSidebarTab(tab = "plan") {
@@ -1088,6 +1115,7 @@ function setSceneSidebarTab(tab = "plan") {
   });
   const surfaceEntry = $("#white-model-surface-entry");
   if (surfaceEntry) surfaceEntry.hidden = nextTab !== "surfaces";
+  if (nextTab === "plan") requestAnimationFrame(renderConfigurationPlan);
 }
 
 function selectedLayoutFurniture() {
@@ -3775,6 +3803,14 @@ function refreshConfigurationSnapshot() {
     state.proposalReview.masterView.scene_version = snapshot.scene_version;
   }
   return snapshot;
+}
+
+function lockedConfigurationSnapshot() {
+  const snapshot = state.designSchemes.configuration_snapshot;
+  if (!snapshot?.snapshot_id) {
+    throw new Error("找不到第 7 步已鎖定的配置快照，請返回方案鎖定重新確認。");
+  }
+  return snapshotCopy(snapshot);
 }
 
 function composeSelectedRoomFurniture() {
@@ -7028,7 +7064,7 @@ function questionnaireMaterialPairCards(pack) {
       pair.wall.id !== current.wall.id || pair.floor.id !== current.floor.id
     ))].slice(0, 1);
   }
-  return [...recommendations, { ...current, isCustomSelection: true }].slice(0, 1);
+  return [{ ...current, isCustomSelection: true }, ...recommendations].slice(0, 1);
 }
 
 function renderQuestionnaireMaterialPairs(pack) {
@@ -8989,6 +9025,18 @@ function roomIdForScenePosition(positionCm = {}) {
   )?.id || state.selectedRoomId || state.rooms[0]?.id || null;
 }
 
+function scenePositionInsideRoom(positionCm = {}, roomId = null) {
+  const room = state.rooms.find((candidate) => String(candidate.id) === String(roomId));
+  const x = Number(positionCm.x);
+  const z = Number(positionCm.z);
+  if (!room || !Number.isFinite(x) || !Number.isFinite(z)) return false;
+  const center = planCenterCm();
+  return pointInPolygonCm(
+    { x: center.x + x, y: center.y + z },
+    room.polygon_cm || [],
+  );
+}
+
 function furniture2dDefaultsForSceneObject(sceneObject) {
   const match = findFurniture2DVariant(
     sceneObject?.normalized_type,
@@ -9014,6 +9062,7 @@ function roomSurfaceAssignments() {
   return state.rooms.map((room) => {
     const requirement = state.roomRequirementModel?.roomRequirements?.[room.id];
     const surfaces = normalizedRoomSurfaces(room, requirement?.surfaces || {});
+    const surfaceDraft = state.roomFinishDrafts?.[String(room.id)] || {};
     return {
       room_id: room.id,
       room_label: room.label,
@@ -9039,6 +9088,8 @@ function roomSurfaceAssignments() {
       ceiling_color_hex: surfaces.ceiling?.color || null,
       lighting_id: surfaces.ceiling?.lightingId || null,
       air_conditioning: requirement?.climate?.airConditioning || null,
+      step_six_surface_confirmed: surfaceDraft.stepSixSurfaceConfirmed === true,
+      step_six_surface_confirmed_at: surfaceDraft.stepSixSurfaceConfirmedAt || null,
     };
   });
 }
@@ -10426,11 +10477,21 @@ async function autoLayoutFurniture() {
   scheduleSave("layout_2d");
 }
 
-async function relayoutFurnitureForScheme(sourceFurniture, schemeId) {
+async function relayoutFurnitureForScheme(sourceFurniture, schemeId, {
+  roomIds = null,
+  movableFurnitureIds = null,
+} = {}) {
   const placedFurniture = [];
+  const selectedRooms = roomIds
+    ? new Set([...roomIds].map(String))
+    : null;
+  const movableIds = movableFurnitureIds
+    ? new Set([...movableFurnitureIds].map(String))
+    : null;
   for (const room of state.rooms) {
+    if (selectedRooms && !selectedRooms.has(String(room.id))) continue;
     const roomItems = sourceFurniture
-      .filter((item) => item.roomId === room.id)
+      .filter((item) => String(item.roomId) === String(room.id))
       .map((item) => ({
         ...JSON.parse(JSON.stringify(item)),
         placementFailed: false,
@@ -10445,7 +10506,9 @@ async function relayoutFurnitureForScheme(sourceFurniture, schemeId) {
         placement_room_id: room.id,
         placement_variant: schemeId,
         scene_objects: roomItems.map((item) =>
-          toSceneFurniture(item, { positionLocked: false })
+          toSceneFurniture(item, {
+            positionLocked: movableIds ? !movableIds.has(String(item.id)) : false,
+          })
         ),
       }),
     });
@@ -10464,6 +10527,85 @@ async function relayoutFurnitureForScheme(sourceFurniture, schemeId) {
     });
   }
   return placedFurniture.some((item) => item.placementFailed) ? null : placedFurniture;
+}
+
+function misplacedAssignedRoomFurniture() {
+  return state.furniture2d.filter((item) => {
+    const sceneIndex = sceneObjectIndexByFurnitureId(item.id);
+    const sceneObject = sceneIndex >= 0
+      ? state.sceneData.scene_objects[sceneIndex]
+      : null;
+    if (!item.roomId) return false;
+    const itemPosition = { x: item.xCm, z: item.yCm };
+    const scenePosition = sceneObject?.position_cm;
+    return !scenePositionInsideRoom(itemPosition, item.roomId)
+      || (scenePosition && !scenePositionInsideRoom(scenePosition, item.roomId))
+      || (
+        sceneObject?.placement_room_id
+        && String(sceneObject.placement_room_id) !== String(item.roomId)
+      );
+  });
+}
+
+async function repairFurnitureRoomPlacements() {
+  if (!state.sceneData?.scene_objects?.length) return 0;
+  const misplaced = misplacedAssignedRoomFurniture();
+  if (!misplaced.length) return 0;
+  const affectedRoomIds = new Set(misplaced.map((item) => String(item.roomId)));
+  const misplacedIds = new Set(misplaced.map((item) => String(item.id)));
+  const affectedFurniture = state.furniture2d.filter(
+    (item) => affectedRoomIds.has(String(item.roomId)),
+  );
+  const repairedFurniture = await relayoutFurnitureForScheme(
+    affectedFurniture,
+    activeSchemeId(),
+    { roomIds: affectedRoomIds, movableFurnitureIds: misplacedIds },
+  );
+  if (!repairedFurniture) {
+    throw new Error("家具無法依指定房間重新配置，請在第 6 步逐房調整。");
+  }
+  if (repairedFurniture.length !== affectedFurniture.length) {
+    throw new Error("部分家具缺少有效房間，已保留原配置供使用者確認。");
+  }
+
+  const repairedById = new Map(
+    repairedFurniture.map((item) => [String(item.id), item]),
+  );
+  const repairedBySceneIndex = new Map();
+  repairedFurniture.forEach((item) => {
+    const sceneIndex = sceneObjectIndexByFurnitureId(item.id);
+    if (sceneIndex >= 0) repairedBySceneIndex.set(sceneIndex, item);
+  });
+  state.furniture2d = state.furniture2d.map(
+    (item) => repairedById.get(String(item.id)) || item,
+  );
+  if (state.sceneData?.scene_objects) {
+    state.sceneData.scene_objects = state.sceneData.scene_objects.map((sceneObject, index) => {
+      const item = repairedBySceneIndex.get(index);
+      if (!item) return sceneObject;
+      return {
+        ...sceneObject,
+        position_cm: {
+          ...(sceneObject.position_cm || {}),
+          x: item.xCm,
+          z: item.yCm,
+        },
+        rotation_y_deg: item.rotationDeg,
+        placement_room_id: item.roomId,
+        position_locked: true,
+        placement_failed: false,
+        placement_reason: "",
+      };
+    });
+  }
+  persistActiveScheme(state.designSchemes, {
+    furniture: state.furniture2d,
+    sceneData: state.sceneData,
+  });
+  if (state.designSchemes.configuration_snapshot) {
+    state.designSchemes.configuration_snapshot = configurationSnapshot();
+  }
+  return misplaced.length;
 }
 
 function renderLayoutRoomFilter() {
@@ -10609,9 +10751,10 @@ function hasAuthoritativeScenePlacement(item, sceneObject) {
     Math.abs(sceneRotation - itemRotation),
     360 - Math.abs(sceneRotation - itemRotation),
   ) < 0.25;
-  const roomId = sceneObject.placement_room_id
-    || roomIdForScenePosition(position);
-  return sameCoordinate && sameRotation && roomId === item.roomId;
+  const roomId = sceneObject.placement_room_id;
+  return sameCoordinate
+    && sameRotation
+    && String(roomId) === String(item.roomId);
 }
 
 function furniturePlacementInvalid(item, sceneObject) {
@@ -11022,6 +11165,7 @@ function renderConfigurationPlan() {
   const blockingIds = new Set(blocking.map((item) => String(item.id)));
   const modelFailures = configurationModelFailures();
   const scale = configurationPlanPixelsPerCm();
+  element.configurationPlanLayer.innerHTML = "";
   if (scale > 0 && state.showFurnitureNumbers) {
     element.configurationPlanLayer.innerHTML = state.furniture2d.map((item, index) => {
       const pixel = configurationFurniturePixelPosition(item);
@@ -14215,6 +14359,7 @@ async function confirmStepSixRoomSurfaces() {
       floorOverrideExplicit: true,
     };
   }
+  refreshConfigurationSnapshot();
   renderStepSixSurfaceProgress();
   scheduleSave("realistic_3d");
   const nextRoom = nextUnconfirmedStepSixRoom(room.id);
@@ -16374,6 +16519,16 @@ function aiRenderRoomPayload(room, view, renderBrief = null) {
   };
 }
 
+function aiRenderSubmissionPayload(room, view, renderBrief = null) {
+  const configuration = lockedConfigurationSnapshot();
+  return {
+    project_id: state.projectId,
+    configuration_snapshot: configuration,
+    scene: aiRenderSceneForBrief(renderBrief),
+    rooms: [aiRenderRoomPayload(room, view, renderBrief)],
+  };
+}
+
 async function submitRoomRenders(renderBrief = null) {
   const room = state.rooms.find((item) => String(item.id) === String(state.selectedRenderRoomId));
   const view = room && state.proposalReview.roomViews?.[room.id];
@@ -16414,11 +16569,7 @@ async function submitRoomRenders(renderBrief = null) {
       const result = await api(`/api/projects/${state.projectId}/ai-renders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          project_id: state.projectId,
-          scene: aiRenderSceneForBrief(renderBrief),
-          rooms: [aiRenderRoomPayload(room, view, renderBrief)],
-        }),
+        body: JSON.stringify(aiRenderSubmissionPayload(room, view, renderBrief)),
       });
       syncProjectRevision(result);
       const renderResult = (result.results || []).find((item) => String(item.room_id) === String(room.id)) || result.results?.[0] || {};
@@ -16600,7 +16751,7 @@ function downloadDesignDeliveryJson() {
 }
 
 async function downloadEngineeringDelivery() {
-  const configuration = refreshConfigurationSnapshot();
+  const configuration = lockedConfigurationSnapshot();
   const stylePack = STYLE_PACKS.find((item) => item.id === state.proposalReview.confirmedStyleCardId);
   const rooms = state.rooms.map((room) => ({
     room_id: room.id,
@@ -18209,6 +18360,8 @@ async function restoreProject() {
   }
   try {
     let sceneRecoveryError = null;
+    let furnitureRoomRepairError = null;
+    let restoredFurnitureRoomRepairs = 0;
     let result = await api(`/api/projects/${state.projectId}`);
     const pendingSave = localStorage.getItem(pendingSaveStorageKey());
     let pendingSaveDiscarded = false;
@@ -18418,6 +18571,12 @@ async function restoreProject() {
       sceneRecoveryError = error;
       console.warn("Unable to rebuild saved 3D scene from layout.", error);
     }
+    try {
+      restoredFurnitureRoomRepairs = await repairFurnitureRoomPlacements();
+    } catch (error) {
+      furnitureRoomRepairError = error;
+      console.warn("Unable to repair furniture assigned outside its room.", error);
+    }
     hydrateSceneWallMass();
     state.sourceUrl = state.sourceExtension === ".dxf"
       ? configureDxfPreview(state.analysis)
@@ -18440,6 +18599,7 @@ async function restoreProject() {
     }
     if (
       sceneRecoveredFromLayout
+      || restoredFurnitureRoomRepairs > 0
       || restoredAutomaticSoftDecorRemoved > 0
       || restoredRetiredAppliancesRemoved > 0
       || restoredWallSurfaceRepairs > 0
@@ -18464,6 +18624,16 @@ async function restoreProject() {
       setStatus(
         `已恢復專案「${state.project.name}」，但 3D 場景暫時無法重建：${errorMessage(sceneRecoveryError)}`,
         "error",
+      );
+    } else if (furnitureRoomRepairError) {
+      setStatus(
+        `已恢復專案「${state.project.name}」，但部分家具無法回到指定房間：${errorMessage(furnitureRoomRepairError)}`,
+        "warning",
+      );
+    } else if (restoredFurnitureRoomRepairs > 0) {
+      setStatus(
+        `已恢復專案「${state.project.name}」，並修正 ${restoredFurnitureRoomRepairs} 件跨房間家具的位置。`,
+        "success",
       );
     } else {
       setStatus(pendingSaveDiscarded

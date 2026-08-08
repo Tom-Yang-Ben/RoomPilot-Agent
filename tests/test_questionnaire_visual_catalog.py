@@ -228,6 +228,24 @@ def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
     assert 'data-whole-house-style-pack="${escapeHtml(family.defaultPackId)}"' in javascript
 
 
+def test_questionnaire_material_pair_preview_prioritizes_the_current_draft() -> None:
+    javascript = (
+        ROOT / "backend" / "server" / "static" / "scene_v2.js"
+    ).read_text(encoding="utf-8")
+    pair_cards = javascript.split(
+        "function questionnaireMaterialPairCards(pack)", 1
+    )[1].split("function renderQuestionnaireMaterialPairs(pack)", 1)[0]
+
+    assert (
+        "return [{ ...current, isCustomSelection: true }, ...recommendations]"
+        ".slice(0, 1);"
+    ) in pair_cards
+    assert (
+        "return [...recommendations, { ...current, isCustomSelection: true }]"
+        ".slice(0, 1);"
+    ) not in pair_cards
+
+
 def test_ceiling_reference_photos_are_individual_and_cover_all_seven_choices() -> None:
     stylesheet = (ROOT / "backend" / "server" / "static" / "site.css").read_text(encoding="utf-8")
     javascript = (ROOT / "backend" / "server" / "static" / "scene_v2.js").read_text(encoding="utf-8")

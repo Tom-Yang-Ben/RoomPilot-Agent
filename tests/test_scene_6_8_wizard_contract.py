@@ -39,6 +39,26 @@ def test_step_eight_submits_each_room_with_a_confirmed_view_and_user_brief() -> 
     assert 'renderRequestPayload("room_final"' in source
     assert "spatial_override_warning" in source
     assert 'state.workflow.complete("ai_render"' in source
+    assert "function aiRenderSubmissionPayload(" in source
+    submission = source.split("function aiRenderSubmissionPayload(", 1)[1].split(
+        "async function submitRoomRenders", 1
+    )[0]
+    assert "lockedConfigurationSnapshot()" in submission
+    assert "refreshConfigurationSnapshot()" not in submission
+    assert "configuration_snapshot: configuration" in submission
+    assert "room_surface_assignments:" not in submission
+
+
+def test_step_six_surface_confirmation_refreshes_the_shared_snapshot() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    confirmation = source.split("async function confirmStepSixRoomSurfaces()", 1)[1].split(
+        "function unlockStepSixRoomSurfaces", 1
+    )[0]
+
+    assert "refreshConfigurationSnapshot();" in confirmation
+    assert confirmation.index("requirement.surfaces =") < confirmation.index(
+        "refreshConfigurationSnapshot();"
+    )
 
 
 def test_step_six_exposes_room_surface_controls_without_a_lighting_editor() -> None:
@@ -90,8 +110,13 @@ def test_step_six_inline_surface_editor_exposes_the_confirmed_controls() -> None
 
 def test_engineering_export_contains_configuration_room_context_and_cost_request() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    delivery = source.split("async function downloadEngineeringDelivery()", 1)[1].split(
+        "function engineeringReportFilename", 1
+    )[0]
 
     assert "async function downloadEngineeringDelivery()" in source
-    assert "configuration_snapshot: configuration" in source
-    assert "engineering_brief" in source
-    assert "/design-delivery`" in source
+    assert "lockedConfigurationSnapshot()" in delivery
+    assert "refreshConfigurationSnapshot()" not in delivery
+    assert "configuration_snapshot: configuration" in delivery
+    assert "engineering_brief" in delivery
+    assert "/design-delivery`" in delivery

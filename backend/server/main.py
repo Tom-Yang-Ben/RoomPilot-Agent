@@ -13,9 +13,10 @@ import urllib.request
 import zipfile
 from copy import deepcopy
 from datetime import datetime, timezone
-from functools import lru_cache
+from functools import lru_cache, wraps
 from pathlib import Path
 from threading import Lock
+from weakref import WeakValueDictionary
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.gzip import GZipMiddleware
@@ -134,6 +135,8 @@ for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
 QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
 QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()
+_AI_RENDER_PROJECT_LOCKS = WeakValueDictionary()
+_AI_RENDER_PROJECT_LOCKS_GUARD = Lock()
 FLOORPLAN_EXTENSIONS = (".dxf", ".png", ".jpg", ".jpeg")
 
 
@@ -2050,14 +2053,34 @@ def _ai_render_rooms_by_id(raw_rooms: object) -> dict[str, dict]:
     return {}
 
 
+def _ai_render_project_lock(project_id: str):
+    key = str(project_id)
+    with _AI_RENDER_PROJECT_LOCKS_GUARD:
+        lock = _AI_RENDER_PROJECT_LOCKS.get(key)
+        if lock is None:
+            lock = Lock()
+            _AI_RENDER_PROJECT_LOCKS[key] = lock
+        return lock
+
+
+def _serialize_project_ai_render(operation):
+    @wraps(operation)
+    def serialized(project_id: str, *args, **kwargs):
+        with _ai_render_project_lock(project_id):
+            return operation(project_id, *args, **kwargs)
+
+    return serialized
+
+
 @app.get("/api/ai-render/status")
 def get_ai_render_status() -> dict:
     return ai_render_status()
 
 
 @app.post("/api/projects/{project_id}/ai-renders", status_code=201)
+@_serialize_project_ai_render
 def create_project_ai_renders(project_id: str, payload: dict) -> dict:
-    _stored_project(project_id)
+    stored_project = _stored_project(project_id)
     if payload.get("project_id") not in (None, project_id):
         raise HTTPException(
             422,
@@ -2089,8 +2112,97 @@ def create_project_ai_renders(project_id: str, payload: dict) -> dict:
                     "message": "Each room view needs a locked 3D screenshot.",
                 },
             )
+    existing_ai_render = (stored_project.get("workflow") or {}).get("ai_render") or {}
+    existing_room_state = _ai_render_rooms_by_id(existing_ai_render.get("rooms"))
+    duplicate_room_ids = [
+        str(room.get("room_id"))
+        for room in rooms
+        if (
+            existing_room_state.get(str(room.get("room_id")), {}).get("lock_manifest")
+            and existing_room_state.get(str(room.get("room_id")), {}).get("status")
+            == "completed"
+        )
+    ]
+    if duplicate_room_ids:
+        raise HTTPException(
+            409,
+            {
+                "code": "room_initial_render_already_generated",
+                "message": "Each room can submit its initial render only once.",
+                "room_ids": duplicate_room_ids,
+            },
+        )
+    configuration_snapshot = (
+        payload.get("configuration_snapshot")
+        if isinstance(payload.get("configuration_snapshot"), dict)
+        else None
+    )
+    if configuration_snapshot is None:
+        raise HTTPException(
+            422,
+            {
+                "code": "configuration_snapshot_required",
+                "message": "AI rendering requires the confirmed Step 6 configuration snapshot.",
+            },
+        )
+    if "room_surface_assignments" not in configuration_snapshot:
+        raise HTTPException(
+            422,
+            {
+                "code": "room_surface_assignments_required",
+                "message": "The configuration snapshot needs room surface assignments.",
+            },
+        )
+    snapshot_id = str(configuration_snapshot.get("snapshot_id") or "").strip()
+    if not snapshot_id:
+        raise HTTPException(
+            422,
+            {
+                "code": "configuration_snapshot_id_required",
+                "message": "The confirmed configuration snapshot needs snapshot_id.",
+            },
+        )
+    locked_snapshot_id = str(
+        existing_ai_render.get("configuration_snapshot_id") or ""
+    ).strip()
+    if locked_snapshot_id and locked_snapshot_id != snapshot_id:
+        raise HTTPException(
+            409,
+            {
+                "code": "configuration_snapshot_mismatch",
+                "message": "All room renders must use the same locked configuration snapshot.",
+                "expected_snapshot_id": locked_snapshot_id,
+            },
+        )
+    surface_rows = configuration_snapshot.get("room_surface_assignments") or []
+    surface_by_room = _ai_render_rooms_by_id(surface_rows)
+    for room in rooms:
+        room_id = str(room.get("room_id"))
+        surface = surface_by_room.get(room_id)
+        if not surface:
+            raise HTTPException(
+                422,
+                {
+                    "code": "room_surface_assignment_required",
+                    "message": "Each rendered room needs its confirmed Step 6 surfaces.",
+                    "room_id": room_id,
+                },
+            )
+        if surface.get("step_six_surface_confirmed") is not True:
+            raise HTTPException(
+                409,
+                {
+                    "code": "room_surface_not_confirmed",
+                    "message": "Confirm this room's wall and floor materials in Step 6 first.",
+                    "room_id": room_id,
+                },
+            )
     try:
-        outcome = generate_room_images(scene, rooms)
+        outcome = generate_room_images(
+            scene,
+            rooms,
+            configuration_snapshot=configuration_snapshot,
+        )
     except AiRenderNotConfigured as exc:
         raise HTTPException(
             503,
@@ -2121,12 +2233,16 @@ def create_project_ai_renders(project_id: str, payload: dict) -> dict:
             "image_id": result.get("image_id"),
             "status": result.get("status", "completed"),
         }
+    merged_room_state = {**existing_room_state, **room_state}
     project = PROJECT_STORE.update_workflow(
         project_id,
         workflow={
             "ai_render": {
-                "generated_at": generated_at,
-                "rooms": room_state,
+                **existing_ai_render,
+                "configuration_snapshot_id": locked_snapshot_id or snapshot_id,
+                "generated_at": existing_ai_render.get("generated_at") or generated_at,
+                "updated_at": generated_at,
+                "rooms": merged_room_state,
             }
         },
     )
@@ -2135,14 +2251,16 @@ def create_project_ai_renders(project_id: str, payload: dict) -> dict:
         "edit_remaining": 1 if room_state else 0,
         "edit_remaining_by_room": {
             room_id: 1 - int(room.get("edit_used") or 0)
-            for room_id, room in room_state.items()
+            for room_id, room in merged_room_state.items()
         },
+        "room_states": merged_room_state,
         "revision": project["revision"],
         "updated_at": project["updated_at"],
     }
 
 
 @app.post("/api/projects/{project_id}/ai-renders/{room_id}/edit", status_code=201)
+@_serialize_project_ai_render
 def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict:
     project = _stored_project(project_id)
     ai_render = (project.get("workflow") or {}).get("ai_render") or {}

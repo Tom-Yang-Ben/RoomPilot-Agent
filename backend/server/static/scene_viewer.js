@@ -4702,7 +4702,7 @@ function updateRoomSurfaces(sceneData, roomId = "") {
       <button type="button" data-object-move="left">左</button>
       <button type="button" data-object-move="back">後</button>
       <button type="button" data-object-move="right">右</button>
-      <button type="button" class="scene-object-rotate-180" data-object-rotate="180" title="旋轉 180 度">旋轉 180°</button>
+      <button type="button" class="scene-object-rotate-quarter-turn" data-object-rotate="90" title="旋轉 90 度">旋轉 90°</button>
     </div>
     <button type="button" class="scene-object-lock-button" data-object-lock>鎖定此家具</button>
   `;

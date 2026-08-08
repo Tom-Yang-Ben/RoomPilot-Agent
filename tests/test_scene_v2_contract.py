@@ -112,12 +112,207 @@ def test_2d_uses_synchronized_3d_placement_as_the_collision_authority() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
+    authority = _javascript_function(source, "hasAuthoritativeScenePlacement")
     assert "function hasAuthoritativeScenePlacement" in source
     assert "function furniturePlacementInvalid" in source
     assert "!hasAuthoritativeScenePlacement(item, sceneObject) && itemCollision(item)" in source
+    assert "scenePositionInsideRoom" not in authority
+    assert "const roomId = sceneObject.placement_room_id;" in authority
     assert "placement_room_id: roomId" in source
     assert "placement_failed: false" in source
     assert "function markPlacementAccepted" in viewer
+
+
+def test_restored_step_six_repairs_furniture_outside_its_assigned_room_once() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    restore = _javascript_function(source, "restoreProject")
+    repair = _javascript_function(source, "repairFurnitureRoomPlacements")
+
+    assert "function scenePositionInsideRoom" in source
+    assert "function misplacedAssignedRoomFurniture" in source
+    assert "sceneObjectIndexByFurnitureId(item.id)" in repair
+    assert "roomIds: affectedRoomIds" in repair
+    assert "movableFurnitureIds: misplacedIds" in repair
+    assert "repairedById.get(String(item.id)) || item" in repair
+    assert "placement_room_id: item.roomId" in repair
+    assert "position_locked: true" in repair
+    assert "restoredFurnitureRoomRepairs = await repairFurnitureRoomPlacements()" in restore
+    assert "restoredFurnitureRoomRepairs > 0" in restore
+
+
+def test_legacy_duplicate_catalog_furniture_maps_to_distinct_scene_instances() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    script = f"""
+const state = {{
+  furniture2d: [
+    {{id: "instance-a", catalogFurnitureId: "shared-catalog"}},
+    {{id: "instance-b", catalogFurnitureId: "shared-catalog"}},
+  ],
+  sceneData: {{scene_objects: [
+    {{furniture_id: "legacy-a", catalog_furniture_id: "shared-catalog"}},
+    {{furniture_id: "legacy-b", catalog_furniture_id: "shared-catalog"}},
+  ]}},
+}};
+{_javascript_function(source, "furnitureIdentifiers")}
+{_javascript_function(source, "sceneObjectIndexMapByFurnitureId")}
+{_javascript_function(source, "sceneObjectIndexByFurnitureId")}
+process.stdout.write(JSON.stringify([
+  sceneObjectIndexByFurnitureId("instance-a"),
+  sceneObjectIndexByFurnitureId("instance-b"),
+]));
+"""
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e", script],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert json.loads(result.stdout) == [0, 1]
+
+
+def test_scene_position_room_check_uses_actual_geometry_not_room_metadata() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    script = f"""
+const state = {{
+  rooms: [{{
+    id: "bedroom",
+    polygon_cm: [{{x: 0, y: 0}}, {{x: 100, y: 0}}, {{x: 100, y: 100}}, {{x: 0, y: 100}}],
+  }}],
+}};
+function planCenterCm() {{ return {{x: 50, y: 50}}; }}
+{_javascript_function(source, "pointInPolygonCm")}
+{_javascript_function(source, "scenePositionInsideRoom")}
+const result = {{
+  inside: scenePositionInsideRoom({{x: 0, z: 0}}, "bedroom"),
+  outside: scenePositionInsideRoom({{x: 90, z: 0}}, "bedroom"),
+  wrongRoom: scenePositionInsideRoom({{x: 0, z: 0}}, "kitchen"),
+}};
+process.stdout.write(JSON.stringify(result));
+"""
+    result = subprocess.run(
+        ["node", "-e", script],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert json.loads(result.stdout) == {
+        "inside": True,
+        "outside": False,
+        "wrongRoom": False,
+    }
+
+
+def test_legacy_room_repair_unlocks_only_misplaced_furniture() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    script = f"""
+const state = {{rooms: [{{id: "room-a"}}, {{id: "room-b"}}]}};
+const calls = [];
+function confirmedFloorplanEditor() {{ return {{rooms: state.rooms}}; }}
+function toSceneFurniture(item, options) {{
+  return {{
+    furniture_id: item.id,
+    position_cm: {{x: item.xCm, z: item.yCm}},
+    rotation_y_deg: 0,
+    position_locked: options.positionLocked,
+  }};
+}}
+async function api(path, request) {{
+  const payload = JSON.parse(request.body);
+  calls.push(payload);
+  return {{scene_objects: payload.scene_objects}};
+}}
+{_javascript_function(source, "relayoutFurnitureForScheme")}
+const furniture = [
+  {{id: "bad-a", roomId: "room-a", xCm: 10, yCm: 10}},
+  {{id: "valid-a", roomId: "room-a", xCm: 20, yCm: 20}},
+  {{id: "valid-b", roomId: "room-b", xCm: 30, yCm: 30}},
+];
+const result = await relayoutFurnitureForScheme(furniture, "A", {{
+  roomIds: new Set(["room-a"]),
+  movableFurnitureIds: new Set(["bad-a"]),
+}});
+process.stdout.write(JSON.stringify({{calls, result}}));
+"""
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e", script],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    payload = json.loads(result.stdout)
+
+    assert len(payload["calls"]) == 1
+    assert payload["calls"][0]["placement_room_id"] == "room-a"
+    locks = {
+        item["furniture_id"]: item["position_locked"]
+        for item in payload["calls"][0]["scene_objects"]
+    }
+    assert locks == {"bad-a": False, "valid-a": True}
+    assert [item["id"] for item in payload["result"]] == ["bad-a", "valid-a"]
+
+
+def test_opening_sync_plan_remeasures_number_overlay_after_it_becomes_visible() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    sidebar = _javascript_function(source, "setSceneSidebarTab")
+    renderer = _javascript_function(source, "renderConfigurationPlan")
+    script = f"""
+const sidebarElement = {{dataset: {{}}}};
+const surfaceEntry = {{hidden: false}};
+const buttons = ["plan", "issues", "surfaces"].map((tab) => ({{
+  dataset: {{sceneSidebarTab: tab}},
+  active: false,
+  selected: null,
+  classList: {{toggle(name, enabled) {{
+    if (name === "is-active") this.owner.active = enabled;
+  }}}},
+  setAttribute(name, value) {{
+    if (name === "aria-selected") this.selected = value;
+  }},
+}}));
+buttons.forEach((button) => {{ button.classList.owner = button; }});
+function $(selector) {{
+  if (selector === ".rp-3d-sidebar") return sidebarElement;
+  if (selector === "#white-model-surface-entry") return surfaceEntry;
+  return null;
+}}
+function $$(selector) {{
+  return selector === "[data-scene-sidebar-tab]" ? buttons : [];
+}}
+const scheduled = [];
+function renderConfigurationPlan() {{ scheduled.push("rendered"); }}
+function requestAnimationFrame(callback) {{
+  scheduled.push(callback.name);
+  callback();
+  return 1;
+}}
+{sidebar}
+setSceneSidebarTab("plan");
+process.stdout.write(JSON.stringify({{
+  mode: sidebarElement.dataset.sceneSidebarMode,
+  surfaceHidden: surfaceEntry.hidden,
+  selected: buttons.map((button) => button.selected),
+  active: buttons.map((button) => button.active),
+  scheduled,
+}}));
+"""
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e", script],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert json.loads(result.stdout) == {
+        "mode": "plan",
+        "surfaceHidden": True,
+        "selected": ["true", "false", "false"],
+        "active": [True, False, False],
+        "scheduled": ["renderConfigurationPlan", "rendered"],
+    }
+    assert "element.configurationPlanLayer.innerHTML = \"\";" in renderer
+    assert "scale > 0 && state.showFurnitureNumbers" in renderer
 
 
 def test_requirements_step_has_randomized_test_skip_button() -> None:
@@ -1358,6 +1553,17 @@ def test_step_four_has_a_dimensioned_floorplan_confirmation_page() -> None:
     assert '.complete("space_confirmation"' in final_confirmation
     assert "proportionsConfirmed: true" in final_confirmation
     assert "dimensionedPlanConfirmed: true" in final_confirmation
+
+
+def test_step_four_controls_fill_workspace_without_a_dead_wheel_area() -> None:
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    controls = css.split("#space-step .rp-space-controls {", 1)[1].split("}", 1)[0]
+
+    assert "max-height: none;" in controls
+    assert "min-height: 0;" in controls
+    assert "align-self: stretch;" in controls
+    assert "overflow-y: auto;" in controls
+    assert "overscroll-behavior: contain;" in controls
 
 
 def test_upload_step_does_not_offer_the_internal_630_sample_button() -> None:
@@ -3191,6 +3397,11 @@ def test_floor01_repair_controls_cover_openings_questionnaire_layout_and_3d_edit
     assert "placement_room_id: room.id" in controller
     assert 'data-object-rotate="-15"' in viewer
     assert 'data-object-rotate="15"' in viewer
+    assert 'data-object-rotate="90"' in viewer
+    assert 'class="scene-object-rotate-quarter-turn"' in viewer
+    assert 'title="旋轉 90 度">旋轉 90°</button>' in viewer
+    assert 'data-object-rotate="180"' not in viewer
+    assert "rotateSelectedFromControls(Number(rotateButton.dataset.objectRotate) || 15)" in viewer
     assert "Shift+R 反向 15 度" in viewer
 
 

@@ -91,8 +91,9 @@ def test_single_item_reflow_stays_in_the_clicked_room_and_persists_to_scheme() -
 
     assert "candidate.roomId === item.roomId" in resolver
     assert 'String(candidate.furniture_id || "") === String(item.id)' in resolver
-    assert "const exactIndex = state.sceneData.scene_objects.findIndex(" in SOURCE
-    assert "if (exactIndex >= 0) return exactIndex;" in SOURCE
+    assert "function sceneObjectIndexMapByFurnitureId()" in SOURCE
+    assert "const mappedIndex = sceneObjectIndexMapByFurnitureId().get(id);" in SOURCE
+    assert "if (mappedIndex != null) return mappedIndex;" in SOURCE
     assert "scheme.furniture = JSON.parse(JSON.stringify(state.furniture2d));" in reflow
     assert "scheme.sceneData = JSON.parse(JSON.stringify(state.sceneData));" in reflow
 

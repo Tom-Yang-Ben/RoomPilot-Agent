@@ -145,17 +145,68 @@ def _placed_rows(objects: list[dict]) -> list[dict]:
     ]
 
 
+def _surface_choice_text(
+    scene: dict, choice: Any, *, color_hex: Any = None
+) -> str | None:
+    """把材質 id 或 catalog record 解析成生圖可讀的材質名稱。"""
+    record = choice if isinstance(choice, dict) else {}
+    choice_id = str(
+        record.get("surface_id")
+        or record.get("material_id")
+        or record.get("materialId")
+        or choice
+        or ""
+    ).strip()
+    if not choice_id or choice_id == "auto":
+        return None
+    explicit_name = record.get("name_zh") or record.get("label")
+    explicit_color = record.get("color_zh") or color_hex
+    for surface in (scene.get("surface_catalog") or {}).get("surfaces") or []:
+        if isinstance(surface, dict) and str(surface.get("surface_id")) == choice_id:
+            name = explicit_name or surface.get("name_zh") or surface.get("material_group") or choice_id
+            colors = [
+                str(color).strip()
+                for color in (surface.get("color_zh"), explicit_color)
+                if str(color or "").strip()
+            ]
+            color = " / ".join(dict.fromkeys(colors))
+            return f"{name}（{color}）" if color else str(name)
+    name = explicit_name or choice_id
+    return f"{name}（{explicit_color}）" if explicit_color else str(name)
+
+
 def _surface_text(scene: dict, option_key: str) -> str | None:
     """把 design_choices 的 floor/wall 選擇解析成材質名稱；auto 交給風格預設。"""
-    choice = str(((scene.get("design_choices") or {}).get(option_key)) or "").strip()
-    if not choice or choice == "auto":
-        return None
-    for surface in (scene.get("surface_catalog") or {}).get("surfaces") or []:
-        if isinstance(surface, dict) and str(surface.get("surface_id")) == choice:
-            name = surface.get("name_zh") or surface.get("material_group") or choice
-            color = surface.get("color_zh")
-            return f"{name}（{color}）" if color else str(name)
-    return choice
+    return _surface_choice_text(
+        scene, (scene.get("design_choices") or {}).get(option_key)
+    )
+
+
+def _room_surface_assignment(
+    room_id: str,
+    *,
+    configuration_snapshot: dict | None = None,
+) -> dict:
+    candidates = (
+        configuration_snapshot.get("room_surface_assignments")
+        if isinstance(configuration_snapshot, dict)
+        else None
+    )
+    if isinstance(candidates, dict):
+        candidate = candidates.get(str(room_id))
+        return dict(candidate) if isinstance(candidate, dict) else {}
+    for candidate in candidates or []:
+        if isinstance(candidate, dict) and str(candidate.get("room_id") or "") == str(room_id):
+            return dict(candidate)
+    return {}
+
+
+def _assigned_surface_text(scene: dict, assignment: dict, kind: str) -> str | None:
+    return _surface_choice_text(
+        scene,
+        assignment.get(f"{kind}_material_id") or assignment.get(f"{kind}_option"),
+        color_hex=assignment.get(f"{kind}_color_hex"),
+    )
 
 
 def _official_style_and_card(
@@ -180,7 +231,7 @@ def _official_style_and_card(
     return None
 
 
-def _requirement_doc(scene: dict) -> RequirementDoc:
+def _requirement_doc(scene: dict, surface_assignment: dict | None = None) -> RequirementDoc:
     """組出生圖需求文件：風格、地板/牆面材質、家電 context、色卡、補充需求。"""
     requirement = scene.get("requirement") or {}
     style = str(
@@ -189,10 +240,15 @@ def _requirement_doc(scene: dict) -> RequirementDoc:
     style_zh = str((scene.get("style") or {}).get("style_name_zh") or "").strip()
 
     materials: dict[str, Any] = {}
-    floor = _surface_text(scene, "floor_option")
+    assignment = surface_assignment or {}
+    floor = _assigned_surface_text(scene, assignment, "floor") or _surface_text(
+        scene, "floor_option"
+    )
     if floor:
         materials["地板"] = floor
-    wall = _surface_text(scene, "wall_option")
+    wall = _assigned_surface_text(scene, assignment, "wall") or _surface_text(
+        scene, "wall_option"
+    )
     if wall:
         materials["牆面"] = wall
 
@@ -294,7 +350,11 @@ def _layout_room(room: dict, room_id: str, width_cm: float, depth_cm: float) -> 
 
 
 def generate_room_images(
-    scene: dict, rooms: list[dict], *, gateway: Any | None = None
+    scene: dict,
+    rooms: list[dict],
+    *,
+    configuration_snapshot: dict | None = None,
+    gateway: Any | None = None,
 ) -> dict:
     """逐房視角送 Gen_Pic Agent（OpenRouter nano banana）生圖。
 
@@ -307,8 +367,6 @@ def generate_room_images(
     if not getattr(gateway, "available", False):
         raise AiRenderNotConfigured("openrouter_api_key_not_configured")
 
-    requirements = _requirement_doc(scene)
-    palette = _palette_dict(requirements)
     width_cm, depth_cm = _room_dims(scene)
     agent = GenPicAgent(gateway)
     images = ImageLibraryDoc()
@@ -317,6 +375,12 @@ def generate_room_images(
     room_state: list[dict] = []
     for room in rooms:
         room_id = str(room.get("room_id") or "").strip()
+        surface_assignment = _room_surface_assignment(
+            room_id,
+            configuration_snapshot=configuration_snapshot,
+        )
+        requirements = _requirement_doc(scene, surface_assignment)
+        palette = _palette_dict(requirements)
         reference_b64 = _strip_data_url(room.get("reference_png_data_url"))
         rows = _placed_rows(_placed_objects(scene, room_id))
         scene_doc = SceneDoc(rooms={room_id: {"placed": rows, "failed": []}})
@@ -365,6 +429,7 @@ def generate_room_images(
                 "room_id": room_id,
                 "room_label": layout_room.name,
                 "lock_manifest": manifest.to_dict(),
+                "surface_assignment": surface_assignment,
             }
         )
     return {"results": results, "rooms": room_state}
