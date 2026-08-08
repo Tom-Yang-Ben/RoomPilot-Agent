@@ -6951,17 +6951,28 @@ function isWetAreaRoom(room) {
   return ["bath", "bathroom", "kitchen"].includes(String(room?.type || room?.room_type || "").toLowerCase());
 }
 
-function isPoolOrMosaicSurface(option) {
+function isBathroomRoom(room) {
+  return ["bath", "bathroom"].includes(String(room?.type || room?.room_type || "").toLowerCase());
+}
+
+function isPoolSurface(option) {
   const text = `${option.label} ${option.note} ${option.searchText || ""}`.toLowerCase();
-  return /pool|swimming|mosaic|泳池|馬賽克/.test(text);
+  return /pool|swimming|泳池/.test(text);
+}
+
+function isMosaicSurface(option) {
+  const text = `${option.label} ${option.note} ${option.searchText || ""}`.toLowerCase();
+  return /mosaic|馬賽克/.test(text);
 }
 
 function styleCompatibleMaterialOptionsForPack(kind, pack, room = activeQuestionnaireRoom()) {
   const all = catalogMaterialOptionsForPack(kind, pack);
   const rule = STYLE_MATERIAL_RULES[pack.styleId];
   const wetArea = isWetAreaRoom(room);
+  const bathroom = isBathroomRoom(room);
   const compatible = all.filter((option) => {
-    if (isPoolOrMosaicSurface(option) && !wetArea) return false;
+    if (isPoolSurface(option)) return false;
+    if (isMosaicSurface(option) && !bathroom) return false;
     if (isHighChromaMaterial(option)) return false;
     const type = materialCatalogType(option);
     const color = materialCatalogColor(option);
@@ -6971,7 +6982,9 @@ function styleCompatibleMaterialOptionsForPack(kind, pack, room = activeQuestion
     return rule.colors.includes(color);
   });
   const fallback = all.filter((option) =>
-    (!isPoolOrMosaicSurface(option) || wetArea) && !isHighChromaMaterial(option),
+    !isPoolSurface(option)
+      && (!isMosaicSurface(option) || bathroom)
+      && !isHighChromaMaterial(option),
   );
   return (compatible.length ? compatible : fallback)
     .sort((left, right) => materialPairScore(kind, right, pack, room) - materialPairScore(kind, left, pack, room));
@@ -13997,6 +14010,27 @@ function materialOptionsForStyle(styleId, kind, baseOptions) {
   return [...merged.values()];
 }
 
+function recommendedStepSixMaterialOptions(
+  kind,
+  activePack,
+  room = selectedStepSixRoom(),
+) {
+  const merged = new Map();
+  const styleId = activePack?.styleId || state.activeStyleId;
+  const styleOptions = STYLE_MATERIAL_OPTIONS[styleId] || {};
+  materialOptionsForStyle(styleId, kind, styleOptions[kind])
+    .forEach((item) => merged.set(item.id, item));
+  styleCompatibleMaterialOptionsForPack(kind, activePack, room)
+    .forEach((item) => merged.set(item.id, { ...(merged.get(item.id) || {}), ...item }));
+  return [...merged.values()].sort((left, right) => {
+    const pairDifference = materialPairScore(kind, right, activePack, room)
+      - materialPairScore(kind, left, activePack, room);
+    if (pairDifference) return pairDifference;
+    return surfaceRecommendationScore(right, activePack?.[kind]?.surfaceOption, activePack)
+      - surfaceRecommendationScore(left, activePack?.[kind]?.surfaceOption, activePack);
+  });
+}
+
 function allStepSixMaterialOptions(
   kind,
   activePack,
@@ -14042,7 +14076,7 @@ function renderStepSixColorSwatches(kind, activePack) {
   const host = $("#" + kind + "-color-swatches");
   if (!host) return;
   const current = stepSixSurfaceSelection(kind).color;
-  const options = allStepSixMaterialOptions(kind, activePack)
+  const options = recommendedStepSixMaterialOptions(kind, activePack)
     .slice(0, STEP_SIX_SURFACE_MATERIAL_LIMIT);
   const fallback = kind === "wall"
     ? ["#f4efe4", "#ded7ca", "#c7c6c0", "#a8b3a5", "#8b8780", "#4d4c48"]
@@ -14071,9 +14105,10 @@ function renderGroupedMaterialOptions(activePack) {
     const draft = roomFinishDraftFor(room);
     const catalogItems = catalogMaterialOptionsForPack(kind, activePack);
     const items = allStepSixMaterialOptions(kind, activePack, room, catalogItems);
+    const recommendedItems = recommendedStepSixMaterialOptions(kind, activePack, room);
     const current = draft[kind + "Material"] || $(`#${kind}-material`)?.value;
     const selectedMaterial = syncSurfaceMaterialSelect(kind, items, current);
-    const visibleItems = items.slice(0, STEP_SIX_SURFACE_MATERIAL_LIMIT);
+    const visibleItems = recommendedItems.slice(0, STEP_SIX_SURFACE_MATERIAL_LIMIT);
     host.innerHTML = visibleItems.map((item) => `
       <button type="button"
         data-surface-material-card

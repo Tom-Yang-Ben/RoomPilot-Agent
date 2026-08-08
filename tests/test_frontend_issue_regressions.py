@@ -40,6 +40,46 @@ def test_step_six_replaces_furniture_selection_with_room_surfaces() -> None:
     assert '["plan", "issues", "surfaces"]' in SCENE_JS
 
 
+def test_locked_step_six_room_keeps_material_edit_action_beside_lock_state() -> None:
+    header = SCENE_HTML.split(
+        '<header class="rp-step-six-surface-header"', 1
+    )[1].split("</header>", 1)[0]
+    footer = SCENE_HTML.split(
+        '<footer class="rp-step-six-surface-actions">', 1
+    )[1].split("</footer>", 1)[0]
+
+    assert 'id="surface-room-lock-state"' in header
+    assert 'id="unlock-room-surfaces"' in header
+    assert "修改此房間材質" in header
+    assert 'id="unlock-room-surfaces"' not in footer
+
+    progress = function_body("renderStepSixSurfaceProgress", "setStepSixSurfaceKind")
+    assert (
+        "element.unlockRoomSurfaces.hidden = !confirmed || "
+        "stepSixSurfacesFinalLocked();"
+    ) in progress
+
+
+def test_step_six_recommendations_only_use_questionnaire_compatible_materials() -> None:
+    recommendations = function_body(
+        "recommendedStepSixMaterialOptions", "allStepSixMaterialOptions"
+    )
+    grouped = function_body("renderGroupedMaterialOptions", "stylePackByIdSafe")
+    swatches = function_body("renderStepSixColorSwatches", "renderGroupedMaterialOptions")
+    compatible = function_body(
+        "styleCompatibleMaterialOptionsForPack", "renderMaterialFilterChips"
+    )
+
+    assert "styleCompatibleMaterialOptionsForPack(kind, activePack, room)" in recommendations
+    assert "catalogOptions.forEach" not in recommendations
+    assert "Object.entries(STYLE_MATERIAL_OPTIONS)" not in recommendations
+    assert "isPoolSurface" in compatible
+    assert "if (isPoolSurface(option)) return false;" in compatible
+    assert "recommendedStepSixMaterialOptions(kind, activePack, room)" in grouped
+    assert "allStepSixMaterialOptions(kind, activePack, room, catalogItems)" in grouped
+    assert "recommendedStepSixMaterialOptions(kind, activePack)" in swatches
+
+
 def test_room_surface_changes_are_persisted_as_explicit_room_overrides() -> None:
     keeps_override = function_body(
         "roomKeepsExplicitWallOverride", "normalizedRoomSurfaces"

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-    <link rel="stylesheet" href="/static/site.css?v=sha256-f77eb618366f" />
+    <link rel="stylesheet" href="/static/site.css?v=sha256-4c1b27dc2431" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -723,7 +723,10 @@
                   <h2 id="surface-room-title">牆面與地面</h2>
                   <p id="surface-room-progress" class="rp-step-six-progress" aria-live="polite">已確認 0 / 0 間</p>
                 </div>
-                <span id="surface-room-lock-state" class="rp-surface-lock-state">草稿</span>
+                <div class="rp-step-six-lock-control">
+                  <span id="surface-room-lock-state" class="rp-surface-lock-state">草稿</span>
+                  <button id="unlock-room-surfaces" type="button" class="secondary-action" hidden>修改此房間材質</button>
+                </div>
               </header>
               <p id="surface-room-questionnaire" class="rp-room-questionnaire-summary"></p>
               <p id="surface-preview-status" class="rp-step-six-preview-status" aria-live="polite">選擇材質會先更新本房草稿與 3D 預覽。</p>
@@ -799,7 +802,6 @@
               <p id="surface-selected-description" class="rp-surface-selected-description" aria-live="polite"></p>
               <footer class="rp-step-six-surface-actions">
                 <div class="rp-inline-actions">
-                  <button id="unlock-room-surfaces" type="button" class="secondary-action" hidden>重新修改此房間</button>
                   <button id="confirm-room-surfaces" type="button" class="primary-action">確認此房間材質</button>
                 </div>
                 <button id="save-realistic-scene" type="button" class="primary-action" hidden>確認全部材質，前往第 7 步</button>
@@ -1140,6 +1142,6 @@
         }
       }
     </script>
-    <script type="module" src="/static/scene_v2.js?v=sha256-9277858d5bcc"></script>
+    <script type="module" src="/static/scene_v2.js?v=sha256-78cca0db22ea"></script>
   </body>
 </html>

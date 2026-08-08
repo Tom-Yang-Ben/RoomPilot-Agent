@@ -14089,6 +14089,7 @@ body.is-workflow-transitioning {
 }
 
 .rp-step-six-surface-header {
+  flex-wrap: wrap;
   padding-bottom: 14px;
   border-bottom: 1px solid #d8ddd9;
 }
@@ -14125,6 +14126,20 @@ body.is-workflow-transitioning {
   border-color: #27715d;
   background: #e5f0eb;
   color: #174f40;
+}
+
+.rp-step-six-lock-control {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.rp-step-six-lock-control .secondary-action {
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 0.78rem;
 }
 
 .rp-surface-kind-tabs {
@@ -14306,7 +14321,7 @@ body.is-workflow-transitioning {
 .rp-step-six-surface-actions button { min-height: 44px; }
 .rp-step-six-surface-actions .rp-inline-actions button { flex: 1 1 0; }
 
-.rp-white-surface-entry.is-room-locked [data-step-six-surface-panel] button:not([data-open-step-six-material-catalog]),
+.rp-white-surface-entry.is-room-locked [data-step-six-surface-panel] button,
 .rp-white-surface-entry.is-room-locked [data-step-six-surface-panel] input,
 .rp-white-surface-entry.is-room-locked [data-step-six-surface-panel] select,
 .rp-white-surface-entry.is-room-locked .rp-surface-advanced {
@@ -14319,6 +14334,7 @@ body.is-workflow-transitioning {
   .rp-surface-material-heading { align-items: stretch; flex-direction: column; }
   .rp-surface-material-heading .secondary-action { width: 100%; }
   .rp-step-six-surface-header { align-items: flex-start; }
+  .rp-step-six-lock-control { width: 100%; justify-content: space-between; }
 }
 
 #proposal-room-view-lock .rp-field-hint {
