@@ -216,7 +216,7 @@ def test_wall_furniture_anchors_to_the_requested_room_boundary() -> None:
         z_cm - (-314.92) - footprint["depth"] / 2,
         71.78 - z_cm - footprint["depth"] / 2,
     )
-    assert -1 <= wall_gap_cm <= 12
+    assert abs(wall_gap_cm) <= 1
 
 
 def test_manual_wall_snap_is_resolved_by_the_backend_layout_engine() -> None:

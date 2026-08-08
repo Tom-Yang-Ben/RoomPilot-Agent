@@ -1258,9 +1258,9 @@ def _regions_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon |
     polys = _region_polygons(floorplan, room)
     if not polys:
         return None
-    union = unary_union(polys)
-    shrunk = union.buffer(-8.0)
-    return union if shrunk.is_empty else shrunk
+    # room_regions 已是使用者確認的室內完成面。一般家具的邊距由候選
+    # clamp_margin 控制；再整體內縮會讓靠牆家具固定留下 8cm 縫隙。
+    return unary_union(polys)
 
 
 def _region_polygons(floorplan: dict[str, Any] | None, room: Room) -> list[Polygon]:
@@ -1289,13 +1289,11 @@ def _region_polygons(floorplan: dict[str, Any] | None, room: Room) -> list[Polyg
 
 
 def _largest_region_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon | None:
-    """最大一塊自由空間(角落原點,內縮 8cm)——自動配置集中在主要區域用。"""
+    """最大一塊室內完成面(角落原點)——自動配置集中在主要區域用。"""
     polys = _region_polygons(floorplan, room)
     if not polys:
         return None
-    best = max(polys, key=lambda p: p.area)
-    shrunk = best.buffer(-8.0)
-    return best if shrunk.is_empty else shrunk
+    return max(polys, key=lambda p: p.area)
 
 
 def _region_boundary_by_id(
@@ -1328,8 +1326,7 @@ def _region_boundary_by_id(
                 polygon = polygon.buffer(0)
             if polygon.is_empty:
                 return None
-            shrunk = polygon.buffer(-8.0)
-            return polygon if shrunk.is_empty else shrunk
+            return polygon
         except (KeyError, TypeError, ValueError):
             return None
     return None

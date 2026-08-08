@@ -76,6 +76,47 @@ def test_room_view_candidates_are_room_bound_and_show_the_full_space() -> None:
     assert "room.id" in selection
 
 
+def test_step_six_room_camera_uses_the_viewers_world_z_axis() -> None:
+    viewer = (
+        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
+    ).read_text(encoding="utf-8")
+    camera_polygon = function_body("roomScenePolygon", "scenePointInsideRoom")
+    camera_hit_test = function_body("scenePointInsideRoom", "roomSceneTarget")
+    camera_target = function_body("roomSceneTarget", "insetRoomCameraPoint")
+    walk_payload = function_body("selectedWhiteWalkRoomPayload", "activateWhiteWalkMode")
+
+    assert 'if ("z" in next) next.z = -Number(next.z || 0);' in viewer
+    assert "z: center.y - Number(point.y)" in camera_polygon
+    assert "y: center.y - Number(point.z)" in camera_hit_test
+    assert (
+        "z: sum.z - Number(item.position_cm?.z || 0) / furniture.length"
+        in camera_target
+    )
+    assert "z: center.y - roomMiddle.y" in walk_payload
+    assert "z: center.y - point.y" in walk_payload
+
+
+def test_all_frontend_room_displays_validate_the_selected_room_camera() -> None:
+    assert "function roomCameraTargetsRoom(room, camera)" in SCENE_JS
+
+    validator = function_body("validProposalRoomView", "selectProposalRoomView")
+    step_six = function_body("focusStepSixRoom", "renderRoomSchemeSelectionDialog")
+    step_seven = function_body("selectProposalRoomView", "selectProposalRoomCandidate")
+    step_eight = function_body("selectRenderRoom", "prepareAiRender")
+
+    assert "roomCameraTargetsRoom(room, camera)" in validator
+    assert "roomCameraSuggestion(room)" in step_six
+    assert "validProposalRoomView(room)" in step_seven
+    assert "view?.camera || roomCameraSuggestion(room)" in step_eight
+    assert "if (view) aiRenderViewer.setCameraState" not in step_eight
+
+    assert "selectRoom(roomShape.dataset.roomShape)" in SCENE_JS
+    assert "button.dataset.visualRoom" in SCENE_JS
+    assert "focusStepSixRoom(roomId)" in SCENE_JS
+    assert "selectProposalRoomView(roomButton.dataset.proposalRoom)" in SCENE_JS
+    assert "selectRenderRoom(button.dataset.finalRenderRoom)" in SCENE_JS
+
+
 def test_step_seven_hides_internal_names_and_palette_cards_use_images() -> None:
     panel = function_body("ensureProposalRoomViewPanel", "renderProposalRoomViewPanel")
     render_panel = function_body("renderProposalRoomViewPanel", "confirmProposalRoomViews")

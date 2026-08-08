@@ -12797,11 +12797,11 @@ function selectedWhiteWalkRoomPayload() {
     label: room.label || "未命名空間",
     center_cm: {
       x: roomMiddle.x - center.x,
-      z: roomMiddle.y - center.y,
+      z: center.y - roomMiddle.y,
     },
     polygon_cm: room.polygon_cm.map((point) => ({
       x: point.x - center.x,
-      z: point.y - center.y,
+      z: center.y - point.y,
     })),
   };
 }
@@ -14961,7 +14961,8 @@ function roomScenePolygon(room) {
   return (room?.polygon_cm || [])
     .map((point) => ({
       x: Number(point.x) - center.x,
-      z: Number(point.y) - center.y,
+      // scene_viewer flips source Z before rendering; room cameras use world Z.
+      z: center.y - Number(point.y),
     }))
     .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.z));
 }
@@ -14969,7 +14970,7 @@ function roomScenePolygon(room) {
 function scenePointInsideRoom(room, point) {
   const center = planCenterCm();
   return pointInPolygonCm(
-    { x: Number(point.x) + center.x, y: Number(point.z) + center.y },
+    { x: Number(point.x) + center.x, y: center.y - Number(point.z) },
     room?.polygon_cm || [],
   );
 }
@@ -14998,7 +14999,7 @@ function roomSceneTarget(room) {
   if (!furniture.length) return interior;
   const furnitureCenter = furniture.reduce((sum, item) => ({
     x: sum.x + Number(item.position_cm?.x || 0) / furniture.length,
-    z: sum.z + Number(item.position_cm?.z || 0) / furniture.length,
+    z: sum.z - Number(item.position_cm?.z || 0) / furniture.length,
   }), { x: 0, z: 0 });
   const weighted = {
     x: interior.x * 0.7 + furnitureCenter.x * 0.3,
@@ -15047,6 +15048,14 @@ function roomCameraForAnchor(room, anchorIndex = 0) {
 
 function roomCameraSuggestion(room) {
   return roomCameraForAnchor(room, 0);
+}
+
+function roomCameraTargetsRoom(room, camera) {
+  const target = camera?.target_cm;
+  if (!Array.isArray(target) || target.length < 3) return false;
+  const point = { x: Number(target[0]), z: Number(target[2]) };
+  if (!Number.isFinite(point.x) || !Number.isFinite(point.z)) return false;
+  return scenePointInsideRoom(room, point);
 }
 
 function proposalRoomCameraCandidates(room) {
@@ -15164,6 +15173,7 @@ function validProposalRoomView(room) {
   const camera = saved?.camera;
   return String(saved?.room_id || camera?.room_id || "") === String(room?.id)
     && String(camera?.preset || "").startsWith("full-room-v2")
+    && roomCameraTargetsRoom(room, camera)
     ? saved
     : null;
 }
@@ -16225,7 +16235,7 @@ function selectRenderRoom(roomId) {
   const view = validProposalRoomView(room);
   state.selectedRenderRoomId = room.id;
   aiRenderViewer.lockRenderCamera(true);
-  if (view) aiRenderViewer.setCameraState(view.camera || view);
+  aiRenderViewer.setCameraState(view?.camera || roomCameraSuggestion(room));
   if (element.aiRenderViewTitle) {
     element.aiRenderViewTitle.textContent = `${room.label || "未命名空間"}｜已確認視角`;
   }
