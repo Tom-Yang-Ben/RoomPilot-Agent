@@ -12390,8 +12390,12 @@ function updateSelectedFurnitureDimensions() {
   scheduleSave("layout_2d");
 }
 
-async function resolveCatalogFurniture(item) {
-  const positionLocked = item.locked === true;
+async function resolveCatalogFurniture(item, { lockPositions = false } = {}) {
+  // A room-by-room A/B decision is a final placement choice: preserve the chosen
+  // per-room coordinates (lockPositions) so the strict composite reproduces the
+  // selected layout instead of re-placing it. Otherwise only user-pinned items
+  // (item.locked) stay put. See completeRoomSchemeSelection / confirmLayout2d.
+  const positionLocked = item.locked === true || lockPositions === true;
   if (item.model_url && item.catalogFurnitureId) {
     return {
       ...toSceneFurniture(item),
@@ -12532,7 +12536,9 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
       : "沒有家具需求，正在產生純結構 3D 配置…");
     const applianceRequirements = applianceRequirementsForRendering(state.furniture2d);
     const placeableFurniture = removeRetiredAppliancesFromFurniture(state.furniture2d);
-    const selectedFurniture = await Promise.all(placeableFurniture.map(resolveCatalogFurniture));
+    const selectedFurniture = await Promise.all(
+      placeableFurniture.map((item) => resolveCatalogFurniture(item, { lockPositions: strictSelectedFurniture })),
+    );
     const missingCatalogModels = selectedFurniture.filter((item) => !item.model_url);
     if (missingCatalogModels.length && (!allowPendingFurniture || strictSelectedFurniture)) {
       element.layoutError.textContent =

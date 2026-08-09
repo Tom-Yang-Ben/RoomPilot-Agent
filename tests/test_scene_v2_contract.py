@@ -1534,6 +1534,24 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "完成需求，建立配置方案" in html
 
 
+def test_room_scheme_composite_locks_selected_positions_for_strict_generation() -> None:
+    """逐房 A/B 合成是最終擺位選擇。strict 路徑必須把所選座標鎖定送進後端,否則
+    引擎會重排家具,assertGeneratedSceneMatchesSelectedFurniture 會判定每件都
+    moved(feedback: selected_scheme_furniture_mismatch missing=0 unexpected=0
+    moved=9)。回歸守門:strict 合成傳 lockPositions,且 resolveCatalogFurniture
+    尊重它(使用者未手動拖曳的 A/B 選擇也要保留位置)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    assert (
+        "resolveCatalogFurniture(item, { lockPositions: strictSelectedFurniture })"
+        in source
+    )
+    resolver = source.split("async function resolveCatalogFurniture", 1)[1].split(
+        "\nasync function ", 1
+    )[0]
+    assert "{ lockPositions = false } = {}" in resolver
+    assert "item.locked === true || lockPositions === true" in resolver
+
+
 def test_requirement_generation_defers_a_single_failed_room_without_breaking_step_six() -> None:
     viewer = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
