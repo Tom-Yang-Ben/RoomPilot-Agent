@@ -37,7 +37,10 @@ from backend.paths import STATIC_DIR
 from backend.server.catalog_vocabulary import (
     FAMILIES_WITHOUT_CATALOG_MODELS,
     FAMILY_CATALOG_FALLBACKS,
+    PLACEMENT_FAMILY_FALLBACKS,
+    PLACEMENT_FAMILY_UNMAPPED,
     catalog_types_for_family,
+    placement_family_for_type,
 )
 from backend.server.main import _AUTO_DECOR_TYPES
 from backend.server.scene_service import FURNITURE_ALIASES, SPACE_DEFAULTS
@@ -179,6 +182,52 @@ def questionnaire_families() -> set[str]:
         | set(FURNITURE_ALIASES.values())
         | frontend_2d_library_types()
     )
+
+
+def test_every_floor_furniture_type_has_a_placement_anchor_or_a_recorded_reason() -> None:
+    """型錄的落地家具都要有類型錨點,否則會站在房間中央不貼牆。
+
+    錨點鏈認的是族系粗分名;型錄用細分名。缺對照的型別不會擺放失敗、也不會缺件,
+    只會安靜地停在房間正中心加 3×3 網格上,所以沒有測試盯著就不會有人發現。
+    """
+    from backend.catalog.placement_surface import placement_surface_for
+    from backend.server.scene_service import _placement_candidates
+
+    def has_type_anchor(name: str) -> bool:
+        # 有專屬錨點的型別,候選會比「只有房間正中心 + 3×3 網格」多。
+        generic = _placement_candidates("__no_such_type__", 60, 40, 600, 500)
+        return len(_placement_candidates(name, 60, 40, 600, 500)) > len(generic)
+
+    missing = sorted(
+        name
+        for name, counts in SNAPSHOT["category_codes"].items()
+        if counts["with_model"]
+        and placement_surface_for(name) == "floor"
+        and not has_type_anchor(name)
+        and name not in PLACEMENT_FAMILY_UNMAPPED
+    )
+    assert not missing, (
+        f"這些落地家具型別沒有擺放錨點,會停在房間中央:{missing}。"
+        "請在 PLACEMENT_FAMILY_FALLBACKS 補對照,或連同理由列進 PLACEMENT_FAMILY_UNMAPPED。"
+    )
+
+
+def test_placement_family_fallbacks_point_at_types_that_have_anchors() -> None:
+    """對照表的目的地必須真的有錨點,否則等於沒對照。"""
+    from backend.server.scene_service import _placement_candidates
+
+    generic = len(_placement_candidates("__no_such_type__", 60, 40, 600, 500))
+    for source, target in PLACEMENT_FAMILY_FALLBACKS.items():
+        assert len(_placement_candidates(target, 60, 40, 600, 500)) > generic, (
+            f"{source} 對到 {target},但 {target} 自己就沒有類型錨點"
+        )
+        assert placement_family_for_type(source) == target
+
+
+def test_placement_family_fallbacks_only_map_types_the_catalog_has() -> None:
+    """對照表只該收型錄真的存在的細分名,不然是在替不存在的資料做決定。"""
+    unknown = sorted(set(PLACEMENT_FAMILY_FALLBACKS) - USABLE_CATEGORY_CODES - USABLE_TYPES)
+    assert not unknown, f"這些型別不在型錄快照裡:{unknown}"
 
 
 def test_retrieval_tables_only_reference_types_the_catalog_actually_has() -> None:

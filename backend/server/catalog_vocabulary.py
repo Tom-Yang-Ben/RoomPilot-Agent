@@ -45,6 +45,68 @@ FAMILY_CATALOG_FALLBACKS: dict[str, tuple[str, ...]] = {
     "bed-frame": ("bed",),
 }
 
+# --------------------------------------------------------------------------
+# 反向缺口：型錄型別 → 擺放錨點族系
+# --------------------------------------------------------------------------
+# 上面那張表解決「問卷族系在型錄找不到品項」。這張表解決反過來的另一半：
+# **型錄品項在擺放層找不到自己的錨點**。
+#
+# `scene_service._placement_candidates` 的類型錨點（貼哪面牆、朝哪個方向）與
+# `_WALL_ANCHORED_TYPES` 用的是問卷族系的粗分名（`sofa`、`cabinet`、`wardrobe`），
+# 但型錄的 `normalized_type` 是細分名（`fabric-sofa`、`cabinet-cupboard`、
+# `pax-wardrobe`）。細分名沒有比對到任何一條 `elif`，就掉進 `else:` 分支——
+# 只拿到「房間正中心」一個候選，接著就是尾巴那組 3×3 保底網格。
+#
+# 症狀是「2D／3D 有這件家具，但它站在房間中央、不貼牆、朝向隨機」，而不是缺件，
+# 所以 `placement_failed` 是空的，`unavailable_types` 也是空的（QA 2026-08-09：
+# 臥室三個 BESTÅ／HAVSTA 櫃體漂在床前面）。實測快照（7,958 筆 has_model）裡
+# 落地家具有 3,373 件、24 種踩到這個洞，沙發族系（fabric／leather／modular，
+# 共 1,261 筆）比有錨點的 `sofa`（490 筆）還多。
+#
+# 只收「擺放語意與後備對象相同」的對照——貼牆的仍對到貼牆族系，居中的對到居中
+# 族系。合法性判定完全不受影響：這裡只決定「先試哪些位置」，能不能放仍然由
+# `backend/engine/` 的碰撞與淨空判定。
+PLACEMENT_FAMILY_FALLBACKS: dict[str, str] = {
+    # 沙發：背靠牆、面向房間。
+    "fabric-sofa": "sofa",
+    "leather-sofa": "sofa",
+    "modular-sofa": "sofa",
+    # 櫃體：貼牆。型錄的櫃子有六種細分名，`cabinet` 本身是 0 筆。
+    "cabinet-cupboard": "cabinet",
+    "chests-of-drawer": "cabinet",
+    "display-cabinet": "cabinet",
+    "shelving-unit": "cabinet",
+    "shoe-cabinet": "cabinet",
+    "storage-furniture": "cabinet",
+    "storage-solution-system": "cabinet",
+    # 衣物收納：貼牆、深度大。
+    "pax-wardrobe": "wardrobe",
+    "clothes-rack": "wardrobe",
+    # 影音櫃：貼牆、面向沙發。
+    "tv-media-furniture": "tv-bench",
+    # 桌類：置中，四周留出座位空間。
+    "table": "dining-table",
+    "bar-table": "dining-table",
+    "childrens-table": "dining-table",
+    # 椅凳：沿桌邊。`stool-bench` 是型錄最大的一族（1,365 筆）。
+    "chair": "dining-chair",
+    "stool-bench": "dining-chair",
+    "kids-chairs-stool": "dining-chair",
+    "childrens-stools-benche": "dining-chair",
+    "gaming-chair": "office-chair",
+    # 床墊單獨成品項時，擺放語意與床相同。
+    "mattress": "bed",
+}
+
+# 刻意不對照的落地型別，連同理由——沒有紀錄的話下次又要重追一遍：
+#
+#   room-divider（17 筆）——`MANUAL_ONLY_TYPES` 已載明「放在哪個房型、算不算落地
+#       家具、要不要參與動線計算都還沒定案」。給它貼牆錨點等於偷偷替產品決定。
+#   childrens-furniture（18 筆）——這是一個混合桶（床、櫃、桌都有），沒有單一
+#       擺放語意可對。要拆得由 Kai 在匯入層細分 normalized_type。
+PLACEMENT_FAMILY_UNMAPPED: tuple[str, ...] = ("room-divider", "childrens-furniture")
+
+
 # 型錄真的沒有對應品項、不能靠改名解決的族系。列在這裡是為了讓「2D 放得下、
 # 3D 一定缺席」這件事有紀錄可查，而不是每次都要重新追一遍；要補齊得由 Kai 匯入
 # 實際模型，不是加對照表。
@@ -169,3 +231,13 @@ def catalog_types_for_family(family: str) -> tuple[str, ...]:
     """
     name = str(family or "")
     return (name, *FAMILY_CATALOG_FALLBACKS.get(name, ()))
+
+
+def placement_family_for_type(normalized_type: str | None) -> str:
+    """回傳這個型別該套用的擺放錨點族系；沒有對照就回傳它自己。
+
+    型錄日後真的把 `cabinet`／`sofa` 這些粗分名補進來，或 Kai 把細分名再拆一層，
+    這裡沒對照的型別仍然照原名比對，不會被這張表改掉語意。
+    """
+    name = str(normalized_type or "").strip()
+    return PLACEMENT_FAMILY_FALLBACKS.get(name, name)

@@ -28,6 +28,7 @@ from ..engine.placement import (
 from ..upgrade3d.dxf_parser import parse_dxf_bytes
 from .catalog_vocabulary import (
     catalog_types_for_family,
+    placement_family_for_type,
     is_appliance_item,
     is_appliance_type,
 )
@@ -798,6 +799,57 @@ _WALL_ANCHORED_TYPES = {
 # `washer`，是家電進配置時代的殘留——契約禁止它們進 2D/3D，已移除。
 
 
+def _wall_slide_candidates(
+    width: float,
+    depth: float,
+    left: float,
+    right: float,
+    top: float,
+    bottom: float,
+    step_cm: float = 45.0,
+    per_wall: int = 9,
+) -> list[tuple[float, float, float]]:
+    """沿四面牆滑動的貼牆候選,由每面牆的中段往兩側展開。
+
+    類型錨點每種只給 2~3 個離散的貼牆「點」(左牆中央、右牆中央、上牆中央),
+    點被前面的家具佔掉之後,後面的同類就只剩房間正中心與 3×3 網格可選——臥室
+    放 8 件家具時,有 5 件會站在房間中央(QA 2026-08-09)。
+
+    這裡只補「還有哪些貼牆位置可以試」,不做任何合法性判斷:每個候選仍要通過
+    呼叫端的房間邊界、禁區與 `backend/engine/` 的碰撞淨空檢查。
+    """
+    candidates: list[tuple[float, float, float]] = []
+    # (沿牆方向的擺放深度, 旋轉角, 是否為水平牆)
+    walls = (
+        (depth, 0.0, True, top),      # 上牆:背朝上
+        (depth, 180.0, True, bottom),  # 下牆:背朝下
+        (depth, 90.0, False, left),    # 左牆:背朝左
+        (depth, 270.0, False, right),  # 右牆:背朝右
+    )
+    for wall_depth, rotation, horizontal, wall_at in walls:
+        span_start, span_end = (left, right) if horizontal else (top, bottom)
+        along = width
+        usable = (span_end - span_start) - along
+        if usable < 0:
+            continue
+        center = (span_start + span_end) / 2
+        offsets = [0.0]
+        for index in range(1, per_wall // 2 + 1):
+            offsets.extend([index * step_cm, -index * step_cm])
+        for offset in offsets:
+            position = center + offset
+            if abs(offset) > usable / 2:
+                continue
+            fixed = (
+                wall_at + wall_depth / 2 if rotation in (0.0, 90.0)
+                else wall_at - wall_depth / 2
+            )
+            candidates.append(
+                (position, fixed, rotation) if horizontal else (fixed, position, rotation)
+            )
+    return candidates
+
+
 def _placement_candidates(
     item_type: str | None,
     width: float,
@@ -805,6 +857,7 @@ def _placement_candidates(
     room_width_cm: float,
     room_depth_cm: float,
     bounds_cm: tuple[float, float, float, float] | None = None,
+    placement_variant: str = "A",
 ) -> list[tuple[float, float, float]]:
     left, right, top, bottom = bounds_cm or (
         -room_width_cm / 2,
@@ -818,6 +871,12 @@ def _placement_candidates(
     center_z = (top + bottom) / 2
     candidates: list[tuple[float, float, float]] = []
     wall_gap = 0 if bounds_cm is not None else 10
+
+    # 下面的 elif 鏈用的是問卷族系的粗分名,型錄送進來的是細分名
+    # (fabric-sofa／cabinet-cupboard／pax-wardrobe...)。不先對照的話,細分名
+    # 一條都比對不到,只拿得到最後那個「房間正中心」候選加 3×3 網格,家具就會
+    # 站在房間中央不貼牆。對照表與理由在 catalog_vocabulary.py。
+    item_type = placement_family_for_type(item_type)
 
     if item_type == "tv-bench":
         candidates.extend([(center_x, top + depth / 2 + wall_gap, 0), (center_x - candidate_width_cm * 0.22, top + depth / 2 + wall_gap, 0)])
@@ -869,6 +928,26 @@ def _placement_candidates(
     else:
         candidates.append((center_x, center_z, 0))
 
+    if str(placement_variant).upper() == "B":
+        # 方案 B 的類型錨點:在房間內作 180° 點對稱——靠牆的仍然靠牆,只是換
+        # 一面主牆(床改靠對側、電視櫃與沙發對調牆面),朝向同步轉 180°。
+        #
+        # 這裡不能用「把整份候選倒過來」:候選尾巴是下面那組 0° 網格,一倒過來
+        # 網格就排到最前面,整房家具全部 0° 排排站,B 於是永遠比 A 難看。
+        # 鏡射錨點放不下時仍可退回 A 的原錨點,網格照舊留在最後當保底。
+        mirrored = [
+            (left + right - x, top + bottom - z, (rotation + 180) % 360)
+            for x, z, rotation in candidates
+        ]
+        candidates = mirrored + candidates
+
+    # 貼牆家具在類型錨點用盡後,先沿牆找位置,再才輪到下面的中央網格。順序很重要:
+    # 網格點都在房間中段,一旦排在前面,第二件同類櫃體就會停在房間中央。
+    if item_type in _WALL_ANCHORED_TYPES:
+        candidates.extend(
+            _wall_slide_candidates(width, depth, left, right, top, bottom)
+        )
+
     grid_x = [left + candidate_width_cm * ratio for ratio in (0.25, 0.5, 0.75)]
     grid_z = [top + candidate_depth_cm * ratio for ratio in (0.28, 0.5, 0.72)]
     for z in grid_z:
@@ -876,6 +955,78 @@ def _placement_candidates(
             candidates.append((x, z, 0))
 
     return candidates
+
+
+# 必須貼著主家具的品項:床頭櫃貼床。值是可以依附的主家具族系(依序嘗試)。
+#
+# 系統本來就有貼鄰機制(`placement_relation.kind == "adjacent"`),但
+# `scene_api` 只把它掛給自動加的植栽與燈具;床頭櫃走的是一般錨點,而它的錨點寫死
+# 是房間角落。這裡不改那條貼鄰路徑(改了會讓「房裡沒有床」的床頭櫃從能擺變成
+# 擺放失敗),只是在一般候選前面插入床側的位置。
+_COMPANION_TARGETS: dict[str, tuple[str, ...]] = {
+    "bedside-table": ("bed", "bed-frame", "sofa-bed"),
+}
+
+# 旋轉角 → 家具「背面」朝向的單位向量(場景座標,+z 向下)。
+# 取自類型錨點的寫法:tv-bench 貼上牆是 0°、sofa 貼下牆是 180°、
+# 衣櫃貼左牆是 90°、貼右牆是 -90°。
+_BACK_DIRECTION: dict[int, tuple[float, float]] = {
+    0: (0.0, -1.0),
+    90: (-1.0, 0.0),
+    180: (0.0, 1.0),
+    270: (1.0, 0.0),
+}
+
+
+def _companion_candidates(
+    item_type: str | None,
+    width: float,
+    depth: float,
+    placed_by_type: dict[str, list[PlacedFurniture]],
+    half_w_cm: float,
+    half_d_cm: float,
+) -> list[tuple[float, float, float]]:
+    """回傳「貼著主家具兩側、與主家具同朝向」的候選位置。
+
+    合法性一概不在這裡判斷——回傳的候選仍要通過呼叫端的邊界、禁區與淨空檢查。
+    主家具還沒擺就回空陣列,呼叫端照原本的類型錨點走。
+    """
+    targets = _COMPANION_TARGETS.get(str(item_type or ""))
+    if not targets:
+        return []
+    anchor = next(
+        (placed_by_type[target][-1] for target in targets if placed_by_type.get(target)),
+        None,
+    )
+    if anchor is None:
+        return []
+
+    # 引擎的 rotation 與場景相反(進出引擎時取負號),換回場景角度再對齊到四方位。
+    scene_rotation = int(round(((-anchor.rotation) % 360) / 90.0)) * 90 % 360
+    back_x, back_z = _BACK_DIRECTION.get(scene_rotation, (0.0, 1.0))
+    side_x, side_z = -back_z, back_x
+
+    anchor_w, anchor_d = _rotated_footprint(anchor.catalog.width, anchor.catalog.depth, scene_rotation)
+    own_w, own_d = _rotated_footprint(width, depth, scene_rotation)
+    anchor_center_x = anchor.pos_x - half_w_cm
+    anchor_center_z = anchor.pos_y - half_d_cm
+
+    # 沿「側向」讓兩件的邊剛好相鄰,再留 2cm 縫;沿「背向」把櫃面對齊床頭那一端。
+    side_span = (anchor_w if abs(side_x) > abs(side_z) else anchor_d) / 2 + (
+        own_w if abs(side_x) > abs(side_z) else own_d
+    ) / 2 + 2
+    back_span = ((anchor_d if abs(back_z) > abs(back_x) else anchor_w) - (
+        own_d if abs(back_z) > abs(back_x) else own_w
+    )) / 2
+
+    return [
+        (
+            anchor_center_x + side_x * side_span * sign + back_x * back_span,
+            anchor_center_z + side_z * side_span * sign + back_z * back_span,
+            scene_rotation,
+        )
+        for sign in (1.0, -1.0)
+    ]
 
 
 def _hinted_wall_candidate(
@@ -1069,26 +1220,35 @@ def _place_wall_mounted(
     room: Room,
     placed: list[PlacedFurniture],
     forbidden_zones: list[PlacementZone] | None = None,
+    boundary: Polygon | None = None,
 ) -> PlacedFurniture | None:
     """壁掛品項沿牆面找位置。
 
     引擎已經豁免壁掛的出界與穿牆(掛在牆上是它的正常狀態),這裡只需要
     避開垂直帶會打架的家具。固定角落座標會讓每一件壁掛都疊在同一點。
+
+    多房平面圖一定要傳 `boundary`(該房間的多邊形)。少了它,掃的是整張平面圖
+    外框的四面牆——那些位置對這個房間而言在別人家裡,一路撲空後由呼叫端退到
+    房間代表點,鏡櫃就浮在浴室正中央(QA 2026-08-09:離牆 113.6cm)。
     """
     width, depth = catalog.width, catalog.depth
     step = 40.0
     margin_x, margin_y = width / 2 + 15, depth / 2 + 12
     candidates: list[tuple[float, float, float]] = []
 
-    x = margin_x
-    while x <= max(margin_x, room.width - margin_x):
-        candidates.append((x, margin_y, 0.0))
-        candidates.append((x, room.depth - margin_y, 180.0))
+    min_x, min_y, max_x, max_y = (
+        boundary.bounds if boundary is not None else (0.0, 0.0, room.width, room.depth)
+    )
+
+    x = min_x + margin_x
+    while x <= max(min_x + margin_x, max_x - margin_x):
+        candidates.append((x, min_y + margin_y, 0.0))
+        candidates.append((x, max_y - margin_y, 180.0))
         x += step
-    y = margin_y
-    while y <= max(margin_y, room.depth - margin_y):
-        candidates.append((margin_y, y, 90.0))
-        candidates.append((room.width - margin_y, y, 270.0))
+    y = min_y + margin_y
+    while y <= max(min_y + margin_y, max_y - margin_y):
+        candidates.append((min_x + margin_y, y, 90.0))
+        candidates.append((max_x - margin_y, y, 270.0))
         y += step
 
     for pos_x, pos_y, rotation in candidates:
@@ -2428,7 +2588,7 @@ def generate_layout(
             # 壁掛品項掛在牆上,不是站在房間中央。沿牆找第一個不與既有家具
             # 打架的位置——固定角落會讓層架與掛鏡疊在同一點。
             engine_item = _place_wall_mounted(
-                catalog, item_id, room, placed, forbidden_zones
+                catalog, item_id, room, placed, forbidden_zones, boundary=boundary
             )
             if engine_item is not None:
                 x_cm = engine_item.pos_x - half_w_cm
@@ -2456,10 +2616,8 @@ def generate_layout(
                 room_w_cm,
                 room_d_cm,
                 placement_bounds_cm,
+                placement_variant=placement_variant,
             )
-            if placement_variant == "B" and len(candidates) > 1:
-                # 方案 B 仍走相同碰撞/淨空驗證，只改由另一端開始搜尋合法解。
-                candidates = list(reversed(candidates))
             hinted_wall_candidate = _hinted_wall_candidate(
                 item_type,
                 width,
@@ -2469,11 +2627,21 @@ def generate_layout(
             )
             if hinted_wall_candidate is not None:
                 candidates.insert(0, hinted_wall_candidate)
+            # 床頭櫃這類品項的既有錨點是「房間角落」,床擺在房間中段時它就落在
+            # 一公尺外——2D/3D 看起來像一個孤立的小櫃子,不是床頭櫃。這裡把
+            # 「床的兩側」排到候選最前面;床還沒擺、或兩側都不合法時,原本的
+            # 角落錨點仍在後面,不會因此擺放失敗。
+            for side_candidate in reversed(
+                _companion_candidates(item_type, width, depth, placed_by_type, half_w_cm, half_d_cm)
+            ):
+                candidates.insert(0, side_candidate)
             if curtain_hint:
                 candidates.insert(0, curtain_hint[:3])
             for raw_x, raw_z, rot in candidates:
                 fp_w, fp_d = _rotated_footprint(width, depth, rot)
-                wall_anchored = item_type in _WALL_ANCHORED_TYPES
+                # 同樣要先對照族系:`cabinet-cupboard` 不在表上就會吃到 18cm 的
+                # 內縮邊距,即使搶到貼牆候選也會被推離牆面。
+                wall_anchored = placement_family_for_type(item_type) in _WALL_ANCHORED_TYPES
                 clamp_margin = 0 if wall_anchored else 18
                 candidate_left, candidate_right, candidate_top, candidate_bottom = (
                     placement_bounds_cm

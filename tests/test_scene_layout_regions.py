@@ -126,6 +126,302 @@ def test_layout_variant_b_uses_a_different_engine_validated_candidate() -> None:
     )
 
 
+def _multi_item_bedroom_payload() -> dict:
+    """一間放滿貼牆家具的臥室——逐房 A/B 比較實際會送的形狀。"""
+    return {
+        "floorplan_editor": {
+            "coordinate_unit": "cm",
+            "width_cm": 600,
+            "depth_cm": 500,
+            "room_height_cm": 270,
+            "rooms": [{
+                "id": "bedroom-1",
+                "polygon_cm": [
+                    {"x": 0, "y": 0},
+                    {"x": 600, "y": 0},
+                    {"x": 600, "y": 500},
+                    {"x": 0, "y": 500},
+                ],
+            }],
+            "structures": {"walls": [], "doors": [], "windows": [], "beams": [], "columns": []},
+        },
+        "placement_room_id": "bedroom-1",
+        "scene_objects": [
+            {
+                "furniture_id": "bed-1",
+                "name_zh_raw": "雙人床",
+                "normalized_type": "bed",
+                "size_cm": {"width": 150, "depth": 200, "height": 45},
+            },
+            {
+                "furniture_id": "wardrobe-1",
+                "name_zh_raw": "雙門衣櫃",
+                "normalized_type": "wardrobe",
+                "size_cm": {"width": 120, "depth": 60, "height": 200},
+            },
+            {
+                "furniture_id": "bookcase-1",
+                "name_zh_raw": "書櫃",
+                "normalized_type": "bookcase",
+                "size_cm": {"width": 160, "depth": 40, "height": 202},
+            },
+            {
+                "furniture_id": "cabinet-1",
+                "name_zh_raw": "收納櫃",
+                "normalized_type": "cabinet",
+                "size_cm": {"width": 80, "depth": 42, "height": 64},
+            },
+        ],
+    }
+
+
+def _layout_items(payload: dict, variant: str) -> dict:
+    response = client.post("/api/scene/layout", json={**payload, "placement_variant": variant})
+    assert response.status_code == 200
+    return {item["furniture_id"]: item for item in response.json()["scene_objects"]}
+
+
+def test_layout_variant_b_does_not_collapse_every_item_to_one_orientation() -> None:
+    """方案 B 必須仍是「排過的房間」,不是整房 0° 排排站。
+
+    候選清單尾巴是一組 0° 網格保底位置。B 若用「整份候選反轉」產生,網格會
+    排到最前面,貼牆家具全部改拿 0° 網格點——使用者選了 B 就得到一個比 A 難看
+    的版面(實測:臥室八件全部 rotation 0,座標落在規則格子上)。
+    """
+    payload = _multi_item_bedroom_payload()
+    items_a = _layout_items(payload, "A")
+    items_b = _layout_items(payload, "B")
+
+    for items in (items_a, items_b):
+        for item in items.values():
+            assert item.get("placement_failed") is not True
+
+    rotations_b = {item["rotation_y_deg"] for item in items_b.values()}
+    assert len(rotations_b) > 1, (
+        f"方案 B 的家具朝向全部塌成同一個角度 {rotations_b},是候選網格搶先的排排站版面"
+    )
+
+    differences = [
+        furniture_id
+        for furniture_id, item_a in items_a.items()
+        if item_a["position_cm"] != items_b[furniture_id]["position_cm"]
+        or item_a["rotation_y_deg"] != items_b[furniture_id]["rotation_y_deg"]
+    ]
+    assert differences, "方案 B 與方案 A 完全相同,逐房 A/B 選擇會變成沒有作用"
+
+
+def test_layout_variant_b_keeps_wall_anchored_furniture_against_a_wall() -> None:
+    """B 是「換一面主牆」,不是「丟到房間中央」:貼牆家具仍要貼著某一面牆。"""
+    payload = _multi_item_bedroom_payload()
+    items_b = _layout_items(payload, "B")
+
+    for furniture_id in ("wardrobe-1", "bookcase-1"):
+        item = items_b[furniture_id]
+        footprint = item["footprint_cm"]
+        x_cm, z_cm = item["position_cm"]["x"], item["position_cm"]["z"]
+        wall_gap_cm = min(
+            x_cm + 300 - footprint["width"] / 2,
+            300 - x_cm - footprint["width"] / 2,
+            z_cm + 250 - footprint["depth"] / 2,
+            250 - z_cm - footprint["depth"] / 2,
+        )
+        assert wall_gap_cm <= 15, f"{furniture_id} 離最近的牆 {wall_gap_cm:.1f}cm,不再是貼牆擺放"
+
+
+def test_layout_variant_a_is_unaffected_by_the_variant_b_anchors() -> None:
+    """方案 A 不因 B 的鏡射錨點而漂移:同輸入必得同輸出,且與未指定 variant 相同。"""
+    payload = _multi_item_bedroom_payload()
+    explicit = client.post("/api/scene/layout", json={**payload, "placement_variant": "A"})
+    default = client.post("/api/scene/layout", json={**payload})
+
+    assert explicit.status_code == 200
+    assert default.status_code == 200
+    assert explicit.json()["scene_objects"] == default.json()["scene_objects"]
+
+
+def _room_payload(scene_objects: list[dict], room_id: str = "room-a") -> dict:
+    return {
+        "floorplan_editor": {
+            "coordinate_unit": "cm",
+            "width_cm": 600,
+            "depth_cm": 500,
+            "room_height_cm": 270,
+            "rooms": [{
+                "id": room_id,
+                "polygon_cm": [
+                    {"x": 0, "y": 0},
+                    {"x": 600, "y": 0},
+                    {"x": 600, "y": 500},
+                    {"x": 0, "y": 500},
+                ],
+            }],
+            "structures": {"walls": [], "doors": [], "windows": [], "beams": [], "columns": []},
+        },
+        "placement_room_id": room_id,
+        "scene_objects": scene_objects,
+    }
+
+
+def _wall_gap_cm(item: dict, half_width_cm: float = 300.0, half_depth_cm: float = 250.0) -> float:
+    """家具外框離最近一面房間牆的距離(房間為以原點為中心的矩形)。"""
+    footprint = item["footprint_cm"]
+    x_cm, z_cm = item["position_cm"]["x"], item["position_cm"]["z"]
+    return min(
+        x_cm + half_width_cm - footprint["width"] / 2,
+        half_width_cm - x_cm - footprint["width"] / 2,
+        z_cm + half_depth_cm - footprint["depth"] / 2,
+        half_depth_cm - z_cm - footprint["depth"] / 2,
+    )
+
+
+def test_catalog_subdivided_types_reach_the_same_anchors_as_their_family() -> None:
+    """型錄用細分名(cabinet-cupboard / fabric-sofa),擺放錨點用粗分名。
+
+    沒有對照的話這些型別一條 elif 都比對不到,只拿得到「房間正中心」加 3×3 網格,
+    於是站在房間中央不貼牆——型錄裡這樣的落地家具有 3,373 件。
+    """
+    payload = _room_payload([
+        {
+            "furniture_id": "cabinet-1",
+            "name_zh_raw": "收納櫃",
+            "normalized_type": "cabinet-cupboard",
+            "size_cm": {"width": 120, "depth": 42, "height": 200},
+        },
+        {
+            "furniture_id": "sofa-1",
+            "name_zh_raw": "布沙發",
+            "normalized_type": "fabric-sofa",
+            "size_cm": {"width": 210, "depth": 90, "height": 85},
+        },
+    ])
+    items = {item["furniture_id"]: item for item in
+             client.post("/api/scene/layout", json=payload).json()["scene_objects"]}
+
+    for furniture_id in ("cabinet-1", "sofa-1"):
+        item = items[furniture_id]
+        assert item.get("placement_failed") is not True
+        gap = _wall_gap_cm(item)
+        assert gap <= 15, f"{furniture_id} 離最近的牆 {gap:.1f}cm,沒有拿到族系錨點"
+
+
+def test_extra_cabinets_slide_along_the_wall_instead_of_parking_mid_room() -> None:
+    """類型錨點只有 3 個離散貼牆點;第 4 個櫃體以前只能站在房間中央。"""
+    payload = _room_payload([
+        {
+            "furniture_id": f"cabinet-{index}",
+            "name_zh_raw": f"收納櫃{index}",
+            "normalized_type": "cabinet-cupboard",
+            "size_cm": {"width": 80, "depth": 42, "height": 200},
+        }
+        for index in range(1, 5)
+    ])
+    items = client.post("/api/scene/layout", json=payload).json()["scene_objects"]
+
+    assert len(items) == 4
+    for item in items:
+        assert item.get("placement_failed") is not True
+        gap = _wall_gap_cm(item)
+        assert gap <= 15, f'{item["furniture_id"]} 離最近的牆 {gap:.1f}cm,停在房間中央'
+
+
+def test_bedside_table_lands_beside_the_bed_not_in_a_corner() -> None:
+    """床頭櫃的既有錨點是房間角落;床在房間中段時它會離床一公尺遠。"""
+    payload = _room_payload([
+        {
+            "furniture_id": "bed-1",
+            "name_zh_raw": "雙人床",
+            "normalized_type": "bed",
+            "size_cm": {"width": 152, "depth": 200, "height": 45},
+        },
+        {
+            "furniture_id": "nightstand-1",
+            "name_zh_raw": "床頭櫃",
+            "normalized_type": "bedside-table",
+            "size_cm": {"width": 45, "depth": 40, "height": 50},
+        },
+    ])
+    items = {item["furniture_id"]: item for item in
+             client.post("/api/scene/layout", json=payload).json()["scene_objects"]}
+    bed, nightstand = items["bed-1"], items["nightstand-1"]
+    assert nightstand.get("placement_failed") is not True
+
+    gap_x = (
+        abs(nightstand["position_cm"]["x"] - bed["position_cm"]["x"])
+        - (bed["footprint_cm"]["width"] + nightstand["footprint_cm"]["width"]) / 2
+    )
+    overlap_z = (
+        (bed["footprint_cm"]["depth"] + nightstand["footprint_cm"]["depth"]) / 2
+        - abs(nightstand["position_cm"]["z"] - bed["position_cm"]["z"])
+    )
+    assert gap_x <= 12, f"床頭櫃離床側邊 {gap_x:.1f}cm,不是床頭櫃是孤島"
+    assert overlap_z > 0, "床頭櫃沒有落在床身的長度範圍內"
+
+
+def test_bedside_table_without_a_bed_still_gets_placed() -> None:
+    """房裡沒有床時,床頭櫃必須退回一般錨點,不能因為找不到床就擺放失敗。"""
+    payload = _room_payload([{
+        "furniture_id": "nightstand-1",
+        "name_zh_raw": "床頭櫃",
+        "normalized_type": "bedside-table",
+        "size_cm": {"width": 45, "depth": 40, "height": 50},
+    }])
+    item = client.post("/api/scene/layout", json=payload).json()["scene_objects"][0]
+    assert item.get("placement_failed") is not True
+
+
+def test_wall_mounted_item_hangs_on_the_requested_room_wall() -> None:
+    """壁掛沿的必須是該房間的牆,不是整張平面圖的外框。
+
+    多房平面圖裡,整圖外框的四面牆對這個房間而言在別人家裡,一路撲空後會退到
+    房間代表點——鏡櫃因此浮在浴室正中央。
+    """
+    payload = {
+        "floorplan_editor": {
+            "coordinate_unit": "cm",
+            "width_cm": 1000,
+            "depth_cm": 800,
+            "room_height_cm": 270,
+            "rooms": [
+                {
+                    "id": "bathroom-1",
+                    "polygon_cm": [
+                        {"x": 620, "y": 500},
+                        {"x": 980, "y": 500},
+                        {"x": 980, "y": 780},
+                        {"x": 620, "y": 780},
+                    ],
+                },
+                {
+                    "id": "living-1",
+                    "polygon_cm": [
+                        {"x": 20, "y": 20},
+                        {"x": 600, "y": 20},
+                        {"x": 600, "y": 780},
+                        {"x": 20, "y": 780},
+                    ],
+                },
+            ],
+            "structures": {"walls": [], "doors": [], "windows": [], "beams": [], "columns": []},
+        },
+        "placement_room_id": "bathroom-1",
+        "scene_objects": [{
+            "furniture_id": "mirror-1",
+            "name_zh_raw": "鏡櫃",
+            "normalized_type": "mirror-cabinet",
+            "size_cm": {"width": 60, "depth": 15, "height": 70},
+        }],
+    }
+    item = client.post("/api/scene/layout", json=payload).json()["scene_objects"][0]
+    assert item.get("placement_failed") is not True
+
+    # 浴室在場景座標(以整圖中心為原點)的範圍
+    x_cm, z_cm = item["position_cm"]["x"], item["position_cm"]["z"]
+    left, right, top, bottom = 620 - 500, 980 - 500, 500 - 400, 780 - 400
+    assert left <= x_cm <= right and top <= z_cm <= bottom, "壁掛跑出了指定的房間"
+    gap = min(x_cm - left, right - x_cm, z_cm - top, bottom - z_cm)
+    assert gap <= 40, f"鏡櫃離浴室最近的牆 {gap:.1f}cm,浮在房間中央"
+
+
 def test_layout_places_furniture_in_requested_room_region() -> None:
     floorplan = {
         "width_cm": 1000,
