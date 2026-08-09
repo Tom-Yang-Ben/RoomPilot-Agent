@@ -6845,25 +6845,24 @@ function catalogSurfaceIsUsableInRoom(kind, surface) {
 }
 
 function userFacingMaterialLabel(surface) {
-  const raw = String(surface.name_zh || surface.material_group || surface.category || "材質").trim();
-  return raw
-    .replace(/\s+(?:bamboo|bark|concrete|ground|paintedbricks|paintedplaster|paintedwood|planks|tiles|wallpaper|wicker|wood)\d+[a-z]*$/i, "")
-    .replace(/\s{2,}/g, " ")
-    .trim() || "材質";
+  return String(surface.visual_profile?.label_zh || "紋理待確認").trim();
+}
+
+function materialVisualTags(surface) {
+  const tags = surface.visual_profile?.tags;
+  return Array.isArray(tags) && tags.length === 3
+    ? tags.map((tag) => String(tag).trim()).filter(Boolean)
+    : ["待確認"];
+}
+
+function materialVisualTagMarkup(tags) {
+  return `<span class="rp-material-visual-tags">${(tags || []).map((tag) =>
+    `<em>${escapeHtml(tag)}</em>`,
+  ).join("")}</span>`;
 }
 
 function addMaterialDisplayOrdinals(options) {
-  const totals = options.reduce((counts, option) => {
-    counts[option.label] = (counts[option.label] || 0) + 1;
-    return counts;
-  }, {});
-  const seen = {};
-  const numerals = ["一", "二", "三", "四", "五", "六", "七", "八", "九"];
-  return options.map((option) => {
-    if (totals[option.label] <= 1) return option;
-    seen[option.label] = (seen[option.label] || 0) + 1;
-    return { ...option, label: `${option.label}（${numerals[seen[option.label] - 1] || seen[option.label]}）` };
-  });
+  return options;
 }
 
 function catalogMaterialOptionsForPack(kind, pack) {
@@ -6876,15 +6875,17 @@ function catalogMaterialOptionsForPack(kind, pack) {
     .map((surface) => ({
       id: surface.surface_id,
       label: userFacingMaterialLabel(surface),
-      color: surface.color_hex || "#d5d0c7",
+      color: surface.visual_profile?.primary_hex || surface.color_hex || "#d5d0c7",
       materialPreview: surface.preview_url,
       textureUrl: surface.texture_url,
       materialGroup: surface.material_group || surface.category || "材質",
+      visualTags: materialVisualTags(surface),
       searchText: [
         surface.surface_id,
         surface.name_zh,
         surface.material_group,
         surface.category,
+        ...(surface.visual_profile?.tags || []),
       ].filter(Boolean).join(" ").toLowerCase(),
       source: "catalog",
       suitable: (surface.suitable_styles || []).includes(pack.styleId),
@@ -6895,7 +6896,7 @@ function catalogMaterialOptionsForPack(kind, pack) {
   });
   return addMaterialDisplayOrdinals(sorted).map((option) => materialOptionForPack({
     ...option,
-    note: option.materialGroup,
+    note: [...option.visualTags, option.materialGroup].join("・"),
   }, pack));
 }
 
@@ -7157,8 +7158,15 @@ function renderQuestionnaireMaterialCatalog(kind, search = questionnaireMaterial
   element.questionnaireMaterialCatalogOptions.innerHTML = options.map((option) => `
     <button type="button" data-questionnaire-catalog-material="${escapeHtml(kind)}"
       data-questionnaire-catalog-material-id="${escapeHtml(option.id)}">
-      <img src="${escapeHtml(option.materialPreview)}" alt="${escapeHtml(`${option.label} 材質樣本`)}" loading="lazy">
-      <span><strong>${escapeHtml(option.label)}</strong><small>${escapeHtml(option.note)}</small></span>
+      <span class="rp-material-catalog-sample">
+        <img src="${escapeHtml(option.materialPreview)}" alt="${escapeHtml(`${option.label} 材質樣本`)}" loading="lazy">
+        <i style="--material-primary:${escapeHtml(option.color)}" aria-label="圖片主色 ${escapeHtml(option.color)}"></i>
+      </span>
+      <span class="rp-material-catalog-copy">
+        <strong>${escapeHtml(option.label)}</strong>
+        ${materialVisualTagMarkup(option.visualTags)}
+        <small>${escapeHtml(option.materialGroup)}</small>
+      </span>
     </button>
   `).join("") || "<p class=\"rp-field-error\">找不到符合的材質。請換個關鍵字，或回到推薦項目。</p>";
   if (!element.questionnaireMaterialCatalogDialog.open) {
@@ -14127,7 +14135,8 @@ function renderGroupedMaterialOptions(activePack) {
         <span class="rp-material-preview" style="background:${escapeHtml(item.color || "#ddd")};${item.materialPreview ? `background-image:url('${escapeHtml(item.materialPreview)}')` : ""}"></span>
         <span class="rp-material-copy">
           <strong>${escapeHtml(item.label)}${item.id === recommendedId ? " · 推薦" : ""}</strong>
-          <small>${escapeHtml(item.note || surfaceRecommendationReason(item, activePack, kind))}</small>
+          ${materialVisualTagMarkup(item.visualTags)}
+          <small>${escapeHtml(item.materialGroup || item.note || surfaceRecommendationReason(item, activePack, kind))}</small>
         </span>
       </button>
     `).join("");

@@ -468,6 +468,15 @@ def test_room_questionnaire_recommends_exact_surface_catalog_records() -> None:
     assert 'api("/api/scene/bootstrap")' in source
 
 
+def test_material_cards_use_image_derived_visual_profiles() -> None:
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "surface.visual_profile?.primary_hex || surface.color_hex" in source
+    assert "function materialVisualTags(surface)" in source
+    assert "function materialVisualTagMarkup(tags)" in source
+    assert "紋理待確認" in source
+
+
 def test_room_surfaces_preserve_explicit_room_wall_and_floor_overrides() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
