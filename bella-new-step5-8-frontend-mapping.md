@@ -348,6 +348,13 @@
 - 離屏快照佇列（不佔前景 viewer、拍完卸載）。
 - 第 8 步 OpenRouter 一鍵生圖區塊、生圖覆蓋 3D 互切、單次修改對話框。
 - 成果包常駐入口、第 05 章設計提案 PDF＋`delivery-proposal` 三端點全鏈。
+- **第 6 步逐房 A/B 關卡是活的**（2026-08-09 起）：bella-new 在 `e97adfce` 把
+  `roomSchemeSelectionRequired()` 硬寫成 `return false`（註解稱「agreed Step 6 flow uses one
+  questionnaire/RAG-backed configuration」），本分支曾原封不動繼承；現已依
+  `docs/ROOMPILOT_6_8_AGENT_RENDER_IMPLEMENTATION_SPEC.md` §A/B 選擇階段、§驗收條件 3 復原：
+  進 `white_model_3d` 先開逐房比較 dialog，未逐房選定前「編輯家具／＋新增家具／確認家具配置」
+  三個入口都 disabled，選定後由 `completeRoomSchemeSelection()` 合成唯一方案再進微調。
+  **此處與 bella-new 現行程式碼刻意不同，合併時不可用 bella 版覆蓋。**
 
 **合併風險（同名不同義，整合時最容易踩雷）**：
 

@@ -12,6 +12,7 @@ from backend.agent.knowledge import (
     GROUP_OF,
     ROOM_AFFINITY,
     ROOM_ESSENTIALS,
+    ROOM_FAMILY_DENYLIST,
     ROOM_TYPE_ZH,
     affinity_permits,
     dining_chair_target,
@@ -34,6 +35,30 @@ def test_companion_anchors_are_known_anchor_families():
         for anchor in anchors:
             assert anchor in ANCHOR_FAMILIES, f"{companion} 的主件 {anchor} 不在 ANCHOR_FAMILIES"
         assert companion not in ANCHOR_FAMILIES, f"副件 {companion} 不可同時是主件"
+
+
+def test_room_family_denylist_blocks_cabinets_on_balconies_only():
+    """陽台是半戶外空間,不該自動配收納櫃/衣櫃。
+
+    ROOM_AFFINITY 是白名單、缺項=不限,而 wardrobe 族系為了廚房/儲藏室/家事間
+    刻意不設限,擋不住陽台;所以用房型黑名單補這一層。黑名單必須只影響陽台,
+    不得誤殺原本仰賴「不設限」的那些房型。
+    """
+    for room_type, families in ROOM_FAMILY_DENYLIST.items():
+        assert room_type in _KNOWN_ROOM_TYPES, room_type
+        assert families, f"{room_type} 空的禁用清單"
+
+    # cabinets-cupboard / pax-wardrobe / storage-solution-system 都摺進 wardrobe 族系
+    for alias in ("wardrobe", "pax-wardrobe", "cabinets-cupboard",
+                  "storage-solution-system", "storage-cabinet"):
+        assert not affinity_permits(alias, "balcony"), alias
+        # 原本靠「wardrobe 不設限」的房型不受影響
+        for room_type in ("kitchen", "storage", "laundry", "bedroom"):
+            assert affinity_permits(alias, room_type), f"{alias} 被誤擋於 {room_type}"
+
+    # 陽台該有的東西照常放行
+    assert affinity_permits("flower-pots-planter", "balcony")
+    assert affinity_permits("stool-bench", "balcony")
 
 
 def test_room_affinity_room_types_are_known():

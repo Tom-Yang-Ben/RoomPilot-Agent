@@ -140,13 +140,29 @@ ROOM_AFFINITY: dict[str, tuple[str, ...]] = {
 }
 
 
+# 房型「禁用」族系(黑名單)。ROOM_AFFINITY 是白名單、缺項=不限,對刻意不限的
+# 族系使不上力:wardrobe 族系(含 cabinets-cupboard、storage-solution-system)為了
+# 廚房/儲藏室/家事間的候選而不設限,結果陽台也照收,第 6 步就把收納櫃擺上陽台。
+# 把 wardrobe 改成白名單會誤殺那些房型(見上方註記),所以只對特定房型設黑名單。
+# 這裡擋的是自動選件與路由;使用者精選(protected_ids)在 select 端已先短路,
+# 不受影響 —— 產品承諾不受潛規則否決。
+ROOM_FAMILY_DENYLIST: dict[str, tuple[str, ...]] = {
+    # 陽台是半戶外空間:收納櫃、衣櫃不自動進來(植栽、休憩椅仍可)。
+    "balcony": ("wardrobe", "storage-cabinet"),
+}
+
+
 def affinity_permits(normalized_type: str | None, room_type: str | None) -> bool:
     """該家具是否適合放進此房型(§潛規則房型適配)。
 
-    ``ROOM_AFFINITY`` 未列的族系不限房型(泛用件)一律允許 —— 與
-    select._apply_conventions 的 short-circuit 同一判準,單房選件與多房路由共用。
+    先看 ``ROOM_FAMILY_DENYLIST``(房型明確禁用),再看 ``ROOM_AFFINITY``;後者
+    未列的族系不限房型(泛用件)一律允許 —— 與 select._apply_conventions 同一判準,
+    單房選件與多房路由共用。
     """
-    allowed = ROOM_AFFINITY.get(family_of(normalized_type))
+    family = family_of(normalized_type)
+    if family in ROOM_FAMILY_DENYLIST.get(str(room_type or ""), ()):
+        return False
+    allowed = ROOM_AFFINITY.get(family)
     return not (allowed and room_type and room_type not in allowed)
 
 

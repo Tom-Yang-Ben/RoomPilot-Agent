@@ -83,7 +83,7 @@ import {
   STYLE_FAMILIES,
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-379294afa8c6";
+} from "./scene_style_packs.js?v=sha256-9fa4b9967c7f";
 import {
   beamDragGeometry,
   canMarkWallForDemolition,
@@ -255,6 +255,8 @@ let styleApplyRevision = 0;
 const proposalRoomPreviewCache = new Map();
 const roomSchemePreviewCache = new Map();
 let roomSchemePreviewInFlight = null;
+let proposalSceneVersionLoaded = null;
+let proposalSceneLoading = null;
 let pendingRenderBriefMode = null;
 let pendingRenderBriefAction = "initial";
 let latestDesignDelivery = null;
@@ -473,6 +475,7 @@ const element = {
   whiteWalkRoom: $("#white-walk-room"),
   whiteStatus: $("#white-model-status"),
   whiteError: $("#white-model-error"),
+  roomSchemeGate: $("#room-scheme-gate"),
   openRoomSchemeSelection: $("#open-room-scheme-selection"),
   roomSchemeGateStatus: $("#room-scheme-gate-status"),
   configurationPlanPanel: $("#configuration-plan-panel"),
@@ -1568,6 +1571,11 @@ function showStep(step) {
     if (confirmConfiguration) confirmConfiguration.hidden = step === "realistic_3d";
     if (step === "realistic_3d") {
       focusStepSixRoom(state.selectedRoomId || state.selectedWalkRoomId || state.rooms[0]?.id);
+    }
+    if (step === "white_model_3d") {
+      // 進第 6 步工作台的第一件事是選方案，選定後才拿該方案的擺設去微調。
+      renderRoomSchemeGate();
+      if (roomSchemeGateBlocking()) requestAnimationFrame(promptRoomSchemeSelection);
     }
   }
   const currentPublicStep = publicWorkflowStep(step);
@@ -3610,13 +3618,28 @@ function schemeFurnitureForRoom(schemeId, roomId) {
 }
 
 function roomSchemeSelectionRequired() {
-  // Persisted A/B fields remain readable for legacy projects, but the agreed
-  // Step 6 flow uses one questionnaire/RAG-backed configuration.
-  return false;
+  // 第 6 步的動線是「先逐房選定 A/B，再進工作台微調」
+  // （docs/ROOMPILOT_6_8_AGENT_RENDER_IMPLEMENTATION_SPEC.md §A/B 選擇階段、§驗收條件 3）。
+  // 只有真的存在可比較的方案 B 時才擋；B 整組產不出來時直接走方案 A，
+  // 不製造無從通過的關卡。
+  if (!state.rooms.length) return false;
+  const schemeB = state.designSchemes.schemes.B;
+  if (!schemeB || schemeB.stale) return false;
+  return state.rooms.some((room) => roomHasComparableSchemeB(room));
+}
+
+function roomSchemeGateBlocking() {
+  return roomSchemeSelectionRequired()
+    && !allRoomsHaveSchemeSelections(state.designSchemes, state.rooms);
 }
 
 function promptRoomSchemeSelection() {
   if (!roomSchemeSelectionRequired() || !state.rooms.length) return;
+  // 建立 A、B 的過程會兩度 showStep("white_model_3d")；那時方案還沒齊，不能彈窗。
+  if (state.autoGeneratingWhiteModel) return;
+  if (allRoomsHaveSchemeSelections(state.designSchemes, state.rooms)) return;
+  if (element.roomSchemeDialog?.open) return;
+  deactivateWhiteInteractionMode();
   openRoomSchemeSelectionDialog();
   void ensureRoomSchemeAlternative();
 }
@@ -3771,12 +3794,49 @@ function composeSelectedRoomFurniture() {
   return composite;
 }
 
+// 未選定方案前不能微調：completeRoomSchemeSelection() 會用逐房合成的家具整包
+// 覆蓋 state.furniture2d，先做的拖曳、替換與新增都會被丟掉。
+function setRoomSchemeWorkbenchLocked(locked) {
+  const reason = locked ? "請先完成逐房 A/B 方案選擇，才能微調家具。" : "";
+  const editButton = $("[data-white-interaction=\"edit\"]");
+  if (editButton) {
+    editButton.disabled = locked;
+    editButton.title = reason;
+  }
+  const catalogButton = $("#open-furniture-catalog");
+  if (catalogButton) {
+    catalogButton.disabled = locked;
+    catalogButton.title = reason;
+  }
+  syncConfigurationConfirmButton();
+}
+
+function syncConfigurationConfirmButton() {
+  const confirmButton = $("#confirm-white-model");
+  if (!confirmButton) return;
+  const schemeGated = roomSchemeGateBlocking();
+  const blocking = schemeGated ? [] : configurationBlockingFurniture();
+  confirmButton.disabled = schemeGated || blocking.length > 0;
+  confirmButton.title = schemeGated
+    ? "請先完成逐房 A/B 方案選擇，才能確認家具配置。"
+    : (blocking.length ? `尚有 ${blocking.length} 件家具位置不合法，請先修正。` : "");
+}
+
 function renderRoomSchemeGate() {
   if (!element.roomSchemeGateStatus || !element.openRoomSchemeSelection) return;
   if (!roomSchemeSelectionRequired()) {
     element.roomSchemeGateStatus.textContent = "目前只有方案 A；可直接進行家具微調。";
     element.openRoomSchemeSelection.hidden = true;
+    if (element.roomSchemeGate) {
+      element.roomSchemeGate.hidden = true;
+      element.roomSchemeGate.setAttribute("aria-hidden", "true");
+    }
+    setRoomSchemeWorkbenchLocked(false);
     return;
+  }
+  if (element.roomSchemeGate) {
+    element.roomSchemeGate.hidden = false;
+    element.roomSchemeGate.setAttribute("aria-hidden", "false");
   }
   const autoSelected = applyUnavailableRoomSchemeDefaults();
   const selectedCount = state.rooms.filter((room) => (
@@ -3788,6 +3848,8 @@ function renderRoomSchemeGate() {
     : `已選 ${selectedCount}/${state.rooms.length} 間。請先完成所有房間的 A/B 選擇，才可微調。`;
   element.openRoomSchemeSelection.hidden = false;
   element.openRoomSchemeSelection.textContent = ready ? "檢視逐房方案選擇" : "逐房比較並選擇方案";
+  element.roomSchemeGate?.classList.toggle("is-scheme-pending", !ready);
+  setRoomSchemeWorkbenchLocked(!ready);
 }
 
 function roomHasComparableSchemeB(room) {
@@ -4045,8 +4107,11 @@ function openRoomSchemeSelectionDialog() {
     !state.designSchemes.room_selections?.[String(room.id)]
   ))?.id || state.rooms[0]?.id || null;
   renderRoomSchemeSelectionDialog();
-  if (typeof element.roomSchemeDialog.showModal === "function") element.roomSchemeDialog.showModal();
-  else element.roomSchemeDialog.setAttribute("open", "");
+  // 自動彈出與使用者手動點開可能同時發生；對已開啟的 dialog 呼叫 showModal 會丟例外。
+  if (!element.roomSchemeDialog.open) {
+    if (typeof element.roomSchemeDialog.showModal === "function") element.roomSchemeDialog.showModal();
+    else element.roomSchemeDialog.setAttribute("open", "");
+  }
   void ensureRoomScheme3dPreviews();
 }
 
@@ -9546,6 +9611,16 @@ function questionnairePreferenceFurnitureSpecs(room) {
   });
 }
 
+// ROOM_USAGE_FURNITURE_SPECS 只依「用途」對應家具,QUESTIONNAIRE_PREFERENCE_FURNITURE_TYPES
+// 只依偏好關鍵字對應,兩張表都沒有房型概念。陽台的預設用途是「洗曬衣物」(laundry),
+// 而 laundry 對到 storage-cabinet,於是陽台一開始就被塞進收納櫃並在第 6 步擺出來;
+// 打「收納」「衣櫃」之類偏好也會再補一次。後端 affinity_permits 對未列族系一律放行
+// (backend/agent/knowledge.py 刻意不限 wardrobe 族系),擋不住這條,所以在需求端擋。
+// 這裡只擋自動推薦;使用者仍可從家具資料庫手動加入。
+const ROOM_TYPE_EXCLUDED_FURNITURE_TYPES = Object.freeze({
+  balcony: ["storage-cabinet", "wardrobe"],
+});
+
 function questionnaireFurnitureSpecsForRoom(room) {
   const recommended = applyVisualPreferencesToSpecs(
     recommendedFurnitureForRoom(room),
@@ -9555,10 +9630,12 @@ function questionnaireFurnitureSpecsForRoom(room) {
     (usage) => ROOM_USAGE_FURNITURE_SPECS[usage] || [],
   );
   const preferenceSpecs = questionnairePreferenceFurnitureSpecs(room);
+  const excluded = ROOM_TYPE_EXCLUDED_FURNITURE_TYPES[room?.type || room?.room_type] || [];
   const seen = new Set();
   return [...recommended, ...usageSpecs, ...preferenceSpecs].filter(([type, variant]) => {
     const key = `${type}:${variant || "standard"}`;
     if (!type || seen.has(key)) return false;
+    if (excluded.includes(type)) return false;
     seen.add(key);
     return true;
   });
@@ -9923,6 +10000,7 @@ function renderQuestionnaireFurnitureRecommendations(room = activeQuestionnaireR
         <label class="rp-questionnaire-furniture-select">
           <input type="checkbox" data-questionnaire-furniture-id="${escapeHtml(furnitureId)}"
             ${selected ? "checked" : ""}>
+          ${questionnaireFurniturePreviewMarkup(offer)}
           <span>
             ${group.role?.label ? `<small class="rp-questionnaire-furniture-purpose">對應用途：${escapeHtml(group.role.label)}</small>` : ""}
             <strong>${escapeHtml(shortLabel)}</strong>
@@ -11242,13 +11320,9 @@ function renderConfigurationPlan() {
     element.configurationPendingList.insertAdjacentHTML("beforeend", deferredMarkup);
   }
 
-  const confirmButton = $("#confirm-white-model");
-  if (confirmButton) {
-    confirmButton.disabled = blocking.length > 0;
-    confirmButton.title = blocking.length
-      ? `尚有 ${blocking.length} 件家具位置不合法，請先修正。`
-      : "";
-  }
+  // 待處理家具與逐房方案關卡共用同一顆確認鈕，交給同一個函式決定，
+  // 避免兩邊各自寫 disabled 後互相蓋掉。
+  syncConfigurationConfirmButton();
 }
 
 async function reflowSingleConfigurationFurniture(furnitureId) {

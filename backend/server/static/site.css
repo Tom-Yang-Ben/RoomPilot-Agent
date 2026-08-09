@@ -8083,9 +8083,10 @@ body.rp-workflow-page .danger-action {
 
 .rp-replacement-candidate {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
+  width: 100%;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -8093,42 +8094,67 @@ body.rp-workflow-page .danger-action {
   text-align: left;
 }
 
-.rp-replacement-candidate > span:last-child {
+.rp-replacement-copy {
   display: grid;
   gap: 3px;
   min-width: 0;
+}
+
+.rp-replacement-candidate strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--rp-ink);
+  font-size: 15px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .rp-replacement-candidate small {
   color: var(--rp-muted);
 }
 
-.rp-replacement-thumb {
+/* 候選卡的縮圖容器由 JS 產出為 .rp-replacement-image(內含 is-missing 後備標籤),
+   不是舊名 .rp-replacement-thumb。沿用舊名的規則打不到任何元素,圖片就以原始
+   尺寸撐開,把候選列的版面擠爆。 */
+.rp-replacement-image {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 72px;
-  aspect-ratio: 1;
+  width: 92px;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  border: 1px solid #ddd8d0;
-  background: #f5f3ef;
+  border: 1px solid #d8d3ca;
+  border-radius: 4px;
+  background: #f3f1ed;
 }
 
-.rp-replacement-thumb img {
+.rp-replacement-image img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.rp-replacement-thumb img.is-loading {
+.rp-replacement-image-fallback {
+  display: none;
+  padding: 6px;
+  color: var(--rp-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.rp-replacement-image.is-missing .rp-replacement-image-fallback {
+  display: block;
+}
+
+/* 載入骨架同樣曾綁在 .rp-replacement-thumb img 上而失效。改綁問卷家具縮圖——
+   GLB 縮圖產生前它會掛 is-loading,取得 PNG 後由 JS 移除。型錄抽屜的
+   .rp-glb-thumb 另有自己的斜紋載入樣式,不要一起套,否則會蓋掉。 */
+.rp-questionnaire-furniture-preview img.is-loading {
   background:
     linear-gradient(90deg, #efede9 25%, #faf9f6 50%, #efede9 75%);
   background-size: 200% 100%;
   animation: rp-thumbnail-loading 1.2s linear infinite;
-}
-
-.rp-replacement-thumb img.rp-fallback-thumbnail {
-  opacity: 0.28;
 }
 
 .rp-three-viewer canvas.rp-scene-selection-flash {
@@ -12123,22 +12149,21 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-questionnaire-fit-risk {
-  grid-column: 1 / -1;
+  flex-basis: 100%;
   margin-top: 2px;
   color: #8a4d2d;
   line-height: 1.4;
 }
 
+/* 資訊列與操作列各自成行。橫排時中文說明只分到一百多 px,會逐字斷行。 */
 .rp-questionnaire-furniture-options > article {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(250px, auto);
-  align-items: center;
-  gap: 10px;
-  min-height: 116px;
-  padding: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 11px;
+  padding: 14px;
   border: 1px solid #cbc7bf;
-  border-radius: 5px;
+  border-radius: 6px;
   background: #fff;
 }
 
@@ -12151,9 +12176,9 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-questionnaire-furniture-select {
   min-width: 0;
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-columns: 22px 96px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
 }
 
@@ -12199,24 +12224,26 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-questionnaire-furniture-card-actions {
-  display: grid;
-  grid-template-columns: minmax(200px, 1fr) auto auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-items: end;
-  gap: 7px;
+  gap: 10px 12px;
+  padding-top: 11px;
+  border-top: 1px solid #e7e4dd;
 }
 
 .rp-questionnaire-furniture-size {
+  flex: 1 1 240px;
   display: grid;
-  grid-template-columns: auto minmax(112px, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: #5d5851;
   font-size: 12px;
 }
 
 .rp-questionnaire-furniture-size select {
-  min-width: 112px;
+  min-width: 0;
   min-height: 30px;
   padding: 4px 28px 4px 8px;
   border-color: #bcb6ad;
@@ -12260,12 +12287,11 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-furniture-quantity-limit {
-  max-width: 96px;
   margin: 0;
   color: #6e6962;
   font-size: 11px;
   line-height: 1.35;
-  text-align: right;
+  white-space: nowrap;
 }
 
 @media (max-width: 700px) {
@@ -12277,14 +12303,6 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
     width: 100%;
   }
 
-  .rp-questionnaire-furniture-options > article {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-questionnaire-furniture-card-actions {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    justify-items: start;
-  }
 }
 
 .rp-questionnaire-style-grid > button {
@@ -12418,6 +12436,51 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-ceiling-choice-visual[data-ceiling-style-visual="linear"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="feature-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="wood-grid"] { background-image: url("/static/questionnaire_images/ceiling-wood-grid-reference.jpg"); }
+
+/* 點進施工形式後的搭配卡用 data-ceiling-design-visual(每組材質＋照明一張),
+   與外層的 data-ceiling-style-visual(每種施工形式一張)是兩套鍵;只補後者會讓
+   對話框整片空白。三張 2x2 拼圖各含四組搭配,用 200% 尺寸配四個角落取用。
+   照明看得出差別是重點,所以不共用施工形式的單張照片。 */
+.rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-flat-cove-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-linear-floating-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-slat-exposed-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="industrial-exposed"] { background-image: url("/static/questionnaire_images/ceiling-exposed-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-track"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
 
 .rp-ceiling-choice-card strong,
 .rp-ceiling-choice-card small,
@@ -12660,13 +12723,49 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   line-height: 1.5;
 }
 
+/* 主機下有兩層包裝:入口列 .rp-material-catalog-entry 與推薦卡清單
+   .rp-material-option-list。卡片樣式必須限縮在清單內——否則入口按鈕會被
+   當成材質卡套上 76px 欄與 86px 固定高而被裁掉;主機也不能再固定列高,
+   否則整份清單被壓進一列,溢出蓋住底下的顏色與偏好欄位。 */
 .rp-questionnaire-material-options {
   display: grid;
-  gap: 10px;
-  grid-auto-rows: 86px;
+  gap: 12px;
 }
 
-.rp-questionnaire-material-options button {
+.rp-material-catalog-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 11px 13px;
+  border: 1px dashed #c7c2b8;
+  border-radius: 6px;
+  background: #faf9f6;
+}
+
+.rp-material-catalog-entry > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.rp-material-catalog-entry strong {
+  font-size: 14px;
+}
+
+.rp-material-catalog-entry small {
+  color: #6e6962;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rp-material-option-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rp-material-option-list > button {
   min-width: 0;
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
@@ -12682,12 +12781,12 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   text-align: left;
 }
 
-.rp-questionnaire-material-options button.is-active {
+.rp-material-option-list > button.is-active {
   border-color: #27715d;
   box-shadow: inset 0 0 0 2px #27715d;
 }
 
-.rp-questionnaire-material-options .rp-material-preview {
+.rp-material-option-list .rp-material-preview {
   grid-row: 1 / 3;
   width: 76px;
   height: 68px;
@@ -12698,14 +12797,14 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   background-size: cover;
 }
 
-.rp-questionnaire-material-options strong {
+.rp-material-option-list > button strong {
   align-self: end;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.rp-questionnaire-material-options small {
+.rp-material-option-list > button small {
   color: #6e6962;
   display: flex;
   align-items: baseline;
@@ -12715,14 +12814,16 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   text-overflow: ellipsis;
 }
 
-.rp-questionnaire-material-options small em {
+.rp-material-option-list > button small em {
   flex: 0 0 auto;
   color: #27715d;
   font-style: normal;
 }
 
 .rp-open-material-catalog {
-  margin: 10px 0 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .rp-material-pair-recommendations {
@@ -13229,8 +13330,7 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
 
 /* Furniture cards show the catalog image, or the same GLB thumbnail fallback as the catalog drawer. */
 .rp-questionnaire-furniture-refresh-note { margin: -4px 0 2px; color: #6d716c; font-size: 12px; line-height: 1.45; }
-.rp-questionnaire-furniture-options > article { grid-template-columns: 96px minmax(170px, 1fr) minmax(250px, auto); }
-.rp-questionnaire-furniture-preview { position: relative; width: 96px; height: 92px; overflow: hidden; border: 1px solid #ddd9d0; border-radius: 5px; background: #f7f6f2; }
+.rp-questionnaire-furniture-preview { position: relative; width: 100%; height: 92px; align-self: center; overflow: hidden; border: 1px solid #ddd9d0; border-radius: 5px; background: #f7f6f2; }
 .rp-questionnaire-furniture-preview img { width: 100%; height: 100%; display: block; object-fit: contain; }
 .rp-questionnaire-furniture-preview span { position: absolute; inset: 0; display: none; place-items: center; padding: 8px; color: #77746d; font-size: 12px; text-align: center; }
 .rp-questionnaire-furniture-preview img.is-loading + span { display: grid; }
@@ -13321,9 +13421,8 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
 }
 
 @media (max-width: 820px) {
-  .rp-questionnaire-furniture-options > article { grid-template-columns: 82px minmax(0, 1fr); }
-  .rp-questionnaire-furniture-preview { width: 82px; height: 78px; }
-  .rp-questionnaire-furniture-card-actions { grid-column: 1 / -1; justify-items: stretch; }
+  .rp-questionnaire-furniture-select { grid-template-columns: 22px 82px minmax(0, 1fr); gap: 10px; }
+  .rp-questionnaire-furniture-preview { height: 78px; }
 }
 
 @media (max-width: 740px) {
@@ -14786,6 +14885,17 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
 
 .rp-catalog-filter-controls .rp-search-field {
   grid-column: 1 / -1;
+}
+
+/* 逐房方案尚未選完時，第 6 步的工作台是鎖住的；關卡要一眼看得出來 */
+#room-scheme-gate.is-scheme-pending {
+  border-color: #c8873f;
+  background: #fdf6ec;
+}
+
+#room-scheme-gate.is-scheme-pending #room-scheme-gate-status {
+  color: #8a5418;
+  font-weight: 700;
 }
 
 .rp-room-scheme-progress {

@@ -21,9 +21,9 @@ from typing import Any, Callable, Optional
 from .knowledge import (
     COMPANION_OF,
     OUTDOOR_ROOM_TYPES,
-    ROOM_AFFINITY,
     ROOM_ESSENTIALS,
     ROOM_TYPE_ZH,
+    affinity_permits,
     dining_chair_target,
     family_of,
     is_outdoor_item,
@@ -155,9 +155,10 @@ def _apply_conventions(
             # 型錄把戶外躺椅歸類成 sofa/armchair,靠名稱記號在邊界擋下
             logger.warning("潛規則丟棄 %s:戶外家具不入室內房型 %s", fid, room_type or "?")
             continue
-        family = family_of(selected.item.get("normalized_type"))
-        allowed = ROOM_AFFINITY.get(family)
-        if allowed and room_type and room_type not in allowed:
+        # 走 affinity_permits 而非再內聯一份 ROOM_AFFINITY 判斷:白名單與
+        # 房型黑名單(陽台不收收納櫃)只能有一個判準,否則兩邊會各修各的。
+        if not affinity_permits(selected.item.get("normalized_type"), room_type):
+            family = family_of(selected.item.get("normalized_type"))
             logger.warning("潛規則丟棄 %s:%s 不適合 %s", fid, family, room_type)
             continue
         fit.append(selected)

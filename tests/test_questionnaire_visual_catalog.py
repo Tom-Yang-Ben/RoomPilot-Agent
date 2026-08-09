@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 from uuid import uuid4
@@ -223,6 +224,27 @@ def test_ceiling_reference_photos_are_individual_and_cover_all_seven_choices() -
     for style in ("exposed", "flat", "cove", "floating", "linear", "feature-pendant", "wood-grid"):
         assert f'data-ceiling-style-visual="{style}"]' in stylesheet
         assert (ROOT / "backend" / "server" / "static" / "questionnaire_images" / f"ceiling-{style}-reference.jpg").is_file()
+
+
+def test_every_ceiling_design_pack_has_its_own_picker_photo() -> None:
+    """點進施工形式後的搭配卡用 data-ceiling-design-visual,與外層施工形式卡的
+    data-ceiling-style-visual 是兩套鍵。只補外層那套時,對話框裡每張卡都沒有圖
+    (2026-08-09 實際發生:CSS 只有 7 條 style-visual、0 條 design-visual)。
+    每一組 CEILING_DESIGN_PACKS 都必須有自己的規則,引用的圖檔也必須存在。"""
+    static = ROOT / "backend" / "server" / "static"
+    stylesheet = (static / "site.css").read_text(encoding="utf-8")
+    packs_source = (static / "scene_style_packs.js").read_text(encoding="utf-8")
+
+    block = packs_source.split("CEILING_DESIGN_PACKS = Object.freeze([", 1)[1].split("]);", 1)[0]
+    pack_ids = re.findall(r'\{\s*id:\s*"([^"]+)"', block)
+    assert len(pack_ids) >= 14, pack_ids
+
+    for pack_id in pack_ids:
+        assert f'data-ceiling-design-visual="{pack_id}"]' in stylesheet, pack_id
+
+    # 規則存在不等於圖片存在——缺檔時卡片一樣是空白。
+    for image in sorted(set(re.findall(r'url\("/static/questionnaire_images/([^"]+)"\)', stylesheet))):
+        assert (static / "questionnaire_images" / image).is_file(), image
 
 
 def test_questionnaire_ui_keeps_visual_catalog_for_rag_but_not_as_required_questions() -> None:

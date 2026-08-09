@@ -225,6 +225,7 @@
   <tr><td>側欄三分頁 tab</td><td class="b">有 :667-672 / sv2:1078</td><td class="h">無</td><td><span class="badge high">bella 獨有</span></td><td>本分支單欄平鋪</td></tr>
   <tr><td>同步平面＋待處理</td><td class="b">有 :673-700</td><td class="h">有 :705-732</td><td><span class="same">相同</span></td><td>無</td></tr>
   <tr><td><code>room-scheme-gate</code></td><td class="b">hidden 條件顯示 :701-705</td><td class="h">常駐可見 :733-737</td><td><span class="badge med">已移植-實作不同</span></td><td>顯示時機不同</td></tr>
+  <tr><td><b>逐房 A/B 關卡（<code>roomSchemeSelectionRequired</code>）</b></td><td class="b">硬寫 <code>return false</code>（<code>e97adfce</code> 關掉）</td><td class="h">2026-08-09 起復原為有效判斷 sv2:3620</td><td><span class="badge ok">本分支獨有</span></td><td>本分支進第 6 步先開逐房比較 dialog，未選定前「編輯家具／＋新增家具／確認家具配置」皆 disabled；依 <code>ROOMPILOT_6_8_AGENT_RENDER_IMPLEMENTATION_SPEC.md</code> §A/B 選擇階段。<b>刻意與 bella 不同，合併不可回退</b></td></tr>
   <tr><td>逐房方案選擇 dialog</td><td class="b">有 :973-999</td><td class="h">有 :1029-1055</td><td><span class="same">相同</span></td><td>無</td></tr>
   <tr><td>方案 3D 預覽 dialog（可旋轉）</td><td class="b">有 :1000-1013 / sv2:4089</td><td class="h">無</td><td><span class="badge high">bella 獨有</span></td><td>本分支只能看靜態快照</td></tr>
   <tr><td>快照生成機制</td><td class="b">前景 viewer 臨時載入 sv2:4361-4396</td><td class="h">離屏佇列＋setWalkRoom sv2:3568-3617</td><td><span class="badge med">已移植-實作不同</span></td><td>本分支省資源；取景為房內走位</td></tr>

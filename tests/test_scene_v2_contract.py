@@ -167,11 +167,47 @@ def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() 
     assert "questionnaireCatalogSourceLabel" not in source
     assert "catalogSurfaceIsUsableInRoom" in source
     assert "grid-template-columns: repeat(2, minmax(0, 1fr));" in css
-    assert "grid-auto-rows: 86px;" in css
+    # 卡片等高必須綁在卡片上,不能綁在容器上。容器原本用 grid-auto-rows: 86px
+    # 鎖死每一列;renderQuestionnaireMaterialOptions 改輸出「入口列 + 推薦卡清單」
+    # 兩層包裝後,整份清單被壓進單一 86px 列並溢出,蓋住下方的顏色與偏好欄位。
+    assert "grid-auto-rows: 86px;" not in css
+    material_card = css.split(".rp-material-option-list > button {", 1)[1].split("}", 1)[0]
+    assert "height: 86px;" in material_card
+    assert "min-height: 86px;" in material_card
+    # 同理,卡片樣式不得打到清單外的按鈕——入口按鈕曾因此被套上 76px 欄與固定
+    # 高而把「從材質資料庫挑選牆面」裁掉。
+    assert ".rp-questionnaire-material-options button {" not in css
     assert "width: 76px;" in css
     assert "height: 68px;" in css
     assert "background-size: cover;" in css
     assert "background-blend-mode: multiply;" not in css
+
+
+def test_replacement_drawer_styles_target_the_classes_the_script_emits() -> None:
+    """更換家具候選卡的縮圖容器,JS 產出的類別是 .rp-replacement-image;CSS 曾停在
+    改名前的 .rp-replacement-thumb,規則打不到任何元素,圖片就以原始尺寸撐開,把
+    候選列的版面擠爆(2026-08-09 回報「右側欄更換頁面排版跑掉」)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    for token in ("rp-replacement-image", "rp-replacement-image-fallback", "rp-replacement-copy"):
+        assert token in source, token
+        assert f".{token}" in css, token
+    # 舊名不該再有規則。註解裡可以提它(那是這個坑的說明),所以先剝掉註解再檢查。
+    assert "rp-replacement-thumb" not in source
+    css_rules = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    assert "rp-replacement-thumb" not in css_rules
+
+    candidate = css.split(".rp-replacement-candidate {", 1)[1].split("}", 1)[0]
+    assert "grid-template-columns: 92px minmax(0, 1fr);" in candidate
+    image = css.split(".rp-replacement-image {", 1)[1].split("}", 1)[0]
+    assert "width: 92px;" in image          # 與候選卡的第一欄同寬,否則縮圖溢出
+    assert "overflow: hidden;" in image
+    # is-loading 骨架動畫也曾綁在舊名上而失效,改綁真正會掛上它的問卷家具縮圖。
+    # 型錄抽屜的 .rp-glb-thumb 有自己的斜紋載入樣式,不得被這條蓋掉。
+    shimmer = css.split(".rp-questionnaire-furniture-preview img.is-loading {", 1)[1].split("}", 1)[0]
+    assert "animation: rp-thumbnail-loading" in shimmer
+    assert ".rp-glb-thumb img.is-loading" not in shimmer
 
 
 def test_room_questionnaire_recommends_exact_surface_catalog_records() -> None:
@@ -545,9 +581,13 @@ def test_proposal_review_caches_the_scene_per_version() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     assert "function ensureProposalSceneLoaded" in source
-    assert "proposalSceneVersionLoaded" in source
+    # scene_v2.js 是 ES module(strict mode):快取變數若沒有 let 宣告,
+    # 第一次賦值就 ReferenceError(問卷送出→switchDesignScheme 曾因此中斷)。
+    # 只數 "proposalSceneVersionLoaded = null" 分不出宣告與賦值,必須各驗。
+    assert "let proposalSceneVersionLoaded = null" in source
+    assert "let proposalSceneLoading = null" in source
     assert "場景還在準備中，請稍候…" in source
-    assert source.count("proposalSceneVersionLoaded = null") >= 2   # 重建/編輯都失效
+    assert source.count("proposalSceneVersionLoaded = null") >= 3   # let 宣告 + 換方案/編輯兩處失效
     prepare = source.split("async function prepareProposalReview")[1].split(
         "\nfunction "
     )[0]
@@ -1541,7 +1581,10 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
     assert "function renderConfigurationPlan" in source
     assert "function configurationBlockingFurniture" in source
     assert "renderConfigurationPlan();" in source
-    assert "confirmButton.disabled = blocking.length > 0" in source
+    # 待處理家具與逐房方案關卡共用同一顆確認鈕,由 syncConfigurationConfirmButton()
+    # 單一決定 disabled;兩邊各寫一次會互相蓋掉(見 test_step_six_gates_furniture_tuning...)。
+    assert "syncConfigurationConfirmButton();" in source
+    assert "confirmButton.disabled = schemeGated || blocking.length > 0" in source
     assert "請先從 2D 待處理清單定位修正" in source
     assert "function reflowSingleConfigurationFurniture" in source
     assert "只重排此家具" in source
@@ -1865,6 +1908,58 @@ def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> 
     assert {item[0] for item in result["living"]} >= {"sofa", "coffee-table", "tv-bench"}
     assert {item[0] for item in result["balcony"]} == {"flower-pots-planter"}
     assert result["circulation"] == []
+
+
+def test_balcony_never_gets_cabinets_from_usage_or_preference_defaults() -> None:
+    """陽台不該出現櫃子／櫥櫃。
+
+    ROOM_USAGE_FURNITURE_SPECS 只依用途對應、QUESTIONNAIRE_PREFERENCE_FURNITURE_TYPES
+    只依偏好關鍵字對應,兩張表都沒有房型概念:陽台的預設用途 laundry 對到
+    storage-cabinet,打「收納」也會補一次,第 6 步就把櫃子擺上陽台。後端
+    affinity_permits 對未列族系一律放行,擋不住,所以守在需求端。
+    """
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    def freeze_block(name: str) -> str:
+        return source.split(f"const {name} = Object.freeze(", 1)[1].split("\n});", 1)[0] + "\n}"
+
+    result = run_workflow_script(
+        f"""
+        const ROOM_USAGE_OPTIONS = Object.freeze({freeze_block("ROOM_USAGE_OPTIONS")});
+        const ROOM_USAGE_FURNITURE_SPECS = Object.freeze({freeze_block("ROOM_USAGE_FURNITURE_SPECS")});
+        const PREFERENCE_TYPES = Object.freeze({freeze_block("QUESTIONNAIRE_PREFERENCE_FURNITURE_TYPES")});
+        const EXCLUDED = Object.freeze({freeze_block("ROOM_TYPE_EXCLUDED_FURNITURE_TYPES")});
+        const excluded = EXCLUDED.balcony || [];
+        // ensureRoomUsage() 沒選時取第一個選項,所以預設用途就是清單第一項
+        const defaultUsage = ROOM_USAGE_OPTIONS.balcony[0].id;
+        const usageTypes = ROOM_USAGE_OPTIONS.balcony.flatMap(
+          (option) => (ROOM_USAGE_FURNITURE_SPECS[option.id] || []).map(([type]) => type),
+        );
+        const preferenceTypes = Object.values(PREFERENCE_TYPES).flatMap(
+          (entry) => entry.balcony || entry.default || [],
+        );
+        console.log(JSON.stringify({{
+          defaultUsage,
+          excluded,
+          usageSurvivors: usageTypes.filter((type) => !excluded.includes(type)),
+          preferenceSurvivors: preferenceTypes.filter((type) => !excluded.includes(type)),
+        }}));
+        """
+    )
+
+    cabinets = {"storage-cabinet", "wardrobe"}
+    # 陽台預設就是洗曬用途,這條路徑本身仍會產生櫃子——所以排除清單必須擋住它
+    assert result["defaultUsage"] == "laundry"
+    assert cabinets <= set(result["excluded"])
+    assert not cabinets & set(result["usageSurvivors"]), result["usageSurvivors"]
+    assert not cabinets & set(result["preferenceSurvivors"]), result["preferenceSurvivors"]
+
+    # 排除清單要真的被套用在三個來源匯流之後,否則上面的資料檢查形同虛設
+    specs = source.split("function questionnaireFurnitureSpecsForRoom", 1)[1].split(
+        "\nconst ", 1
+    )[0]
+    assert "ROOM_TYPE_EXCLUDED_FURNITURE_TYPES[room?.type || room?.room_type]" in specs
+    assert "if (excluded.includes(type)) return false;" in specs
 
 
 def test_2d_furniture_pointer_selection_reads_the_rendered_data_attribute() -> None:
@@ -3319,6 +3414,43 @@ def test_step_six_exposes_the_per_room_scheme_selection_workflow() -> None:
         "room-scheme-complete",
     ):
         assert f'id="{element_id}"' in html
+
+
+def test_step_six_gates_furniture_tuning_behind_the_room_scheme_choice() -> None:
+    """第 6 步動線:先逐房選定 A/B、合成唯一方案,才拿該方案的擺設去微調家具
+    (docs/ROOMPILOT_6_8_AGENT_RENDER_IMPLEMENTATION_SPEC.md §A/B 選擇階段、§驗收條件 3)。
+
+    這條曾被遠端 bella-new 的 e97adfce 用 `return false` 關掉,本分支在
+    234631fd 原封不動繼承,導致使用者一離開問卷就直接落在 3D 白模、
+    B 方案照生照丟。此測試就是那個開關的登記處。
+    """
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    required = source.split("function roomSchemeSelectionRequired()")[1].split("\n}")[0]
+    # 關卡不得整條短路;只有真的有可比較的方案 B 時才擋
+    assert "return state.rooms.some(" in required
+    assert "roomHasComparableSchemeB" in required
+
+    # 進第 6 步工作台先開方案比較,而不是先給 3D 微調
+    show_step = source.split("function showStep(step)")[1].split("\nasync function ")[0]
+    assert "roomSchemeGateBlocking()" in show_step
+    assert "requestAnimationFrame(promptRoomSchemeSelection)" in show_step
+
+    # 建立 A、B 的過程本身會 showStep("white_model_3d"),那時不能彈窗
+    prompt = source.split("function promptRoomSchemeSelection()")[1].split("\n}")[0]
+    assert "state.autoGeneratingWhiteModel" in prompt
+
+    # 未選完:編輯家具、新增家具與確認鈕都鎖住,並說明原因
+    lock = source.split("function setRoomSchemeWorkbenchLocked(locked)")[1].split("\n}")[0]
+    for control in ('[data-white-interaction=\\"edit\\"]', "#open-furniture-catalog"):
+        assert control in lock
+    assert "請先完成逐房 A/B 方案選擇" in lock
+
+    # 待處理家具與方案關卡共用同一顆確認鈕,只能有一個地方寫 disabled
+    assert source.count('$("#confirm-white-model")') >= 1
+    confirm_sync = source.split("function syncConfigurationConfirmButton()")[1].split("\n}")[0]
+    assert "roomSchemeGateBlocking()" in confirm_sync
+    assert "configurationBlockingFurniture()" in confirm_sync
 
 
 def test_style_card_previews_preserve_the_full_reference_image() -> None:
