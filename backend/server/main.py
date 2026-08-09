@@ -88,6 +88,7 @@ from .agent_pipeline_service import (
     submit_pipeline,
     undo_pipeline,
 )
+from .agent_reconcile_service import reconcile_room
 from .style_cards import load_taiwan_style_cards
 from .services.cloud_models import (
     cloud_model_status,
@@ -3351,6 +3352,28 @@ def agent_pipeline_get_route(project_id: str) -> dict:
         return get_pipeline(PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id)
     except PipelineNotStarted as exc:
         raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.post("/api/agent/pipeline/reconcile")
+async def agent_pipeline_reconcile_route(payload: dict) -> dict:
+    """對帳：同一批 step6 選定家具，比對 step6 擺放 vs agent 管線擺放的覆蓋率＋合法性。"""
+    _require_pipeline_enabled()
+    room_id = str(payload.get("room_id") or "room")
+    try:
+        width_cm = float(payload.get("width_cm"))
+        depth_cm = float(payload.get("depth_cm"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="width_cm 與 depth_cm 為必要數值（公分）。")
+    items = payload.get("items")
+    if not isinstance(items, list) or not items:
+        raise HTTPException(
+            status_code=422,
+            detail="items 為必要（step6 選定的家具清單，server 物件格式）。",
+        )
+    try:
+        return reconcile_room(room_id, width_cm, depth_cm, items)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @app.post("/api/scene/generate")
