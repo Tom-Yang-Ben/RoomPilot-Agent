@@ -233,6 +233,96 @@ def test_material_cards_use_image_derived_visual_profiles() -> None:
     assert "紋理待確認" in source
 
 
+def test_step_six_surface_constants_are_defined_not_just_referenced() -> None:
+    """帶拼接曾掉了 const STEP_SIX_SURFACE_MATERIAL_LIMIT/SWATCH_LIMIT 的定義，
+    renderGroupedMaterialOptions 一執行就 ReferenceError，前端初始化在
+    renderStyleControls 就中斷（連帶第 6 步 A/B 預覽等全壞）。原始碼字串測與
+    node --check 都抓不到執行期未定義；此測強制所有被引用的 STEP_SIX_* 常數都有定義。"""
+    import re
+
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    used = set(re.findall(r"\bSTEP_SIX_[A-Z0-9_]+\b", source))
+    defined = set(re.findall(r"\b(?:const|let|var)\s+(STEP_SIX_[A-Z0-9_]+)\s*=", source))
+    missing = sorted(used - defined)
+    assert not missing, f"STEP_SIX_* 常數被引用卻未定義（執行期 ReferenceError）：{missing}"
+
+
+def test_room_scheme_preview_viewer_is_instantiated() -> None:
+    """帶拼接時遺漏了 roomSchemePreviewViewer 的建立（只留下 4156 的引用），
+    點擊逐房 A/B 的可旋轉 3D 預覽就 ReferenceError。此 viewer 實例必須存在。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    assert "const roomSchemePreviewViewer = createSceneViewer(" in source
+    assert "prepareRoomSchemePreviewViewer(roomSchemePreviewViewer" in source
+
+
+def test_room_scheme_plan_svg_has_visible_styling_not_default_black() -> None:
+    """帶拼接掉了 .rp-room-scheme-plan/outline/furniture 的 CSS，SVG 形狀退回預設黑色
+    填色，逐房 A/B 的 2D 平面預覽整張變黑。這些規則必須存在，形狀才有可視配色。"""
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    for rule in (
+        ".rp-room-scheme-plan {",
+        ".rp-room-scheme-outline {",
+        ".rp-room-scheme-furniture rect {",
+        ".rp-room-scheme-empty {",
+    ):
+        assert rule in css, f"site.css 缺少 {rule}（SVG 形狀會退回黑色填色）"
+
+
+def test_room_scheme_3d_preview_falls_back_to_live_full_house_scene() -> None:
+    """per-scheme sceneData 不進存檔（只存 furniture/stale），重載後 schemes.sceneData
+    為 null → A/B 3D 預覽永遠空白。ensureRoomScheme3dPreviews 缺 scheme 自身 sceneData
+    時要回退用已還原的全屋 state.sceneData（作用中方案），也達成「從全房 3D 擷取」。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    fn = source.split("async function ensureRoomScheme3dPreviews", 1)[1].split(
+        "\nfunction chooseRoomScheme", 1
+    )[0]
+    assert "activeSchemeId()" in fn
+    assert "state.sceneData" in fn
+    # 非作用中方案重載後無自身場景：用全屋 shell + 該方案家具座標重建（不重跑生成）。
+    assert "function schemeFurnitureSceneFromShell" in source
+    assert "schemeFurnitureSceneFromShell(" in fn
+
+
+def test_room_scheme_3d_preview_loads_each_scheme_once_and_captures_all_rooms() -> None:
+    """優化：每個方案的全屋場景只 loadScene 一次，一次拍完該方案「所有房間」（迴圈
+    job.rooms）再 unloadScene，換房直接讀快取——不再每換房重載整棟。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    fn = source.split("async function ensureRoomScheme3dPreviews", 1)[1].split(
+        "\nfunction chooseRoomScheme", 1
+    )[0]
+    assert "loadScene(job.scene)" in fn
+    assert "for (const room of job.rooms)" in fn
+    # 一次載入內拍完所有房間，載入次數不隨房數增加（每個方案一次）。
+    assert fn.count("glbThumbnailViewer.loadScene(") == 1
+    assert fn.count("glbThumbnailViewer.unloadScene()") == 1
+
+
+def test_room_scheme_3d_preview_key_and_lifecycle_are_correct() -> None:
+    """對抗式審查抓到的三個執行期缺陷（字串契約測抓不到，特此鎖定）：
+    1) 快取鍵讀寫兩端都要用 room.id——傳 room 物件會變 "[object Object]" 永不命中，
+       預覽恆卡占位；2) unloadScene 必須在 finally，中途 throw 也卸載，避免離屏 GPU
+       洩漏／context loss；3) 完成後自我補觸發，涵蓋方案 B 稍後才就緒的情形。"""
+    import re
+
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    fn = source.split("async function ensureRoomScheme3dPreviews", 1)[1].split(
+        "\nfunction chooseRoomScheme", 1
+    )[0]
+    # (1) 讀寫鍵都用 room.id；且沒有殘留傳 room 物件的寫法
+    assert "roomSchemePreviewKey(job.schemeId, room.id)" in fn
+    assert "roomSchemePreviewKey(schemeId, room.id)" in fn
+    assert not re.search(r"roomSchemePreviewKey\([^,]+,\s*room\)", fn), "cache key 傳了 room 物件"
+    render = source.split("function renderRoomSchemeSelectionDialog", 1)[1].split(
+        "\nfunction ", 1
+    )[0]
+    assert "roomSchemePreviewKey(schemeId, room.id)" in render  # 讀取端亦用 room.id
+    # (2) unloadScene 在 finally 內（保證卸載）：per-job try/finally + 外層 try/finally 共兩個
+    assert fn.count("finally {") == 2
+    assert "glbThumbnailViewer.unloadScene()" in fn
+    # (3) 自我補觸發
+    assert "void ensureRoomScheme3dPreviews();" in fn
+
+
 def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 

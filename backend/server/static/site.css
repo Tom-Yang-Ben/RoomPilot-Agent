@@ -7898,6 +7898,38 @@ body.rp-workflow-page .danger-action {
   color: #155444;
 }
 
+/* 逐房 A/B 的 2D 平面 SVG 配色（帶拼接時遺漏，依 bella-new 還原）。
+   缺這些規則時 SVG 形狀退回預設黑色填色，整張平面圖變成黑圖。 */
+.rp-room-scheme-plan {
+  display: block;
+  width: 100%;
+  height: 184px;
+  background: #fbfcfa;
+}
+
+.rp-room-scheme-outline {
+  fill: #edf5f0;
+  stroke: #2d725e;
+  stroke-width: 3;
+}
+
+.rp-room-scheme-furniture rect {
+  fill: #4d8c76;
+  stroke: #1f5a49;
+  stroke-width: 1.5;
+}
+
+.rp-room-scheme-furniture text {
+  fill: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rp-room-scheme-empty {
+  fill: #6e786f;
+  font-size: 14px;
+}
+
 .rp-scheme-choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

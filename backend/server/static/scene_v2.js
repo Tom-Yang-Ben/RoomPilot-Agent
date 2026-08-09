@@ -254,6 +254,10 @@ const state = {
 let styleApplyRevision = 0;
 const proposalRoomPreviewCache = new Map();
 const roomSchemePreviewCache = new Map();
+// 第 6 步逐房材質清單顯示上限（帶拼接時遺漏，依 bella-new 還原）。未定義會讓
+// renderGroupedMaterialOptions 一執行就 ReferenceError，初始化在 renderStyleControls 中斷。
+const STEP_SIX_SURFACE_SWATCH_LIMIT = 6;
+const STEP_SIX_SURFACE_MATERIAL_LIMIT = 6;
 let roomSchemePreviewInFlight = null;
 let proposalSceneVersionLoaded = null;
 let proposalSceneLoading = null;
@@ -608,6 +612,12 @@ const replacementViewer = createSceneViewer(
 const glbThumbnailViewer = createSceneViewer(
   $("#glb-thumbnail-viewer"),
   $("#glb-thumbnail-status"),
+);
+// 逐房 A/B 點擊放大的可旋轉 3D 預覽 viewer（帶拼接時遺漏，依 bella-new 還原）。
+// 未定義時 openRoomScheme3dPreview 在 4156 傳入即 ReferenceError。
+const roomSchemePreviewViewer = createSceneViewer(
+  $("#room-scheme-3d-preview"),
+  element.roomScheme3dPreviewStatus,
 );
 const structurePreview = createStructurePreview($("#structure-3d-preview"));
 const styleFurnitureCache = new Map();
@@ -3654,7 +3664,7 @@ async function ensureRoomSchemeAlternative() {
   }
   roomSchemeAlternativeInFlight = (async () => {
     try {
-      const alternativeFurniture = await relayoutFurnitureForScheme(schemeA.furniture, "B");
+      const alternativeFurniture = await relayoutFurnitureForScheme(schemeA.furniture, "B", { allowPending: true });
       if (!alternativeFurniture?.length) {
         schemeB.stale = true;
         schemeB.staleReason = "無法產生不同的家具擺設。";
@@ -4397,52 +4407,101 @@ function renderRoomSchemeSelectionDialog() {
     : `尚有 ${missing.map((item) => item.label || "未命名空間").join("、")} 未選擇方案；家具微調仍會保持鎖定。`;
 }
 
+// A/B 是同一批家具的不同排法（relayoutFurnitureForScheme）。重載後非作用中方案沒有
+// 自身 3D 場景（sceneData 不進存檔、又受 2MB 上限限制），就用作用中方案的全屋場景
+// （shell + 已解析 GLB）依 furniture_id 把家具搬到該方案的座標重建預覽——不落地存檔、
+// 不重跑生成、不動前景。該方案沒有或擺放失敗的家具不出現。
+function schemeFurnitureSceneFromShell(baseScene, schemeFurniture) {
+  if (!baseScene?.scene_objects?.length) return null;
+  const byId = new Map(
+    (schemeFurniture || [])
+      .filter((item) => item && !item.placementFailed)
+      .map((item) => [String(item.id || item.furniture_id), item]),
+  );
+  const sceneObjects = baseScene.scene_objects
+    .map((obj) => {
+      const item = byId.get(String(obj.furniture_id || obj.id));
+      if (!item) return null;
+      return {
+        ...obj,
+        position_cm: {
+          ...(obj.position_cm || {}),
+          x: Number(item.xCm || 0),
+          z: Number(item.yCm || 0),
+        },
+        rotation_y_deg: Number(item.rotationDeg || 0),
+        placement_room_id: item.roomId || obj.placement_room_id,
+      };
+    })
+    .filter(Boolean);
+  if (!sceneObjects.length) return null;
+  return { ...baseScene, scene_objects: sceneObjects };
+}
+
 async function ensureRoomScheme3dPreviews() {
   if (roomSchemePreviewInFlight || !element.roomSchemeDialog?.open) return roomSchemePreviewInFlight;
-  const activeRoom = state.rooms.find(
-    (item) => String(item.id) === String(state.selectedRoomSchemeId),
-  ) || state.rooms[0];
-  const candidates = ["A", "B"].filter((schemeId) => (
-    state.designSchemes.schemes[schemeId]?.sceneData?.scene_objects
-    && !roomSchemePreviewCache.has(roomSchemePreviewKey(schemeId, activeRoom))
-  ));
-  if (!candidates.length) return null;
-  // 背景建立 A/B 逐房預覽：沿用離屏縮圖 viewer 的序列佇列，前景 whiteViewer
-  // 的場景與相機完全不動。逐房視角以 setWalkRoom 進到目前比較的房間拍攝，
-  // 找不到可站位（或房間資料不足）時退回全屋 corner 快照；只為當前房間
-  // 建圖、拍完即卸載，避免一次生出整屋 × 全房的場景造成效能問題。
+  // 缺 scheme 自身 sceneData 時：作用中方案用已還原的全屋 state.sceneData；非作用中
+  // 方案用「全屋 shell + 該方案家具座標」重建——都是從全房 3D 擷取，不重複建立。
+  const schemeSceneFor = (schemeId) => {
+    const own = state.designSchemes.schemes[schemeId]?.sceneData;
+    if (own?.scene_objects) return own;
+    if (schemeId === activeSchemeId()) return state.sceneData;
+    return schemeFurnitureSceneFromShell(
+      state.sceneData,
+      state.designSchemes.schemes[schemeId]?.furniture,
+    );
+  };
+  // 每個有場景的方案，列出還沒快取的房間。
+  const jobs = ["A", "B"]
+    .map((schemeId) => ({
+      schemeId,
+      scene: schemeSceneFor(schemeId),
+      rooms: state.rooms.filter(
+        (room) => !roomSchemePreviewCache.has(roomSchemePreviewKey(schemeId, room.id)),
+      ),
+    }))
+    .filter((job) => job.scene?.scene_objects && job.rooms.length);
+  if (!jobs.length) return null;
+  // 背景建立 A/B 逐房預覽：離屏縮圖 viewer 的序列佇列，前景 whiteViewer 完全不動。
+  // 每個方案的全屋場景「只載入一次」，一次拍完該方案所有房間再卸載——換房直接讀快取、
+  // 不再每換房重載整棟（省算力）；峰值 GPU 仍只有一棟場景（拍完即卸載）。
   roomSchemePreviewInFlight = (async () => {
     try {
-      for (const schemeId of candidates) {
+      for (const job of jobs) {
         glbThumbnailSequence = glbThumbnailSequence
           .catch(() => null)
           .then(async () => {
-            await glbThumbnailViewer.loadScene(state.designSchemes.schemes[schemeId].sceneData);
-            const walkPayload = roomWalkPayload(activeRoom);
-            const entered = walkPayload ? glbThumbnailViewer.setWalkRoom(walkPayload) : false;
-            if (!entered) {
-              glbThumbnailViewer.setViewMode("orbit");
-              glbThumbnailViewer.setCameraPreset("corner");
+            try {
+              await glbThumbnailViewer.loadScene(job.scene);
+              for (const room of job.rooms) {
+                const walkPayload = roomWalkPayload(room);
+                const entered = walkPayload ? glbThumbnailViewer.setWalkRoom(walkPayload) : false;
+                if (!entered) {
+                  glbThumbnailViewer.setViewMode("orbit");
+                  glbThumbnailViewer.setCameraPreset("corner");
+                }
+                await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                roomSchemePreviewCache.set(
+                  roomSchemePreviewKey(job.schemeId, room.id),
+                  glbThumbnailViewer.capturePng(),
+                );
+              }
+            } finally {
+              // 無論成功或中途 throw 都卸載：離屏 context 不留整棟 GPU 記憶體，避免 context loss。
+              glbThumbnailViewer.unloadScene();
             }
-            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-            roomSchemePreviewCache.set(
-              roomSchemePreviewKey(schemeId, activeRoom),
-              glbThumbnailViewer.capturePng(),
-            );
           });
         await glbThumbnailSequence;
       }
     } catch (error) {
       setStatus(`無法建立候選 3D 預覽：${errorMessage(error)}`, "warning");
     } finally {
-      // 拍完即卸載：離屏 context 不留整棟場景的 GPU 記憶體（PNG 已進快取）。
-      glbThumbnailSequence = glbThumbnailSequence
-        .catch(() => null)
-        .then(() => { glbThumbnailViewer.unloadScene(); });
       roomSchemePreviewInFlight = null;
       if (element.roomSchemeDialog?.open) {
         renderRoomSchemeSelectionDialog();
-        void ensureRoomScheme3dPreviews();   // 拍攝期間使用者可能已切到別的房間
+        // 拍攝期間若有新方案/房間才就緒（例：方案 B 稍後生成並清了快取），再補一輪；
+        // 全部已快取時 jobs 為空直接返回，不會無限迴圈。
+        void ensureRoomScheme3dPreviews();
       }
     }
   })();
@@ -9009,7 +9068,7 @@ async function confirmRequirementsInternal() {
     let schemeBFurniture = null;
     let schemeBError = null;
     try {
-      schemeBFurniture = await relayoutFurnitureForScheme(schemeAFurniture, "B");
+      schemeBFurniture = await relayoutFurnitureForScheme(schemeAFurniture, "B", { allowPending: true });
     } catch (error) {
       schemeBError = error;
       console.warn("Unable to create the alternative layout; continuing with scheme A.", error);
@@ -10543,6 +10602,7 @@ async function autoLayoutFurniture() {
 async function relayoutFurnitureForScheme(sourceFurniture, schemeId, {
   roomIds = null,
   movableFurnitureIds = null,
+  allowPending = false,
 } = {}) {
   const placedFurniture = [];
   const selectedRooms = roomIds
@@ -10589,6 +10649,10 @@ async function relayoutFurnitureForScheme(sourceFurniture, schemeId, {
       placedFurniture.push(item);
     });
   }
+  // 逐房 A/B 比較用的替代排法要容忍部分待處理家具（與方案 A 的 allowPendingFurniture 對稱）：
+  // 一件擺不下就整組回 null，會讓逐房 A/B 關卡在多房真實格局幾乎永不出現。
+  // repair／手動重排維持嚴格 null-on-failure（呼叫端依賴此訊號拒絕不完整結果）。
+  if (allowPending) return placedFurniture;
   return placedFurniture.some((item) => item.placementFailed) ? null : placedFurniture;
 }
 
