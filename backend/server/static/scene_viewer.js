@@ -1771,12 +1771,18 @@ export function createSceneViewer(
   ) {
     const renderedDoorIds = new Set();
     doorSegments.forEach((door, index) => {
-      // The Step 4 wall gap is authoritative for every wall component.  The
+      // The Step 4 wall gap is authoritative for every wall component; the
       // closed leaf may be shown on it, but must never define a second opening.
+      // A confirmed Step 4 door must still never vanish: when its wall opening
+      // can't be resolved (no persisted opening and no detectable wall gap), the
+      // closed_leaf_segment is the immutable Step 4 position, so render the leaf
+      // + lintel there instead of dropping the door.
+      // ponytail: fall back to closed_leaf_segment; do NOT route doors through
+      // buildSegmentWalls to "fix" this — that path cuts walls and double-holes.
       const headerSegment = door?.wall_opening_segment || door?.closed_leaf_segment;
-      if (door?.step4_confirmed === true && !door?.wall_opening_segment) return;
       const start = headerSegment?.start;
       const end = headerSegment?.end;
+      if (!start || !end) return;
       const dx = Number(end?.x) - Number(start?.x);
       const dz = Number(end?.z) - Number(start?.z);
       const width = Math.hypot(dx, dz);
