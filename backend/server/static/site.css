@@ -15617,6 +15617,59 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
   width: min(860px, calc(100vw - 32px));
 }
 
+/* 逐房 A/B 可旋轉 3D 預覽的對話框版面（帶拼接時遺漏，依 bella-new 還原）。
+   shell 用 grid：header / 3D 預覽(1fr 自適應) / 翻頁列 三段並限高 overflow:hidden——
+   容器才不塌 0px（否則 canvas 0 高度全空白）、又不溢出（否則關閉鈕被推出畫面關不掉）。 */
+.rp-room-scheme-preview-dialog .rp-task-dialog-shell {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(820px, calc(100vh - 32px));
+  overflow: hidden;
+}
+
+.rp-room-scheme-3d-preview {
+  min-height: 300px;
+  overflow: hidden;
+  border: 1px solid #d8d0c8;
+  background: #f8f4ef;
+}
+
+.rp-room-scheme-3d-preview canvas {
+  display: block;
+}
+
+.rp-room-scheme-preview-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-room-scheme-preview-nav span {
+  color: #4a4640;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* × 關閉鈕（帶拼接遺漏；本分支 .rp-icon-command 只剩深底白字版，在白色對話框裡
+   白字白底＝隱形，使用者關不掉視窗）。還原成淺底深字、42×42 可見可點。 */
+.rp-room-scheme-preview-close {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-color: #756d64;
+  background: #fffdfa;
+  color: #302d29;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.rp-room-scheme-preview-close:hover,
+.rp-room-scheme-preview-close:focus-visible {
+  background: #f3eee8;
+  color: #1f5547;
+  transform: none;
+}
+
 
 
 .rp-scene-sidebar-tabs {

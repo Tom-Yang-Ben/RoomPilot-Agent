@@ -4131,6 +4131,8 @@ function closeRoomSchemeSelectionDialog() {
   else element.roomSchemeDialog.removeAttribute("open");
 }
 
+let roomScheme3dPreviewSchemeId = null;
+
 async function openRoomScheme3dPreview(schemeId) {
   const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId));
   if (!room) {
@@ -4155,6 +4157,19 @@ async function openRoomScheme3dPreview(schemeId) {
     return;
   }
   element.roomScheme3dPreviewTitle.textContent = `${room.label || "房間"}・方案 ${resolvedSchemeId}`;
+  roomScheme3dPreviewSchemeId = resolvedSchemeId;
+  const previewRoomIndex = state.rooms.findIndex((item) => String(item.id) === String(room.id));
+  const previewPosition = $("#room-scheme-preview-position");
+  if (previewPosition) {
+    previewPosition.textContent = state.rooms.length > 1
+      ? `第 ${previewRoomIndex + 1} / ${state.rooms.length} 房・${room.label || "房間"}`
+      : `${room.label || "房間"}`;
+  }
+  const onlyOneRoom = state.rooms.length <= 1;
+  const previewPrev = $("#room-scheme-preview-prev");
+  const previewNext = $("#room-scheme-preview-next");
+  if (previewPrev) previewPrev.disabled = onlyOneRoom;
+  if (previewNext) previewNext.disabled = onlyOneRoom;
   element.roomSchemeStructureFix.hidden = previewScene.structureIssues.length === 0;
   setTaskDialogOpen(element.roomScheme3dPreviewDialog, true);
   try {
@@ -4166,6 +4181,20 @@ async function openRoomScheme3dPreview(schemeId) {
   } catch (error) {
     element.roomScheme3dPreviewStatus.textContent = `3D 預覽載入失敗：${errorMessage(error)}`;
   }
+}
+
+// 逐房翻頁：在放大的可旋轉 3D 預覽裡直接切上一房/下一房（循環），沿用目前預覽的方案，
+// 讓使用者不必關掉再重開就能逐一確認每個房間的門窗與家具。
+function navigateRoomScheme3dPreview(delta) {
+  if (!state.rooms.length) return;
+  const index = state.rooms.findIndex(
+    (item) => String(item.id) === String(state.selectedRoomSchemeId),
+  );
+  const base = index < 0 ? 0 : index;
+  const next = state.rooms[(base + delta + state.rooms.length) % state.rooms.length];
+  if (!next) return;
+  state.selectedRoomSchemeId = next.id;
+  void openRoomScheme3dPreview(roomScheme3dPreviewSchemeId);
 }
 
 async function waitForRoomSchemePreviewFrames(frameCount = 3) {
@@ -4190,6 +4219,9 @@ async function prepareRoomSchemePreviewViewer(viewer, scene) {
 function setTaskDialogOpen(dialog, isOpen) {
   if (!dialog) return;
   if (isOpen) {
+    // 對已開啟的 <dialog> 再呼叫 showModal() 會丟 InvalidStateError（逐房翻頁會在
+    // 對話框已開時重呼 openRoomScheme3dPreview）；已開就跳過，讓後續只重載場景。
+    if (dialog.open) return;
     if (typeof dialog.showModal === "function") dialog.showModal();
     else dialog.setAttribute("open", "");
   } else if (typeof dialog.close === "function") {
@@ -18548,6 +18580,8 @@ function bindEvents() {
   $("#close-room-scheme-3d-preview")?.addEventListener("click", () => {
     setTaskDialogOpen(element.roomScheme3dPreviewDialog, false);
   });
+  $("#room-scheme-preview-prev")?.addEventListener("click", () => navigateRoomScheme3dPreview(-1));
+  $("#room-scheme-preview-next")?.addEventListener("click", () => navigateRoomScheme3dPreview(1));
   element.roomSchemeStructureFix?.addEventListener("click", () => {
     setTaskDialogOpen(element.roomScheme3dPreviewDialog, false);
     closeRoomSchemeSelectionDialog();

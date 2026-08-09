@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-c26774f28cb8" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-df05b634d221" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -1085,6 +1085,11 @@
             <button id="close-room-scheme-3d-preview" type="button" class="rp-icon-command rp-room-scheme-preview-close" aria-label="關閉預覽" title="關閉預覽">×</button>
           </header>
           <div id="room-scheme-3d-preview" class="rp-room-scheme-3d-preview" aria-label="可旋轉的房間 3D 預覽"></div>
+          <footer class="rp-room-scheme-preview-nav">
+            <button id="room-scheme-preview-prev" type="button" class="secondary-action">← 上一房</button>
+            <span id="room-scheme-preview-position" aria-live="polite"></span>
+            <button id="room-scheme-preview-next" type="button" class="secondary-action">下一房 →</button>
+          </footer>
         </div>
       </dialog>
     </main>
@@ -1224,6 +1229,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-f42547eef85b"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-2853426e7318"></script>
   </body>
 </html>

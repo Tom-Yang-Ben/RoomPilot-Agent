@@ -268,6 +268,40 @@ def test_room_scheme_plan_svg_has_visible_styling_not_default_black() -> None:
         assert rule in css, f"site.css 缺少 {rule}（SVG 形狀會退回黑色填色）"
 
 
+def test_room_scheme_3d_preview_container_has_height() -> None:
+    """帶拼接掉了 .rp-room-scheme-3d-preview 的 CSS，容器沒有高度 → 塌成 0px → 可旋轉
+    3D 預覽的 canvas 0 高度 → loadScene 成功卻整片空白（點擊旋轉查看看不到場景）。"""
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    block = css.split(".rp-room-scheme-3d-preview {", 1)
+    assert len(block) == 2, "site.css 缺少 .rp-room-scheme-3d-preview 容器規則"
+    rule_body = block[1].split("}", 1)[0]
+    assert "min-height" in rule_body
+
+
+def test_room_scheme_preview_close_button_is_visible_on_light_dialog() -> None:
+    """本分支 .rp-icon-command 只剩深底白字版；白色對話框裡 × 關閉鈕白字白底＝隱形，
+    使用者關不掉視窗。.rp-room-scheme-preview-close 必須把它還原成淺底深字、可見可點。"""
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    block = css.split(".rp-room-scheme-preview-close {", 1)
+    assert len(block) == 2, "site.css 缺少 .rp-room-scheme-preview-close（× 關閉鈕會隱形）"
+    body = block[1].split("}", 1)[0]
+    assert "background: #fffdfa" in body  # 淺底
+    assert "color: #302d29" in body  # 深字
+
+
+def test_room_scheme_3d_preview_has_room_navigation() -> None:
+    """放大的可旋轉 3D 預覽要能逐房翻頁（上一房/下一房、循環），使用者才能不必關掉
+    重開就逐一確認每個房型的門窗與家具。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    assert "function navigateRoomScheme3dPreview" in source
+    assert "navigateRoomScheme3dPreview(-1)" in source
+    assert "navigateRoomScheme3dPreview(1)" in source
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    assert 'id="room-scheme-preview-prev"' in html
+    assert 'id="room-scheme-preview-next"' in html
+    assert 'id="room-scheme-preview-position"' in html
+
+
 def test_room_scheme_3d_preview_falls_back_to_live_full_house_scene() -> None:
     """per-scheme sceneData 不進存檔（只存 furniture/stale），重載後 schemes.sceneData
     為 null → A/B 3D 預覽永遠空白。ensureRoomScheme3dPreviews 缺 scheme 自身 sceneData
