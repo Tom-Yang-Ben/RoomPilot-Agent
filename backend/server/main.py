@@ -79,6 +79,15 @@ from .design_manual_service import (
     create_design_manual,
     delivery_proposal_status,
 )
+from .agent_pipeline_service import (
+    PipelineNotStarted,
+    get_pipeline,
+    pipeline_enabled,
+    pipeline_status,
+    start_pipeline,
+    submit_pipeline,
+    undo_pipeline,
+)
 from .style_cards import load_taiwan_style_cards
 from .services.cloud_models import (
     cloud_model_status,
@@ -3277,6 +3286,71 @@ async def agent_furniture_select(payload: dict) -> dict:
                 if items
             ],
         }
+
+
+@app.get("/api/agent/pipeline/status")
+def agent_pipeline_status_route() -> dict:
+    """MasterAgent 並存管線的開關與 gateway 狀態（永遠可查，即使未啟用）。"""
+    return pipeline_status()
+
+
+def _require_pipeline_enabled() -> None:
+    if not pipeline_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Agent 管線未啟用；設定環境變數 ROOMPILOT_AGENT_PIPELINE=1 後重啟服務。",
+        )
+
+
+@app.post("/api/agent/pipeline/{project_id}/start")
+async def agent_pipeline_start_route(project_id: str, payload: dict) -> dict:
+    """並存管線：載入室內架構與規則，進入等待問卷狀態。不影響正式 step 6。"""
+    _require_pipeline_enabled()
+    layout_json = payload.get("layout_json") or payload.get("layout")
+    if not isinstance(layout_json, dict):
+        raise HTTPException(
+            status_code=422,
+            detail="layout_json 為必要欄位（辨識步驟輸出的室內架構）。",
+        )
+    rules_json = payload.get("rules_json") if isinstance(payload.get("rules_json"), dict) else None
+    try:
+        return start_pipeline(
+            PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id, layout_json, rules_json
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.post("/api/agent/pipeline/{project_id}/submit")
+async def agent_pipeline_submit_route(project_id: str, payload: dict | None = None) -> dict:
+    """並存管線：在目前 HITL 決策點提交輸入並推進（問卷→A/B 擺放+驗證→…）。"""
+    _require_pipeline_enabled()
+    try:
+        return submit_pipeline(
+            PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id, payload or {}
+        )
+    except PipelineNotStarted as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@app.post("/api/agent/pipeline/{project_id}/undo")
+async def agent_pipeline_undo_route(project_id: str) -> dict:
+    """並存管線：回復上一次 submit 之前的完整狀態。"""
+    _require_pipeline_enabled()
+    try:
+        return undo_pipeline(PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id)
+    except PipelineNotStarted as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@app.get("/api/agent/pipeline/{project_id}")
+def agent_pipeline_get_route(project_id: str) -> dict:
+    """並存管線：查詢目前暫停點、期望輸入與最近一次階段產物。"""
+    _require_pipeline_enabled()
+    try:
+        return get_pipeline(PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id)
+    except PipelineNotStarted as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @app.post("/api/scene/generate")
