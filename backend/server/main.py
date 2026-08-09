@@ -2105,7 +2105,13 @@ def create_project_ai_renders(project_id: str, payload: dict) -> dict:
         ) from exc
     project = PROJECT_STORE.update_workflow(
         project_id,
-        workflow={"ai_render": {"edit_used": 0, "rooms": outcome["rooms"]}},
+        workflow={
+            "ai_render": {
+                "edit_used": 0,
+                # 逐房各自一次改圖額度（指南 §3E：每房可在初圖後提出一次修改）。
+                "rooms": [{**room, "edit_used": 0} for room in outcome["rooms"]],
+            }
+        },
     )
     return {
         "results": outcome["results"],
@@ -2120,12 +2126,6 @@ def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict
     """整批一次改圖：只改使用者指定內容、其餘鎖定不動；額度用完回 409。"""
     project = _stored_project(project_id)
     ai_render = (project.get("workflow") or {}).get("ai_render") or {}
-    # ponytail: 單一使用者流程，read-check-write 的競態可忽略；額度仍由伺服器強制。
-    if int(ai_render.get("edit_used") or 0) >= 1:
-        raise HTTPException(
-            409,
-            {"code": "ai_edit_budget_exhausted", "message": "整批只能修改一次，額度已用完。"},
-        )
     room_state = next(
         (
             row
@@ -2138,6 +2138,13 @@ def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict
         raise HTTPException(
             409,
             {"code": "room_not_generated", "message": "這個房間尚未生圖，無法修改。"},
+        )
+    # ponytail: 單一使用者流程，read-check-write 的競態可忽略；額度仍由伺服器強制。
+    # 逐房各一次改圖（指南 §3E）；只有這個房間的額度用完才回 409，不影響其他房間。
+    if int(room_state.get("edit_used") or 0) >= 1:
+        raise HTTPException(
+            409,
+            {"code": "ai_edit_budget_exhausted", "message": "這個房間只能修改一次，額度已用完。"},
         )
     feedback = str(payload.get("feedback") or "").strip()
     if not feedback:
@@ -2165,8 +2172,12 @@ def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict
             502,
             {"code": "ai_edit_failed", "message": "；".join(exc.notices) or "改圖失敗。"},
         ) from exc
+    updated_rooms = [
+        {**row, "edit_used": 1} if str(row.get("room_id")) == room_id else row
+        for row in ai_render.get("rooms") or []
+    ]
     project = PROJECT_STORE.update_workflow(
-        project_id, workflow={"ai_render": {"edit_used": 1}}
+        project_id, workflow={"ai_render": {"rooms": updated_rooms}}
     )
     return {
         "result": result,

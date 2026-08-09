@@ -163,7 +163,8 @@ def test_room_surfaces_flow_into_2d_3d_and_render_payloads() -> None:
     assert "createRoomCeilingOverrides" in VIEWER
     assert "roompilotCeilingOverride" in VIEWER
     assert "resolveWallMaterial.faceMaterials" in VIEWER
-    assert "const overrideAtPoint" in VIEWER
+    # Surface overrides are now canonicalized per room before wall geometry is built.
+    assert "const canonicalOverrides = new Map();" in VIEWER
     apply_style = SCENE.split("async function applyStylePackToScene", 1)[1].split(
         "async function applySurfaceOverrides", 1
     )[0]

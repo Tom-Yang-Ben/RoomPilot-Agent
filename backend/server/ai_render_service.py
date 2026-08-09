@@ -100,11 +100,11 @@ def _placed_objects(scene: dict, room_id: str) -> list[dict]:
         for obj in objects
         if obj.get("placement_room_id")
     }
-    if room_id in room_ids:
-        return [obj for obj in objects if str(obj.get("placement_room_id")) == room_id]
-    if len(room_ids) <= 1:
-        # 單房（single_room_mode）或家具未分房：全部家具都屬於這個視角房間。
+    if not room_ids:
+        # 家具完全未分房（單房或未標記 placement_room_id）：全部家具都屬於這個視角房間。
         return objects
+    # 家具已分房：嚴格只回傳標記為此 room_id 的家具。此房沒有家具時回空，
+    # 不可把別房家具挪用給這個視角房間（指南 §5／§3E，逐房 room_id 分房）。
     return [obj for obj in objects if str(obj.get("placement_room_id")) == room_id]
 
 
