@@ -1,10 +1,25 @@
 """Master state machine：完整流程、計數器、失敗政策與可恢復上一動。"""
 from pathlib import Path
 
-from backend.agent.documents import DocKey
-from backend.agent.master import MasterState
+from backend.agent.documents import DocKey, LayoutRoom
+from backend.agent.master import MasterState, _is_living_room
 
 from .conftest import FakeImageGateway, build_test_master, make_png_b64
+
+
+def _room(**kw) -> LayoutRoom:
+    base = dict(room_id="r", name="房間", width_cm=300, depth_cm=300)
+    base.update(kw)
+    return LayoutRoom(**base)
+
+
+def test_is_living_room_uses_room_type_and_name_fallback():
+    # 權威訊號 room_type
+    assert _is_living_room(_room(room_type="living_room", name="Living"))
+    # 中文房名後援（layout_json 缺 room_type 時）
+    assert _is_living_room(_room(name="客廳"))
+    # 兩者皆非 → 不是客廳，不出夜間圖
+    assert not _is_living_room(_room(room_type="bedroom", name="主臥"))
 
 
 def _viewpoints() -> dict:
@@ -55,13 +70,16 @@ def test_full_happy_path(master, layout_json, questionnaire):
     assert pdf_path.exists() and pdf_path.read_bytes()[:4] == b"%PDF"
     assert len(pause.payload["sections"]) == 8  # 新增「二、設計理念與亮點」章
 
-    # 生圖紀錄：2 色卡 + 2 全房 + 1 改圖
+    # 生圖紀錄：2 色卡 + 2 全房 + 1 客廳夜間 + 1 改圖
     records = (master.store.get(DocKey.IMAGES) or {}).get("records") or []
-    assert len(records) == 5
+    assert len(records) == 6
     stages = [row["stage"] for row in records]
     assert stages.count("palette_compare") == 2
     assert stages.count("full_render") == 2
     assert stages.count("edit") == 1
+    # 客廳額外一張夜間光影圖；臥室沒有
+    night = [row for row in records if row["stage"] == "full_render_night"]
+    assert len(night) == 1 and night[0]["room_id"] == "living"
 
 
 def test_undo_restores_previous_step(master, layout_json, questionnaire):

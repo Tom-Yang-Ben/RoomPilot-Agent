@@ -32,6 +32,13 @@ DESCRIPTION_MAX_CHARS = 90
 # 描述結尾常是「適合現代客廳…」這類用途建議，對畫面沒有貢獻，整句丟棄。
 USAGE_SENTENCE_PREFIXES = ("適合", "無論", "可搭配")
 
+# 生圖光影提示（結尾補述）：預設白天日光；客廳另出一張夜間光影供設計手冊並列。
+# "day" 維持既有字串不變，避免動到現有全房生圖的輸出。
+_LIGHTING_HINTS = {
+    "day": "光影以窗戶陽光及室內燈光為主",
+    "night": "光影以夜晚室內燈光為主，窗外為入夜暗景，呈現溫暖靜謐的夜間氛圍",
+}
+
 # 尺寸不進生圖提示詞（定案）：畫面比例由 img2img 視角截圖鎖定，文字給了數字
 # 只會讓模型照數字重新推比例。型錄名稱有一半帶規格（8076 件中 4130 件，如
 # 「206x46x54 公分」「88"W」「5' 3"」），描述偶爾也帶（201 件）。
@@ -176,6 +183,7 @@ class GenPicInfoTool:
         stage: str,
         palette: dict | None = None,
         viewpoint: dict | None = None,
+        lighting: str = "day",
     ) -> dict:
         # 提示詞模板（2026-08-04 使用者定案）：
         # 「渲染成寫實風格，房間：{}、整體風格：{}、風格參考：{}、
@@ -236,7 +244,8 @@ class GenPicInfoTool:
             locked_materials={**materials, "palette": (palette or {}).get("name", "")},
             allowed_change="",
         )
-        prompt += '\n可以加上任何需要元素\n草圖中的格局、物件位置不可變動\n光影以窗戶陽光及室內燈光為主'
+        hint = _LIGHTING_HINTS.get(lighting, _LIGHTING_HINTS["day"])
+        prompt += f'\n可以加上任何需要元素\n草圖中的格局、物件位置不可變動\n{hint}'
         print(prompt)
         return {"prompt": prompt, "lock_manifest": manifest.to_dict(), "stage": stage}
 

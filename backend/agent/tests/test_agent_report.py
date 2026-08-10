@@ -4,14 +4,21 @@
 placed row 的 reason／hint_note。"""
 from pathlib import Path
 
-from backend.agent.documents import DocKey, DocStore
+from backend.agent.documents import (
+    DocKey,
+    DocStore,
+    ImageLibraryDoc,
+    ImageRecord,
+    LayoutDoc,
+    LayoutRoom,
+)
 from backend.agent.skills.furniture import STRATEGIES, FurnitureSkill
 from backend.agent.skills.report import ReportSkill, _looks_like_b64
 from backend.agent.skills.requirements import RequirementSkill
 from backend.agent.tools.rag_furniture import RagFurnitureTool
 from backend.agent.tools.read_layout import ReadLayoutTool
 
-from .conftest import FakeRetriever
+from .conftest import FakeRetriever, make_png_b64
 
 
 def _store_with_scene(layout_json, questionnaire) -> tuple[DocStore, list[str]]:
@@ -58,6 +65,38 @@ def test_manual_has_rationale_chapter_and_furniture_reasons(
 
     assert Path(manual.pdf_path).exists()
     assert Path(manual.pdf_path).read_bytes()[:4] == b"%PDF"
+
+
+def test_render_section_shows_living_day_and_night_others_single():
+    """客廳有夜間圖 → 日光＋夜間兩張都入手冊；其他房單圖、不加光影標籤。"""
+    layout = LayoutDoc(
+        rooms=[
+            LayoutRoom(
+                room_id="living", name="客廳", width_cm=420, depth_cm=360,
+                room_type="living_room",
+            ),
+            LayoutRoom(room_id="bedroom", name="主臥", width_cm=360, depth_cm=300),
+        ]
+    )
+    b64 = make_png_b64()
+    images = ImageLibraryDoc(
+        records=[
+            ImageRecord(image_id="img_living_day", room_id="living",
+                        stage="full_render", image_ref=b64, seq=1),
+            ImageRecord(image_id="img_living_night", room_id="living",
+                        stage="full_render_night", image_ref=b64, seq=2),
+            ImageRecord(image_id="img_bedroom_day", room_id="bedroom",
+                        stage="full_render", image_ref=b64, seq=3),
+        ]
+    )
+    section, images_b64 = ReportSkill(None)._render_section(layout, images)
+
+    # 客廳兩張圖都要引用並可進 PDF；臥室維持單圖
+    assert section.image_ids == ["img_living_day", "img_living_night", "img_bedroom_day"]
+    assert {"img_living_day", "img_living_night"} <= set(images_b64)
+    # 有夜間圖才標日光/夜間；單圖房不加標籤
+    assert "客廳（日光）：" in section.body and "客廳（夜間）：" in section.body
+    assert "主臥：" in section.body and "主臥（" not in section.body
 
 
 def test_looks_like_b64_tolerates_slash_in_image_payload():

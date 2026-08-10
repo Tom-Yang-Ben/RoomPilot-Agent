@@ -39,6 +39,11 @@ from .tools.read_layout import ReadLayoutTool
 from .tools.read_rules import ReadRulesTool
 
 
+def _is_living_room(room) -> bool:
+    """客廳判定：room_type 是權威訊號，中文房名「客廳」為容錯後援。"""
+    return room.room_type == "living_room" or "客廳" in (room.name or "")
+
+
 class MasterState:
     AWAIT_QUESTIONNAIRE = "await_questionnaire"
     AWAIT_PLAN_CHOICE = "await_plan_choice"
@@ -367,6 +372,22 @@ class MasterAgent:
                 )
                 manifests[room.room_id] = manifest.to_dict()
                 generated.append({"room_id": room.room_id, "image_id": record.image_id})
+                # 客廳額外產一張夜間光影圖；設計手冊渲染成果章日光＋夜間並列。
+                # 改圖仍鎖日光圖（見 GenPicAgent.edit_room），夜間圖不另出鎖定清單。
+                if _is_living_room(room):
+                    night = self.genpic.render_room(
+                        requirements,
+                        scene,
+                        room,
+                        images,
+                        stage="full_render_night",
+                        palette=palette,
+                        viewpoint=viewpoint,
+                        lighting="night",
+                    )
+                    generated.append(
+                        {"room_id": room.room_id, "image_id": night.image_id}
+                    )
         except GenPicFailure as exc:
             self.store.set(DocKey.IMAGES, images)
             self.store.set(DocKey.LOCK_MANIFEST, {"rooms": manifests})
