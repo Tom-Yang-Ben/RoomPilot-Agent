@@ -245,7 +245,12 @@ const state = {
     roomViews: {},
     jobs: [],
     renderBriefs: [],
+    paletteGenerated: false,
   },
+  // 第 7 步代表房三色卡的 base64 生圖:只放記憶體,不進 workflowPayload —— 避免撐爆
+  // 2MB workflow 上限(見 project_store.MAX_WORKFLOW_BYTES)。重整後預覽不留,但
+  // 後端 palette_render.generated 旗標仍鎖住「只生一次」。
+  paletteRenderImages: {},
   selectedRenderRoomId: null,
   selectedProposalRoomId: null,
   selectedProposalRoomCandidateIndex: 0,
@@ -15724,17 +15729,25 @@ function renderRemoteJobs() {
 }
 
 function renderPaletteResults() {
-  const paletteJobs = state.proposalReview.jobs.filter(
+  if (!element.paletteRenderResults) return;
+  const paletteJobs = (state.proposalReview.jobs || []).filter(
     (job) => job.mode === "palette_comparison",
   );
   element.paletteRenderResults.innerHTML = paletteJobs.map((job) => {
-    const imageUrl = job.image_url || job.output_url || job.preview_url;
     const styleCardId = job.style_card_id || job.styleCardId || "";
+    // base64 生圖只在記憶體(state.paletteRenderImages);重整後沒有 → 顯示提示。
+    const imageUrl = state.paletteRenderImages?.[styleCardId]
+      || job.image_url || job.output_url || job.preview_url || "";
+    const placeholder = job.status === "failed"
+      ? "生成失敗"
+      : job.status === "completed"
+        ? "已生成（重新整理後不保留預覽）"
+        : "等待生成";
     return `
       <label class="rp-render-result">
         ${imageUrl
           ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(job.label || styleCardId)} 色卡渲染" />`
-          : `<span class="rp-render-placeholder">${escapeHtml(job.status || "等待遠端渲染")}</span>`}
+          : `<span class="rp-render-placeholder">${escapeHtml(placeholder)}</span>`}
         <span>
           <input type="radio" name="confirmed-render-style" value="${escapeHtml(styleCardId)}"
             ${styleCardId === state.proposalReview.confirmedStyleCardId ? "checked" : ""} />
@@ -15743,7 +15756,7 @@ function renderPaletteResults() {
       </label>
     `;
   }).join("");
-  element.confirmRenderPalette.hidden = paletteJobs.length === 0;
+  if (element.confirmRenderPalette) element.confirmRenderPalette.hidden = paletteJobs.length === 0;
 }
 
 function confirmRenderPalette() {
@@ -16168,6 +16181,14 @@ function renderProposalStyleStage() {
   panel.querySelector("#proposal-representative-context").innerHTML = `<strong>${escapeHtml(room?.label || "")}</strong><span>${escapeHtml(questionnaireContextLabel(context))}：${escapeHtml(context.note || "使用已鎖定配置")}</span>${context.fallbackUsed ? `<span>${escapeHtml(context.fallbackNotice)}</span>` : ""}<span>已鎖定家具：${escapeHtml(context.lockedFurniture.join("、") || "未鎖定")}</span>`;
   renderPaletteOptions();
   renderPaletteResults();
+  // 每個專案只能生一次:生成後停用產圖按鈕。
+  const paletteGenerateBtn = panel.querySelector("#open-palette-render-brief");
+  if (paletteGenerateBtn) {
+    paletteGenerateBtn.disabled = state.proposalReview.paletteGenerated === true;
+    paletteGenerateBtn.textContent = state.proposalReview.paletteGenerated
+      ? "色卡比較圖已生成（每專案限一次）"
+      : "產生 3 張色卡比較圖";
+  }
   panel.querySelector("#proposal-style-stage-status").textContent = state.proposalReview.confirmedStyleCardId
     ? "\u8272\u5361\u5df2\u9396\u5b9a\uff0c\u5373\u5c07\u9032\u5165\u7b2c 8 \u6b65\u9010\u623f\u751f\u5716\u3002"
     : "\u8acb\u5148\u7522\u751f\u4ee3\u8868\u623f\u7684 3 \u5f35\u8272\u5361\u6bd4\u8f03\u5716\uff0c\u518d\u9078\u4e00\u5f35\u78ba\u5b9a\u3002";
@@ -16626,19 +16647,85 @@ function confirmedRenderBrief(mode, notes) {
 
 async function requestPaletteRenders(renderBrief = null) {
   const roomId = state.proposalReview.representativeRoomId;
+  const room = state.rooms.find((item) => String(item.id) === String(roomId));
   const view = state.proposalReview.roomViews?.[roomId];
   const cards = paletteChoicesForActiveStyle();
-  if (!view || !cards.length) return;
+  const status = $("#proposal-style-stage-status");
+  if (!room || !view || !cards.length) {
+    if (status) status.textContent = "請先選定代表房並確認視角，再產生色卡比較圖。";
+    return;
+  }
+  // 每個專案只能生一次:已生成就不再送請求(後端亦以 409 把關)。
+  if (state.proposalReview.paletteGenerated) {
+    if (status) status.textContent = "此專案的色卡比較圖已生成過，每個專案只能生成一次。";
+    renderPaletteResults();
+    return;
+  }
+  // 代表房 3D 視角截圖:當 img2img 參考,鎖住家具與格局不動(同第 8 步作法)。
+  proposalViewer.setCameraState(view.camera);
+  const referencePng = proposalViewer.capturePng();
+  if (status) status.textContent = `正在為「${room.label || "代表房"}」一次送出 ${cards.length} 張色卡比較圖…`;
   try {
-    const result = await api(`/api/projects/${state.projectId}/render-jobs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(renderRequestPayload("palette_comparison", cards.map((card) => card.id), [view], renderBrief)) });
-    const jobs = (result.jobs || [result.job]).filter(Boolean).map((job, index) => ({ ...job, mode: "palette_comparison", room_id: roomId, style_card_id: job.style_card_id || cards[index]?.id, label: job.label || cards[index]?.name }));
-    state.proposalReview.jobs = (state.proposalReview.jobs || []).filter((job) => job.mode !== "palette_comparison").concat(jobs);
-    legacyRenderPaletteResultsV1();
-    scheduleSave("proposal_review");
+    const result = await api(`/api/projects/${state.projectId}/palette-renders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project_id: state.projectId,
+        scene: state.sceneData,
+        room: {
+          room_id: roomId,
+          room_label: room.label,
+          reference_png_data_url: referencePng,
+          note: String(renderBrief?.user_notes || "").trim(),
+        },
+        style_card_ids: cards.map((card) => card.id),
+      }),
+    });
+    applyPaletteRenderResults(result, cards, roomId);
+    const done = (result.results || []).filter((item) => item.status === "completed").length;
+    if (status) {
+      status.textContent = done
+        ? `已為代表房一次產生 ${done} 張色卡比較圖；選一張後確定進入第 8 步（每專案只生一次）。`
+        : "色卡比較圖生成失敗，請稍後再試。";
+    }
   } catch (error) {
-    const status = $("#proposal-style-stage-status");
+    // 已生成過(409):鎖定 UI、不再重送,不視為錯誤。
+    if (error?.status === 409 || error?.detail?.code === "palette_already_generated") {
+      state.proposalReview.paletteGenerated = true;
+      renderProposalStyleStage();
+      if (status) status.textContent = "此專案的色卡比較圖已生成過，每個專案只能生成一次。";
+      return;
+    }
     if (status) status.textContent = `色卡比較圖建立失敗：${errorMessage(error)}`;
   }
+}
+
+function applyPaletteRenderResults(result, cards, roomId) {
+  const results = result?.results || [];
+  const images = {};
+  const jobs = results.map((item) => {
+    const cardId = item.style_card_id || "";
+    // base64 只放記憶體(state.paletteRenderImages),不進 jobs/持久化,避免撐爆 workflow。
+    if (item.image_data_url) images[cardId] = item.image_data_url;
+    return {
+      mode: "palette_comparison",
+      room_id: roomId,
+      style_card_id: cardId,
+      status: item.status,
+      label: cards.find((card) => card.id === cardId)?.name || cardId,
+    };
+  });
+  state.paletteRenderImages = images;
+  state.proposalReview.jobs = (state.proposalReview.jobs || [])
+    .filter((job) => job.mode !== "palette_comparison")
+    .concat(jobs);
+  // 有任一張成功就鎖定(後端同步鎖定);全失敗不鎖,允許重試。
+  if (result?.already_generated || results.some((item) => item.status === "completed")) {
+    state.proposalReview.paletteGenerated = true;
+  }
+  renderPaletteResults();
+  renderProposalStyleStage();
+  scheduleSave("proposal_review");
 }
 
 async function legacySubmitRoomRendersV2(renderBrief = null) {
@@ -19314,7 +19401,10 @@ async function restoreProject() {
       roomViews: savedProposal.roomViews || {},
       jobs: savedProposal.jobs || [],
       renderBriefs: savedProposal.renderBriefs || [],
+      // 「只生一次」以後端 palette_render.generated 為準(前端 save 不會覆寫它)。
+      paletteGenerated: Boolean(serverState.palette_render?.generated),
     };
+    state.paletteRenderImages = {};
     state.sourceExtension = floorplanExtension({
       name: state.analysis?.filename || state.workflow.data.upload?.filename || "",
     });

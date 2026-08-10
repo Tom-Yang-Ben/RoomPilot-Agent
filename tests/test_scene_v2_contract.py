@@ -111,6 +111,38 @@ def test_proposal_color_card_stage_constrains_images_so_layout_cannot_blow_out()
     assert "grid" in _rule(".rp-render-palette-results")
 
 
+def test_step7_palette_render_calls_genpic_endpoint_once_without_persisting_base64() -> None:
+    """第 7 步三色卡比較必須打生圖 agent 端點 /palette-renders(而非未接線的 /render-jobs),
+    以代表房 3D 截圖一次送三張、每專案限一次;base64 生圖只放記憶體 holder,不進
+    workflowPayload(避免撐爆 2MB workflow)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    body = source.split("async function requestPaletteRenders(", 1)[1].split(
+        "\nfunction applyPaletteRenderResults(", 1,
+    )[0]
+    assert "/palette-renders`" in body           # 打生圖端點
+    assert "/render-jobs`" not in body           # 不再用未接線的遠端 render provider
+    assert "proposalViewer.capturePng()" in body  # 代表房 img2img 參考
+    assert "style_card_ids: cards.map(" in body   # 一次送多張色卡
+    assert "state.proposalReview.paletteGenerated" in body  # 前端擋重生
+    assert "error?.status === 409" in body        # 後端 409 也擋
+
+    apply_body = source.split("function applyPaletteRenderResults(", 1)[1].split(
+        "\n}", 1,
+    )[0]
+    assert "state.paletteRenderImages = images" in apply_body  # base64 進記憶體 holder
+
+    # 重整時「已生成」以後端 palette_render.generated 為準。
+    assert "paletteGenerated: Boolean(serverState.palette_render?.generated)" in source
+    # 產圖按鈕生成後停用(每專案限一次)。
+    assert "paletteGenerateBtn.disabled = state.proposalReview.paletteGenerated" in source
+    # base64 不得進 workflowPayload 持久化(2MB 上限)。
+    payload_fn = source.split("function workflowPayload()", 1)[1].split(
+        "\nlet saveSequence", 1,
+    )[0]
+    assert "paletteRenderImages" not in payload_fn
+
+
 def test_requirements_step_has_randomized_test_skip_button() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")

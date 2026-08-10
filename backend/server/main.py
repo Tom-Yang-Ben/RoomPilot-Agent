@@ -70,6 +70,7 @@ from .ai_render_service import (
     GenPicFailure,
     ai_render_status,
     edit_room_image,
+    generate_palette_images,
     generate_room_images,
 )
 from .design_manual_service import (
@@ -2126,6 +2127,95 @@ def create_project_ai_renders(project_id: str, payload: dict) -> dict:
     return {
         "results": outcome["results"],
         "edit_remaining": 1,
+        "revision": project["revision"],
+        "updated_at": project["updated_at"],
+    }
+
+
+@app.post("/api/projects/{project_id}/palette-renders", status_code=201)
+def create_project_palette_renders(project_id: str, payload: dict) -> dict:
+    """第 7 步代表房「色卡比較」:同一代表房 × 多張色卡,一次併發呼叫 Gen_Pic Agent
+    (Nano Banana Pro)。**每個專案只能成功生成一次** —— 已生成過回 409,不再呼叫模型;
+    全部失敗則不鎖定,允許重試。base64 不入 workflow(2MB 上限),只存旗標與各卡狀態。
+    """
+    project = _stored_project(project_id)
+    if payload.get("project_id") not in (None, project_id):
+        raise HTTPException(
+            422,
+            {"code": "render_project_mismatch", "message": "生圖資料與目前專案不一致。"},
+        )
+    palette_state = (project.get("workflow") or {}).get("palette_render") or {}
+    if palette_state.get("generated"):
+        raise HTTPException(
+            409,
+            {
+                "code": "palette_already_generated",
+                "message": "此專案的代表房色卡比較圖已生成過，每個專案只能生成一次。",
+            },
+        )
+    scene = payload.get("scene")
+    if not isinstance(scene, dict) or not scene.get("scene_objects"):
+        raise HTTPException(
+            422,
+            {"code": "scene_required", "message": "缺少場景資料，請先完成第 6 步配置。"},
+        )
+    room = payload.get("room")
+    if not isinstance(room, dict) or not str(room.get("room_id") or "").strip():
+        raise HTTPException(
+            422,
+            {"code": "room_required", "message": "缺少代表房，請先在第 7 步選定代表房與視角。"},
+        )
+    if not _looks_like_png_data_url(room.get("reference_png_data_url")):
+        raise HTTPException(
+            422,
+            {"code": "reference_png_required", "message": "代表房需要 3D 視角截圖。"},
+        )
+    style_card_ids = payload.get("style_card_ids")
+    if not isinstance(style_card_ids, list) or not [
+        card for card in style_card_ids if str(card or "").strip()
+    ]:
+        raise HTTPException(
+            422,
+            {"code": "style_card_ids_required", "message": "缺少色卡清單。"},
+        )
+    try:
+        outcome = generate_palette_images(scene, room, style_card_ids)
+    except AiRenderNotConfigured as exc:
+        raise HTTPException(
+            503,
+            {
+                "code": str(exc),
+                "message": "尚未連接 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。",
+            },
+        ) from exc
+    any_completed = any(item.get("status") == "completed" for item in outcome["results"])
+    if not any_completed:
+        # 全部失敗:不鎖定,讓使用者可重試;回失敗結果供前端顯示原因。
+        return {
+            "results": outcome["results"],
+            "already_generated": False,
+            "room_id": outcome["room_id"],
+        }
+    project = PROJECT_STORE.update_workflow(
+        project_id,
+        workflow={
+            "palette_render": {
+                "generated": True,
+                "room_id": outcome["room_id"],
+                "cards": [
+                    {
+                        "style_card_id": item.get("style_card_id"),
+                        "status": item.get("status"),
+                    }
+                    for item in outcome["results"]
+                ],
+            }
+        },
+    )
+    return {
+        "results": outcome["results"],
+        "already_generated": False,
+        "room_id": outcome["room_id"],
         "revision": project["revision"],
         "updated_at": project["updated_at"],
     }
