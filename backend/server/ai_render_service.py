@@ -337,12 +337,10 @@ def generate_room_images(
     palette = _palette_dict(requirements)
     width_cm, depth_cm = _room_dims(scene)
 
-    agent = GenPicAgent(gateway)
-    images = ImageLibraryDoc()
-
-    results: list[dict] = []
-    room_state: list[dict] = []
-    for room in rooms:
+    def _render_one(room: dict) -> tuple[dict, dict | None]:
+        # 每執行緒各自 agent/images/scene_doc,避免共用可變狀態;gateway 無狀態可共用。
+        agent = GenPicAgent(gateway)
+        images = ImageLibraryDoc()
         room_id = str(room.get("room_id") or "").strip()
         reference_b64 = _strip_data_url(room.get("reference_png_data_url"))
         rows = _placed_rows(_placed_objects(scene, room_id))
@@ -367,16 +365,16 @@ def generate_room_images(
                 viewpoint=viewpoint,
             )
         except GenPicFailure as exc:
-            results.append(
+            return (
                 {
                     "room_id": room_id,
                     "room_label": layout_room.name,
                     "status": "failed",
                     "notices": exc.notices,
-                }
+                },
+                None,
             )
-            continue
-        results.append(
+        return (
             {
                 "room_id": room_id,
                 "room_label": layout_room.name,
@@ -385,15 +383,20 @@ def generate_room_images(
                 "image_data_url": _as_data_url(record.image_ref),
                 "model": record.model,
                 "notices": record.notices,
-            }
-        )
-        room_state.append(
+            },
             {
                 "room_id": room_id,
                 "room_label": layout_room.name,
                 "lock_manifest": manifest.to_dict(),
-            }
+            },
         )
+
+    # 全房生圖:所有房間視角**一次併發**送出(gateway 為 stdlib urllib 阻塞式,用執行緒
+    # 池併發);順序對齊輸入 rooms。單一房間失敗只標記該房,其餘照常回傳。
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(rooms))) as pool:
+        outcomes = list(pool.map(_render_one, rooms))
+    results = [result for result, _ in outcomes]
+    room_state = [state for _, state in outcomes if state is not None]
     return {"results": results, "rooms": room_state}
 
 

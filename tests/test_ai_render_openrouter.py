@@ -204,6 +204,27 @@ def test_failed_furniture_room_still_returns_other_rooms() -> None:
     assert all(row["status"] == "completed" for row in outcome["results"])
 
 
+def test_all_room_renders_are_dispatched_at_once() -> None:
+    """全房生圖:所有房間視角**一次併發**送出。barrier(N) 只有在 N 個請求同時在途才
+    通過;若逐一序列送出會卡住 timeout。輸出順序須對齊輸入 rooms。"""
+    import threading
+
+    rooms = [
+        {"room_id": f"room-{i}", "room_label": f"房{i}", "reference_png_data_url": REFERENCE_PNG}
+        for i in range(3)
+    ]
+    barrier = threading.Barrier(len(rooms), timeout=8)
+
+    class BarrierGateway(CapturingGateway):
+        def generate_image(self, prompt, *, images=(), model=None) -> ImageResult:
+            barrier.wait()
+            return super().generate_image(prompt, images=images, model=model)
+
+    outcome = generate_room_images(_scene(), rooms, gateway=BarrierGateway())
+    assert [row["status"] for row in outcome["results"]] == ["completed"] * 3
+    assert [row["room_id"] for row in outcome["results"]] == ["room-0", "room-1", "room-2"]
+
+
 # ------------------------------------------------------------ FastAPI 端到端
 
 
