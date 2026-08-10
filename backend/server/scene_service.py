@@ -16,7 +16,9 @@ from ..agent.knowledge import (
     COMPANION_OF,
     FAMILY_ZH,
     FREE_SEATING_FAMILIES,
+    ROOM_COMPANION_ESSENTIALS,
     ROOM_ESSENTIALS,
+    dining_chair_target,
     family_of,
     is_outdoor_item,
 )
@@ -170,6 +172,11 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
                 for item in normalized
             ):
                 normalized.insert(0, essential)
+        # 客廳基本組:沙發之外,茶几與電視櫃也是必備(至少沙發+茶几+電視櫃);
+        # 缺了就補進 required,否則它們是 companion,不在清單就不會被 choose 挑到。
+        for companion in ROOM_COMPANION_ESSENTIALS.get(space_type, ()):
+            if not any(family_of(item) == companion for item in normalized):
+                normalized.append(companion)
         # 有餐桌就要有餐椅(張數保證在選件與 2D 規格層;此處保證型別存在)
         if any(family_of(item) == "dining-table" for item in normalized) and not any(
             family_of(item) == "dining-chair" for item in normalized
@@ -178,6 +185,79 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
         return normalized
 
     return SPACE_DEFAULTS.get(space_type, SPACE_DEFAULTS["living_room"]).copy()
+
+
+def _occupant_headcount(questionnaire: dict[str, Any]) -> int:
+    """入住人數 = 大人 + 小孩 + 長輩(寵物不算)。缺資料回 0。"""
+    occ = questionnaire.get("occupants")
+    if not isinstance(occ, dict):
+        return 0
+    total = 0
+    for key in ("adults", "children", "elderly"):
+        try:
+            total += max(0, int(occ.get(key) or 0))
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def _merge_exact_and_chosen(
+    exact: list[dict[str, Any]], chosen: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """精選件優先入座,自動選的同 id 或**同族**讓位。
+
+    同族去重(非 normalized_type 字串)是防「臥室兩張床」的根治點:精選床可能是
+    bed-frame、自動選的是 bed,字串不等會兩張都留;family_of 摺疊後同族只保留精選。
+    """
+    exact_ids = {item.get("furniture_id") for item in exact}
+    exact_families = {family_of(item.get("normalized_type")) for item in exact}
+    return [
+        *exact,
+        *[
+            item
+            for item in chosen
+            if item.get("furniture_id") not in exact_ids
+            and family_of(item.get("normalized_type")) not in exact_families
+        ],
+    ]
+
+
+def _expand_dining_seats(
+    items: list[dict[str, Any]], questionnaire: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """有餐桌就把餐椅補到「依入住人數,至少 2、不超過桌子可坐數」的張數。
+
+    choose_furniture_items 只挑一張餐椅、bella 流程也不展開 count,廚房因此常只有
+    一張椅子。桌子可坐數沿用 dining_chair_target(桌寬 ≥140cm→4、否則 2)。多張同款
+    餐椅給不同 instance_id,generate_layout 才會逐一擺到餐桌四周。
+    """
+    table = next(
+        (it for it in items if family_of(it.get("normalized_type")) == "dining-table"),
+        None,
+    )
+    if table is None:
+        return items
+    chairs = [it for it in items if family_of(it.get("normalized_type")) == "dining-chair"]
+    if not chairs:
+        return items                       # 沒有餐椅可補(選件層應已補一張)
+    seats_cap = dining_chair_target((table.get("size_cm") or {}).get("width"))
+    target = min(max(2, _occupant_headcount(questionnaire) or 2), seats_cap)
+    if len(chairs) >= target:
+        return items                       # 已足量(例如精選多張)不動
+    base = chairs[0]
+    base_fid = str(base.get("furniture_id") or "dining-chair")
+    expanded: list[dict[str, Any]] = []
+    filled = False
+    for it in items:
+        if family_of(it.get("normalized_type")) == "dining-chair":
+            if filled:
+                continue                   # 其餘餐椅併入下面的展開
+            filled = True
+            for seat in range(target):
+                expanded.append({**base, "instance_id": f"{base_fid}#seat{seat + 1}"})
+        else:
+            expanded.append(it)
+    return expanded
 
 
 def _extract_openrouter_message_content(body: dict[str, Any]) -> str | None:
@@ -2822,17 +2902,9 @@ def build_scene_payload(
         selected_items = exact_selected_items
         unavailable_types = []
     elif exact_selected_items:
-        exact_ids = {item.get("furniture_id") for item in exact_selected_items}
-        exact_types = {item.get("normalized_type") for item in exact_selected_items}
-        selected_items = [
-            *exact_selected_items,
-            *[
-                item
-                for item in selected_items
-                if item.get("furniture_id") not in exact_ids
-                and item.get("normalized_type") not in exact_types
-            ],
-        ]
+        selected_items = _merge_exact_and_chosen(exact_selected_items, selected_items)
+    # 廚房餐椅依入住人數補足(至少 2、不超過桌子可坐數)。
+    selected_items = _expand_dining_seats(selected_items, questionnaire)
     objects = generate_layout_by_room(
         effective_width_cm,
         effective_depth_cm,

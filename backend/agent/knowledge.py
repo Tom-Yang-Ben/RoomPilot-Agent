@@ -59,6 +59,13 @@ ROOM_ESSENTIALS: dict[str, tuple[str, ...]] = {
     "kitchen": ("dining-table",),
 }
 
+# 房型「基本組」companion:基礎主件(ROOM_ESSENTIALS)之外,這些也視為該房必備。
+# 客廳沙發組 = 沙發 + 茶几 + 電視櫃;選件源頭 required 缺了就補進,不然客廳可能
+# 只剩一張休閒椅(茶几/電視櫃是 companion,不在 required 就不會被挑)。
+ROOM_COMPANION_ESSENTIALS: dict[str, tuple[str, ...]] = {
+    "living_room": ("coffee-table", "tv-bench"),
+}
+
 # 基礎家具「必備」的升級訊息(修復迴圈回報給使用者)。
 ESSENTIAL_REQUIRED_ZH: dict[str, str] = {
     "bed": "臥室必須有床",
