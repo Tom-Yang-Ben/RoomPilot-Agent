@@ -1,0 +1,28 @@
+{
+  "styles": ["日式無印"],
+  "budget_total": 120000,
+  "materials": {
+    "牆面": "暖白乳膠漆",
+    "地板": "淺橡木超耐磨",
+    "天花板": "平頂白"
+  },
+  "palette_options": [
+    { "palette_id": "p1", "name": "暖木米白", "colors": ["#EDE3D4", "#B9A38F", "#8C7B6B"] },
+    { "palette_id": "p2", "name": "灰藍木質", "colors": ["#9FB4C7", "#6C7A89", "#3E4A57"] }
+  ],
+  "rooms": [
+    {
+      "room_id": "living",
+      "furniture_needs": ["三人沙發", "電視櫃", "茶几"],
+      "appliances": ["壁掛冷氣"],
+      "notes": "希望留出瑜伽空間"
+    },
+    {
+      "room_id": "bedroom",
+      "furniture_needs": ["雙人床", "衣櫃"],
+      "appliances": ["除濕機"],
+      "notes": "床不要正對門"
+    }
+  ],
+  "extra_notes": "整體色調溫暖，預算內優先床墊品質"
+}
