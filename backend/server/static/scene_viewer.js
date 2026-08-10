@@ -4173,6 +4173,22 @@ export function createSceneViewer(
     }
   }
 
+  // A material edit only changes wall/floor/ceiling surfaces, which createRoom
+  // bakes into the shell groups (roomGroup/ceilingGroup).  Furniture lives in a
+  // separate furnitureGroup, so rebuild only the shell and leave the furniture —
+  // and their cached GLB clones — in place.  Far cheaper than loadScene, which
+  // clears and re-clones every model on each edit (the source of the step 6/7
+  // per-material jank).  The camera is untouched.
+  function updateRoomSurfaces(sceneData) {
+    if (!sceneData) return;
+    lastSceneData = sceneData;
+    lastWorldSceneData = sceneDataForWorld(sceneData);
+    createRoom(lastWorldSceneData);
+    // Keep loadScene's skip keys coherent so a later navigation reload is a no-op.
+    lastShellKey = JSON.stringify({ ...lastWorldSceneData, scene_objects: null });
+    lastSceneKey = JSON.stringify(sceneData);
+  }
+
   async function buildFurnitureWrapper(item, index, sceneData, failures = null) {
     if (item.placement_failed) {
       failures?.push(`${item.name_zh_raw || item.normalized_type}（空間放不下，未擺入）`);
@@ -5780,6 +5796,11 @@ export function createSceneViewer(
 
   return {
     loadScene,
+    // The bella-new step 5-8 material state machine calls updateRoomSurfaces to
+    // re-apply per-room wall/floor/ceiling materials after the user edits them.
+    // roomId is an unused targeting hint; rebuilding the shell from the current
+    // sceneData yields the same visible result (only edited surfaces change).
+    updateRoomSurfaces,
     addObject,
     removeObject,
     updateObject,

@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-1f9a7bd8f501";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-e4d1f63411ad";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-7932d83e3afd";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-536f7186bfd3";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-e48e66f9829a";
@@ -9371,7 +9371,24 @@ const QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({
   "lounge-chair": { query: "lounge chair", keywords: ["chair", "椅"] },
   "dining-chair": { query: "dining chair", keywords: ["chair", "椅"] },
   "dining-table": { query: "dining table", keywords: ["table", "餐桌"] },
-  "tv-bench": { query: "tv stand", keywords: ["tv", "television", "電視"] },
+  // 電視櫃:keywords「電視/tv」太泛,會把「電視壁掛安裝臂/支架」這類安裝五金誤配成
+  // 電視櫃(名稱都含 TV/電視)。mustInclude 要求名稱含家具本體名詞(櫃/stand/console…),
+  // exclude 直接擋掉安裝臂/支架/bracket 等五金。floating wall-mounted TV stand 仍過關
+  // (含 stand;不擋 wall mount 以免誤殺壁掛式電視櫃)。
+  // query 必須是「會逐字出現在型錄名稱裡的單一詞」:catalogFallbackOffersForSpec 把
+  // rule.query 當 `q` 送進 /api/furniture,伺服器 _furniture_matches_query 是「整串
+  // 連續子字串」比對(main.py:1308)。原本的「tv stand console cabinet」是關鍵字清單、
+  // 不是任何名稱的連續子字串 → tier-1 撈 0 筆;tier-2 無 query 不排序、page_size=80
+  // 只回自然序前 80(電視櫃在型錄第 331 筆起)→ 也 0 筆 → 客廳電視櫃永遠選不到、
+  // 連 待處理 都不出現(feedback floor04:電視櫃完全不在清單)。改用「電視櫃」逐字命中
+  // (實測 /api/furniture?q=電視櫃 → 128 筆、前 80 含 71 件電視櫃族),mustInclude/exclude
+  // 仍在候選層擋掉安裝臂。沙發用「sofa」、茶几用「coffee table」皆為逐字詞,同理。
+  "tv-bench": {
+    query: "電視櫃",
+    keywords: ["tv", "television", "電視"],
+    mustInclude: ["櫃", "bench", "stand", "console", "unit", "cabinet", "media", "storage"],
+    exclude: ["安裝臂", "掛臂", "支臂", "支架", "掛架", "托架", "壁掛架", "bracket", "mounting arm", "full motion", "full-motion", "articulating", "swivel"],
+  },
   "storage-cabinet": { query: "storage cabinet", keywords: ["cabinet", "storage", "收納", "櫃"] },
   // 沙發家族原本沒 fallback 規則 → isQuestionnaireFallbackTypeMatch 退回精確
   // normalized_type 比對:type=fabric-sofa 查到的沙發只要 normalized_type 不是一模一樣
@@ -9395,9 +9412,22 @@ function isQuestionnaireFallbackTypeMatch(candidate, type) {
     candidate.category_label,
     candidate.taxonomy_type_zh,
   ].filter(Boolean).join(" ").toLowerCase();
+  // 安裝五金/配件排除:名稱含「電視/TV」的壁掛安裝臂會被 keywords 誤配成電視櫃。
+  if ((rule.exclude || []).some((keyword) => description.includes(keyword.toLowerCase()))) {
+    return false;
+  }
   const keywordMatches = (rule.keywords || []).some((keyword) =>
     description.includes(keyword.toLowerCase()));
   if (!keywordMatches) return false;
+  // mustInclude 查「名稱」(非分類,分類可能被誤標):泛型 keyword(tv/電視)須再具備
+  // 家具本體名詞(櫃/stand/console…),安裝臂/支架這類無本體名詞的五金即被擋下。
+  if (rule.mustInclude?.length) {
+    const name = [candidate.name_zh, candidate.name_zh_raw, candidate.name_en]
+      .filter(Boolean).join(" ").toLowerCase();
+    if (!rule.mustInclude.some((keyword) => name.includes(keyword.toLowerCase()))) {
+      return false;
+    }
+  }
   return !rule.types?.length || rule.types.includes(candidate.normalized_type);
 }
 
@@ -10180,7 +10210,9 @@ function applyDefaultQuestionnaireFurnitureSelections(room, offers) {
   if (!furniture || furniture.selected?.length || !offers.length) return;
   const program = questionnaireFurnitureProgram(room);
   const preferredDefaults = program.defaults.map((type) => offers.find((offer) => (
-    offer.normalized_type === type
+    // 用 keyword/family 比對而非精確 normalized_type:電視櫃的候選常是 tv-media-furniture
+    // 等(family=tv-bench),精確比對會漏掉 → 客廳選不到電視櫃。
+    offer.normalized_type === type || isQuestionnaireFallbackTypeMatch(offer, type)
   ))).filter(Boolean);
   const defaults = preferredDefaults.length
     ? preferredDefaults
@@ -11210,7 +11242,9 @@ function applyVerifiedRandomQuestionnaireFurniture(room) {
 
   for (const type of preferredTypes) {
     const offer = offers.find((candidate) => (
-      candidate.normalized_type === type && !selectedIds.has(String(candidate.furniture_id))
+      // 同 applyDefault:電視櫃候選常非精確 tv-bench,改走 keyword/family 比對。
+      (candidate.normalized_type === type || isQuestionnaireFallbackTypeMatch(candidate, type))
+      && !selectedIds.has(String(candidate.furniture_id))
     ));
     if (!offer) continue;
     selected.push(offer);
@@ -18755,7 +18789,19 @@ function bindEvents() {
     renderQuestionnaireCatalogBatch();
     void searchGlbFurniture();
   });
-  $("#confirm-white-model")?.addEventListener("click", confirmWhiteModel);
+  $("#confirm-white-model")?.addEventListener("click", async () => {
+    // Confirming runs a network validation + surface re-apply + step navigation,
+    // which felt dead on click.  Show the busy overlay so there is always visible
+    // feedback.  The cheap validation guards inside confirmWhiteModel return
+    // synchronously, so the overlay only actually paints when there is real async
+    // work to wait on, and the finally guarantees it is cleared on every path.
+    beginPlacementBusy("正在確認家具配置並套用材質，請稍候…");
+    try {
+      await confirmWhiteModel();
+    } finally {
+      endPlacementBusy();
+    }
+  });
   element.styleTabs?.addEventListener("pointerdown", (event) => {
     const button = event.target.closest("[data-style-tab]");
     if (!button) return;
