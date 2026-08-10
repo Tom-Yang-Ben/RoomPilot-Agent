@@ -79,7 +79,7 @@ def _rooms(with_image: bool = True) -> list[dict]:
             ),
         },
         {"room_id": "study-1", "room_label": "書房", "width_cm": 300, "depth_cm": 280},
-        # 浴室與陽台不在軟裝提案範圍，不該排出篇章。
+        # 全部房型都排篇章（含浴室、陽台）。
         {"room_id": "bath-1", "room_label": "浴室", "width_cm": 200, "depth_cm": 180},
         {"room_id": "balcony-1", "room_label": "陽台", "width_cm": 300, "depth_cm": 120},
     ]
@@ -113,9 +113,8 @@ def test_offline_content_is_factual_and_clean() -> None:
     assert "revision 3" in content["meta"]["version"]
 
     rooms = {room["name"]: room for room in content["rooms"]}
-    # 浴室與陽台不排篇章，範圍在速覽開場交代。
-    assert set(rooms) == {"客廳", "書房"}
-    assert "浴室" in content["overview"]["intro"] and "陽台" in content["overview"]["intro"]
+    # 全部房型都排篇章（含浴室、陽台）。
+    assert set(rooms) == {"客廳", "書房", "浴室", "陽台"}
     living = rooms["客廳"]
     assert len(living["look"]) >= 40
     # 選件依據一條就夠；擺位與淨空是工作紀錄，不是屋主要讀的設計理由。
@@ -137,7 +136,7 @@ def test_offline_content_is_factual_and_clean() -> None:
 
     # 全案速覽不能只有幾格數字：要有開場與空間一覽表。
     assert content["overview"]["intro"]
-    assert len(content["overview"]["table"]["rows"]) == 2
+    assert len(content["overview"]["table"]["rows"]) == 4  # 全部房型都列
 
     # 無圖房間必須寫進 appendix.limits（不能讓屋主以為漏做）。
     assert any("書房" in limit for limit in content["appendix"]["limits"])

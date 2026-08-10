@@ -307,11 +307,6 @@ class DeliverySkill:
 
 # ---------------------------------------------------------------- 文字素材
 
-# 交付範圍：浴室與陽台不做軟裝提案，不列入本文件（2026-08-06 定案）。
-# 房名主要取自前端固定選單（ROOM_NAME_OPTIONS），但步驟 1–4 的房間複核允許
-# 「主浴」「工作陽台」這類寫法，所以比對字根而不是整個詞。
-OUT_OF_SCOPE_ROOM_WORDS = ("浴", "廁", "陽台", "露台")
-
 # 敘述裡只出現通用中文名。knowledge.FAMILY_ZH 未涵蓋的類型補在這裡。
 _TYPE_ZH_EXTRA = {
     "storage-cabinet": "收納櫃",
@@ -391,10 +386,6 @@ _HUE_ZH = (
     (185, "青綠"), (205, "青"), (245, "藍"), (275, "藍紫"),
     (310, "紫"), (340, "紫紅"), (361, "紅"),
 )
-
-
-def _out_of_scope(name: str) -> bool:
-    return any(word in str(name or "") for word in OUT_OF_SCOPE_ROOM_WORDS)
 
 
 def _type_zh(row: dict) -> str:
@@ -533,7 +524,8 @@ def build_content(
       屋主要讀的是空間本身。同理，`rationale` 不寫擺位與淨空。
     - 設計總論的 `pillars` 是**後續每一章的摘要**（每條約 50 字），不是
       三個抽象主張。
-    - 浴室與陽台不在軟裝提案範圍，整章不排，改在 `appendix.limits` 交代。
+    - 全部房型都排篇章（含浴室、陽台等）；沒有配置家具的空間也出一章，
+      據實寫「這一版沒有放家具」。
 
     底稿寫得出「有什麼、多大、什麼材質」，寫不出「走進來的感覺」；氛圍與
     感受由 LLM 依 SKILL.md 改寫（statement／overview_intro／palette_intro／
@@ -550,8 +542,7 @@ def build_content(
     date_text = f"{now.year} 年 {now.month} 月 {now.day} 日"
     version_text = "v1" + (f" · revision {design_revision}" if design_revision is not None else "")
 
-    in_scope = [room for room in layout.rooms if not _out_of_scope(room.name)]
-    skipped = [room.name for room in layout.rooms if _out_of_scope(room.name)]
+    in_scope = list(layout.rooms)  # 全部房型都排篇章（含浴室/陽台等），不做範圍過濾
 
     # 各房開頭句型輪替：八個空間都用同一句起手，讀者翻到第三個就開始跳著看。
     openers = (
@@ -709,8 +700,6 @@ def build_content(
     )
     if requirements.notes:
         overview_intro += f"\n你在問卷裡提到：{requirements.notes}。"
-    if skipped:
-        overview_intro += f"\n{'、'.join(skipped)}不在這次的軟裝範圍，所以下表沒有列。"
 
     content: dict = {
         "meta": {
