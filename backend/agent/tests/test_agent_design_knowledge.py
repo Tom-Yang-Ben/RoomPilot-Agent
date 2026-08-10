@@ -52,15 +52,17 @@ def test_furniture_select_prompt_carries_design_digest():
 
 
 def test_genpic_prompt_carries_style_note():
-    requirements = RequirementDoc(styles=["日式無印"])
+    # 風格以「渲染成{風格}風的配色」內嵌帶入;獨立的風格參考矩陣行(style_note)已在
+    # genpic_info 停用(append 段落被註解掉),故提示詞不再出現「整體風格：」「風格參考（…）」。
     room = LayoutRoom(room_id="living", name="客廳", width_cm=420, depth_cm=360)
     out = GenPicInfoTool().run(
-        requirements, SceneDoc(), room, stage="palette_compare"
+        RequirementDoc(styles=["日式無印"]), SceneDoc(), room, stage="palette_compare"
     )
-    assert "整體風格：日式無印" in out["prompt"]
-    assert "風格參考（MINIMALIST）" in out["prompt"]
-    # 對不上矩陣時不加行，不得出現空殼字樣
+    assert "渲染成日式無印風" in out["prompt"]   # 風格內嵌帶入
+    assert "風格參考" not in out["prompt"]        # 矩陣參考行已停用
+    # 任何風格(含對不上矩陣的)都只內嵌帶入,不再加矩陣參考行
     plain = GenPicInfoTool().run(
         RequirementDoc(styles=["火星未來風"]), SceneDoc(), room, stage="palette_compare"
     )
+    assert "渲染成火星未來風風" in plain["prompt"]
     assert "風格參考" not in plain["prompt"]
