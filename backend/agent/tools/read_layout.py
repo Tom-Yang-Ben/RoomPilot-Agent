@@ -59,6 +59,7 @@ class ReadLayoutTool:
                 continue
             room_id = str(_pick(row, _ID_KEYS) or f"room_{index + 1}")
             name = str(_pick(row, _NAME_KEYS) or room_id)
+            room_type = str(_pick(row, ("room_type",)) or "")
             walls = [wall for wall in (row.get("walls") or []) if isinstance(wall, dict)]
             rooms.append(
                 LayoutRoom(
@@ -66,6 +67,7 @@ class ReadLayoutTool:
                     name=name,
                     width_cm=float(width),
                     depth_cm=float(depth),
+                    room_type=room_type,
                     walls=walls,
                 )
             )

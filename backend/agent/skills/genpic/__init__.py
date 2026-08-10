@@ -30,10 +30,17 @@ class GenPicSkill:
         stage: str,
         palette: dict | None = None,
         viewpoint: dict | None = None,
+        lighting: str = "day",
     ) -> dict:
         """回傳 {"prompt", "lock_manifest", "images", "stage"}。"""
         info = self._info.run(
-            requirements, scene, room, stage=stage, palette=palette, viewpoint=viewpoint
+            requirements,
+            scene,
+            room,
+            stage=stage,
+            palette=palette,
+            viewpoint=viewpoint,
+            lighting=lighting,
         )
         images: tuple[str, ...] = ()
         if viewpoint and viewpoint.get("image_b64"):

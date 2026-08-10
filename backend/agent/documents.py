@@ -97,6 +97,7 @@ class LayoutRoom:
     name: str
     width_cm: float
     depth_cm: float
+    room_type: str = ""  # e.g. living_room（生圖用來判定客廳額外出夜間光影圖）
     walls: list[dict] = field(default_factory=list)
 
 
@@ -398,7 +399,7 @@ class LockManifestDoc:
 class ImageRecord:
     image_id: str
     room_id: str
-    stage: str  # palette_compare | full_render | edit
+    stage: str  # palette_compare | full_render | full_render_night | edit
     model: str = ""
     palette_id: str | None = None
     viewpoint_id: str | None = None

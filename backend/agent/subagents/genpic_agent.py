@@ -68,9 +68,16 @@ class GenPicAgent:
         stage: str,
         palette: dict | None = None,
         viewpoint: dict | None = None,
+        lighting: str = "day",
     ) -> ImageRecord:
         request = self._genpic.build_render_request(
-            requirements, scene, room, stage=stage, palette=palette, viewpoint=viewpoint
+            requirements,
+            scene,
+            room,
+            stage=stage,
+            palette=palette,
+            viewpoint=viewpoint,
+            lighting=lighting,
         )
         record = self._generate_with_policy(
             prompt=request["prompt"],
@@ -106,7 +113,8 @@ class GenPicAgent:
         images: ImageLibraryDoc,
         room_id: str,
     ) -> ImageRecord:
-        old = self._fetch.run(images, room_id)
+        # 改圖鎖定日光全房圖：客廳另有夜間圖 seq 較高，不指定 stage 會誤抓夜間圖。
+        old = self._fetch.run(images, room_id, "full_render")
         request = self._editpic.build_edit_request(lock_manifest, feedback, old.image_ref)
         record = self._generate_with_policy(
             prompt=request["prompt"],

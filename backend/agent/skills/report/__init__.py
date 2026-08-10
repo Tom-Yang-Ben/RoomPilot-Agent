@@ -277,17 +277,24 @@ class ReportSkill:
         images_b64: dict[str, str] = {}
         lines: list[str] = []
         for room in layout.rooms:
-            record = images.latest(room.room_id, "edit") or images.latest(
+            day = images.latest(room.room_id, "edit") or images.latest(
                 room.room_id, "full_render"
             )
-            if record is None:
-                continue
-            lines.append(f"{room.name}：{record.image_id}（模型 {record.model or '未記錄'}）")
-            if record.notices:
-                lines.extend(f"  - 備註：{notice}" for notice in record.notices[:3])
-            image_ids.append(record.image_id)
-            if _looks_like_b64(record.image_ref):
-                images_b64[record.image_id] = record.image_ref
+            night = images.latest(room.room_id, "full_render_night")
+            # 只有客廳會有夜間圖：有夜間圖才標日光/夜間並列，否則維持單圖原樣。
+            variants = [(day, "日光"), (night, "夜間")] if night else [(day, "")]
+            for record, tag in variants:
+                if record is None:
+                    continue
+                label = f"{room.name}（{tag}）" if tag else room.name
+                lines.append(
+                    f"{label}：{record.image_id}（模型 {record.model or '未記錄'}）"
+                )
+                if record.notices:
+                    lines.extend(f"  - 備註：{notice}" for notice in record.notices[:3])
+                image_ids.append(record.image_id)
+                if _looks_like_b64(record.image_ref):
+                    images_b64[record.image_id] = record.image_ref
         if not lines:
             lines.append("（尚無渲染成果）")
         section = ManualSection(
