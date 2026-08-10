@@ -49,10 +49,12 @@ def _placed(type_, name, w, d, x, y, rot=0.0):
 def test_is_cabinet_type_recognizes_storage_families():
     for t in ("wardrobe", "cabinets-cupboard", "storage-solution-system",
               "pax-wardrobe", "chests-of-drawer", "sideboard", "shelving-unit",
-              "bookcase", "tv-bench", "shoe-cabinet"):
+              "bookcase", "shoe-cabinet"):
         assert is_cabinet_type(t), t
-    # 床頭櫃是成組副件(該貼床),不吃 50cm 正面淨空；床/沙發/餐桌也不是有櫃件。
-    for t in ("bedside-table", "bed", "sofa", "dining-table", None):
+    # 不吃 50cm 正面淨空的類型:床頭櫃(成組副件該貼床);床/沙發/餐桌非有櫃件;
+    # 電視櫃/影音櫃正面對沙發視聽軸線(茶几該擺那),給正面淨空反讓它放不下。
+    for t in ("bedside-table", "bed", "sofa", "dining-table",
+              "tv-bench", "tv-media", None):
         assert not is_cabinet_type(t), t
 
 
@@ -74,6 +76,8 @@ def test_cabinet_front_blocked_by_flush_neighbor_but_clear_when_far():
 def test_cabinet_front_strip_geometry():
     # 非有櫃件不產生長條。
     assert _cabinet_front_strip("sofa", 180, 90, 0, 0, 0, 90, 45) is None
+    # 電視櫃正面對沙發視聽軸線,不吃 50cm 正面淨空(否則茶几擋住唯一中央後援位→放不下)。
+    assert _cabinet_front_strip("tv-bench", 150, 40, 0, 0, 0, 75, 20) is None
     # 衣櫃(rot=0,場景正面 −y):中心 (60,130),長條中心退到 (60,75)、深 50。
     strip = _cabinet_front_strip("wardrobe", 120, 60, 0, 100, 0, 60, 30)
     assert strip is not None

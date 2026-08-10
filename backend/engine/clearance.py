@@ -23,13 +23,17 @@ from backend.engine.geometry import furniture_polygon, wall_polygon
 # 被緊貼別的家具擺放,門打不開也沒走道。ponytail: 常數即校準旋鈕,要分型再拆表。
 CABINET_FRONT_CLEARANCE_CM = 50.0
 
-# 以 normalized_type 子字串判「有櫃家具」。刻意不含 bedside-table(床頭櫃是成組副件,
-# 本該貼床,給它 50cm 正面淨空會拆散床組)。engine 層不反向 import agent.knowledge,
-# 自持一份記號即可。
+# 以 normalized_type 子字串判「有櫃家具」(= 需要正面 50cm 開合＋站立淨空的收納類)。
+# 刻意不含:
+#   - bedside-table:床頭櫃是成組副件,本該貼床,給正面淨空會拆散床組。
+#   - tv-bench / tv-media:電視櫃正面正對沙發＋茶几(視聽軸線),那 50cm 正是茶几/座位
+#     該在的位置,不是門開空間;當成有櫃件會反把唯一的中央後援位讓茶几擋掉,使電視櫃
+#     在牆位被門淨空吃光時放不下(feedback:客廳總是擺不進電視櫃、但視覺上放得下)。
+# engine 層不反向 import agent.knowledge,自持一份記號即可。
 _CABINET_TOKENS = (
     "wardrobe", "cabinet", "cupboard", "sideboard", "drawer",
     "bookcase", "bookshelf", "shelving", "storage", "shoe",
-    "tv-bench", "tv-media", "chest",
+    "chest",
 )
 
 
