@@ -1028,10 +1028,19 @@ def _agent_prepend_candidates(
                 x = right - depth / 2 - gap if fx > 0 else left + depth / 2 + gap
                 rot = 270.0 if fx > 0 else 90.0
                 paired.extend((x, sofa["z"] + off, rot) for off in lateral)
+                # 退路:對面牆被門/牆縫全擋時,擺到上下兩側牆、沙發正前方向較遠處,
+                # 背貼牆軸對齊、面向房內——與沙發呈一點角度,總比整組不放好。
+                # 列在正對位之後,對面牆放得下就用不到。
+                mid_x = sofa["x"] + (x - sofa["x"]) * 0.65
+                paired.append((mid_x, top + depth / 2 + gap, 0.0))
+                paired.append((mid_x, bottom - depth / 2 - gap, 180.0))
             else:
                 z = bottom - depth / 2 - gap if fz > 0 else top + depth / 2 + gap
                 rot = 180.0 if fz > 0 else 0.0
                 paired.extend((sofa["x"] + off, z, rot) for off in lateral)
+                mid_z = sofa["z"] + (z - sofa["z"]) * 0.65
+                paired.append((left + depth / 2 + gap, mid_z, 90.0))
+                paired.append((right - depth / 2 - gap, mid_z, 270.0))
     elif family in FREE_SEATING_FAMILIES:
         sofa = neighbors.get("sofa")
         if sofa:
@@ -2484,17 +2493,23 @@ def generate_layout(
                 x_cm = inner.x - half_w_cm
                 z_cm = inner.y - half_d_cm
         else:
-            # 副件嚴格成組(agent 紀律,hints 時啟用):床頭櫃/茶几/電視櫃/餐椅/
-            # 辦公椅只准貼各自主件的成組候選 —— 原本成組位失敗會退到泛用候選
-            # 「亂放成功」,床頭櫃流落遠牆、引擎又不標失敗,寧缺勿亂永遠不觸發。
+            # 副件嚴格成組(agent 紀律,hints 時啟用):床頭櫃/茶几/餐椅/辦公椅只准貼
+            # 各自主件的成組候選 —— 原本成組位失敗會退到泛用候選「亂放成功」,床頭櫃
+            # 流落遠牆、引擎又不標失敗,寧缺勿亂永遠不觸發。
             # 休閒椅(armchair/lounge)在沙發已就位的房間同樣嚴格:只准沙發
             # 左前/右前;沒有沙發的房間(書房閱讀椅)維持自由擺放。
+            # 電視櫃例外(不鎖死):它體積大、房間常沒有正對沙發的整面實牆,鎖死就
+            # 整組放不下被 resolve_placements 移除(使用者:視覺上放得下、是必需品的一部分)。
+            # 走泛用路徑仍「沙發對面牆優先」(_placement_candidates 最前已 prepend
+            # _agent_prepend_candidates),對面牆被門/開口擋掉才退到側牆/靠牆掃描/引擎
+            # 後援 —— 有角度也要擺進去。
             # 主件不在或成組位全被佔 → 標 placement_failed,交 resolve_placements
             # 移除。使用者拖曳(placement_hint_cm)不受限,尊重手動意圖。
             item_family = family_of(item_type)
             strict_pair = (
                 bool(hints)
                 and not item.get("placement_hint_cm")
+                and item_family != "tv-bench"
                 and (
                     item_family in COMPANION_OF
                     or (item_family in FREE_SEATING_FAMILIES and "sofa" in neighbors)

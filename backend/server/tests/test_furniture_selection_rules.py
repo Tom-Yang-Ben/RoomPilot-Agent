@@ -112,3 +112,31 @@ def test_dining_chairs_capped_by_small_table():
 def test_no_dining_table_no_expansion():
     items = [_item("c", "dining-chair", size_cm={"width": 45, "depth": 45})]
     assert _expand_dining_seats(items, {"occupants": {"adults": 4}}) == items
+
+
+def test_tv_bench_placement_has_side_wall_fallback():
+    """電視櫃對面牆被門/牆縫擋掉時要有側牆退路(有角度也行),不再整組不放。"""
+    from backend.server.scene_service import _agent_prepend_candidates
+
+    # 沙發面向 +x(rot=90),對面牆=右牆;側牆退路應落在上/下牆(z≈22 或 ≈378)
+    sofa = {"x": 100, "z": 250, "rot": 90, "width": 200, "depth": 90}
+    cands = _agent_prepend_candidates(
+        "tv-bench", 160, 40, None, {"sofa": sofa},
+        0, 500, 0, 400, 250, 200,
+    )
+    zs = [round(z) for (_x, z, _r) in cands]
+    assert len(cands) >= 7                        # 正對牆 5 點 + 側牆退路 2 點
+    assert any(z <= 25 for z in zs)               # 貼上牆退路
+    assert any(z >= 375 for z in zs)              # 貼下牆退路
+
+
+def test_tv_bench_not_locked_to_strict_pair():
+    """電視櫃不鎖死在沙發正對位(strict_pair):對面牆被門/開口擋掉時能退到側牆/
+    靠牆掃描/引擎後援,而非整組 placement_failed 被 resolve_placements 移除。沙發
+    對面牆仍優先(泛用路徑最前 prepend 成組候選)。"""
+    import pathlib
+    src = pathlib.Path("backend/server/scene_service.py").read_text(encoding="utf-8")
+    strict = src.split("strict_pair = (", 1)[1].split("            )", 1)[0]
+    assert 'item_family != "tv-bench"' in strict
+    # 其他成組件仍嚴格(不鬆綁)
+    assert "item_family in COMPANION_OF" in strict
