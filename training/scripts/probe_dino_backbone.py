@@ -58,62 +58,86 @@ import room_classifier as rc     # 只借前處理常數/函式（唯讀），�
 
 # ─────────────────────────── 骨幹（v2/v3 統一介面）───────────────────────────
 def backbone_spec(name):
-    """hub 名 → (repo, patch, version)。v2=facebookresearch/dinov2 patch14；
-    v3=facebookresearch/dinov3 patch16（+register tokens+RoPE，見 MODEL_CARD）。"""
+    """骨幹名 → (repo, patch, kind)。三種切法：
+      含 '/'（HF 庫 id）→ transformers 讀 safetensors（門禁權重的官方格式），kind=v3hf
+      dinov2_* → torch.hub facebookresearch/dinov2 patch14，kind=v2
+      dinov3_* → torch.hub facebookresearch/dinov3 patch16（需原始 .pth），kind=v3"""
     lo = name.lower()
+    if "/" in name:                              # HF 庫 id（facebook/dinov3-vits16-...）
+        patch = 14 if "dinov2" in lo else 16
+        return name, patch, "v3hf"
     if "dinov3" in lo:
         return "facebookresearch/dinov3", 16, "v3"
     if "dinov2" in lo:
         return "facebookresearch/dinov2", 14, "v2"
-    raise SystemExit(f"無法從骨幹名判定版本：{name}（需含 dinov2 或 dinov3）")
+    raise SystemExit(f"無法從骨幹名判定版本：{name}（需含 dinov2/dinov3 或為 HF 庫 id）")
 
 
 def load_backbone(name, weights=None):
-    """載入凍結骨幹，回 (model, torch, patch)；失敗回 (None, torch, patch) 並出聲。
+    """載入凍結骨幹，回 (model, torch, patch, kind)；失敗回 (None, torch, patch, kind)。
 
-    DINOv3 權重 gated：未給 DINO_WEIGHTS 時載入多半失敗——這是預期的「換機前
-    接線就緒」狀態，不是 bug。取得權重後於 GPU 機重跑即可。"""
+    v3hf：由 transformers 從 HF 門禁庫讀 safetensors（需 hf auth login 且該庫已
+    核准，核准後 from_pretrained 自動下載並快取）。
+    v3（torch.hub）：需原始 .pth（Meta 表單／設 DINO_WEIGHTS）。"""
     repo, patch, ver = backbone_spec(name)
     try:
         import torch
     except ImportError:
         print("⚠ torch 未安裝 → 骨幹不可用")
-        return None, None, patch
-    kw = dict(trust_repo=True, verbose=False)
+        return None, None, patch, ver
+
+    if ver == "v3hf":                            # HF/transformers 路（safetensors）
+        try:
+            from transformers import AutoModel
+            model = AutoModel.from_pretrained(name)
+        except Exception as e:
+            print(f"⚠ {name} 由 transformers 載入失敗（{type(e).__name__}: {e}）"
+                  "（HF 門禁：需 `hf auth login` 且該庫已核准；核准後自動下載 safetensors）")
+            return None, torch, patch, ver
+        model.eval()
+        torch.set_num_threads(os.cpu_count() or 4)
+        print(f"骨幹   : {name}  (transformers/HF, patch={patch})")
+        return model, torch, patch, ver
+
+    kw = dict(trust_repo=True, verbose=False)    # torch.hub 路（v2 / v3 原始 .pth）
     if ver == "v3" and weights:
         kw["weights"] = weights
     try:
         model = torch.hub.load(repo, name, **kw)
     except TypeError:
-        kw.pop("weights", None)             # 某些 hubconf 簽章不吃 weights
+        kw.pop("weights", None)
         try:
             model = torch.hub.load(repo, name, **kw)
         except Exception as e:
             print(f"⚠ {name} 載入失敗（{type(e).__name__}: {e}）")
-            return None, torch, patch
+            return None, torch, patch, ver
     except Exception as e:
-        hint = ""
-        if ver == "v3":
-            hint = "（DINOv3 權重 gated：先於 HF 接受授權下載，設 DINO_WEIGHTS 指向 .pth；接線已就緒，換機取得權重後重跑）"
+        hint = ("（DINOv3 原始權重 gated：改用 HF 庫 id 走 transformers，"
+                "或設 DINO_WEIGHTS 指向 .pth）" if ver == "v3" else "")
         print(f"⚠ {name} 載入失敗（{type(e).__name__}: {e}）{hint}")
-        return None, torch, patch
+        return None, torch, patch, ver
     model.eval()
     torch.set_num_threads(os.cpu_count() or 4)
     print(f"骨幹   : {name}  repo={repo}  patch={patch}  ({ver})")
-    return model, torch, patch
+    return model, torch, patch, ver
 
 
-def cls_features(model, torch, crops, tta=False):
+def cls_features(model, torch, crops, kind="v2", tta=False):
     """裁切清單 → L2 正規化 CLS 特徵矩陣 (N, D)。前處理與產品 room_classifier
-    完全一致（letterbox 224、8 視角可選、同 MEAN/STD），只有骨幹不同。"""
+    完全一致（letterbox 224、8 視角可選、同 MEAN/STD），只有骨幹不同——
+    保證「同前處理、只換骨幹」的公平對比。v3hf 走 transformers，CLS 取
+    last_hidden_state[:,0]（DINOv3 序列＝CLS＋4 register＋patches，CLS 在 0）。"""
     feats = []
     with torch.no_grad():
         for c in crops:
             views = rc.variants(rc.letterbox(c)) if tta else [rc.letterbox(c)]
             x = np.stack([(cv2.cvtColor(v, cv2.COLOR_BGR2RGB).astype(np.float32)
                            / 255.0 - rc.MEAN) / rc.STD for v in views])
-            out = model(torch.from_numpy(x.transpose(0, 3, 1, 2)))
-            out = _pooled(out)                          # v2/v3 皆取 CLS/pooled
+            t = torch.from_numpy(x.transpose(0, 3, 1, 2))
+            if kind == "v3hf":
+                out = model(pixel_values=t).last_hidden_state[:, 0]   # CLS token
+            else:
+                out = _pooled(model(t))                 # torch.hub v2/v3 取 CLS/pooled
             f = out.cpu().numpy().mean(0)               # TTA 平均（或單視角）
             feats.append(f)
     F = np.asarray(feats, np.float32)
@@ -236,9 +260,13 @@ def seg_check(name, weights):
         3) get_intermediate_layers(reshape=True) 於 v3 需確認排除 4 register
            tokens（reshape=True 應已處理，本檢查即驗此點）
     """
-    model, torch, patch = load_backbone(name, weights)
+    model, torch, patch, kind = load_backbone(name, weights)
     if model is None:
-        print("→ seg-check 中止：骨幹未載入（DINOv3 權重 gated 屬預期）")
+        print("→ seg-check 中止：骨幹未載入")
+        return
+    if kind == "v3hf":
+        print("→ seg-check：transformers/HF 骨幹無 get_intermediate_layers；"
+              "seg_head 適配改走 output_hidden_states+reshape，留待真正重訓時實作")
         return
     max_side = 768
     dummy = (np.random.default_rng(0).integers(0, 255, (512, 640, 3))
@@ -312,11 +340,11 @@ def main():
     print(f"裁切   : {len(crops)} 張（{split}，每類上限 {max_pc or '∞'}，"
           f"{len(np.unique(y))} 類）  TTA={'on' if tta else 'off'}")
 
-    model, torch, _patch = load_backbone(name, weights)
+    model, torch, _patch, kind = load_backbone(name, weights)
     if model is None:
-        raise SystemExit("骨幹不可用——無法抽特徵（DINOv3 權重 gated 屬預期）")
+        raise SystemExit("骨幹不可用——無法抽特徵")
 
-    F = cls_features(model, torch, crops, tta=tta)
+    F = cls_features(model, torch, crops, kind=kind, tta=tta)
     nc = loo_nearest_centroid(F, y)
     knn = loo_knn(F, y)
     pcr = per_class_recall(F, y)
