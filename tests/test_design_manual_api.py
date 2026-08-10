@@ -150,7 +150,7 @@ def test_llm_available_polishes_intro(tmp_path) -> None:
     class IntroGateway:
         available = True
 
-        def chat(self, messages, *, model=None, temperature=0.3, force_json=False):
+        def chat(self, messages, *, model=None, temperature=0.3, force_json=False, reasoning=None):
             if "前言" in messages[0]["content"]:
                 return '{"intro": "為兩位屋主打造的北歐提案前言。"}'
             raise LLMError("其他提示詞不在本測試範圍")

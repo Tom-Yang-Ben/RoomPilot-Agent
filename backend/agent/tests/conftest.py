@@ -35,7 +35,7 @@ class FakeImageGateway:
         self.fail_fallback = fail_fallback
         self.image_calls: list[str] = []
 
-    def chat(self, messages, *, model=None, temperature=0.3, force_json=False) -> str:
+    def chat(self, messages, *, model=None, temperature=0.3, force_json=False, reasoning=None) -> str:
         raise LLMError("測試環境不提供文字模型")
 
     def generate_image(self, prompt, *, images=(), model=None) -> ImageResult:
@@ -60,7 +60,7 @@ class FakeChatGateway:
     def __init__(self, responses: list[str]) -> None:
         self._responses = list(responses)
 
-    def chat(self, messages, *, model=None, temperature=0.3, force_json=False) -> str:
+    def chat(self, messages, *, model=None, temperature=0.3, force_json=False, reasoning=None) -> str:
         if not self._responses:
             raise LLMError("腳本已用完")
         return self._responses.pop(0)
