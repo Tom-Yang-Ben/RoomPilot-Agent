@@ -143,3 +143,33 @@ def test_room_scheme_previews_build_offscreen_and_get_cleaned_up() -> None:
 
     complete_body = _function_body(source, "async function completeRoomSchemeSelection()")
     assert "roomSchemePreviewCache.clear()" in complete_body  # 進下一流程 → 清除預覽
+
+
+def test_surface_textures_are_cached_and_survive_scene_clear() -> None:
+    """第 6 步逐房材質:切換房間/套材質每次都 createRoom 重建房殼,原本
+    createImageTexture 每次都 textureLoader.load → 重新解碼並重傳 GPU 貼圖,整場卡頓。
+    面材貼圖必須以快取跨場景重用,且 disposeObjectTree 清場時不得釋放快取貼圖
+    (否則第一次清場就把下次要用的貼圖 dispose 掉 → 黑面)。"""
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+
+    # 面材貼圖快取存在,且以色彩空間入鍵(colorMap SRGB / bumpMap NoColorSpace 不共用)
+    assert "const surfaceTextureCache = new Map();" in viewer
+    tex_fn = viewer.split("function createImageTexture(", 1)[1].split("\n  }", 1)[0]
+    assert "surfaceTextureCache.get(key)" in tex_fn
+    assert "surfaceTextureCache.set(key" in tex_fn
+    assert "colorSpace" in tex_fn  # 入鍵並套用到貼圖
+    assert "roompilotCachedTexture = true" in tex_fn  # 標記豁免 dispose
+
+    # dispose 豁免快取貼圖(和 roompilotCachedAsset 同招)
+    dispose_fn = viewer.split("function disposeObjectTree(", 1)[1].split("\n  }", 1)[0]
+    assert "roompilotCachedTexture" in dispose_fn
+
+    # bumpMap 用參數傳入 NoColorSpace,不再事後就地 mutate 共用實例
+    assert "createImageTexture(surface, usage, options.repeat, THREE.NoColorSpace)" in viewer
+    assert "bumpMap.colorSpace = THREE.NoColorSpace" not in viewer
+
+    # 純房間切換 / 重套同材質:房殼未變時 updateRoomSurfaces 早退,不重跑 createRoom
+    surfaces_fn = viewer.split("function updateRoomSurfaces(sceneData) {", 1)[1].split(
+        "\n  }", 1,
+    )[0]
+    assert "if (shellKey === lastShellKey)" in surfaces_fn

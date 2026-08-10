@@ -77,6 +77,20 @@ def test_scene_bundle_parses_as_an_es_module(tmp_path) -> None:
     assert result.returncode == 0, result.stderr
 
 
+def test_confirm_white_model_final_check_is_validate_only() -> None:
+    """第 6→7 步最終確認(confirmWhiteModel)的 /api/scene/layout POST 必須送
+    validate_only:true。少了它,伺服器會對整屋聯集邊界重排,把靠陽台牆、在聯集柵格
+    裡變不合法的鎖定電視櫃沿「沙發對面牆」推到陽台 —— 使用者一進第 7 步就看到電視櫃
+    跑到陽台(見 tests/test_generate_layout_characterization.py 的整屋跑位測試)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    # confirmWhiteModel 主體開頭即為該 POST;取足夠切片再斷言,避免誤抓別處呼叫。
+    body = source.split("async function confirmWhiteModel() {", 1)[1][:3500]
+    assert '"/api/scene/layout"' in body, "confirmWhiteModel 不再送最終確認 POST?"
+    assert "validate_only: true," in body, "最終確認 POST 少了 validate_only(電視櫃會跑陽台)"
+    assert "position_locked: true," in body
+
+
 def test_requirements_step_has_randomized_test_skip_button() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")

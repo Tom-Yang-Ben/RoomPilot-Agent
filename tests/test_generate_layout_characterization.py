@@ -527,6 +527,70 @@ def test_whole_house_final_validation_passes_furniture_in_every_room():
         assert checked["position_cm"] == original["position_cm"]
 
 
+def test_whole_house_final_validation_does_not_teleport_locked_tv_bench_into_balcony():
+    """使用者回報:第 6→7 步電視櫃從客廳「跑到陽台」。根因=最終確認(confirmWhiteModel)
+    的整屋 /api/scene/layout 少送 validate_only → 對「整屋聯集邊界」重排;靠陽台共享牆、
+    在聯集柵格裡變不合法的鎖定電視櫃被沿「沙發對面牆」推到對面 —— 也就是陽台。
+    validate_only 只驗不排:座標照舊,不合法者只標記,絕不搬進別的房間。
+    此測試同時釘住(1)少 validate_only 會跑位(bug 登記處)與(2)validate_only 修好。"""
+    from backend.server.scene_service import _regions_boundary, generate_layout
+    from backend.agent.place import placement_hints
+
+    w, d = 460.0, 420.0
+    living = {
+        "room_id": "living", "room_type": "living_room",
+        "exterior": [[-220, -160], [220, -160], [220, 60], [-220, 60]], "holes": [],
+    }
+    balcony = {
+        "room_id": "balcony", "room_type": "balcony",
+        "exterior": [[-220, 60], [220, 60], [220, 200], [-220, 200]], "holes": [],
+    }
+    floorplan = {
+        "coordinate_unit": "cm", "width_cm": w, "depth_cm": d,
+        "room_regions": [living, balcony],
+        # 整面共享牆的落地窗 = 陽台出入口(75cm 通行縫吃掉客廳側該面牆)
+        "window_segments": [{
+            "start": {"x": -220, "z": 60}, "end": {"x": 220, "z": 60},
+            "window_type": "floor_to_ceiling",
+        }],
+    }
+    balcony_poly = Polygon([(p[0], p[1]) for p in balcony["exterior"]]).buffer(2)
+
+    sofa = _item("sofa", "sofa", 200, 90, h=96.0, placement_room_id="living")
+    sofa["position_cm"] = {"x": 0.0, "z": -110.0}   # 背客廳外牆、面向共享牆(+z)
+    sofa["rotation_y_deg"] = 0.0
+    sofa["position_locked"] = True
+    tv = _item("tv", "tv-bench", 160, 40, h=45.0, placement_room_id="living")
+    tv["position_cm"] = {"x": 0.0, "z": 30.0}       # 鎖在客廳側、落在陽台門帶內
+    tv["rotation_y_deg"] = 180.0
+    tv["position_locked"] = True
+
+    room = _rect_room(w, d)
+    union = _regions_boundary(floorplan, room)       # confirmWhiteModel 觸發的整屋聯集
+    hints = placement_hints([sofa, tv])
+
+    def _tv_out(validate_only):
+        out = generate_layout(
+            w, d, [dict(sofa), dict(tv)], room=_rect_room(w, d),
+            regions_boundary=union, place_boundary=union,
+            floorplan=floorplan, hints=hints, validate_only=validate_only,
+        )
+        return next(o for o in out if o["furniture_id"] == "tv")
+
+    # (前提)少送 validate_only(舊 confirmWhiteModel):電視櫃被重排進陽台。
+    teleported = _tv_out(False)
+    assert balcony_poly.contains(
+        Point(teleported["position_cm"]["x"], teleported["position_cm"]["z"])
+    ), "前提:少了 validate_only 時電視櫃應被重排進陽台(重現使用者災情)"
+
+    # (修法)只驗不排:座標照舊、絕不進陽台;不合法只標記交回 2D。
+    kept = _tv_out(True)
+    assert kept["position_cm"] == {"x": 0.0, "z": 30.0}
+    assert not balcony_poly.contains(
+        Point(kept["position_cm"]["x"], kept["position_cm"]["z"])
+    )
+
+
 def test_curtain_may_hang_on_the_balcony_opening_but_sofa_may_not():
     """窗簾本來就掛在窗上:落地窗的 75cm 通行縫不適用於窗簾,
     但沙發等家具仍不得擋。"""

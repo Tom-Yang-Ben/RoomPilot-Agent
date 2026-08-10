@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-e4d1f63411ad";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-71d789a189b6";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-7932d83e3afd";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-536f7186bfd3";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-e48e66f9829a";
@@ -13945,6 +13945,12 @@ async function confirmWhiteModel() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        // 只驗不排:進入即時寫實前的最終確認,信任使用者已鎖定的配置,座標照舊,
+        // 只回報是否合法。少了這個旗標,伺服器會對「整屋聯集邊界」重排,把靠陽台
+        // 牆、在聯集柵格裡變不合法的家具(如電視櫃)沿「沙發對面牆」推到對面 ——
+        // 也就是陽台,使用者一進第 7 步就看到電視櫃跑到陽台。改用只驗不排後,
+        // 真的不合法的家具會被標記交回 2D 待處理清單,而非被搬走。
+        validate_only: true,
         floorplan_editor: confirmedFloorplanEditor(),
         scene_objects: (state.sceneData?.scene_objects || []).map((item) => ({
           ...item,

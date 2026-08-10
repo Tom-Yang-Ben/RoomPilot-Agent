@@ -715,7 +715,9 @@ export function createSceneViewer(
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       materials.filter(Boolean).forEach((material) => {
         ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap"].forEach((key) => {
-          if (material[key]) {
+          // 共用快取貼圖(房殼面材)由 surfaceTextureCache 持有並跨場景重用,不得釋放,
+          // 否則下一次 createRoom 會拿到已 dispose 的 GPU 貼圖 → 黑面。
+          if (material[key] && !material[key].userData?.roompilotCachedTexture) {
             material[key].dispose();
           }
         });
@@ -883,21 +885,39 @@ export function createSceneViewer(
     ];
   }
 
-  function createImageTexture(surface, usage, repeatOverride = null) {
+  // 房殼牆/地/門的面材每次 createRoom 都重建;若每次都 textureLoader.load 就會
+  // 重新解碼並重傳 GPU,逐房切換材質、套材質時整場卡頓。以 url+用途+平鋪+色彩空間
+  // 為鍵快取 THREE.Texture,跨 createRoom 共用同一顆 GPU 貼圖。型錄面材有限(數種
+  // 牆/地 + 一張門木紋),故不設淘汰。ponytail: 型錄若暴增再加 LRU。
+  const surfaceTextureCache = new Map();
+
+  function createImageTexture(
+    surface, usage, repeatOverride = null, colorSpace = THREE.SRGBColorSpace,
+  ) {
+    const repeat = repeatOverride || surface.repeat?.[usage] || (usage === "floor" ? [4, 4] : [2.2, 1.6]);
+    const rx = Number(repeat[0]) || 1;
+    const ry = Number(repeat[1]) || 1;
+    // 色彩空間入鍵:colorMap(SRGB)與 bumpMap(NoColorSpace)同 url/平鋪但不可共用
+    // 同一顆,否則其一改色彩空間會污染另一顆。
+    const key = `${surface.texture_url}|${usage}|${rx}x${ry}|${colorSpace}`;
+    const cached = surfaceTextureCache.get(key);
+    if (cached) return cached;
     const texture = textureLoader.load(surface.texture_url);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    const repeat = repeatOverride || surface.repeat?.[usage] || (usage === "floor" ? [4, 4] : [2.2, 1.6]);
-    texture.repeat.set(Number(repeat[0]) || 1, Number(repeat[1]) || 1);
-    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.repeat.set(rx, ry);
+    texture.colorSpace = colorSpace;
     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    // clearGroup→disposeObjectTree 會 dispose 材質貼圖;共用快取貼圖必須豁免,
+    // 否則第一次清場就把下次還要用的 GPU 貼圖釋放掉 → 黑面。
+    texture.userData.roompilotCachedTexture = true;
+    surfaceTextureCache.set(key, texture);
     return texture;
   }
 
   function createSurfaceImageMaterial(surface, usage, options = {}) {
     const colorMap = createImageTexture(surface, usage, options.repeat);
-    const bumpMap = createImageTexture(surface, usage, options.repeat);
-    bumpMap.colorSpace = THREE.NoColorSpace;
+    const bumpMap = createImageTexture(surface, usage, options.repeat, THREE.NoColorSpace);
     const profile = surfacePbrProfile(surface, usage);
     const material = new THREE.MeshPhysicalMaterial({
       color: surfaceTint(options.color ?? "#ffffff", true, usage),
@@ -938,8 +958,7 @@ export function createSceneViewer(
       );
       if (woodSurface) {
         material.map = createImageTexture(woodSurface, "floor", [1, 2.2]);
-        material.bumpMap = createImageTexture(woodSurface, "floor", [1, 2.2]);
-        material.bumpMap.colorSpace = THREE.NoColorSpace;
+        material.bumpMap = createImageTexture(woodSurface, "floor", [1, 2.2], THREE.NoColorSpace);
         material.bumpScale = 0.018;
         material.userData.roompilotImageSurface = true;
         material.userData.roompilotSurfaceUsage = "door";
@@ -4183,9 +4202,17 @@ export function createSceneViewer(
     if (!sceneData) return;
     lastSceneData = sceneData;
     lastWorldSceneData = sceneDataForWorld(sceneData);
+    const shellKey = JSON.stringify({ ...lastWorldSceneData, scene_objects: null });
+    // 房殼(去家具後的場景)未變＝材質/覆蓋沒改:純房間切換或重套同一份材質時
+    // 直接返回,省下整個 createRoom(牆/地/天花幾何 + 面材)。scene_objects 已折出,
+    // 只要材質/覆蓋一改 shellKey 就變,不會漏更新。
+    if (shellKey === lastShellKey) {
+      lastSceneKey = JSON.stringify(sceneData);
+      return;
+    }
     createRoom(lastWorldSceneData);
     // Keep loadScene's skip keys coherent so a later navigation reload is a no-op.
-    lastShellKey = JSON.stringify({ ...lastWorldSceneData, scene_objects: null });
+    lastShellKey = shellKey;
     lastSceneKey = JSON.stringify(sceneData);
   }
 
