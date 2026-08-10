@@ -60,6 +60,27 @@ def test_viewer_exposes_incremental_furniture_operations() -> None:
         assert exported in viewer.split("return {", 1)[-1] or f"\n    {exported}" in viewer
 
 
+def test_viewer_exposes_update_room_surfaces_used_by_material_flow() -> None:
+    """第 6→7 步材質狀態機呼叫 whiteViewer.updateRoomSurfaces()（bella-new 拼接帶入）。
+    viewer 若未匯出此方法，confirmWhiteModel 會擲
+    "updateRoomSurfaces is not a function" → 未捕捉的 promise → 「確認家具配置並
+    調整材質」按鈕點了沒反應。回歸守門:呼叫端存在,且 viewer 公開 API 真的有它。"""
+    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    assert "whiteViewer.updateRoomSurfaces(" in source
+    api = viewer.split("\n  return {", 1)[-1]
+    assert "\n    updateRoomSurfaces,\n" in api
+    # A material edit must NOT do a full loadScene (which re-clones every GLB and
+    # caused the per-material jank); it rebuilds only the shell via createRoom.
+    surfaces_fn = viewer.split("function updateRoomSurfaces(sceneData) {", 1)[1].split(
+        "\n  }", 1
+    )[0]
+    assert "createRoom(lastWorldSceneData)" in surfaces_fn
+    assert "loadScene(" not in surfaces_fn
+    assert "clearGroup(furnitureGroup)" not in surfaces_fn
+
+
 def test_furniture_edits_use_incremental_operations_not_full_reload() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 

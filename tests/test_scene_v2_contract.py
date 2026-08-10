@@ -505,6 +505,32 @@ def test_sofa_family_has_keyword_fallback_matching() -> None:
     assert '"沙發"' in rules  # 關鍵字比對(非精確 normalized_type)
 
 
+def test_tv_bench_rule_rejects_mounting_hardware() -> None:
+    """電視櫃 keyword(電視/tv)太泛,會把「電視壁掛安裝臂/支架」誤配成電視櫃
+    (Amazon 安裝臂佔了電視櫃位置)。tv-bench 規則要 mustInclude 家具本體名詞 +
+    exclude 安裝五金;isQuestionnaireFallbackTypeMatch 要支援這兩個欄位,mustInclude
+    查『名稱』(分類可能被誤標)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    rules = source.split("QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({", 1)[1].split("});", 1)[0]
+    tv = rules.split('"tv-bench":', 1)[1].split("},", 1)[0]
+    assert "mustInclude:" in tv and "exclude:" in tv
+    assert "安裝臂" in tv and '"bracket"' in tv
+    assert "stand" in tv and "console" in tv  # 家具本體名詞
+    assert "(rule.exclude || []).some" in source
+    assert "rule.mustInclude?.length" in source
+
+
+def test_furniture_selection_matches_by_family_not_exact_type() -> None:
+    """客廳選件(預設 + 一鍵測試隨機)要用 isQuestionnaireFallbackTypeMatch 比對,
+    否則電視櫃候選常是 tv-media-furniture(family=tv-bench),精確 normalized_type
+    比對會漏掉 → 選不到電視櫃(即使已修好排除安裝臂、候選也撈得到)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    default_fn = source.split("function applyDefaultQuestionnaireFurnitureSelections", 1)[1].split("\nasync function ", 1)[0].split("\nfunction ", 1)[0]
+    assert "isQuestionnaireFallbackTypeMatch(offer, type)" in default_fn
+    random_fn = source.split("function applyVerifiedRandomQuestionnaireFurniture", 1)[1].split("\nfunction ", 1)[0]
+    assert "isQuestionnaireFallbackTypeMatch(candidate, type)" in random_fn
+
+
 def test_questionnaire_renders_room_material_choices_and_pair_recommendations() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
