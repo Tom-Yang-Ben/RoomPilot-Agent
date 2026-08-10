@@ -198,7 +198,7 @@ def test_llm_copy_merges_into_content() -> None:
     class CopyGateway:
         available = True
 
-        def chat(self, messages, *, model=None, temperature=0.3, force_json=False):
+        def chat(self, messages, *, model=None, temperature=0.3, force_json=False, reasoning=None):
             return json.dumps(
                 {
                     "statement": {
@@ -247,7 +247,7 @@ def test_llm_placement_rationale_is_dropped() -> None:
     class NoisyGateway:
         available = True
 
-        def chat(self, messages, *, model=None, temperature=0.3, force_json=False):
+        def chat(self, messages, *, model=None, temperature=0.3, force_json=False, reasoning=None):
             return json.dumps(
                 {
                     "overview_intro": "28.6 坪、兩個空間，材質與配色同一套。",

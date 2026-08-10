@@ -104,10 +104,13 @@ def ask_llm_json(
     required: tuple[str, ...] = (),
     retries: int = 1,
     temperature: float = 0.3,
+    model: str | None = None,
+    reasoning: dict | None = None,
 ) -> dict | None:
     """呼叫 LLM 並要求 JSON 輸出；回傳 ``None`` 表示改走 deterministic fallback。
 
     重試次數由程式固定（預設多一次），不交給 LLM 自律。
+    ``model``／``reasoning`` 只在有指定時往下傳，避免打到不接這些參數的假 gateway。
     """
     if gateway is None or not getattr(gateway, "available", True):
         return None
@@ -119,9 +122,16 @@ def ask_llm_json(
         {"role": "system", "content": system},
         {"role": "user", "content": user_prompt},
     ]
+    extra: dict = {}
+    if model:
+        extra["model"] = model
+    if reasoning is not None:
+        extra["reasoning"] = reasoning
     for _attempt in range(retries + 1):
         try:
-            text = gateway.chat(messages, force_json=True, temperature=temperature)
+            text = gateway.chat(
+                messages, force_json=True, temperature=temperature, **extra
+            )
             data = parse_json_block(text)
             missing = [key for key in required if key not in data]
             if missing:

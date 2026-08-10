@@ -11,7 +11,10 @@ from backend.agent.documents import (
     ImageRecord,
     LayoutDoc,
     LayoutRoom,
+    RequirementDoc,
+    SceneDoc,
 )
+from backend.agent.llm import DEFAULT_REPORT_MODEL
 from backend.agent.skills.furniture import STRATEGIES, FurnitureSkill
 from backend.agent.skills.report import ReportSkill, _looks_like_b64
 from backend.agent.skills.requirements import RequirementSkill
@@ -97,6 +100,29 @@ def test_render_section_shows_living_day_and_night_others_single():
     # 有夜間圖才標日光/夜間；單圖房不加標籤
     assert "客廳（日光）：" in section.body and "客廳（夜間）：" in section.body
     assert "主臥：" in section.body and "主臥（" not in section.body
+
+
+def test_report_agent_pins_gpt56_luna_model_with_reasoning():
+    """結案報告的 LLM 呼叫一律用 openai/gpt-5.6-luna 並開 reasoning（不管測不測試）。"""
+
+    class SpyGateway:
+        available = True
+
+        def __init__(self):
+            self.calls = []
+
+        def chat(self, messages, *, model=None, temperature=0.3, force_json=False, reasoning=None):
+            self.calls.append({"model": model, "reasoning": reasoning})
+            return '{"intro": "測試前言"}'
+
+    spy = SpyGateway()
+    layout = LayoutDoc(rooms=[LayoutRoom(room_id="living", name="客廳", width_cm=400, depth_cm=350)])
+    section = ReportSkill(spy)._intro_section(RequirementDoc(styles=["日式"]), layout, SceneDoc())
+
+    assert spy.calls, "報告前言應呼叫 LLM"
+    assert spy.calls[0]["model"] == DEFAULT_REPORT_MODEL == "openai/gpt-5.6-luna"
+    assert spy.calls[0]["reasoning"] == {"enabled": True}
+    assert "測試前言" in section.body
 
 
 def test_looks_like_b64_tolerates_slash_in_image_payload():

@@ -28,7 +28,7 @@ from ...documents import (
     SceneDoc,
 )
 from ...knowledge import FAMILY_ZH
-from ...llm import LLMGateway
+from ...llm import DEFAULT_REPORT_MODEL, LLMGateway
 from ...tools.base import ToolError
 from ...tools.read_docs import ReadDocsTool
 from ..base import ask_llm_json, load_skill_doc
@@ -215,6 +215,8 @@ class DeliverySkill:
             CONTENT_SPEC,
             json.dumps(facts, ensure_ascii=False),
             required=("rooms",),
+            model=DEFAULT_REPORT_MODEL,
+            reasoning={"enabled": True},
         )
         if llm_out is None:
             return False

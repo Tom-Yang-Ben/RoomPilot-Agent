@@ -38,6 +38,10 @@ DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-3.1-flash-image"
 DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image"
 DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-2.5-flash-image"
 
+# 結案報告（設計手冊／交付提案）固定用這顆，不隨 text_model 環境設定漂移
+# （使用者定案：不管是不是測試都用它）。見 skills/report、skills/delivery。
+DEFAULT_REPORT_MODEL = "openai/gpt-5.6-luna"
+
 class LLMError(RuntimeError):
     """LLM 呼叫失敗；``reason`` 是要能拿去「提示使用者失敗原因」的可讀訊息。"""
 
@@ -65,6 +69,7 @@ class LLMGateway(Protocol):
         model: str | None = None,
         temperature: float = 0.3,
         force_json: bool = False,
+        reasoning: dict | None = None,
     ) -> str: ...
 
     def generate_image(
@@ -210,6 +215,7 @@ class OpenRouterGateway:
         model: str | None = None,
         temperature: float = 0.3,
         force_json: bool = False,
+        reasoning: dict | None = None,
     ) -> str:
         used_model = model or self.text_model
         payload: dict[str, Any] = {
@@ -219,6 +225,8 @@ class OpenRouterGateway:
         }
         if force_json:
             payload["response_format"] = {"type": "json_object"}
+        if reasoning is not None:
+            payload["reasoning"] = reasoning
         data = self._post(payload, model=used_model)
         try:
             content = data["choices"][0]["message"]["content"]
