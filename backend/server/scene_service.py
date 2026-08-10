@@ -710,6 +710,7 @@ def selected_furniture_items_from_questionnaire(
     }
     selected: list[dict[str, Any]] = []
     used_ids: set[str] = set()
+    bed_selected = False
 
     appliance_types = {
         "refrigerator",
@@ -773,6 +774,17 @@ def selected_furniture_items_from_questionnaire(
             )
         ):
             continue
+
+        # ponytail: 同房只留一張床。exact 選件原本只比 furniture_id(上面 used_ids),
+        # 兩件床族商品(bed + bed-frame,或兩張不同床)都會留 → 擺位端把兩床相貼、
+        # 無走道、壓住房門(feedback floor04 臥室)。臥室房型皆單床(DORMITORY→bed,
+        # 入住人數只展開餐椅不展開床),故只折 bed 家族;床頭櫃/餐椅/沙發等可複數,
+        # 不在此去重。與 _merge_exact_and_chosen 的 family_of 摺疊同語意——exact 路徑
+        # (selected_furniture_exact=True)繞過該摺疊,漏套於此補上。
+        if family_of(merged["normalized_type"]) == "bed":
+            if bed_selected:
+                continue
+            bed_selected = True
 
         selected.append(merged)
         used_ids.add(furniture_id)
