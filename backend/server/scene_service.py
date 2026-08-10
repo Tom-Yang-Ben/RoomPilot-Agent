@@ -22,10 +22,14 @@ from ..agent.knowledge import (
 )
 from ..agent.place import placement_hints, resolve_placements
 from ..catalog.style_db import CLEARANCE_BY_TYPE, catalog_item_from_scene_object
-from ..engine.clearance import check_placement_with_clearance
+from ..engine.clearance import (
+    CABINET_FRONT_CLEARANCE_CM,
+    check_placement_with_clearance,
+    is_cabinet_type,
+)
 from ..engine.dxf_room import build_room_from_dxf
 from ..engine.layout_model import Placement as RasterPlacement, RoomContext as RasterContext
-from ..engine.obb import Obb, obb_blocked, stamp_obb
+from ..engine.obb import Obb, front_vector, obb_blocked, stamp_obb
 from ..engine.geometry import furniture_polygon
 from ..engine.models import PlacedFurniture, Room, Wall
 from ..engine.placement import (
@@ -1364,6 +1368,38 @@ def build_raster_context(
     return context
 
 
+def _cabinet_front_strip(
+    item_type: str | None,
+    width: float,
+    depth: float,
+    x_cm: float,
+    z_cm: float,
+    rotation_deg: float,
+    half_w_cm: float,
+    half_d_cm: float,
+) -> Obb | None:
+    """有櫃家具正面 CABINET_FRONT_CLEARANCE_CM 的淨空長條(門開＋站立/走道);
+    非有櫃件回 None。正面 = 本體 −y(front_vector),與 raster 本體同用 -rotation。"""
+    if not is_cabinet_type(item_type):
+        return None
+    cx, cy = x_cm + half_w_cm, z_cm + half_d_cm
+    theta = -rotation_deg
+    fx, fy = front_vector(theta)
+    off = depth / 2 + CABINET_FRONT_CLEARANCE_CM / 2
+    return Obb.from_deg(
+        cx + fx * off, cy + fy * off, width, CABINET_FRONT_CLEARANCE_CM, theta
+    )
+
+
+def _front_strip_hits_placed(ctx: RasterContext, strip: Obb) -> bool:
+    """長條是否壓到已放家具。只認家具重疊,界外不算(stamp 自動裁掉界外格),
+    避免把「正面貼到房界」誤判成擋路而過度拒放。
+    ponytail: 每次呼叫配一張空畫布;只有有櫃件候選才走到這,量少可接受。"""
+    canvas = ctx.grid.blank()
+    stamp_obb(canvas, ctx.grid, strip)
+    return bool((canvas & ctx.placed).any())
+
+
 def raster_free(
     ctx: RasterContext | None,
     item_type: str | None,
@@ -1400,7 +1436,14 @@ def raster_free(
     if obb_blocked(mask, ctx.grid, obb):
         return False
     if check_placed and item_type not in _IGNORE_COLLISION_TYPES:
-        return not obb_blocked(ctx.placed, ctx.grid, obb)
+        if obb_blocked(ctx.placed, ctx.grid, obb):
+            return False
+        # 有櫃家具:正面 50cm 內不得壓到別的家具(否則門打不開、沒走道)。
+        strip = _cabinet_front_strip(
+            item_type, width, depth, x_cm, z_cm, rotation_deg, half_w_cm, half_d_cm
+        )
+        if strip is not None and _front_strip_hits_placed(ctx, strip):
+            return False
     return True
 
 
@@ -1424,6 +1467,12 @@ def raster_commit(
         # 同 raster_free:場景角進柵格取負(90° 倍數不受影響)
         Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, -rotation_deg),
     )
+    # 有櫃家具:正面 50cm 淨空一併烙進遮罩,後續家具不得擺進去。
+    strip = _cabinet_front_strip(
+        item_type, width, depth, x_cm, z_cm, rotation_deg, half_w_cm, half_d_cm
+    )
+    if strip is not None:
+        stamp_obb(ctx.placed, ctx.grid, strip)
 
 
 def _raster_wall_anchor(
