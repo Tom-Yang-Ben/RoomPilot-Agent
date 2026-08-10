@@ -13725,6 +13725,74 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
   z-index: 12;
 }
 
+/* 放大疊層上的房名/色卡標籤(哪一張圖) */
+.rp-render-image-caption {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 13;
+  max-width: calc(100% - 170px);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(24, 28, 26, 0.78);
+  color: #fff;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+/* 隨時切回 3D 的關閉鈕 */
+.rp-render-stage-close {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 14;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(24, 28, 26, 0.85);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* 「查看已生成圖片」牆:一次呈現全部房間生圖,點一張放大 */
+.rp-render-gallery {
+  position: absolute;
+  inset: 0;
+  z-index: 13;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  align-content: start;
+  padding: 52px 16px 16px;
+  background: #1c1e1d;
+}
+
+.rp-render-gallery-item {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  cursor: zoom-in;
+}
+
+.rp-render-gallery-item img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.rp-render-gallery-item figcaption {
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* 側欄縮圖給游標提示可點放大(色卡 + 全房生圖共用此 grid) */
+.rp-render-result-grid img {
+  cursor: zoom-in;
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════
    步驟 1–4 版面：自 origin/ben 移植（ben-step1-4-integration-plan.html）。

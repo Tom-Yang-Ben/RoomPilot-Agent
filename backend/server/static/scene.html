@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-2ace7d938891" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-17ef73842f8f" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -948,9 +948,12 @@
               <span id="ai-render-provider-state">尚未連接遠端渲染服務</span>
             </div>
             <div id="ai-render-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="逐房間渲染視角">
-              <div id="ai-render-image-stage" class="rp-render-image-stage" hidden role="button" tabindex="0" aria-label="點擊切回 3D 場景">
+              <div id="ai-render-image-stage" class="rp-render-image-stage" hidden role="button" tabindex="0" aria-label="點擊空白處切回 3D 場景">
                 <img id="ai-render-image" alt="AI 寫實生圖" />
-                <span class="rp-render-image-hint">點擊切回 3D 場景</span>
+                <span id="ai-render-image-caption" class="rp-render-image-caption" aria-live="polite"></span>
+                <div id="ai-render-gallery" class="rp-render-gallery" hidden aria-label="已生成圖片牆"></div>
+                <button id="ai-render-stage-close" type="button" class="rp-render-stage-close">✕ 切回 3D 場景</button>
+                <span class="rp-render-image-hint">點擊空白處切回 3D 場景</span>
               </div>
               <button id="ai-render-image-toggle" type="button" class="secondary-action rp-render-image-toggle" hidden>查看生圖</button>
             </div>
@@ -981,6 +984,7 @@
               <p>彙整家具、地板/牆面、色卡、家電與逐房補充需求，對每個第 7 步已鎖定的視角以 nano banana 生成寫實室內圖；不會增減或移動任何擺設。</p>
               <p id="ai-openrouter-status" class="rp-viewer-status">尚未檢查 OpenRouter 生圖服務。</p>
               <button id="ai-openrouter-generate" type="button" class="primary-action">對每個房間視角生成寫實圖</button>
+              <button id="ai-openrouter-gallery" type="button" class="secondary-action" hidden>查看已生成圖片（放大呈現）</button>
               <div id="ai-openrouter-results" class="rp-render-result-grid"></div>
             </section>
             <section id="delivery-proposal-section" class="rp-editor-box">
@@ -1229,6 +1233,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-d0a5b17aaf3d"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-6b37ffe70102"></script>
   </body>
 </html>

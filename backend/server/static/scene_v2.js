@@ -269,6 +269,8 @@ let proposalSceneLoading = null;
 let pendingRenderBriefMode = null;
 let pendingRenderBriefAction = "initial";
 let latestDesignDelivery = null;
+// 第 8 步生圖放大疊層目前內容:{ mode:'single'|'gallery', src, label } 或 null=回退到目前房間。
+let renderStageView = null;
 let roomSchemeAlternativeInFlight = null;
 let stepSixMaterialCatalogKind = null;
 let visualCustomSaveTimer = null;
@@ -565,9 +567,13 @@ const element = {
   remoteRenderJobs: $("#remote-render-jobs"),
   aiRenderImageStage: $("#ai-render-image-stage"),
   aiRenderImage: $("#ai-render-image"),
+  aiRenderImageCaption: $("#ai-render-image-caption"),
+  aiRenderGallery: $("#ai-render-gallery"),
+  aiRenderStageClose: $("#ai-render-stage-close"),
   aiRenderImageToggle: $("#ai-render-image-toggle"),
   aiOpenrouterStatus: $("#ai-openrouter-status"),
   aiOpenrouterGenerate: $("#ai-openrouter-generate"),
+  aiOpenrouterGallery: $("#ai-openrouter-gallery"),
   aiOpenrouterResults: $("#ai-openrouter-results"),
   aiOpenrouterEditDialog: $("#ai-openrouter-edit-dialog"),
   aiOpenrouterEditRoom: $("#ai-openrouter-edit-room"),
@@ -17321,7 +17327,8 @@ async function runAiOpenrouterRender() {
     element.aiOpenrouterStatus.textContent = failed
       ? `完成 ${done} 房、失敗 ${failed} 房；完成的圖各可用整批唯一一次修改調整。`
       : `已完成 ${done} 個房間的寫實生圖；可用整批唯一一次修改調整。`;
-    aiRenderImageVisible = done > 0;   // 生圖完成即取代左側 3D;點擊可隨時切換
+    renderStageView = null;            // 清掉先前色卡放大,改顯示這批新生圖
+    aiRenderImageVisible = done > 0;    // 生圖完成即取代左側 3D;點擊可隨時切換
     renderAiOpenrouterResults();
   } catch (error) {
     element.aiOpenrouterStatus.textContent = errorMessage(error);
@@ -17330,36 +17337,98 @@ async function runAiOpenrouterRender() {
   }
 }
 
-// 第 8 步版面:生圖完成後取代左側 3D 場景,點圖回 3D、點「查看生圖」
-// 隨時切回;左側顯示的圖跟著目前選取的房間走,沒有生圖時維持純 3D 操作。
-function currentAiRenderImage() {
-  const results = state.proposalReview.openRouterRenders?.results || [];
-  const completed = results.filter(
+// 第 8 步版面:生圖可放大蓋住左側 3D 場景,點空白/關閉鈕回 3D。
+// renderStageView 決定疊層內容:single=單張放大(色卡或某房)、gallery=已生成圖片牆;
+// 為 null 時回退到「目前選取房間」的生圖,維持生圖完成即自動預覽的舊行為。
+function completedOpenrouterRows() {
+  return (state.proposalReview.openRouterRenders?.results || []).filter(
     (row) => row.status === "completed" && row.image_data_url,
   );
+}
+
+function currentAiRenderImage() {
+  const completed = completedOpenrouterRows();
   if (!completed.length) return null;
   return completed.find((row) => row.room_id === state.selectedRenderRoomId)
     || completed[0];
 }
 
+// 把一張圖放大到左側 3D 疊層;label 會印在圖上,標明是哪張色卡/哪個房間。
+function showRenderImageEnlarged(src, label) {
+  if (!src) return;
+  renderStageView = { mode: "single", src, label: label || "" };
+  aiRenderImageVisible = true;
+  updateAiRenderImageStage();
+}
+
+// 「查看已生成圖片」:一次呈現全部房間生圖(各自標房名),點一張再放大。
+function showRenderGallery() {
+  if (!completedOpenrouterRows().length) return;
+  renderStageView = { mode: "gallery" };
+  aiRenderImageVisible = true;
+  updateAiRenderImageStage();
+}
+
+function closeRenderImageStage() {
+  aiRenderImageVisible = false;
+  renderStageView = null;
+  updateAiRenderImageStage();
+}
+
 function updateAiRenderImageStage() {
-  if (!element.aiRenderImageStage || !element.aiRenderImageToggle) return;
-  const row = currentAiRenderImage();
-  if (!row) {
-    aiRenderImageVisible = false;
-    element.aiRenderImageStage.hidden = true;
-    element.aiRenderImageToggle.hidden = true;
+  const stage = element.aiRenderImageStage;
+  const toggle = element.aiRenderImageToggle;
+  if (!stage || !toggle) return;
+  const fallback = currentAiRenderImage();
+
+  if (!aiRenderImageVisible) {
+    stage.hidden = true;
+    renderStageView = null;
+    toggle.hidden = !fallback;
+    if (fallback) {
+      toggle.textContent = `查看生圖（${fallback.room_label || fallback.room_id}）`;
+    }
     return;
   }
-  element.aiRenderImage.src = row.image_data_url;
-  element.aiRenderImage.alt = `${row.room_label || row.room_id} 寫實生圖`;
-  element.aiRenderImageToggle.textContent = `查看生圖（${row.room_label || row.room_id}）`;
-  element.aiRenderImageStage.hidden = !aiRenderImageVisible;
-  element.aiRenderImageToggle.hidden = aiRenderImageVisible;
+
+  const view = renderStageView
+    || (fallback
+      ? { mode: "single", src: fallback.image_data_url, label: fallback.room_label || fallback.room_id }
+      : null);
+  if (!view) {
+    aiRenderImageVisible = false;
+    stage.hidden = true;
+    toggle.hidden = true;
+    return;
+  }
+
+  stage.hidden = false;
+  toggle.hidden = true;
+  const galleryMode = view.mode === "gallery";
+  if (element.aiRenderGallery) element.aiRenderGallery.hidden = !galleryMode;
+  if (element.aiRenderImage) element.aiRenderImage.hidden = galleryMode;
+  if (element.aiRenderImageCaption) element.aiRenderImageCaption.hidden = galleryMode;
+
+  if (galleryMode) {
+    if (element.aiRenderGallery) {
+      element.aiRenderGallery.innerHTML = completedOpenrouterRows().map((row) => `
+        <figure class="rp-render-gallery-item" data-gallery-room="${escapeHtml(String(row.room_id))}" role="button" tabindex="0">
+          <img src="${escapeHtml(row.image_data_url)}" alt="${escapeHtml(row.room_label || row.room_id)} 寫實生圖" />
+          <figcaption>${escapeHtml(row.room_label || row.room_id)}</figcaption>
+        </figure>`).join("");
+    }
+  } else {
+    element.aiRenderImage.src = view.src;
+    element.aiRenderImage.alt = view.label ? `${view.label} 生圖` : "生圖";
+    if (element.aiRenderImageCaption) element.aiRenderImageCaption.textContent = view.label || "";
+  }
 }
 
 function renderAiOpenrouterResults() {
   updateAiRenderImageStage();
+  if (element.aiOpenrouterGallery) {
+    element.aiOpenrouterGallery.hidden = completedOpenrouterRows().length === 0;
+  }
   const container = element.aiOpenrouterResults;
   if (!container) return;
   container.innerHTML = "";
@@ -17373,11 +17442,14 @@ function renderAiOpenrouterResults() {
     title.textContent = row.room_label || row.room_id;
     card.appendChild(title);
     if (row.status === "completed" && row.image_data_url) {
+      card.dataset.roomId = String(row.room_id);
       const img = document.createElement("img");
       img.src = row.image_data_url;
       img.alt = `${row.room_label || row.room_id} 寫實生圖`;
       img.style.maxWidth = "100%";
       img.style.display = "block";
+      img.style.cursor = "zoom-in";
+      img.title = "點擊放大到左側 3D 區";
       card.appendChild(img);
       if (editRemaining) {
         const editButton = document.createElement("button");
@@ -18953,19 +19025,50 @@ function bindEvents() {
   $("#save-room-view")?.addEventListener("click", saveSelectedRoomView);
   $("#submit-room-renders")?.addEventListener("click", () => openRenderBriefDialog("room_final"));
   element.aiOpenrouterGenerate?.addEventListener("click", runAiOpenrouterRender);
-  element.aiRenderImageStage?.addEventListener("click", () => {
-    aiRenderImageVisible = false;
-    updateAiRenderImageStage();
+  const galleryTileFrom = (target) => {
+    const tile = target?.closest?.("[data-gallery-room]");
+    if (!tile) return null;
+    return completedOpenrouterRows().find(
+      (item) => String(item.room_id) === String(tile.dataset.galleryRoom),
+    ) || null;
+  };
+  element.aiRenderImageStage?.addEventListener("click", (event) => {
+    if (event.target?.closest?.("#ai-render-stage-close")) return; // 由關閉鈕自己處理
+    const row = galleryTileFrom(event.target);
+    if (row) { showRenderImageEnlarged(row.image_data_url, row.room_label || row.room_id); return; }
+    closeRenderImageStage();
   });
   element.aiRenderImageStage?.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Escape") return;
     event.preventDefault();
-    aiRenderImageVisible = false;
-    updateAiRenderImageStage();
+    const row = event.key === "Escape" ? null : galleryTileFrom(event.target);
+    if (row) showRenderImageEnlarged(row.image_data_url, row.room_label || row.room_id);
+    else closeRenderImageStage();
+  });
+  element.aiRenderStageClose?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeRenderImageStage();
   });
   element.aiRenderImageToggle?.addEventListener("click", () => {
+    renderStageView = null;
     aiRenderImageVisible = true;
     updateAiRenderImageStage();
+  });
+  element.aiOpenrouterGallery?.addEventListener("click", showRenderGallery);
+  // 色卡三張(第 7 步)點縮圖 → 放大到左側 3D 區,標示是哪張色卡。
+  element.paletteRenderResults?.addEventListener("click", (event) => {
+    const img = event.target?.closest?.("img");
+    if (!img?.getAttribute("src")) return;
+    const label = (img.getAttribute("alt") || "").replace(/\s*色卡渲染$/, "").trim();
+    showRenderImageEnlarged(img.src, label || "色卡");
+  });
+  // 全房生圖(第 8 步)點縮圖 → 放大到左側 3D 區,標示是哪個房間。
+  element.aiOpenrouterResults?.addEventListener("click", (event) => {
+    const card = event.target?.closest?.(".rp-render-result-card");
+    const roomId = card?.dataset.roomId;
+    if (!roomId) return;
+    const row = completedOpenrouterRows().find((item) => String(item.room_id) === String(roomId));
+    if (row) showRenderImageEnlarged(row.image_data_url, row.room_label || row.room_id);
   });
   $("#ai-openrouter-edit-submit")?.addEventListener("click", submitAiOpenrouterEdit);
   $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
