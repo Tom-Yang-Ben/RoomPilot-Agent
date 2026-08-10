@@ -482,6 +482,29 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert ".rp-questionnaire-room-usage-options" in css
 
 
+def test_living_room_program_defaults_to_full_sofa_group() -> None:
+    """客廳基礎配置 = 沙發 + 茶几 + 電視櫃(不再只有沙發、也不因沙發放不下退成單椅)。
+    茶几/電視櫃是用途相依 specs,缺候選時 ensureQuestionnaireFurnitureRecommendations
+    為每個缺候選的基礎件補建(以基礎件優先),applyDefaults 才選得到整組沙發組。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    living = source.split("living_room: {", 1)[1].split("},", 1)[0]
+    assert 'defaults: ["sofa", "coffee-table", "tv-bench"]' in living
+    assert 'fallbackDefaults: ["lounge-chair"]' in living
+    assert "const missingDefaults = (program.defaults || []).filter" in source
+
+
+def test_sofa_family_has_keyword_fallback_matching() -> None:
+    """沙發家族(fabric/leather/modular/sofa)要有 keyword fallback 規則,否則
+    isQuestionnaireFallbackTypeMatch 退回精確 normalized_type 比對,type=fabric-sofa
+    查到的沙發只要命名不同就被濾光 → 客廳整組沙發撈不到,連坐砍掉茶几/電視櫃
+    (選件 log:候選缺基礎家具 sofa;缺主件 sofa)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    rules = source.split("QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({", 1)[1].split("});", 1)[0]
+    for key in ("\n  sofa:", '"fabric-sofa":', '"leather-sofa":', '"modular-sofa":'):
+        assert key in rules, key
+    assert '"沙發"' in rules  # 關鍵字比對(非精確 normalized_type)
+
+
 def test_questionnaire_renders_room_material_choices_and_pair_recommendations() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
@@ -1523,10 +1546,12 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert 'state.workflow.currentStep === "white_model_3d"' in viewer
     assert 'state.workflow.currentStep === "layout_2d"' in viewer
     assert "returnToRequirementsOnFailure: true" in viewer
-    # bella 版:待處理閘門同時判 allowPendingFurniture 與 strictSelectedFurniture
-    assert "if (invalid.length && (!allowPendingFurniture || strictSelectedFurniture))" in viewer
-    assert "if (generatedInvalid.length && (!allowPendingFurniture || strictSelectedFurniture))" in viewer
-    assert "if (missingCatalogModels.length && (!allowPendingFurniture || strictSelectedFurniture))" in viewer
+    # 逐房 A/B 合成(strict)不因個別家具放不下/缺模型而硬擋使用者:待處理閘門只在
+    # 「非 allowPending 且非 strict」才擋;strict 合成走非阻斷,以 selectedSchemeMismatchNotice
+    # 提示告知(避免 configuration_scene_generation_failed 卡住逐房方案合成)。
+    assert "if (invalid.length && !allowPendingFurniture && !strictSelectedFurniture)" in viewer
+    assert "if (generatedInvalid.length && !allowPendingFurniture && !strictSelectedFurniture)" in viewer
+    assert "if (missingCatalogModels.length && !allowPendingFurniture && !strictSelectedFurniture)" in viewer
     assert "const sceneFurniture = allowPendingFurniture" in viewer
     assert "selectedFurniture.filter((item) => item.model_url)" in viewer
     assert "尚未找到可用的資料庫 GLB" in viewer
@@ -1550,6 +1575,19 @@ def test_room_scheme_composite_locks_selected_positions_for_strict_generation() 
     )[0]
     assert "{ lockPositions = false } = {}" in resolver
     assert "item.locked === true || lockPositions === true" in resolver
+
+
+def test_room_scheme_composite_tolerates_furniture_mismatch_without_blocking() -> None:
+    """逐房 A/B 合成:引擎因空間/門窗淨空自動移位、換小或移除個別家具,不該擋住
+    使用者。strict 檢查改為記錄差異(describeSelectedFurnitureMismatch)＋非阻斷
+    提示(selectedSchemeMismatchNotice),不再 throw selected_scheme_furniture_mismatch。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    assert "function describeSelectedFurnitureMismatch(" in source
+    assert "state.selectedSchemeMismatch = describeSelectedFurnitureMismatch(" in source
+    assert "selectedSchemeMismatchNotice()" in source
+    # 舊的硬性 throw 版已移除,不再阻斷合成
+    assert "selected_scheme_furniture_mismatch: missing=" not in source
+    assert "assertGeneratedSceneMatchesSelectedFurniture" not in source
 
 
 def test_requirement_generation_defers_a_single_failed_room_without_breaking_step_six() -> None:

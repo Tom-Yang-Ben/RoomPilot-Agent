@@ -4549,6 +4549,17 @@ function chooseRoomScheme(schemeId) {
   scheduleSave("white_model_3d");
 }
 
+function selectedSchemeMismatchNotice() {
+  const mismatch = state.selectedSchemeMismatch;
+  if (!mismatch) return "";
+  const parts = [];
+  if (mismatch.moved?.length) parts.push(`調整 ${mismatch.moved.length} 件位置`);
+  if (mismatch.missing?.length) parts.push(`移除 ${mismatch.missing.length} 件放不下的家具`);
+  if (mismatch.unexpected?.length) parts.push(`補入 ${mismatch.unexpected.length} 件`);
+  if (!parts.length) return "";
+  return `已合成配置：系統依空間與門窗淨空自動${parts.join("、")}，可在下一步微調。`;
+}
+
 async function completeRoomSchemeSelection() {
   applyUnavailableRoomSchemeDefaults();
   if (!allRoomsHaveSchemeSelections(state.designSchemes, state.rooms)) return;
@@ -4582,7 +4593,11 @@ async function completeRoomSchemeSelection() {
     renderRoomSchemeGate();
     closeRoomSchemeSelectionDialog();
     scheduleSave("white_model_3d");
-    setStatus("所有房間方案已合成為唯一配置，並已重新驗證 2D 與 3D 場景。", "success");
+    setStatus(
+      selectedSchemeMismatchNotice()
+        || "所有房間方案已合成為唯一配置，並已重新驗證 2D 與 3D 場景。",
+      "success",
+    );
   } catch (error) {
     schemeA.furniture = originalFurniture;
     schemeA.sceneData = originalScene;
@@ -9358,6 +9373,16 @@ const QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({
   "dining-table": { query: "dining table", keywords: ["table", "餐桌"] },
   "tv-bench": { query: "tv stand", keywords: ["tv", "television", "電視"] },
   "storage-cabinet": { query: "storage cabinet", keywords: ["cabinet", "storage", "收納", "櫃"] },
+  // 沙發家族原本沒 fallback 規則 → isQuestionnaireFallbackTypeMatch 退回精確
+  // normalized_type 比對:type=fabric-sofa 查到的沙發只要 normalized_type 不是一模一樣
+  // 就被濾光 → 客廳整組沙發撈不到,連坐砍掉茶几/電視櫃(log: 候選缺基礎家具 sofa)。
+  // 改用關鍵字比對(照 tv-bench),任一沙發皆可入選;子類型互通(皮/布/模組)無妨,
+  // 排序階段再挑最合風格。不設 types 以免又卡在 normalized_type 命名差異。
+  sofa: { query: "sofa", keywords: ["sofa", "沙發", "couch", "settee"] },
+  "fabric-sofa": { query: "fabric sofa", keywords: ["sofa", "沙發", "couch"] },
+  "leather-sofa": { query: "leather sofa", keywords: ["sofa", "沙發", "couch"] },
+  "modular-sofa": { query: "modular sofa sectional", keywords: ["sofa", "沙發", "couch", "sectional", "模組"] },
+  "coffee-table": { query: "coffee table", keywords: ["coffee", "茶几"] },
 });
 
 function isQuestionnaireFallbackTypeMatch(candidate, type) {
@@ -9480,7 +9505,9 @@ const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS = Object.freeze({
     labels: { bed: "睡眠的基本配置", wardrobe: "日常衣物收納", "bedside-table": "床邊置物" },
   },
   living_room: {
-    defaults: ["sofa"],
+    // 客廳沙發組 = 基礎配置:沙發 + 茶几 + 電視櫃一起自動選入,不再只有沙發或
+    // (沙發放不下時)退成單椅。單椅仍是沙發整組都放不下時的最後退路。
+    defaults: ["sofa", "coffee-table", "tv-bench"],
     fallbackDefaults: ["lounge-chair"],
     required: [],
     labels: { sofa: "休息與招待的基本配置", "coffee-table": "客廳置物與活動中心", "tv-bench": "影音設備收納", "lounge-chair": "閱讀或獨立休息" },
@@ -10215,6 +10242,32 @@ async function ensureQuestionnaireFurnitureRecommendations(
     }));
     let recommendedOffers = groups.flat();
     const program = questionnaireFurnitureProgram(room);
+    // 基礎件保證有候選:客廳沙發組的茶几/電視櫃是「用途相依」specs(沒勾「看電視」
+    // 就不產生電視櫃 offer),導致基礎件缺候選、applyDefaults 選不到 → 只剩單椅。
+    // 這裡為每個缺候選的基礎件補建(與下方 fallback 同法、同樣經房型尺寸過濾,
+    // 放不下就不補,不會硬塞小房)。以基礎件優先。
+    const missingDefaults = (program.defaults || []).filter((type) => (
+      !recommendedOffers.some((offer) => offer.normalized_type === type && offer.room_fit_checked !== false)
+    ));
+    if (missingDefaults.length) {
+      const defaultGroups = await Promise.all(missingDefaults.map(async (type, index) => {
+        let offers = await catalogOffersForSpec(room, [type, "standard"], specs.length + index);
+        if (!offers.length) {
+          offers = await catalogFallbackOffersForSpec(room, [type, "standard"], specs.length + index);
+        }
+        const candidates = (await verifiedQuestionnaireCatalogOffers(
+          offers,
+          unavailableCatalogIds,
+        )).filter((offer) => replacementCandidateFitsRoom(offer, room));
+        return questionnaireOffersWithSizeChoices(type, candidates).map((offer) => ({
+          ...offer,
+          room_fit_checked: true,
+          model_load_verified: true,
+          model_load_verification: "verified",
+        }));
+      }));
+      recommendedOffers = [...recommendedOffers, ...defaultGroups.flat()];
+    }
     const hasPreferredDefault = program.defaults.some((type) => (
       recommendedOffers.some((offer) => offer.normalized_type === type && offer.room_fit_checked !== false)
     ));
@@ -12457,7 +12510,7 @@ function placementResolutionText(report = []) {
     : `${summary}；目前配置已通過檢查。`;
 }
 
-function assertGeneratedSceneMatchesSelectedFurniture(sceneObjects = [], selectedFurniture = []) {
+function describeSelectedFurnitureMismatch(sceneObjects = [], selectedFurniture = []) {
   const expectedById = new Map(
     selectedFurniture
       .filter((item) => item?.furniture_id)
@@ -12490,11 +12543,10 @@ function assertGeneratedSceneMatchesSelectedFurniture(sceneObjects = [], selecte
     const sameType = !expectedType || expectedType === generatedType;
     return !sameRoom || !samePosition || !sameRotation || !sameCatalog || !sameType;
   }).map(([id]) => id);
-  if (missing.length || unexpected.length || mismatched.length) {
-    throw new Error(
-      `selected_scheme_furniture_mismatch: missing=${missing.length}, unexpected=${unexpected.length}, moved=${mismatched.length}`,
-    );
-  }
+  if (!missing.length && !unexpected.length && !mismatched.length) return null;
+  // 不丟例外:引擎因空間/門窗淨空把個別家具移位、換小或移除是合法化行為,由呼叫端
+  // 以非阻斷提示告知,不擋住逐房方案合成(舊 selected_scheme_furniture_mismatch)。
+  return { missing, unexpected, moved: mismatched };
 }
 
 async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFurniture = false } = {}) {
@@ -12523,7 +12575,7 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
       const invalid = (validation.scene_objects || []).filter(
         (item) => item.placement_failed || !item.position_locked,
       );
-      if (invalid.length && (!allowPendingFurniture || strictSelectedFurniture)) {
+      if (invalid.length && !allowPendingFurniture && !strictSelectedFurniture) {
         element.layoutError.textContent = `${invalid
           .map((item) => item.name_zh_raw || item.normalized_type)
           .join("、")}目前位置未通過碰撞、淨空或房間邊界檢查，請移動或更換尺寸。`;
@@ -12540,7 +12592,7 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
       placeableFurniture.map((item) => resolveCatalogFurniture(item, { lockPositions: strictSelectedFurniture })),
     );
     const missingCatalogModels = selectedFurniture.filter((item) => !item.model_url);
-    if (missingCatalogModels.length && (!allowPendingFurniture || strictSelectedFurniture)) {
+    if (missingCatalogModels.length && !allowPendingFurniture && !strictSelectedFurniture) {
       element.layoutError.textContent =
         `有 ${missingCatalogModels.length} 件家具尚未找到可用的資料庫 GLB：${
           missingCatalogModels
@@ -12626,22 +12678,35 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);
     if (strictSelectedFurniture) {
-      assertGeneratedSceneMatchesSelectedFurniture(
+      // 逐房方案合成後不因引擎自動調整而阻斷使用者:記錄差異、警告,照常往下走。
+      state.selectedSchemeMismatch = describeSelectedFurnitureMismatch(
         state.sceneData.scene_objects || [],
         sceneFurniture,
       );
+      if (state.selectedSchemeMismatch) {
+        console.warn(
+          "selected_scheme_furniture_mismatch(tolerated):",
+          state.selectedSchemeMismatch,
+        );
+      }
     }
     pruneRetiredAppliances({ notify: true });
     const generatedInvalid = (state.sceneData.scene_objects || []).filter(
       (item) => item.placement_failed || !item.position_cm,
     );
-    if (generatedInvalid.length && (!allowPendingFurniture || strictSelectedFurniture)) {
+    if (generatedInvalid.length && !allowPendingFurniture && !strictSelectedFurniture) {
       element.layoutError.textContent =
         `系統仍有 ${generatedInvalid.length} 件家具無法合法放置，請先在上方待處理清單更換或調整家具。`;
       setStatus("配置尚未通過門窗淨空、房間邊界與家具碰撞檢查。", "error");
       renderLayoutRoomFilter();
       renderLayoutFurniture();
       return false;
+    }
+    // 逐房 A/B 合成(strict):放不下的家具已標記在待處理清單,不硬擋使用者。
+    // 差異由 completeRoomSchemeSelection 的 selectedSchemeMismatchNotice 非阻斷告知。
+    if (generatedInvalid.length && strictSelectedFurniture) {
+      renderLayoutRoomFilter();
+      renderLayoutFurniture();
     }
     state.sceneData.questionnaire = {
       catalog_version: state.visualCatalogVersion,
