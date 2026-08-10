@@ -121,19 +121,20 @@ def test_prompt_supplements_all_collected_info() -> None:
 
     assert [row["status"] for row in outcome["results"]] == ["completed"]
     prompt = gateway.prompts[0]
-    # 模板定案：「渲染成寫實風格，房間：{}、…」；數值資訊（尺寸）不提供。
-    assert prompt.startswith("渲染成寫實風格，房間：客廳")
+    # 模板（yen genpic 更新）：極致寫實 + 風格 + 房間名；數值資訊（尺寸）不提供。
+    assert "極致寫實" in prompt
+    assert "房間：客廳" in prompt
     # 家具鎖定（不含尺寸與位置措辭，附材質描述），placement_failed 不進畫面。
     assert "北歐布沙發（sofa，亞麻布）" in prompt
     assert "210x90cm" not in prompt
     assert "房間中央" not in prompt and "面向" not in prompt
     assert "無法擺放的櫃" not in prompt
-    assert "不可增減或移動" in prompt
+    assert "物件位置不可變動" in prompt  # 鎖定擺設位置（yen genpic 更新措辭）
     # 家電只作為畫面 context。
     assert "家電：" in prompt and "雙門冰箱" in prompt
     # 地板材質、60-30-10 色調。
     assert "地板材質：" in prompt and "橡木地板" in prompt
-    assert "色調採(60%, 30%, 10%)：" in prompt and "#F3EBDD" in prompt
+    assert "色調比例採(60%, 30%, 10%)：" in prompt and "#F3EBDD" in prompt
     # 逐房與整體補充需求原文照列，不加前綴標籤。
     assert "沙發旁要立燈" in prompt
     assert "保留閱讀角落" in prompt
