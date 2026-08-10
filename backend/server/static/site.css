@@ -6930,6 +6930,143 @@ body.rp-workflow-page .danger-action {
   color: var(--rp-muted);
 }
 
+/* 第 7 步「代表房色卡比較」stage —— 側欄注入的動態面板。原本這些 class 完全沒有
+   樣式,型錄大圖以原生尺寸撐開 .rp-editor-box 的 auto 網格欄,溢出固定 460px 側欄
+   → 整個 .rp-3d-workspace 版面被撐爆(水平捲軸、側欄被切掉)。此區把所有影像框在
+   容器寬內,並讓卡片在窄側欄自動換行。 */
+.rp-proposal-style-stage {
+  min-width: 0;
+}
+
+.rp-proposal-style-stage > label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: #4a453f;
+}
+
+.rp-proposal-style-stage select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid #c3beb7;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.rp-proposal-context {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e0dbd3;
+  border-radius: 6px;
+  background: #f4f2ee;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #6a625b;
+}
+
+.rp-proposal-context strong {
+  color: #2f2c28;
+  font-size: 14px;
+}
+
+.rp-render-palette-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.rp-render-palette-card {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #c8c3bc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.rp-render-palette-card:has(input:checked) {
+  border-color: var(--rp-green);
+  box-shadow: inset 0 0 0 1px var(--rp-green);
+}
+
+.rp-render-palette-card > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rp-render-palette-media {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rp-render-palette-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1px solid #c8c3bc;
+  border-radius: 4px;
+  background: #f1eee9;
+}
+
+.rp-render-palette-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rp-render-palette-copy strong {
+  font-size: 13px;
+  color: #33302b;
+}
+
+.rp-render-palette-copy small {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #6a625b;
+}
+
+.rp-render-palette-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.rp-render-palette-results:empty {
+  display: none;
+}
+
+.rp-render-palette-results .rp-render-result {
+  gap: 6px;
+  min-width: 0;
+}
+
+.rp-render-palette-results .rp-render-result img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--rp-line);
+  border-radius: 5px;
+}
+
+.rp-render-palette-results .rp-render-result > span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: #4a453f;
+}
+
 .rp-render-room-list > button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

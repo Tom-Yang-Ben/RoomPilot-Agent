@@ -91,6 +91,26 @@ def test_confirm_white_model_final_check_is_validate_only() -> None:
     assert "position_locked: true," in body
 
 
+def test_proposal_color_card_stage_constrains_images_so_layout_cannot_blow_out() -> None:
+    """第 7 步「進入色卡比較」後注入的 .rp-proposal-style-stage 三張色卡,原本這些
+    class 完全沒有樣式,型錄大圖以原生尺寸溢出固定 460px 側欄 → 整個
+    .rp-3d-workspace 版面被撐爆(水平捲軸、側欄被切掉)。核心不變量:注入面板內的
+    每張影像都必須被框在容器寬度內,且卡片容器可換行。"""
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    def _rule(selector: str) -> str:
+        assert selector + " {" in css, f"缺少 {selector} 樣式(色卡 stage 會撐爆版面)"
+        return css.split(selector + " {", 1)[1].split("}", 1)[0]
+
+    # 選項卡預覽圖與生成結果圖都必須框住寬度
+    assert "width: 100%" in _rule(".rp-render-palette-image")
+    assert "width: 100%" in _rule(".rp-render-palette-results .rp-render-result img")
+    # 兩組容器都用網格且可換行,不得讓內容撐寬側欄
+    assert "grid" in _rule(".rp-render-palette-options")
+    assert "min-width: 0" in _rule(".rp-render-palette-options")
+    assert "grid" in _rule(".rp-render-palette-results")
+
+
 def test_requirements_step_has_randomized_test_skip_button() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
