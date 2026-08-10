@@ -70,6 +70,7 @@ from .ai_render_service import (
     GenPicFailure,
     ai_render_status,
     edit_room_image,
+    generate_palette_images,
     generate_room_images,
 )
 from .design_manual_service import (
@@ -79,6 +80,16 @@ from .design_manual_service import (
     create_design_manual,
     delivery_proposal_status,
 )
+from .agent_pipeline_service import (
+    PipelineNotStarted,
+    get_pipeline,
+    pipeline_enabled,
+    pipeline_status,
+    start_pipeline,
+    submit_pipeline,
+    undo_pipeline,
+)
+from .agent_reconcile_service import reconcile_room
 from .style_cards import load_taiwan_style_cards
 from .services.cloud_models import (
     cloud_model_status,
@@ -2105,11 +2116,106 @@ def create_project_ai_renders(project_id: str, payload: dict) -> dict:
         ) from exc
     project = PROJECT_STORE.update_workflow(
         project_id,
-        workflow={"ai_render": {"edit_used": 0, "rooms": outcome["rooms"]}},
+        workflow={
+            "ai_render": {
+                "edit_used": 0,
+                # 逐房各自一次改圖額度（指南 §3E：每房可在初圖後提出一次修改）。
+                "rooms": [{**room, "edit_used": 0} for room in outcome["rooms"]],
+            }
+        },
     )
     return {
         "results": outcome["results"],
         "edit_remaining": 1,
+        "revision": project["revision"],
+        "updated_at": project["updated_at"],
+    }
+
+
+@app.post("/api/projects/{project_id}/palette-renders", status_code=201)
+def create_project_palette_renders(project_id: str, payload: dict) -> dict:
+    """第 7 步代表房「色卡比較」:同一代表房 × 多張色卡,一次併發呼叫 Gen_Pic Agent
+    (Nano Banana Pro)。**每個專案只能成功生成一次** —— 已生成過回 409,不再呼叫模型;
+    全部失敗則不鎖定,允許重試。base64 不入 workflow(2MB 上限),只存旗標與各卡狀態。
+    """
+    project = _stored_project(project_id)
+    if payload.get("project_id") not in (None, project_id):
+        raise HTTPException(
+            422,
+            {"code": "render_project_mismatch", "message": "生圖資料與目前專案不一致。"},
+        )
+    palette_state = (project.get("workflow") or {}).get("palette_render") or {}
+    if palette_state.get("generated"):
+        raise HTTPException(
+            409,
+            {
+                "code": "palette_already_generated",
+                "message": "此專案的代表房色卡比較圖已生成過，每個專案只能生成一次。",
+            },
+        )
+    scene = payload.get("scene")
+    if not isinstance(scene, dict) or not scene.get("scene_objects"):
+        raise HTTPException(
+            422,
+            {"code": "scene_required", "message": "缺少場景資料，請先完成第 6 步配置。"},
+        )
+    room = payload.get("room")
+    if not isinstance(room, dict) or not str(room.get("room_id") or "").strip():
+        raise HTTPException(
+            422,
+            {"code": "room_required", "message": "缺少代表房，請先在第 7 步選定代表房與視角。"},
+        )
+    if not _looks_like_png_data_url(room.get("reference_png_data_url")):
+        raise HTTPException(
+            422,
+            {"code": "reference_png_required", "message": "代表房需要 3D 視角截圖。"},
+        )
+    style_card_ids = payload.get("style_card_ids")
+    if not isinstance(style_card_ids, list) or not [
+        card for card in style_card_ids if str(card or "").strip()
+    ]:
+        raise HTTPException(
+            422,
+            {"code": "style_card_ids_required", "message": "缺少色卡清單。"},
+        )
+    try:
+        outcome = generate_palette_images(scene, room, style_card_ids)
+    except AiRenderNotConfigured as exc:
+        raise HTTPException(
+            503,
+            {
+                "code": str(exc),
+                "message": "尚未連接 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。",
+            },
+        ) from exc
+    any_completed = any(item.get("status") == "completed" for item in outcome["results"])
+    if not any_completed:
+        # 全部失敗:不鎖定,讓使用者可重試;回失敗結果供前端顯示原因。
+        return {
+            "results": outcome["results"],
+            "already_generated": False,
+            "room_id": outcome["room_id"],
+        }
+    project = PROJECT_STORE.update_workflow(
+        project_id,
+        workflow={
+            "palette_render": {
+                "generated": True,
+                "room_id": outcome["room_id"],
+                "cards": [
+                    {
+                        "style_card_id": item.get("style_card_id"),
+                        "status": item.get("status"),
+                    }
+                    for item in outcome["results"]
+                ],
+            }
+        },
+    )
+    return {
+        "results": outcome["results"],
+        "already_generated": False,
+        "room_id": outcome["room_id"],
         "revision": project["revision"],
         "updated_at": project["updated_at"],
     }
@@ -2120,12 +2226,6 @@ def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict
     """整批一次改圖：只改使用者指定內容、其餘鎖定不動；額度用完回 409。"""
     project = _stored_project(project_id)
     ai_render = (project.get("workflow") or {}).get("ai_render") or {}
-    # ponytail: 單一使用者流程，read-check-write 的競態可忽略；額度仍由伺服器強制。
-    if int(ai_render.get("edit_used") or 0) >= 1:
-        raise HTTPException(
-            409,
-            {"code": "ai_edit_budget_exhausted", "message": "整批只能修改一次，額度已用完。"},
-        )
     room_state = next(
         (
             row
@@ -2138,6 +2238,13 @@ def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict
         raise HTTPException(
             409,
             {"code": "room_not_generated", "message": "這個房間尚未生圖，無法修改。"},
+        )
+    # ponytail: 單一使用者流程，read-check-write 的競態可忽略；額度仍由伺服器強制。
+    # 逐房各一次改圖（指南 §3E）；只有這個房間的額度用完才回 409，不影響其他房間。
+    if int(room_state.get("edit_used") or 0) >= 1:
+        raise HTTPException(
+            409,
+            {"code": "ai_edit_budget_exhausted", "message": "這個房間只能修改一次，額度已用完。"},
         )
     feedback = str(payload.get("feedback") or "").strip()
     if not feedback:
@@ -2165,8 +2272,12 @@ def edit_project_ai_render(project_id: str, room_id: str, payload: dict) -> dict
             502,
             {"code": "ai_edit_failed", "message": "；".join(exc.notices) or "改圖失敗。"},
         ) from exc
+    updated_rooms = [
+        {**row, "edit_used": 1} if str(row.get("room_id")) == room_id else row
+        for row in ai_render.get("rooms") or []
+    ]
     project = PROJECT_STORE.update_workflow(
-        project_id, workflow={"ai_render": {"edit_used": 1}}
+        project_id, workflow={"ai_render": {"rooms": updated_rooms}}
     )
     return {
         "result": result,
@@ -3266,6 +3377,93 @@ async def agent_furniture_select(payload: dict) -> dict:
                 if items
             ],
         }
+
+
+@app.get("/api/agent/pipeline/status")
+def agent_pipeline_status_route() -> dict:
+    """MasterAgent 並存管線的開關與 gateway 狀態（永遠可查，即使未啟用）。"""
+    return pipeline_status()
+
+
+def _require_pipeline_enabled() -> None:
+    if not pipeline_enabled():
+        raise HTTPException(
+            status_code=404,
+            detail="Agent 管線未啟用；設定環境變數 ROOMPILOT_AGENT_PIPELINE=1 後重啟服務。",
+        )
+
+
+@app.post("/api/agent/pipeline/{project_id}/start")
+async def agent_pipeline_start_route(project_id: str, payload: dict) -> dict:
+    """並存管線：載入室內架構與規則，進入等待問卷狀態。不影響正式 step 6。"""
+    _require_pipeline_enabled()
+    layout_json = payload.get("layout_json") or payload.get("layout")
+    if not isinstance(layout_json, dict):
+        raise HTTPException(
+            status_code=422,
+            detail="layout_json 為必要欄位（辨識步驟輸出的室內架構）。",
+        )
+    rules_json = payload.get("rules_json") if isinstance(payload.get("rules_json"), dict) else None
+    try:
+        return start_pipeline(
+            PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id, layout_json, rules_json
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+
+@app.post("/api/agent/pipeline/{project_id}/submit")
+async def agent_pipeline_submit_route(project_id: str, payload: dict | None = None) -> dict:
+    """並存管線：在目前 HITL 決策點提交輸入並推進（問卷→A/B 擺放+驗證→…）。"""
+    _require_pipeline_enabled()
+    try:
+        return submit_pipeline(
+            PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id, payload or {}
+        )
+    except PipelineNotStarted as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@app.post("/api/agent/pipeline/{project_id}/undo")
+async def agent_pipeline_undo_route(project_id: str) -> dict:
+    """並存管線：回復上一次 submit 之前的完整狀態。"""
+    _require_pipeline_enabled()
+    try:
+        return undo_pipeline(PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id)
+    except PipelineNotStarted as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
+
+@app.get("/api/agent/pipeline/{project_id}")
+def agent_pipeline_get_route(project_id: str) -> dict:
+    """並存管線：查詢目前暫停點、期望輸入與最近一次階段產物。"""
+    _require_pipeline_enabled()
+    try:
+        return get_pipeline(PROJECT_STORE.runtime_dir, PROJECT_DIR, project_id)
+    except PipelineNotStarted as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.post("/api/agent/pipeline/reconcile")
+async def agent_pipeline_reconcile_route(payload: dict) -> dict:
+    """對帳：同一批 step6 選定家具，比對 step6 擺放 vs agent 管線擺放的覆蓋率＋合法性。"""
+    _require_pipeline_enabled()
+    room_id = str(payload.get("room_id") or "room")
+    try:
+        width_cm = float(payload.get("width_cm"))
+        depth_cm = float(payload.get("depth_cm"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="width_cm 與 depth_cm 為必要數值（公分）。")
+    items = payload.get("items")
+    if not isinstance(items, list) or not items:
+        raise HTTPException(
+            status_code=422,
+            detail="items 為必要（step6 選定的家具清單，server 物件格式）。",
+        )
+    try:
+        return reconcile_room(room_id, width_cm, depth_cm, items)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @app.post("/api/scene/generate")

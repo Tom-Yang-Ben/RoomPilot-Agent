@@ -417,10 +417,20 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     assert "start: closedLeaf.start" in architecture
     assert "end: closedLeaf.end" in architecture
     assert "closed_leaf_segment: closedLeafSegment" in architecture
-    # 門楣與門葉組件都以第 4 步牆縫線段(wall_opening_segment)定位;
-    # step4 已確認但無牆縫的門不得憑門扇符號另開口。
+    # 門楣與門葉組件優先以第 4 步牆縫線段(wall_opening_segment)定位;
+    # 若該門在第 4 步已確認卻無法解析牆縫,退回不可變的 closed_leaf_segment
+    # 讓門仍然渲染,不得再整扇門消失。
     assert "const headerSegment = door?.wall_opening_segment || door?.closed_leaf_segment;" in door_leaves
-    assert "if (door?.step4_confirmed === true && !door?.wall_opening_segment) return;" in door_leaves
+    assert "if (!start || !end) return;" in door_leaves
+    # 回歸守門:舊寫法對「step4 已確認但無牆縫」的門直接 return,造成第 6 步門
+    # 消失(feedback.png 的 door-1/4/5)。此守衛不得再出現。
+    assert (
+        "if (door?.step4_confirmed === true && !door?.wall_opening_segment) return;"
+        not in door_leaves
+    )
+    # 但 closed_leaf 退路只建門楣+門葉,永不自行切牆(牆縫仍由第 4 步 wall_segments
+    # 決定),否則會與既有牆縫重疊成雙洞。
+    assert "openingWallInterval" not in door_leaves
 
     # 門片本體置於呼叫端給的牆縫錨點;寬=縫寬−0.6cm 門縫、厚=牆厚−1.2cm
     # 且封頂 5cm,不與牆面共面。

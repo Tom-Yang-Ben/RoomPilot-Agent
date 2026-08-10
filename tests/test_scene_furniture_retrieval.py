@@ -1,15 +1,41 @@
 from __future__ import annotations
 
 import json
+import re
 
 from fastapi.testclient import TestClient
 
-from backend.server.main import app
+from backend.server.main import app, _filter_furniture_payload
 from test_scene_workflow import ROOT, run_workflow_script
 
 
 STATIC = ROOT / "backend" / "server" / "static"
 client = TestClient(app)
+
+# 伺服器 /api/furniture 一頁上限(main.py page_size le=80);無 query 不排序,
+# 只回自然序前 N —— fallback query 必須在這一頁內就撈得到目標家具。
+_FURNITURE_PAGE_SIZE = 80
+
+
+def _fallback_query_for(furniture_type: str) -> str:
+    """讀 scene_v2.js 的 QUESTIONNAIRE_FALLBACK_CATALOG_RULES[type].query(單一事實源)。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    rules = source.split("QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({", 1)[1].split("});", 1)[0]
+    block = rules.split(f'"{furniture_type}":', 1)[1].split("},", 1)[0]
+    return re.search(r'query:\s*"([^"]+)"', block).group(1)
+
+
+def test_tv_bench_fallback_query_retrieves_a_tv_bench_in_first_page() -> None:
+    """回歸(feedback floor04:電視櫃完全不在清單):電視櫃 fallback rule.query 必須是
+    「會逐字命中型錄名稱的詞」。伺服器 _furniture_matches_query 是整串連續子字串比對,
+    原本 query='tv stand console cabinet'(關鍵字清單、非任何名稱的連續子字串)→ 撈 0 筆;
+    無 query 的 tier-2 又不排序、只回前 80(電視櫃在型錄第 331 筆起)→ 也 0 → 選不到。
+    此測直接打真實過濾器,確保該 query 在第一頁(page_size 上限)就撈得到電視櫃族。"""
+    query = _fallback_query_for("tv-bench")
+    page = _filter_furniture_payload(q=query, has_model=True)[:_FURNITURE_PAGE_SIZE]
+    families = {"tv-bench", "tv-media-furniture"}
+    hits = [it for it in page if str(it.get("normalized_type")) in families]
+    assert hits, f"query={query!r} 在前 {_FURNITURE_PAGE_SIZE} 筆撈不到電視櫃(共 {len(page)} 筆)"
 
 
 def test_questionnaire_matching_catalog_glb_wins_over_size_only_candidate() -> None:
@@ -131,7 +157,7 @@ def test_frontend_no_longer_maps_questionnaire_appliances_to_an_api() -> None:
     assert 'endpoint: "/api/appliances"' not in source
     assert '"/api/appliances"' not in source
     assert "catalogCandidatesForType(current.type" in source
-    assert "rankCatalogFurniture(catalogCandidates, request)" in source
+    assert "rankCatalogFurniture(catalogCandidates, rankingRequest)" in source
 
 
 def test_outdoor_named_rows_rank_below_indoor_for_indoor_rooms() -> None:

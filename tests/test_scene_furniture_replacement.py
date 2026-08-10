@@ -28,7 +28,7 @@ def test_replacement_filters_context_and_revalidates_with_engine() -> None:
     assert "query" in load
     assert "searchAll" in load
     assert 'styleId: filterMode === "all" ? "" : style' in load
-    assert "rankCatalogFurniture(catalogCandidates, request)" in load
+    assert "rankCatalogFurniture(catalogCandidates, rankingRequest)" in load
     assert "replacementCandidateFitsRoom" in load
     assert "resolveFurniturePosition(candidate)" in replace
     assert "model_url: catalogItem.model_url" in replace

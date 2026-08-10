@@ -79,3 +79,28 @@ export function removeFurniture2dBySceneObject(furniture2d, sceneObject) {
     .filter((item) => String(item.id) !== id)
     .map((item) => ({ ...item }));
 }
+
+export function reconcileFurniture2dAfterGeneration(
+  furniture2d,
+  submittedFurniture,
+  generatedSceneObjects,
+  defaultsForSceneObject = () => ({}),
+) {
+  const submittedIds = new Set(
+    (submittedFurniture || [])
+      .map((item) => String(item?.furniture_id || item?.id || ""))
+      .filter(Boolean),
+  );
+  let reconciled = (furniture2d || [])
+    .filter((item) => !submittedIds.has(String(item.id)))
+    .map((item) => ({ ...item }));
+
+  (generatedSceneObjects || []).forEach((sceneObject) => {
+    reconciled = upsertFurniture2dFromSceneObject(
+      reconciled,
+      sceneObject,
+      defaultsForSceneObject(sceneObject),
+    );
+  });
+  return reconciled;
+}

@@ -13,8 +13,34 @@ clearance.py — 開合淨空運算(F3/F6 分工範圍:碰撞/淨空運算)
 from shapely.geometry import Polygon, box
 from shapely.affinity import rotate
 
-from backend.engine.models import Room, PlacedFurniture
+from backend.engine.models import Room, PlacedFurniture, ClearanceZone
 from backend.engine.geometry import furniture_polygon, wall_polygon
+
+
+# 有櫃家具正面預設淨空(公分):型錄沒宣告淨空區時,收納類家具(衣櫃/收納櫃/
+# 邊櫃/五斗櫃/電視櫃/書櫃/鞋櫃…)一律在正面保留這段開合＋站立/行走空間。
+# 正式 Kai 型錄每件 clearance_zones 都是空的(postgres_repository),否則收納櫃會
+# 被緊貼別的家具擺放,門打不開也沒走道。ponytail: 常數即校準旋鈕,要分型再拆表。
+CABINET_FRONT_CLEARANCE_CM = 50.0
+
+# 以 normalized_type 子字串判「有櫃家具」(= 需要正面 50cm 開合＋站立淨空的收納類)。
+# 刻意不含:
+#   - bedside-table:床頭櫃是成組副件,本該貼床,給正面淨空會拆散床組。
+#   - tv-bench / tv-media:電視櫃正面正對沙發＋茶几(視聽軸線),那 50cm 正是茶几/座位
+#     該在的位置,不是門開空間;當成有櫃件會反把唯一的中央後援位讓茶几擋掉,使電視櫃
+#     在牆位被門淨空吃光時放不下(feedback:客廳總是擺不進電視櫃、但視覺上放得下)。
+# engine 層不反向 import agent.knowledge,自持一份記號即可。
+_CABINET_TOKENS = (
+    "wardrobe", "cabinet", "cupboard", "sideboard", "drawer",
+    "bookcase", "bookshelf", "shelving", "storage", "shoe",
+    "chest",
+)
+
+
+def is_cabinet_type(type_name: str | None) -> bool:
+    """該家具是否為「有櫃」收納類(用 normalized_type 記號判定)。"""
+    text = str(type_name or "").casefold()
+    return any(token in text for token in _CABINET_TOKENS)
 
 
 _SIDE_OFFSETS = {
@@ -30,7 +56,10 @@ def clearance_polygon(item: PlacedFurniture) -> Polygon | None:
     """算出這件家具的淨空範圍多邊形(不含本體),無淨空需求時回傳 None"""
     cz = item.catalog.clearance
     if cz is None:
-        return None
+        # 型錄沒宣告淨空:有櫃家具仍補上正面 50cm(門開＋站立);其餘無淨空需求。
+        if not is_cabinet_type(item.catalog.type):
+            return None
+        cz = ClearanceZone(side="front", depth=CABINET_FRONT_CLEARANCE_CM)
 
     hw, hd = item.catalog.width / 2, item.catalog.depth / 2
     dx, dy = _SIDE_OFFSETS[cz.side]

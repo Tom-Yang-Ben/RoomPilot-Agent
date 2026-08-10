@@ -19,6 +19,7 @@
 """
 from __future__ import annotations
 
+import concurrent.futures
 import os
 from typing import Any
 
@@ -45,10 +46,16 @@ __all__ = [
     "GenPicFailure",
     "ai_render_status",
     "generate_room_images",
+    "generate_palette_images",
     "edit_room_image",
 ]
 
 _DEFAULT_ROOM_SIDE_CM = 400.0
+
+# Nano Banana Pro（Gemini 3 Pro Image）：第 7 步代表房「三色卡比較」用較高階模型
+# (使用者指定)。可用 ROOMPILOT_GENPIC_PALETTE_MODEL 覆蓋;pro 失敗時 fallback
+# 回一般 nano banana(DEFAULT_IMAGE_MODEL)。
+DEFAULT_PALETTE_IMAGE_MODEL = "google/gemini-3-pro-image-preview"
 
 
 class AiRenderNotConfigured(RuntimeError):
@@ -100,11 +107,11 @@ def _placed_objects(scene: dict, room_id: str) -> list[dict]:
         for obj in objects
         if obj.get("placement_room_id")
     }
-    if room_id in room_ids:
-        return [obj for obj in objects if str(obj.get("placement_room_id")) == room_id]
-    if len(room_ids) <= 1:
-        # 單房（single_room_mode）或家具未分房：全部家具都屬於這個視角房間。
+    if not room_ids:
+        # 家具完全未分房（單房或未標記 placement_room_id）：全部家具都屬於這個視角房間。
         return objects
+    # 家具已分房：嚴格只回傳標記為此 room_id 的家具。此房沒有家具時回空，
+    # 不可把別房家具挪用給這個視角房間（指南 §5／§3E，逐房 room_id 分房）。
     return [obj for obj in objects if str(obj.get("placement_room_id")) == room_id]
 
 
@@ -264,6 +271,31 @@ def _palette_dict(requirements: RequirementDoc) -> dict | None:
     }
 
 
+def _palette_for_card(card_id: str, fallback: dict | None) -> dict | None:
+    """第 7 步三色卡比較:各張色卡自己的 60/30/10 用色(taiwan_style_cards.json 回查),
+    好讓三張生圖確實不同色調。查不到官方定義才沿用場景既有色卡(fallback)。"""
+    official = _official_style_and_card(card_id)
+    card = official[1] if official else {}
+    colors = [str(color) for color in (card.get("palette_hex") or [])]
+    if not colors:
+        return fallback
+    return {
+        "palette_id": card_id or "style_card",
+        "name": str(card.get("name_zh") or card_id or "色卡"),
+        "colors": colors,
+    }
+
+
+def _palette_gateway() -> OpenRouterGateway:
+    """代表房色卡比較用 Nano Banana Pro;env 可覆蓋,fallback 回一般 nano banana。"""
+    model = os.getenv("ROOMPILOT_GENPIC_PALETTE_MODEL", "").strip() or DEFAULT_PALETTE_IMAGE_MODEL
+    fallback = (
+        os.getenv("ROOMPILOT_GENPIC_PALETTE_FALLBACK_MODEL", "").strip()
+        or DEFAULT_IMAGE_MODEL
+    )
+    return OpenRouterGateway(image_model=model, image_fallback_model=fallback)
+
+
 def _viewpoint(room: dict, reference_b64: str, requirements: RequirementDoc) -> dict:
     """逐房視角備註：逐房補充與整體補充需求原文照列（定案：不加前綴標籤；
     房間名已在提示詞開頭，不重複）。"""
@@ -304,12 +336,11 @@ def generate_room_images(
     requirements = _requirement_doc(scene)
     palette = _palette_dict(requirements)
     width_cm, depth_cm = _room_dims(scene)
-    agent = GenPicAgent(gateway)
-    images = ImageLibraryDoc()
 
-    results: list[dict] = []
-    room_state: list[dict] = []
-    for room in rooms:
+    def _render_one(room: dict) -> tuple[dict, dict | None]:
+        # 每執行緒各自 agent/images/scene_doc,避免共用可變狀態;gateway 無狀態可共用。
+        agent = GenPicAgent(gateway)
+        images = ImageLibraryDoc()
         room_id = str(room.get("room_id") or "").strip()
         reference_b64 = _strip_data_url(room.get("reference_png_data_url"))
         rows = _placed_rows(_placed_objects(scene, room_id))
@@ -334,16 +365,16 @@ def generate_room_images(
                 viewpoint=viewpoint,
             )
         except GenPicFailure as exc:
-            results.append(
+            return (
                 {
                     "room_id": room_id,
                     "room_label": layout_room.name,
                     "status": "failed",
                     "notices": exc.notices,
-                }
+                },
+                None,
             )
-            continue
-        results.append(
+        return (
             {
                 "room_id": room_id,
                 "room_label": layout_room.name,
@@ -352,16 +383,80 @@ def generate_room_images(
                 "image_data_url": _as_data_url(record.image_ref),
                 "model": record.model,
                 "notices": record.notices,
-            }
-        )
-        room_state.append(
+            },
             {
                 "room_id": room_id,
                 "room_label": layout_room.name,
                 "lock_manifest": manifest.to_dict(),
-            }
+            },
         )
+
+    # 全房生圖:所有房間視角**一次併發**送出(gateway 為 stdlib urllib 阻塞式,用執行緒
+    # 池併發);順序對齊輸入 rooms。單一房間失敗只標記該房,其餘照常回傳。
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(rooms))) as pool:
+        outcomes = list(pool.map(_render_one, rooms))
+    results = [result for result, _ in outcomes]
+    room_state = [state for _, state in outcomes if state is not None]
     return {"results": results, "rooms": room_state}
+
+
+def generate_palette_images(
+    scene: dict, room: dict, style_card_ids: list[str], *, gateway: Any | None = None
+) -> dict:
+    """第 7 步代表房「色卡比較」:同一代表房 × 多張色卡,**一次併發**送 Gen_Pic Agent
+    (Nano Banana Pro)生圖。回傳 ``{"results": [{style_card_id, status, image_data_url,
+    model, notices}...], "room_id": ...}``,順序對齊 ``style_card_ids``。單張色卡失敗
+    只標記該張 failed,其餘照常回傳。gateway 為 stdlib urllib 阻塞式,故用執行緒池併發。
+    """
+    gateway = gateway or _palette_gateway()
+    if not getattr(gateway, "available", False):
+        raise AiRenderNotConfigured("openrouter_api_key_not_configured")
+
+    requirements = _requirement_doc(scene)
+    base_palette = _palette_dict(requirements)
+    width_cm, depth_cm = _room_dims(scene)
+    room_id = str(room.get("room_id") or "").strip()
+    reference_b64 = _strip_data_url(room.get("reference_png_data_url"))
+    rows = _placed_rows(_placed_objects(scene, room_id))
+    layout_room = _layout_room(room, room_id, width_cm, depth_cm)
+    viewpoint = _viewpoint(room, reference_b64, requirements)
+    ids = [str(card_id).strip() for card_id in style_card_ids if str(card_id).strip()]
+
+    def _render_one(card_id: str) -> dict:
+        # 每執行緒各自 agent/images/scene_doc,避免共用可變狀態;gateway 無狀態可共用。
+        agent = GenPicAgent(gateway)
+        images = ImageLibraryDoc()
+        scene_doc = SceneDoc(rooms={room_id: {"placed": rows, "failed": []}})
+        palette = _palette_for_card(card_id, base_palette)
+        try:
+            record = agent.render_room(
+                requirements,
+                scene_doc,
+                layout_room,
+                images,
+                stage="full_render",
+                palette=palette,
+                viewpoint=viewpoint,
+            )
+        except GenPicFailure as exc:
+            return {
+                "style_card_id": card_id,
+                "status": "failed",
+                "notices": exc.notices,
+            }
+        return {
+            "style_card_id": card_id,
+            "status": "completed",
+            "image_id": record.image_id,
+            "image_data_url": _as_data_url(record.image_ref),
+            "model": record.model,
+            "notices": record.notices,
+        }
+
+    # 一次送三個請求出去。
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(ids))) as pool:
+        results = list(pool.map(_render_one, ids))
+    return {"results": results, "room_id": room_id}
 
 
 def edit_room_image(

@@ -6930,6 +6930,143 @@ body.rp-workflow-page .danger-action {
   color: var(--rp-muted);
 }
 
+/* 第 7 步「代表房色卡比較」stage —— 側欄注入的動態面板。原本這些 class 完全沒有
+   樣式,型錄大圖以原生尺寸撐開 .rp-editor-box 的 auto 網格欄,溢出固定 460px 側欄
+   → 整個 .rp-3d-workspace 版面被撐爆(水平捲軸、側欄被切掉)。此區把所有影像框在
+   容器寬內,並讓卡片在窄側欄自動換行。 */
+.rp-proposal-style-stage {
+  min-width: 0;
+}
+
+.rp-proposal-style-stage > label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: #4a453f;
+}
+
+.rp-proposal-style-stage select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid #c3beb7;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.rp-proposal-context {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e0dbd3;
+  border-radius: 6px;
+  background: #f4f2ee;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #6a625b;
+}
+
+.rp-proposal-context strong {
+  color: #2f2c28;
+  font-size: 14px;
+}
+
+.rp-render-palette-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.rp-render-palette-card {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #c8c3bc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.rp-render-palette-card:has(input:checked) {
+  border-color: var(--rp-green);
+  box-shadow: inset 0 0 0 1px var(--rp-green);
+}
+
+.rp-render-palette-card > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rp-render-palette-media {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rp-render-palette-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1px solid #c8c3bc;
+  border-radius: 4px;
+  background: #f1eee9;
+}
+
+.rp-render-palette-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rp-render-palette-copy strong {
+  font-size: 13px;
+  color: #33302b;
+}
+
+.rp-render-palette-copy small {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #6a625b;
+}
+
+.rp-render-palette-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.rp-render-palette-results:empty {
+  display: none;
+}
+
+.rp-render-palette-results .rp-render-result {
+  gap: 6px;
+  min-width: 0;
+}
+
+.rp-render-palette-results .rp-render-result img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--rp-line);
+  border-radius: 5px;
+}
+
+.rp-render-palette-results .rp-render-result > span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: #4a453f;
+}
+
 .rp-render-room-list > button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -7898,6 +8035,38 @@ body.rp-workflow-page .danger-action {
   color: #155444;
 }
 
+/* 逐房 A/B 的 2D 平面 SVG 配色（帶拼接時遺漏，依 bella-new 還原）。
+   缺這些規則時 SVG 形狀退回預設黑色填色，整張平面圖變成黑圖。 */
+.rp-room-scheme-plan {
+  display: block;
+  width: 100%;
+  height: 184px;
+  background: #fbfcfa;
+}
+
+.rp-room-scheme-outline {
+  fill: #edf5f0;
+  stroke: #2d725e;
+  stroke-width: 3;
+}
+
+.rp-room-scheme-furniture rect {
+  fill: #4d8c76;
+  stroke: #1f5a49;
+  stroke-width: 1.5;
+}
+
+.rp-room-scheme-furniture text {
+  fill: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rp-room-scheme-empty {
+  fill: #6e786f;
+  font-size: 14px;
+}
+
 .rp-scheme-choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -8083,9 +8252,10 @@ body.rp-workflow-page .danger-action {
 
 .rp-replacement-candidate {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
+  width: 100%;
   min-width: 0;
   padding: 0;
   border: 0;
@@ -8093,42 +8263,67 @@ body.rp-workflow-page .danger-action {
   text-align: left;
 }
 
-.rp-replacement-candidate > span:last-child {
+.rp-replacement-copy {
   display: grid;
   gap: 3px;
   min-width: 0;
+}
+
+.rp-replacement-candidate strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--rp-ink);
+  font-size: 15px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .rp-replacement-candidate small {
   color: var(--rp-muted);
 }
 
-.rp-replacement-thumb {
+/* 候選卡的縮圖容器由 JS 產出為 .rp-replacement-image(內含 is-missing 後備標籤),
+   不是舊名 .rp-replacement-thumb。沿用舊名的規則打不到任何元素,圖片就以原始
+   尺寸撐開,把候選列的版面擠爆。 */
+.rp-replacement-image {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 72px;
-  aspect-ratio: 1;
+  width: 92px;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  border: 1px solid #ddd8d0;
-  background: #f5f3ef;
+  border: 1px solid #d8d3ca;
+  border-radius: 4px;
+  background: #f3f1ed;
 }
 
-.rp-replacement-thumb img {
+.rp-replacement-image img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.rp-replacement-thumb img.is-loading {
+.rp-replacement-image-fallback {
+  display: none;
+  padding: 6px;
+  color: var(--rp-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.rp-replacement-image.is-missing .rp-replacement-image-fallback {
+  display: block;
+}
+
+/* 載入骨架同樣曾綁在 .rp-replacement-thumb img 上而失效。改綁問卷家具縮圖——
+   GLB 縮圖產生前它會掛 is-loading,取得 PNG 後由 JS 移除。型錄抽屜的
+   .rp-glb-thumb 另有自己的斜紋載入樣式,不要一起套,否則會蓋掉。 */
+.rp-questionnaire-furniture-preview img.is-loading {
   background:
     linear-gradient(90deg, #efede9 25%, #faf9f6 50%, #efede9 75%);
   background-size: 200% 100%;
   animation: rp-thumbnail-loading 1.2s linear infinite;
-}
-
-.rp-replacement-thumb img.rp-fallback-thumbnail {
-  opacity: 0.28;
 }
 
 .rp-three-viewer canvas.rp-scene-selection-flash {
@@ -12123,22 +12318,21 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-questionnaire-fit-risk {
-  grid-column: 1 / -1;
+  flex-basis: 100%;
   margin-top: 2px;
   color: #8a4d2d;
   line-height: 1.4;
 }
 
+/* 資訊列與操作列各自成行。橫排時中文說明只分到一百多 px,會逐字斷行。 */
 .rp-questionnaire-furniture-options > article {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(250px, auto);
-  align-items: center;
-  gap: 10px;
-  min-height: 116px;
-  padding: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 11px;
+  padding: 14px;
   border: 1px solid #cbc7bf;
-  border-radius: 5px;
+  border-radius: 6px;
   background: #fff;
 }
 
@@ -12151,9 +12345,9 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-questionnaire-furniture-select {
   min-width: 0;
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-columns: 22px 96px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   cursor: pointer;
 }
 
@@ -12199,24 +12393,26 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-questionnaire-furniture-card-actions {
-  display: grid;
-  grid-template-columns: minmax(200px, 1fr) auto auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-items: end;
-  gap: 7px;
+  gap: 10px 12px;
+  padding-top: 11px;
+  border-top: 1px solid #e7e4dd;
 }
 
 .rp-questionnaire-furniture-size {
+  flex: 1 1 240px;
   display: grid;
-  grid-template-columns: auto minmax(112px, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: #5d5851;
   font-size: 12px;
 }
 
 .rp-questionnaire-furniture-size select {
-  min-width: 112px;
+  min-width: 0;
   min-height: 30px;
   padding: 4px 28px 4px 8px;
   border-color: #bcb6ad;
@@ -12260,12 +12456,11 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 }
 
 .rp-furniture-quantity-limit {
-  max-width: 96px;
   margin: 0;
   color: #6e6962;
   font-size: 11px;
   line-height: 1.35;
-  text-align: right;
+  white-space: nowrap;
 }
 
 @media (max-width: 700px) {
@@ -12277,14 +12472,6 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
     width: 100%;
   }
 
-  .rp-questionnaire-furniture-options > article {
-    grid-template-columns: 1fr;
-  }
-
-  .rp-questionnaire-furniture-card-actions {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    justify-items: start;
-  }
 }
 
 .rp-questionnaire-style-grid > button {
@@ -12418,6 +12605,51 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-ceiling-choice-visual[data-ceiling-style-visual="linear"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="feature-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
 .rp-ceiling-choice-visual[data-ceiling-style-visual="wood-grid"] { background-image: url("/static/questionnaire_images/ceiling-wood-grid-reference.jpg"); }
+
+/* 點進施工形式後的搭配卡用 data-ceiling-design-visual(每組材質＋照明一張),
+   與外層的 data-ceiling-style-visual(每種施工形式一張)是兩套鍵;只補後者會讓
+   對話框整片空白。三張 2x2 拼圖各含四組搭配,用 200% 尺寸配四個角落取用。
+   照明看得出差別是重點,所以不共用施工形式的單張照片。 */
+.rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-flat-cove-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-linear-floating-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] {
+  background-image: url("/static/questionnaire_images/ceiling-design-slat-exposed-grid.png");
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="industrial-exposed"] { background-image: url("/static/questionnaire_images/ceiling-exposed-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-track"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
 
 .rp-ceiling-choice-card strong,
 .rp-ceiling-choice-card small,
@@ -12660,13 +12892,49 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   line-height: 1.5;
 }
 
+/* 主機下有兩層包裝:入口列 .rp-material-catalog-entry 與推薦卡清單
+   .rp-material-option-list。卡片樣式必須限縮在清單內——否則入口按鈕會被
+   當成材質卡套上 76px 欄與 86px 固定高而被裁掉;主機也不能再固定列高,
+   否則整份清單被壓進一列,溢出蓋住底下的顏色與偏好欄位。 */
 .rp-questionnaire-material-options {
   display: grid;
-  gap: 10px;
-  grid-auto-rows: 86px;
+  gap: 12px;
 }
 
-.rp-questionnaire-material-options button {
+.rp-material-catalog-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 11px 13px;
+  border: 1px dashed #c7c2b8;
+  border-radius: 6px;
+  background: #faf9f6;
+}
+
+.rp-material-catalog-entry > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.rp-material-catalog-entry strong {
+  font-size: 14px;
+}
+
+.rp-material-catalog-entry small {
+  color: #6e6962;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rp-material-option-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rp-material-option-list > button {
   min-width: 0;
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
@@ -12682,12 +12950,12 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   text-align: left;
 }
 
-.rp-questionnaire-material-options button.is-active {
+.rp-material-option-list > button.is-active {
   border-color: #27715d;
   box-shadow: inset 0 0 0 2px #27715d;
 }
 
-.rp-questionnaire-material-options .rp-material-preview {
+.rp-material-option-list .rp-material-preview {
   grid-row: 1 / 3;
   width: 76px;
   height: 68px;
@@ -12698,14 +12966,14 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   background-size: cover;
 }
 
-.rp-questionnaire-material-options strong {
+.rp-material-option-list > button strong {
   align-self: end;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.rp-questionnaire-material-options small {
+.rp-material-option-list > button small {
   color: #6e6962;
   display: flex;
   align-items: baseline;
@@ -12715,14 +12983,16 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   text-overflow: ellipsis;
 }
 
-.rp-questionnaire-material-options small em {
+.rp-material-option-list > button small em {
   flex: 0 0 auto;
   color: #27715d;
   font-style: normal;
 }
 
 .rp-open-material-catalog {
-  margin: 10px 0 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .rp-material-pair-recommendations {
@@ -12812,10 +13082,10 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 
 .rp-material-catalog-options button {
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr);
+  grid-template-columns: 108px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 92px;
+  min-height: 112px;
   padding: 8px;
   overflow: hidden;
   text-align: left;
@@ -12824,17 +13094,62 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   background: #fff;
 }
 
+.rp-material-catalog-sample {
+  position: relative;
+  display: block;
+  width: 108px;
+  height: 94px;
+}
+
 .rp-material-catalog-options img {
-  width: 80px;
-  height: 74px;
+  width: 108px;
+  height: 94px;
   object-fit: cover;
   border-radius: 4px;
   background: #e7e2d8;
 }
 
+.rp-material-catalog-sample i {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--material-primary);
+  box-shadow: 0 1px 3px rgba(31, 35, 32, .34);
+}
+
+.rp-material-catalog-copy {
+  display: grid;
+  gap: 6px;
+}
+
 .rp-material-catalog-options span,
 .rp-material-catalog-options small { min-width: 0; }
 .rp-material-catalog-options small { display: block; margin-top: 5px; color: #6e6962; }
+
+.rp-material-visual-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rp-material-visual-tags em {
+  padding: 2px 5px;
+  border: 1px solid #d7d2ca;
+  border-radius: 3px;
+  background: #f7f5f0;
+  color: #53625b;
+  font-size: .72rem;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.rp-step-six-material-grid .rp-material-visual-tags {
+  min-height: 22px;
+}
 
 @media (max-width: 740px) {
   .rp-material-catalog-options { grid-template-columns: 1fr; }
@@ -13229,19 +13544,86 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
 
 /* Furniture cards show the catalog image, or the same GLB thumbnail fallback as the catalog drawer. */
 .rp-questionnaire-furniture-refresh-note { margin: -4px 0 2px; color: #6d716c; font-size: 12px; line-height: 1.45; }
-.rp-questionnaire-furniture-options > article { grid-template-columns: 96px minmax(170px, 1fr) minmax(250px, auto); }
-.rp-questionnaire-furniture-preview { position: relative; width: 96px; height: 92px; overflow: hidden; border: 1px solid #ddd9d0; border-radius: 5px; background: #f7f6f2; }
+.rp-questionnaire-furniture-preview { position: relative; width: 100%; height: 92px; align-self: center; overflow: hidden; border: 1px solid #ddd9d0; border-radius: 5px; background: #f7f6f2; }
 .rp-questionnaire-furniture-preview img { width: 100%; height: 100%; display: block; object-fit: contain; }
 .rp-questionnaire-furniture-preview span { position: absolute; inset: 0; display: none; place-items: center; padding: 8px; color: #77746d; font-size: 12px; text-align: center; }
 .rp-questionnaire-furniture-preview img.is-loading + span { display: grid; }
 .rp-questionnaire-furniture-reason { color: #216b59 !important; line-height: 1.35; }
 
-.rp-questionnaire-catalog-controls { display: grid; grid-template-columns: 172px minmax(220px, 1fr); gap: 14px 16px; align-items: end; }
+.rp-catalog-batch {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+  color: #3f4843;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .rp-catalog-filter-controls { grid-template-columns: 1fr; }
+  .rp-catalog-batch { grid-column: auto; align-items: stretch; flex-direction: column; }
+}
+
+.rp-catalog-select-item { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; font-weight: 700; }
+
+/* 問卷中的新增家具只提供快速勾選，完整圖片與型錄資訊留在第 6 步。 */
+.rp-glb-results:has(.rp-questionnaire-catalog-option) {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.rp-glb-result.rp-questionnaire-catalog-option {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border-color: #c9c2b8;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item {
+  display: flex;
+  min-height: 46px;
+  padding: 10px 12px;
+  line-height: 1.35;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item span {
+  display: grid;
+  gap: 3px;
+  color: #2d3833;
+  font-size: 14px;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item small {
+  color: #216b59;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rp-catalog-browse-prompt {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed #9daea5;
+  border-radius: 5px;
+  background: #f5faf7;
+  color: #295f4d;
+  font-weight: 700;
+  text-align: center;
+}
+
+.rp-questionnaire-catalog-controls { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: 14px 16px; align-items: end; }
 .rp-questionnaire-catalog-controls .rp-catalog-scope { display: inline-flex; min-height: 42px; overflow: hidden; border: 1px solid #c9c5bd; border-radius: 6px; background: #fff; }
 .rp-catalog-scope button { flex: 1; padding: 8px 10px; border: 0; border-right: 1px solid #d9d5ce; border-radius: 0; background: #fff; color: #4a4b46; font-size: 13px; white-space: nowrap; }
 .rp-catalog-scope button:last-child { border-right: 0; }
 .rp-catalog-scope button.is-active { background: #216b59; color: #fff; }
 .rp-questionnaire-catalog-controls .rp-search-field { margin: 0; }
+.rp-catalog-choice-groups { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rp-catalog-choice-groups > span { width: 100%; color: #5d625d; font-size: 12px; font-weight: 700; }
+.rp-catalog-choice-groups button { min-height: 36px; padding: 7px 12px; border: 1px solid #c9c5bd; border-radius: 5px; background: #fff; color: #34332f; font-weight: 700; }
+.rp-catalog-choice-groups button.is-active { border-color: #216b59; background: #e7f0ec; color: #174d3e; }
 .rp-questionnaire-catalog-filters { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .rp-questionnaire-catalog-filters label { display: grid; gap: 5px; color: #57564f; font-size: 12px; font-weight: 700; }
 .rp-questionnaire-catalog-filters select { min-height: 38px; padding: 7px 30px 7px 9px; border: 1px solid #c9c5bd; border-radius: 5px; background: #fff; color: #34332f; font: inherit; }
@@ -13253,9 +13635,8 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
 }
 
 @media (max-width: 820px) {
-  .rp-questionnaire-furniture-options > article { grid-template-columns: 82px minmax(0, 1fr); }
-  .rp-questionnaire-furniture-preview { width: 82px; height: 78px; }
-  .rp-questionnaire-furniture-card-actions { grid-column: 1 / -1; justify-items: stretch; }
+  .rp-questionnaire-furniture-select { grid-template-columns: 22px 82px minmax(0, 1fr); gap: 10px; }
+  .rp-questionnaire-furniture-preview { height: 78px; }
 }
 
 @media (max-width: 740px) {
@@ -14720,6 +15101,17 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
   grid-column: 1 / -1;
 }
 
+/* 逐房方案尚未選完時，第 6 步的工作台是鎖住的；關卡要一眼看得出來 */
+#room-scheme-gate.is-scheme-pending {
+  border-color: #c8873f;
+  background: #fdf6ec;
+}
+
+#room-scheme-gate.is-scheme-pending #room-scheme-gate-status {
+  color: #8a5418;
+  font-weight: 700;
+}
+
 .rp-room-scheme-progress {
   flex: 0 0 auto;
   margin: 0 0 0 auto;
@@ -14861,10 +15253,10 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
 
 .rp-material-catalog-options button {
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr);
+  grid-template-columns: 108px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 92px;
+  min-height: 112px;
   padding: 8px;
   overflow: hidden;
   text-align: left;
@@ -14873,17 +15265,62 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
   background: #fff;
 }
 
+.rp-material-catalog-sample {
+  position: relative;
+  display: block;
+  width: 108px;
+  height: 94px;
+}
+
 .rp-material-catalog-options img {
-  width: 80px;
-  height: 74px;
+  width: 108px;
+  height: 94px;
   object-fit: cover;
   border-radius: 4px;
   background: #e7e2d8;
 }
 
+.rp-material-catalog-sample i {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--material-primary);
+  box-shadow: 0 1px 3px rgba(31, 35, 32, .34);
+}
+
+.rp-material-catalog-copy {
+  display: grid;
+  gap: 6px;
+}
+
 .rp-material-catalog-options span,
 .rp-material-catalog-options small { min-width: 0; }
 .rp-material-catalog-options small { display: block; margin-top: 5px; color: #6e6962; }
+
+.rp-material-visual-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rp-material-visual-tags em {
+  padding: 2px 5px;
+  border: 1px solid #d7d2ca;
+  border-radius: 3px;
+  background: #f7f5f0;
+  color: #53625b;
+  font-size: .72rem;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.rp-step-six-material-grid .rp-material-visual-tags {
+  min-height: 22px;
+}
 
 @media (max-width: 740px) {
   .rp-material-catalog-options { grid-template-columns: 1fr; }
@@ -15239,4 +15676,1145 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
   border-color: #27715d;
   background: #edf5f1;
   color: #185b48;
+}
+
+/* ---- bella-new 第 6 步逐房材質/側欄分頁/方案 3D 預覽移植樣式（feat/step5-8-bella-adopt） ---- */
+
+
+.rp-scheme-preview {
+  min-height: 252px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  border: 1px solid #e1d9d1;
+  border-radius: 4px;
+  background: #fbfcfa;
+}
+
+
+
+.rp-scheme-preview h4 {
+  margin: 0;
+  padding: 9px 10px;
+  border-bottom: 1px solid #e1e8e2;
+  color: #285b4d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+
+
+.rp-scheme-preview h4 span {
+  float: right;
+  color: #607a70;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+
+.rp-scheme-preview--interactive {
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+
+
+.rp-scheme-preview--interactive:hover,
+.rp-scheme-preview--interactive:focus-visible {
+  border-color: #286f5c;
+  box-shadow: 0 0 0 3px rgba(40, 111, 92, 0.14);
+}
+
+
+
+.rp-scheme-preview img {
+  display: block;
+  width: 100%;
+  height: 206px;
+  object-fit: cover;
+}
+
+
+
+.rp-scheme-preview .rp-render-placeholder {
+  display: grid;
+  min-height: 206px;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  color: #776d64;
+}
+
+
+
+.rp-room-scheme-preview-dialog {
+  width: min(860px, calc(100vw - 32px));
+}
+
+/* 逐房 A/B 可旋轉 3D 預覽的對話框版面（帶拼接時遺漏，依 bella-new 還原）。
+   shell 用 grid：header / 3D 預覽(1fr 自適應) / 翻頁列 三段並限高 overflow:hidden——
+   容器才不塌 0px（否則 canvas 0 高度全空白）、又不溢出（否則關閉鈕被推出畫面關不掉）。 */
+.rp-room-scheme-preview-dialog .rp-task-dialog-shell {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: min(820px, calc(100vh - 32px));
+  overflow: hidden;
+}
+
+.rp-room-scheme-3d-preview {
+  min-height: 300px;
+  overflow: hidden;
+  border: 1px solid #d8d0c8;
+  background: #f8f4ef;
+}
+
+.rp-room-scheme-3d-preview canvas {
+  display: block;
+}
+
+.rp-room-scheme-preview-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rp-room-scheme-preview-nav span {
+  color: #4a4640;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* × 關閉鈕（帶拼接遺漏；本分支 .rp-icon-command 只剩深底白字版，在白色對話框裡
+   白字白底＝隱形，使用者關不掉視窗）。還原成淺底深字、42×42 可見可點。 */
+.rp-room-scheme-preview-close {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-color: #756d64;
+  background: #fffdfa;
+  color: #302d29;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.rp-room-scheme-preview-close:hover,
+.rp-room-scheme-preview-close:focus-visible {
+  background: #f3eee8;
+  color: #1f5547;
+  transform: none;
+}
+
+
+
+.rp-scene-sidebar-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  margin: -2px -2px 14px;
+  padding: 2px;
+  border: 1px solid #d5d0c8;
+  border-radius: 6px;
+  background: #edeae5;
+}
+
+
+
+.rp-scene-sidebar-tabs button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #625d57;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+
+
+.rp-scene-sidebar-tabs button.is-active {
+  background: #fff;
+  color: #1b5849;
+  box-shadow: 0 1px 3px rgba(56, 47, 38, 0.16);
+}
+
+
+
+.rp-toolbar-toggle {
+  min-height: 40px;
+  margin-left: 0;
+  padding: 0 11px;
+  border: 1px solid #cbd8d1;
+  border-radius: 5px;
+  background: #fff;
+  color: #36584a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+
+
+.rp-toolbar-toggle:hover,
+.rp-toolbar-toggle:focus-visible,
+.rp-toolbar-toggle.is-active {
+  border-color: #467564;
+  background: #e5f0ea;
+  color: #24483a;
+}
+
+
+
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan > header,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan-sticky,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-furniture-list,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] > .rp-editor-box,
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] .rp-configuration-plan,
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] > .rp-editor-box {
+  display: none;
+}
+
+
+
+.rp-3d-sidebar[data-scene-sidebar-mode="plan"] .rp-configuration-pending,
+.rp-3d-sidebar[data-scene-sidebar-mode="plan"] #furniture-property-locks,
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] #furniture-property-locks {
+  display: none;
+}
+
+
+
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+
+
+.rp-3d-sidebar[data-scene-sidebar-mode="issues"] .rp-configuration-plan-body {
+  max-height: min(62vh, 620px);
+}
+
+
+
+.rp-3d-sidebar[data-scene-sidebar-mode="selection"] #furniture-property-locks {
+  display: grid;
+}
+
+
+
+.rp-selected-furniture-context {
+  display: grid;
+  gap: 12px;
+  margin: 2px 0 4px;
+  padding: 14px;
+  border: 1px solid #b9d2c6;
+  border-radius: 8px;
+  background: #f2f8f4;
+}
+
+
+
+.rp-selected-furniture-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+
+
+.rp-selected-furniture-heading strong,
+.rp-selected-furniture-heading small {
+  display: block;
+}
+
+
+
+.rp-selected-furniture-heading strong {
+  margin-top: 3px;
+  color: #173f31;
+  font-size: 16px;
+}
+
+
+
+.rp-selected-furniture-heading small {
+  margin-top: 4px;
+  color: #5d6f66;
+}
+
+
+
+.rp-selected-furniture-state {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #dcece2;
+  color: #245842;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+
+.rp-selected-furniture-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+
+
+.rp-selected-furniture-actions button {
+  min-height: 38px;
+  margin: 0;
+  font-size: 13px;
+}
+
+
+
+.rp-selected-furniture-actions .danger-action {
+  grid-column: 2;
+}
+
+
+
+.rp-viewer-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d7e0da;
+  border-bottom: 0;
+  background: #f7faf8;
+  color: #29483d;
+}
+
+
+
+.rp-viewer-toolbar .rp-segmented {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 40px;
+  border-color: #cbd8d1;
+  border-radius: 0 5px 5px 0;
+}
+
+
+
+.rp-viewer-toolbar .rp-segmented button {
+  min-height: 40px;
+  padding: 0 13px;
+  border-color: #cbd8d1;
+  background: #fff;
+  color: #36584a;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+
+
+.rp-viewer-toolbar .rp-segmented button.is-active {
+  background: #467564;
+  color: #fff;
+}
+
+
+
+.rp-viewer-toolbar .rp-toolbar-group {
+  order: 1;
+}
+
+
+
+.rp-viewer-toolbar .rp-walk-room-picker,
+.rp-viewer-toolbar #open-furniture-catalog {
+  order: 2;
+}
+
+
+
+.rp-step-six-editor-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0 12px;
+  border-bottom: 1px solid #d2ddd7;
+}
+
+
+
+.rp-step-six-editor-heading h3 {
+  margin: 2px 0 0;
+  font-size: 22px;
+  line-height: 1.2;
+  color: #193f35;
+}
+
+
+
+.rp-step-six-editor-heading .eyebrow {
+  margin: 0;
+  color: #5f8176;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+
+.rp-surface-editor select,
+.rp-ceiling-editor select { min-block-size: 42px; }
+
+
+
+.rp-surface-editor .rp-material-option-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+
+
+.rp-surface-editor .rp-material-option { min-block-size: 86px; }
+
+
+
+@media (max-width: 760px) {
+  .rp-step-six-editor-heading h3 { font-size: 19px; }
+  .rp-surface-editor .rp-material-option-grid,
+  .rp-ceiling-editor .ceiling-design-pack-list { grid-template-columns: 1fr; }
+}
+
+
+
+.rp-3d-sidebar[data-scene-sidebar-mode="surfaces"] .rp-configuration-plan,
+.rp-3d-sidebar[data-scene-sidebar-mode="surfaces"] > .rp-editor-box:not(#white-model-surface-entry),
+.rp-3d-sidebar[data-scene-sidebar-mode="surfaces"] > #confirm-white-model,
+.rp-3d-sidebar[data-scene-sidebar-mode="surfaces"] > #white-model-error {
+  display: none;
+}
+
+
+
+.rp-3d-sidebar[data-scene-sidebar-mode="surfaces"] #white-model-surface-entry {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 16px 14px 20px;
+}
+
+
+
+.rp-step-six-surface-header,
+.rp-surface-material-heading,
+.rp-step-six-surface-actions .rp-inline-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+
+
+.rp-step-six-surface-header {
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #d8ddd9;
+}
+
+
+
+.rp-step-six-surface-header h2,
+.rp-surface-color-editor h3,
+.rp-surface-material-heading h3 {
+  margin: 2px 0 0;
+  letter-spacing: 0;
+}
+
+
+
+.rp-step-six-surface-header h2 { font-size: 1.25rem; }
+
+
+.rp-surface-color-editor h3,
+.rp-surface-material-heading h3 { font-size: 1rem; }
+
+
+
+.rp-step-six-progress {
+  margin-top: 4px !important;
+  color: #4e625a !important;
+  font-weight: 700;
+}
+
+
+
+.rp-surface-lock-state {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid #c4d2cb;
+  border-radius: 4px;
+  background: #f4f7f5;
+  color: #38584d;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+
+
+.rp-surface-lock-state.is-locked {
+  border-color: #27715d;
+  background: #e5f0eb;
+  color: #174f40;
+}
+
+
+
+.rp-step-six-lock-control {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+
+
+.rp-step-six-lock-control .secondary-action {
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 0.78rem;
+}
+
+
+
+.rp-surface-kind-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+}
+
+
+
+.rp-surface-kind-tabs button { min-height: 44px; }
+
+
+
+.rp-step-six-surface-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+
+
+.rp-step-six-surface-panel[hidden] { display: none !important; }
+
+
+
+.rp-surface-color-editor {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e0e2df;
+}
+
+
+
+.rp-surface-color-swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 44px);
+  gap: 7px;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+
+
+.rp-surface-color-swatches button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid #948f87;
+  border-radius: 5px;
+  background: var(--surface-swatch, #ddd);
+}
+
+
+
+.rp-surface-color-swatches button.is-active {
+  border-color: #1d644f;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1d644f;
+}
+
+
+
+.rp-surface-custom-color {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid #cbc8c1;
+  border-radius: 5px;
+  background: #fff;
+  font-weight: 700;
+}
+
+
+
+.rp-surface-custom-color input[type="color"] {
+  width: 44px;
+  height: 40px;
+  min-height: 40px;
+  padding: 2px;
+}
+
+
+
+.rp-surface-material-heading {
+  align-items: end;
+}
+
+
+
+.rp-surface-material-heading .secondary-action {
+  flex: 0 0 auto;
+  min-height: 44px;
+  margin: 0;
+}
+
+
+
+.rp-step-six-material-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+
+
+.rp-step-six-material-grid > button {
+  display: grid;
+  grid-template-rows: 104px auto;
+  gap: 8px;
+  min-width: 0;
+  min-height: 164px;
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid #cbc8c1;
+  border-radius: 6px;
+  background: #fff;
+  color: #2f332f;
+  text-align: left;
+}
+
+
+
+.rp-step-six-material-grid > button.is-active {
+  border-color: #1f6a55;
+  box-shadow: inset 0 0 0 2px #1f6a55;
+}
+
+
+
+.rp-step-six-material-grid .rp-material-preview {
+  width: 100%;
+  height: 104px;
+  border: 0;
+  border-radius: 4px;
+  background-position: center !important;
+  background-size: cover !important;
+}
+
+
+
+.rp-step-six-material-grid .rp-material-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+
+
+.rp-step-six-material-grid strong {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+
+
+.rp-step-six-material-grid small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #626a65;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+
+
+.rp-surface-selected-description {
+  padding: 10px 12px;
+  border-left: 3px solid #407b69;
+  background: #f0f5f2;
+  color: #40524b !important;
+}
+
+
+
+.rp-step-six-preview-status {
+  padding: 8px 10px;
+  border-left: 3px solid #8ca89d;
+  background: #f7f8f6;
+  color: #4e5d57 !important;
+}
+
+
+
+.rp-surface-advanced {
+  padding: 0 12px 12px;
+  border: 1px solid #d5d5d0;
+  border-radius: 6px;
+  background: #fafaf8;
+}
+
+
+
+.rp-surface-advanced summary {
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+
+
+.rp-surface-advanced[open] { display: grid; gap: 12px; }
+
+
+
+.rp-step-six-surface-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: grid;
+  gap: 10px;
+  margin: 0 -14px -20px;
+  padding: 14px;
+  border-top: 1px solid #d4d9d5;
+  background: rgba(250, 249, 246, 0.98);
+}
+
+
+
+.rp-step-six-surface-actions button { min-height: 44px; }
+
+
+.rp-step-six-surface-actions .rp-inline-actions button { flex: 1 1 0; }
+
+
+
+.rp-white-surface-entry.is-room-locked [data-step-six-surface-panel] button,
+.rp-white-surface-entry.is-room-locked [data-step-six-surface-panel] input,
+.rp-white-surface-entry.is-room-locked [data-step-six-surface-panel] select,
+.rp-white-surface-entry.is-room-locked .rp-surface-advanced {
+  pointer-events: none;
+  opacity: 0.58;
+}
+
+
+
+@media (max-width: 760px) {
+  .rp-step-six-material-grid { grid-template-columns: minmax(0, 1fr); }
+  .rp-surface-material-heading { align-items: stretch; flex-direction: column; }
+  .rp-surface-material-heading .secondary-action { width: 100%; }
+  .rp-step-six-surface-header { align-items: flex-start; }
+  .rp-step-six-lock-control { width: 100%; justify-content: space-between; }
+}
+
+
+
+#proposal-review-step .rp-viewer-toolbar .rp-segmented[aria-label="鎖定設計方案"],
+#proposal-review-step .rp-3d-sidebar > .eyebrow,
+#proposal-review-step .rp-3d-sidebar > h2,
+#proposal-review-step .rp-3d-sidebar > p,
+#proposal-review-step .rp-3d-sidebar > .rp-render-view-lock:not(#proposal-room-view-lock) {
+  display: none !important;
+}
+
+
+
+.rp-step-panel--project,
+.rp-step-panel--upload,
+.rp-step-panel--scale,
+.rp-step-panel--structure,
+.rp-step-panel--requirements,
+.rp-step-panel--layout,
+.rp-step-panel--white-model,
+.rp-step-panel--realistic,
+.rp-step-panel--proposal,
+.rp-step-panel--render {
+  position: relative;
+}
+
+
+
+.rp-step-panel--upload .rp-split-workspace,
+.rp-step-panel--scale .rp-split-workspace,
+.rp-step-panel--structure .rp-split-workspace,
+.rp-step-panel--layout .rp-split-workspace,
+.rp-step-panel--white-model .rp-3d-workspace,
+.rp-step-panel--realistic .rp-3d-workspace,
+.rp-step-panel--proposal .rp-3d-workspace,
+.rp-step-panel--render .rp-3d-workspace {
+  border-top: 4px solid var(--rp-accent);
+}
+
+
+
+.rp-step-panel--requirements {
+  padding: 26px 0 42px;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-workspace {
+  width: min(1480px, calc(100% - 48px));
+  margin: 0 auto;
+  border: 1px solid var(--rp-border-strong);
+  border-top: 4px solid var(--rp-accent);
+  background: var(--rp-surface);
+  box-shadow: 0 14px 34px rgba(55, 44, 33, 0.07);
+}
+
+
+
+.rp-step-panel--requirements .rp-test2-questionnaire {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 32px clamp(22px, 3vw, 44px) 42px;
+  background: transparent;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-heading {
+  align-items: end;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #ddd5cb;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-heading h2 {
+  margin: 6px 0 0;
+  color: var(--rp-ink-strong);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.5rem, 2.3vw, 2.15rem);
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-heading > div > p {
+  max-width: 690px;
+  color: #6d655d;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-stage-nav {
+  margin: 24px 0 32px;
+  border: 1px solid #d5ccc1;
+  background: #faf7f1;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-stage-nav button {
+  min-height: 56px;
+  background: transparent;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-stage-nav button.is-active {
+  background: var(--rp-accent-soft);
+  color: #1a5846;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-section-heading {
+  padding: 16px 0;
+  border-bottom: 1px solid #e2dbd2;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-section-heading h3 {
+  color: var(--rp-ink-strong);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+
+
+.rp-step-panel--requirements .rp-room-questionnaire-layout {
+  gap: 26px;
+}
+
+
+
+.rp-step-panel--requirements .rp-room-questionnaire-plan,
+.rp-step-panel--requirements .rp-room-questionnaire-editor {
+  border: 1px solid #d9d0c6;
+  background: #fffdfa;
+}
+
+
+
+.rp-step-panel--requirements .rp-room-questionnaire-plan {
+  padding: 16px;
+}
+
+
+
+.rp-step-panel--requirements .rp-room-questionnaire-editor {
+  padding: 0 clamp(18px, 2.6vw, 34px) 28px;
+}
+
+
+
+.rp-step-panel--requirements .rp-room-finish-editor {
+  background: transparent;
+}
+
+
+
+.rp-step-panel--requirements .rp-questionnaire-furniture,
+.rp-step-panel--requirements .rp-questionnaire-room-usage,
+.rp-step-panel--requirements .rp-questionnaire-generative-equipment {
+  margin-top: 24px;
+  padding: 0;
+  border-top: 1px solid #e1d9d0;
+}
+
+
+
+.rp-step-panel--layout,
+.rp-step-panel--white-model,
+.rp-step-panel--realistic,
+.rp-step-panel--proposal,
+.rp-step-panel--render {
+  padding-top: 1px;
+}
+
+
+
+.rp-step-panel--white-model .rp-viewer-pane,
+.rp-step-panel--realistic .rp-viewer-pane,
+.rp-step-panel--proposal .rp-viewer-pane,
+.rp-step-panel--render .rp-viewer-pane {
+  background: #272722;
+}
+
+
+
+.rp-step-panel--white-model .rp-viewer-toolbar,
+.rp-step-panel--realistic .rp-viewer-toolbar,
+.rp-step-panel--proposal .rp-viewer-toolbar,
+.rp-step-panel--render .rp-viewer-toolbar {
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid #d7e0da;
+  border-bottom: 0;
+  background: #f7faf8;
+  box-shadow: inset 0 -1px 0 #edf2ee;
+}
+
+
+
+.rp-step-panel--white-model .rp-viewer-toolbar .secondary-action,
+.rp-step-panel--realistic .rp-viewer-toolbar .secondary-action,
+.rp-step-panel--proposal .rp-viewer-toolbar .secondary-action,
+.rp-step-panel--render .rp-viewer-toolbar .secondary-action {
+  min-height: 40px;
+  padding: 0 14px;
+  border-color: #467564;
+  border-radius: 5px;
+  background: #fff;
+  color: #2d5b4a;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+
+
+.rp-step-panel--white-model .rp-viewer-toolbar .secondary-action:hover,
+.rp-step-panel--white-model .rp-viewer-toolbar .secondary-action:focus-visible,
+.rp-step-panel--realistic .rp-viewer-toolbar .secondary-action:hover,
+.rp-step-panel--realistic .rp-viewer-toolbar .secondary-action:focus-visible,
+.rp-step-panel--proposal .rp-viewer-toolbar .secondary-action:hover,
+.rp-step-panel--proposal .rp-viewer-toolbar .secondary-action:focus-visible,
+.rp-step-panel--render .rp-viewer-toolbar .secondary-action:hover,
+.rp-step-panel--render .rp-viewer-toolbar .secondary-action:focus-visible {
+  background: #e5f0ea;
+  color: #24483a;
+}
+
+
+
+.rp-step-panel--white-model .rp-viewer-status,
+.rp-step-panel--realistic .rp-viewer-status,
+.rp-step-panel--proposal .rp-viewer-status,
+.rp-step-panel--render .rp-viewer-status {
+  margin: 0;
+  padding: 12px 16px;
+  background: #332f2a;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+
+
+.rp-step-panel--white-model .rp-control-pane,
+.rp-step-panel--realistic .rp-control-pane,
+.rp-step-panel--proposal .rp-control-pane,
+.rp-step-panel--render .rp-control-pane {
+  background: #f8f5ef;
+}
+
+
+
+.rp-step-panel--proposal .rp-control-pane > .eyebrow,
+.rp-step-panel--render .rp-control-pane > .eyebrow,
+.rp-step-panel--realistic .rp-control-pane > .eyebrow {
+  display: inline-block;
+  margin-bottom: 2px;
+  color: var(--rp-accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+
+
+.rp-step-panel--proposal .rp-review-summary,
+.rp-step-panel--render .rp-render-jobs,
+.rp-step-panel--realistic .rp-editor-box,
+.rp-step-panel--white-model .rp-editor-box {
+  border-color: #d2c8bd;
+  background: #fffdfa;
+}
+
+
+
+.rp-step-panel--render .rp-editor-box > h3::first-letter,
+.rp-step-panel--proposal .rp-editor-box > h3::first-letter {
+  color: var(--rp-accent);
+}
+
+
+
+@media (max-width: 960px) {
+  .rp-step-panel--requirements .rp-questionnaire-workspace,
+  .rp-scheme-toolbar {
+    width: min(100% - 28px, 920px);
+  }
+}
+
+
+
+@media (max-width: 640px) {
+  .rp-step-panel--requirements {
+    padding: 0;
+  }
+
+  .rp-step-panel--requirements .rp-questionnaire-workspace,
+  .rp-scheme-toolbar {
+    width: 100%;
+    margin: 0;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .rp-step-panel--requirements .rp-test2-questionnaire {
+    padding: 24px 16px 32px;
+  }
+
+  .rp-step-panel--requirements .rp-room-questionnaire-editor {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
+
+
+
+/* Scene workflow visual system: keep the planning mechanics in place while
+   giving every step the same warm, editorial product language as the public pages. */
+body.rp-workflow-page {
+  --rp-canvas: #f3f0ea;
+  --rp-surface: #fffdf9;
+  --rp-surface-muted: #f8f5ef;
+  --rp-ink-strong: #29231f;
+  --rp-accent: #2b725d;
+  --rp-accent-soft: #e3efe8;
+  --rp-border-strong: #cfc7bc;
+  background: var(--rp-canvas);
+  color: var(--rp-ink-strong);
+}
+
+
+
+.rp-control-pane {
+  max-height: calc(100vh - 274px);
+  padding: 30px;
+  border-left: 0;
+  background: var(--rp-surface-muted);
+}
+
+
+
+.rp-step-panel--upload .rp-plan-pane,
+.rp-step-panel--scale .rp-plan-pane,
+.rp-step-panel--structure .rp-plan-pane {
+  position: relative;
+}
+
+
+
+.rp-step-panel--upload .rp-plan-pane::before,
+.rp-step-panel--scale .rp-plan-pane::before,
+.rp-step-panel--structure .rp-plan-pane::before {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  width: 4px;
+  height: 52px;
+  background: var(--rp-accent);
+  content: "";
+}
+
+
+
+.rp-step-panel--upload .rp-pane-heading,
+.rp-step-panel--scale .rp-pane-heading,
+.rp-step-panel--structure .rp-pane-heading {
+  padding-left: 12px;
 }

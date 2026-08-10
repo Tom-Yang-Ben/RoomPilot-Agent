@@ -16,16 +16,22 @@ from ..agent.knowledge import (
     COMPANION_OF,
     FAMILY_ZH,
     FREE_SEATING_FAMILIES,
+    ROOM_COMPANION_ESSENTIALS,
     ROOM_ESSENTIALS,
+    dining_chair_target,
     family_of,
     is_outdoor_item,
 )
 from ..agent.place import placement_hints, resolve_placements
 from ..catalog.style_db import CLEARANCE_BY_TYPE, catalog_item_from_scene_object
-from ..engine.clearance import check_placement_with_clearance
+from ..engine.clearance import (
+    CABINET_FRONT_CLEARANCE_CM,
+    check_placement_with_clearance,
+    is_cabinet_type,
+)
 from ..engine.dxf_room import build_room_from_dxf
 from ..engine.layout_model import Placement as RasterPlacement, RoomContext as RasterContext
-from ..engine.obb import Obb, obb_blocked, stamp_obb
+from ..engine.obb import Obb, front_vector, obb_blocked, stamp_obb
 from ..engine.geometry import furniture_polygon
 from ..engine.models import PlacedFurniture, Room, Wall
 from ..engine.placement import (
@@ -166,6 +172,11 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
                 for item in normalized
             ):
                 normalized.insert(0, essential)
+        # 客廳基本組:沙發之外,茶几與電視櫃也是必備(至少沙發+茶几+電視櫃);
+        # 缺了就補進 required,否則它們是 companion,不在清單就不會被 choose 挑到。
+        for companion in ROOM_COMPANION_ESSENTIALS.get(space_type, ()):
+            if not any(family_of(item) == companion for item in normalized):
+                normalized.append(companion)
         # 有餐桌就要有餐椅(張數保證在選件與 2D 規格層;此處保證型別存在)
         if any(family_of(item) == "dining-table" for item in normalized) and not any(
             family_of(item) == "dining-chair" for item in normalized
@@ -174,6 +185,79 @@ def normalize_required_furniture(raw_items: list[str], space_type: str) -> list[
         return normalized
 
     return SPACE_DEFAULTS.get(space_type, SPACE_DEFAULTS["living_room"]).copy()
+
+
+def _occupant_headcount(questionnaire: dict[str, Any]) -> int:
+    """入住人數 = 大人 + 小孩 + 長輩(寵物不算)。缺資料回 0。"""
+    occ = questionnaire.get("occupants")
+    if not isinstance(occ, dict):
+        return 0
+    total = 0
+    for key in ("adults", "children", "elderly"):
+        try:
+            total += max(0, int(occ.get(key) or 0))
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def _merge_exact_and_chosen(
+    exact: list[dict[str, Any]], chosen: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """精選件優先入座,自動選的同 id 或**同族**讓位。
+
+    同族去重(非 normalized_type 字串)是防「臥室兩張床」的根治點:精選床可能是
+    bed-frame、自動選的是 bed,字串不等會兩張都留;family_of 摺疊後同族只保留精選。
+    """
+    exact_ids = {item.get("furniture_id") for item in exact}
+    exact_families = {family_of(item.get("normalized_type")) for item in exact}
+    return [
+        *exact,
+        *[
+            item
+            for item in chosen
+            if item.get("furniture_id") not in exact_ids
+            and family_of(item.get("normalized_type")) not in exact_families
+        ],
+    ]
+
+
+def _expand_dining_seats(
+    items: list[dict[str, Any]], questionnaire: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """有餐桌就把餐椅補到「依入住人數,至少 2、不超過桌子可坐數」的張數。
+
+    choose_furniture_items 只挑一張餐椅、bella 流程也不展開 count,廚房因此常只有
+    一張椅子。桌子可坐數沿用 dining_chair_target(桌寬 ≥140cm→4、否則 2)。多張同款
+    餐椅給不同 instance_id,generate_layout 才會逐一擺到餐桌四周。
+    """
+    table = next(
+        (it for it in items if family_of(it.get("normalized_type")) == "dining-table"),
+        None,
+    )
+    if table is None:
+        return items
+    chairs = [it for it in items if family_of(it.get("normalized_type")) == "dining-chair"]
+    if not chairs:
+        return items                       # 沒有餐椅可補(選件層應已補一張)
+    seats_cap = dining_chair_target((table.get("size_cm") or {}).get("width"))
+    target = min(max(2, _occupant_headcount(questionnaire) or 2), seats_cap)
+    if len(chairs) >= target:
+        return items                       # 已足量(例如精選多張)不動
+    base = chairs[0]
+    base_fid = str(base.get("furniture_id") or "dining-chair")
+    expanded: list[dict[str, Any]] = []
+    filled = False
+    for it in items:
+        if family_of(it.get("normalized_type")) == "dining-chair":
+            if filled:
+                continue                   # 其餘餐椅併入下面的展開
+            filled = True
+            for seat in range(target):
+                expanded.append({**base, "instance_id": f"{base_fid}#seat{seat + 1}"})
+        else:
+            expanded.append(it)
+    return expanded
 
 
 def _extract_openrouter_message_content(body: dict[str, Any]) -> str | None:
@@ -626,6 +710,7 @@ def selected_furniture_items_from_questionnaire(
     }
     selected: list[dict[str, Any]] = []
     used_ids: set[str] = set()
+    bed_selected = False
 
     appliance_types = {
         "refrigerator",
@@ -689,6 +774,17 @@ def selected_furniture_items_from_questionnaire(
             )
         ):
             continue
+
+        # ponytail: 同房只留一張床。exact 選件原本只比 furniture_id(上面 used_ids),
+        # 兩件床族商品(bed + bed-frame,或兩張不同床)都會留 → 擺位端把兩床相貼、
+        # 無走道、壓住房門(feedback floor04 臥室)。臥室房型皆單床(DORMITORY→bed,
+        # 入住人數只展開餐椅不展開床),故只折 bed 家族;床頭櫃/餐椅/沙發等可複數,
+        # 不在此去重。與 _merge_exact_and_chosen 的 family_of 摺疊同語意——exact 路徑
+        # (selected_furniture_exact=True)繞過該摺疊,漏套於此補上。
+        if family_of(merged["normalized_type"]) == "bed":
+            if bed_selected:
+                continue
+            bed_selected = True
 
         selected.append(merged)
         used_ids.add(furniture_id)
@@ -932,10 +1028,19 @@ def _agent_prepend_candidates(
                 x = right - depth / 2 - gap if fx > 0 else left + depth / 2 + gap
                 rot = 270.0 if fx > 0 else 90.0
                 paired.extend((x, sofa["z"] + off, rot) for off in lateral)
+                # 退路:對面牆被門/牆縫全擋時,擺到上下兩側牆、沙發正前方向較遠處,
+                # 背貼牆軸對齊、面向房內——與沙發呈一點角度,總比整組不放好。
+                # 列在正對位之後,對面牆放得下就用不到。
+                mid_x = sofa["x"] + (x - sofa["x"]) * 0.65
+                paired.append((mid_x, top + depth / 2 + gap, 0.0))
+                paired.append((mid_x, bottom - depth / 2 - gap, 180.0))
             else:
                 z = bottom - depth / 2 - gap if fz > 0 else top + depth / 2 + gap
                 rot = 180.0 if fz > 0 else 0.0
                 paired.extend((sofa["x"] + off, z, rot) for off in lateral)
+                mid_z = sofa["z"] + (z - sofa["z"]) * 0.65
+                paired.append((left + depth / 2 + gap, mid_z, 90.0))
+                paired.append((right - depth / 2 - gap, mid_z, 270.0))
     elif family in FREE_SEATING_FAMILIES:
         sofa = neighbors.get("sofa")
         if sofa:
@@ -1364,6 +1469,38 @@ def build_raster_context(
     return context
 
 
+def _cabinet_front_strip(
+    item_type: str | None,
+    width: float,
+    depth: float,
+    x_cm: float,
+    z_cm: float,
+    rotation_deg: float,
+    half_w_cm: float,
+    half_d_cm: float,
+) -> Obb | None:
+    """有櫃家具正面 CABINET_FRONT_CLEARANCE_CM 的淨空長條(門開＋站立/走道);
+    非有櫃件回 None。正面 = 本體 −y(front_vector),與 raster 本體同用 -rotation。"""
+    if not is_cabinet_type(item_type):
+        return None
+    cx, cy = x_cm + half_w_cm, z_cm + half_d_cm
+    theta = -rotation_deg
+    fx, fy = front_vector(theta)
+    off = depth / 2 + CABINET_FRONT_CLEARANCE_CM / 2
+    return Obb.from_deg(
+        cx + fx * off, cy + fy * off, width, CABINET_FRONT_CLEARANCE_CM, theta
+    )
+
+
+def _front_strip_hits_placed(ctx: RasterContext, strip: Obb) -> bool:
+    """長條是否壓到已放家具。只認家具重疊,界外不算(stamp 自動裁掉界外格),
+    避免把「正面貼到房界」誤判成擋路而過度拒放。
+    ponytail: 每次呼叫配一張空畫布;只有有櫃件候選才走到這,量少可接受。"""
+    canvas = ctx.grid.blank()
+    stamp_obb(canvas, ctx.grid, strip)
+    return bool((canvas & ctx.placed).any())
+
+
 def raster_free(
     ctx: RasterContext | None,
     item_type: str | None,
@@ -1400,7 +1537,14 @@ def raster_free(
     if obb_blocked(mask, ctx.grid, obb):
         return False
     if check_placed and item_type not in _IGNORE_COLLISION_TYPES:
-        return not obb_blocked(ctx.placed, ctx.grid, obb)
+        if obb_blocked(ctx.placed, ctx.grid, obb):
+            return False
+        # 有櫃家具:正面 50cm 內不得壓到別的家具(否則門打不開、沒走道)。
+        strip = _cabinet_front_strip(
+            item_type, width, depth, x_cm, z_cm, rotation_deg, half_w_cm, half_d_cm
+        )
+        if strip is not None and _front_strip_hits_placed(ctx, strip):
+            return False
     return True
 
 
@@ -1424,6 +1568,12 @@ def raster_commit(
         # 同 raster_free:場景角進柵格取負(90° 倍數不受影響)
         Obb.from_deg(x_cm + half_w_cm, z_cm + half_d_cm, width, depth, -rotation_deg),
     )
+    # 有櫃家具:正面 50cm 淨空一併烙進遮罩,後續家具不得擺進去。
+    strip = _cabinet_front_strip(
+        item_type, width, depth, x_cm, z_cm, rotation_deg, half_w_cm, half_d_cm
+    )
+    if strip is not None:
+        stamp_obb(ctx.placed, ctx.grid, strip)
 
 
 def _raster_wall_anchor(
@@ -2343,17 +2493,23 @@ def generate_layout(
                 x_cm = inner.x - half_w_cm
                 z_cm = inner.y - half_d_cm
         else:
-            # 副件嚴格成組(agent 紀律,hints 時啟用):床頭櫃/茶几/電視櫃/餐椅/
-            # 辦公椅只准貼各自主件的成組候選 —— 原本成組位失敗會退到泛用候選
-            # 「亂放成功」,床頭櫃流落遠牆、引擎又不標失敗,寧缺勿亂永遠不觸發。
+            # 副件嚴格成組(agent 紀律,hints 時啟用):床頭櫃/茶几/餐椅/辦公椅只准貼
+            # 各自主件的成組候選 —— 原本成組位失敗會退到泛用候選「亂放成功」,床頭櫃
+            # 流落遠牆、引擎又不標失敗,寧缺勿亂永遠不觸發。
             # 休閒椅(armchair/lounge)在沙發已就位的房間同樣嚴格:只准沙發
             # 左前/右前;沒有沙發的房間(書房閱讀椅)維持自由擺放。
+            # 電視櫃例外(不鎖死):它體積大、房間常沒有正對沙發的整面實牆,鎖死就
+            # 整組放不下被 resolve_placements 移除(使用者:視覺上放得下、是必需品的一部分)。
+            # 走泛用路徑仍「沙發對面牆優先」(_placement_candidates 最前已 prepend
+            # _agent_prepend_candidates),對面牆被門/開口擋掉才退到側牆/靠牆掃描/引擎
+            # 後援 —— 有角度也要擺進去。
             # 主件不在或成組位全被佔 → 標 placement_failed,交 resolve_placements
             # 移除。使用者拖曳(placement_hint_cm)不受限,尊重手動意圖。
             item_family = family_of(item_type)
             strict_pair = (
                 bool(hints)
                 and not item.get("placement_hint_cm")
+                and item_family != "tv-bench"
                 and (
                     item_family in COMPANION_OF
                     or (item_family in FREE_SEATING_FAMILIES and "sofa" in neighbors)
@@ -2773,17 +2929,9 @@ def build_scene_payload(
         selected_items = exact_selected_items
         unavailable_types = []
     elif exact_selected_items:
-        exact_ids = {item.get("furniture_id") for item in exact_selected_items}
-        exact_types = {item.get("normalized_type") for item in exact_selected_items}
-        selected_items = [
-            *exact_selected_items,
-            *[
-                item
-                for item in selected_items
-                if item.get("furniture_id") not in exact_ids
-                and item.get("normalized_type") not in exact_types
-            ],
-        ]
+        selected_items = _merge_exact_and_chosen(exact_selected_items, selected_items)
+    # 廚房餐椅依入住人數補足(至少 2、不超過桌子可坐數)。
+    selected_items = _expand_dining_seats(selected_items, questionnaire)
     objects = generate_layout_by_room(
         effective_width_cm,
         effective_depth_cm,

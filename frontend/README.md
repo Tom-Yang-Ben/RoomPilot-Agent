@@ -1,5 +1,11 @@
 # RoomPilot 專案流程與 DXF／PNG → 3D 白模
 
+> ⚠️ **這是次要 React/R3F 原型，不是正式產品。** 正式八步流程由 `GET /scene` →
+> `backend/server/static/scene.html` + `scene_v2.js` 提供；本 `frontend/` 永遠不被
+> `/scene` 服務，且**只涵蓋約第 1–6 步（無第 7 步視角鎖定、無第 8 步生圖／成果包）**。
+> 第 5–8 步請一律改 `backend/server/static/scene_v2.js`，勿在此移植。詳見 `AGENTS.md`。
+> 尚未移入 `deprecated/`：依整合指南 §0.5／§7，端對端驗收前不搬移／刪除，清理另開 PR。
+
 建立可續作的 RoomPilot 專案，再把 DXF 或 PNG 平面圖辨識為 2D 幾何並轉成 3D 場景：**牆壁**（實體擠出）與**窗戶**（玻璃面板），格局比例保留。
 
 - **後端** `backend/server/` — FastAPI、SQLite 專案狀態；`ezdxf` 解析 DXF，PNG 經 `backend/floorplan/` 辨識後交給同一套升維流程。
@@ -16,10 +22,10 @@ npm run build
 
 # 後端（回 repo 根目錄跑，相對 import）
 uv run --extra vision uvicorn backend.server.main:app --port 8002
-# 開 http://127.0.0.1:8002/scene
+# 開 http://127.0.0.1:8002/static/frontend3d/index.html
 ```
 
-建置產物會進入 `backend/server/static/frontend3d/`，由 FastAPI 的 `/scene` 直接交付。`npm run dev` 只供開發熱更新，會把 `/api` 代理到 8002，不是使用者需要開啟的第二個產品網站。
+建置產物會進入 `backend/server/static/frontend3d/`，經 `/static` 靜態掛載後於 `/static/frontend3d/index.html` 取得。此 React 原型是次要實驗品；正式八步流程的 `/scene` 由 `backend/server/main.py` 回傳 `backend/server/static/scene.html`（scene_v2.js），不是這份建置產物。`npm run dev` 只供開發熱更新，會把 `/api` 代理到 8002，不是使用者需要開啟的第二個產品網站。
 
 ## 用法
 

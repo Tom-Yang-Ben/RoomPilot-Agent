@@ -14,14 +14,14 @@ import {
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=sha256-075ad1cedc62";
+} from "./scene_pbr_contracts.js?v=sha256-e2a4e5e31adf";
 import {
   doorOpeningForWallTopology,
   openingBelongsToWall,
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-4e6be1d95f62";
+} from "./scene_architecture.js?v=sha256-7932d83e3afd";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
@@ -30,9 +30,12 @@ import {
   computeExactModelScale,
   fallbackMaterialRole,
   findNearestWalkablePosition,
+  inferredWallThicknessCm,
+  snapFurnitureToRoomSurface,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-ffab73a6296a";
+} from "./scene_visual_contracts.js?v=sha256-21f70e95c7c9";
+import { normalizedPlanarUvs } from "./scene_texture_uv.js?v=sha256-d6416b081798";
 
 const CM_PER_METER = 100;
 
@@ -712,7 +715,9 @@ export function createSceneViewer(
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       materials.filter(Boolean).forEach((material) => {
         ["map", "normalMap", "roughnessMap", "metalnessMap", "alphaMap", "aoMap", "emissiveMap"].forEach((key) => {
-          if (material[key]) {
+          // 共用快取貼圖(房殼面材)由 surfaceTextureCache 持有並跨場景重用,不得釋放,
+          // 否則下一次 createRoom 會拿到已 dispose 的 GPU 貼圖 → 黑面。
+          if (material[key] && !material[key].userData?.roompilotCachedTexture) {
             material[key].dispose();
           }
         });
@@ -880,21 +885,39 @@ export function createSceneViewer(
     ];
   }
 
-  function createImageTexture(surface, usage, repeatOverride = null) {
+  // 房殼牆/地/門的面材每次 createRoom 都重建;若每次都 textureLoader.load 就會
+  // 重新解碼並重傳 GPU,逐房切換材質、套材質時整場卡頓。以 url+用途+平鋪+色彩空間
+  // 為鍵快取 THREE.Texture,跨 createRoom 共用同一顆 GPU 貼圖。型錄面材有限(數種
+  // 牆/地 + 一張門木紋),故不設淘汰。ponytail: 型錄若暴增再加 LRU。
+  const surfaceTextureCache = new Map();
+
+  function createImageTexture(
+    surface, usage, repeatOverride = null, colorSpace = THREE.SRGBColorSpace,
+  ) {
+    const repeat = repeatOverride || surface.repeat?.[usage] || (usage === "floor" ? [4, 4] : [2.2, 1.6]);
+    const rx = Number(repeat[0]) || 1;
+    const ry = Number(repeat[1]) || 1;
+    // 色彩空間入鍵:colorMap(SRGB)與 bumpMap(NoColorSpace)同 url/平鋪但不可共用
+    // 同一顆,否則其一改色彩空間會污染另一顆。
+    const key = `${surface.texture_url}|${usage}|${rx}x${ry}|${colorSpace}`;
+    const cached = surfaceTextureCache.get(key);
+    if (cached) return cached;
     const texture = textureLoader.load(surface.texture_url);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    const repeat = repeatOverride || surface.repeat?.[usage] || (usage === "floor" ? [4, 4] : [2.2, 1.6]);
-    texture.repeat.set(Number(repeat[0]) || 1, Number(repeat[1]) || 1);
-    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.repeat.set(rx, ry);
+    texture.colorSpace = colorSpace;
     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    // clearGroup→disposeObjectTree 會 dispose 材質貼圖;共用快取貼圖必須豁免,
+    // 否則第一次清場就把下次還要用的 GPU 貼圖釋放掉 → 黑面。
+    texture.userData.roompilotCachedTexture = true;
+    surfaceTextureCache.set(key, texture);
     return texture;
   }
 
   function createSurfaceImageMaterial(surface, usage, options = {}) {
     const colorMap = createImageTexture(surface, usage, options.repeat);
-    const bumpMap = createImageTexture(surface, usage, options.repeat);
-    bumpMap.colorSpace = THREE.NoColorSpace;
+    const bumpMap = createImageTexture(surface, usage, options.repeat, THREE.NoColorSpace);
     const profile = surfacePbrProfile(surface, usage);
     const material = new THREE.MeshPhysicalMaterial({
       color: surfaceTint(options.color ?? "#ffffff", true, usage),
@@ -935,8 +958,7 @@ export function createSceneViewer(
       );
       if (woodSurface) {
         material.map = createImageTexture(woodSurface, "floor", [1, 2.2]);
-        material.bumpMap = createImageTexture(woodSurface, "floor", [1, 2.2]);
-        material.bumpMap.colorSpace = THREE.NoColorSpace;
+        material.bumpMap = createImageTexture(woodSurface, "floor", [1, 2.2], THREE.NoColorSpace);
         material.bumpScale = 0.018;
         material.userData.roompilotImageSurface = true;
         material.userData.roompilotSurfaceUsage = "door";
@@ -1768,12 +1790,18 @@ export function createSceneViewer(
   ) {
     const renderedDoorIds = new Set();
     doorSegments.forEach((door, index) => {
-      // The Step 4 wall gap is authoritative for every wall component.  The
+      // The Step 4 wall gap is authoritative for every wall component; the
       // closed leaf may be shown on it, but must never define a second opening.
+      // A confirmed Step 4 door must still never vanish: when its wall opening
+      // can't be resolved (no persisted opening and no detectable wall gap), the
+      // closed_leaf_segment is the immutable Step 4 position, so render the leaf
+      // + lintel there instead of dropping the door.
+      // ponytail: fall back to closed_leaf_segment; do NOT route doors through
+      // buildSegmentWalls to "fix" this — that path cuts walls and double-holes.
       const headerSegment = door?.wall_opening_segment || door?.closed_leaf_segment;
-      if (door?.step4_confirmed === true && !door?.wall_opening_segment) return;
       const start = headerSegment?.start;
       const end = headerSegment?.end;
+      if (!start || !end) return;
       const dx = Number(end?.x) - Number(start?.x);
       const dz = Number(end?.z) - Number(start?.z);
       const width = Math.hypot(dx, dz);
@@ -2404,6 +2432,16 @@ export function createSceneViewer(
       && point.z <= Number(bounds.maxZ) + padding;
   }
 
+  function applyNormalizedPlanarUvs(geometry) {
+    const position = geometry?.getAttribute?.("position");
+    if (!position?.array?.length) return geometry;
+    geometry.setAttribute(
+      "uv",
+      new THREE.Float32BufferAttribute(normalizedPlanarUvs(position.array), 2),
+    );
+    return geometry;
+  }
+
   function createRoomSurfaceOverrides(roomGroupRef, sceneData) {
     (sceneData.surface_overrides || []).forEach((override, index) => {
       const bounds = override.room_bounds_cm;
@@ -2429,6 +2467,7 @@ export function createSceneViewer(
         });
         shape.closePath();
         geometry = new THREE.ShapeGeometry(shape);
+        applyNormalizedPlanarUvs(geometry);
       } else {
         geometry = new THREE.PlaneGeometry(width, depth);
       }
@@ -2994,7 +3033,7 @@ export function createSceneViewer(
     applySurfaceTint(wallMaterial, wallColor);
     if (wallPbr.roughness != null) wallMaterial.roughness = wallPbr.roughness;
     if (wallPbr.metalness != null) wallMaterial.metalness = wallPbr.metalness;
-    const wallThickness = 12;
+    const wallThickness = inferredWallThicknessCm(sceneData.floorplan, 12);
     const wallSegments = sceneData.floorplan?.wall_segments || [];
     const doorSegments = dedupeArchitecturalOpeningsFor3d(
       (sceneData.floorplan?.door_segments || []).map(
@@ -4153,6 +4192,30 @@ export function createSceneViewer(
     }
   }
 
+  // A material edit only changes wall/floor/ceiling surfaces, which createRoom
+  // bakes into the shell groups (roomGroup/ceilingGroup).  Furniture lives in a
+  // separate furnitureGroup, so rebuild only the shell and leave the furniture —
+  // and their cached GLB clones — in place.  Far cheaper than loadScene, which
+  // clears and re-clones every model on each edit (the source of the step 6/7
+  // per-material jank).  The camera is untouched.
+  function updateRoomSurfaces(sceneData) {
+    if (!sceneData) return;
+    lastSceneData = sceneData;
+    lastWorldSceneData = sceneDataForWorld(sceneData);
+    const shellKey = JSON.stringify({ ...lastWorldSceneData, scene_objects: null });
+    // 房殼(去家具後的場景)未變＝材質/覆蓋沒改:純房間切換或重套同一份材質時
+    // 直接返回,省下整個 createRoom(牆/地/天花幾何 + 面材)。scene_objects 已折出,
+    // 只要材質/覆蓋一改 shellKey 就變,不會漏更新。
+    if (shellKey === lastShellKey) {
+      lastSceneKey = JSON.stringify(sceneData);
+      return;
+    }
+    createRoom(lastWorldSceneData);
+    // Keep loadScene's skip keys coherent so a later navigation reload is a no-op.
+    lastShellKey = shellKey;
+    lastSceneKey = JSON.stringify(sceneData);
+  }
+
   async function buildFurnitureWrapper(item, index, sceneData, failures = null) {
     if (item.placement_failed) {
       failures?.push(`${item.name_zh_raw || item.normalized_type}（空間放不下，未擺入）`);
@@ -4389,6 +4452,7 @@ export function createSceneViewer(
       <button type="button" data-object-move="left">左</button>
       <button type="button" data-object-move="back">後</button>
       <button type="button" data-object-move="right">右</button>
+      <button type="button" class="scene-object-rotate-quarter-turn" data-object-rotate="90" title="旋轉 90 度">旋轉 90°</button>
     </div>
     <button type="button" class="scene-object-lock-button" data-object-lock>鎖定此家具</button>
   `;
@@ -5044,9 +5108,9 @@ export function createSceneViewer(
     renderer.domElement.style.cursor = "grabbing";
   });
 
-  // ── 拖曳吸附:靠近牆段時貼齊(留 10cm,大於後端 8cm 邊距故吸附後必過驗證),平時 5cm 格點 ──
+  // 房間邊界是室內完成面；靠牆家具不額外留縫，其他移動使用 5 cm 格點。
   const SNAP_RANGE = 30;
-  const WALL_GAP = 6;
+  const WALL_GAP = 0;
   const DRAG_GRID = 5;
 
   function normalizedRotationDeg(rotationDeg = 0) {
@@ -5282,12 +5346,22 @@ export function createSceneViewer(
   }
 
   function snapDragPositionV3(item, x, z) {
-    return constrainTransform(
+    const snapped = snapFurnitureToRoomSurface({
+      floorplan: lastWorldSceneData?.floorplan || {},
+      roomId: item.placement_room_id || item.room_id || item.roomId || "",
+      sizeCm: sizeCentimeters(item),
+      position: { x, z },
+      rotationDeg: sceneToWorldRotationDeg(item.rotation_y_deg || 0),
+      snapRangeCm: SNAP_RANGE,
+      gridCm: DRAG_GRID,
+    }) || snapDragPositionV2(item, x, z);
+    const constrained = constrainTransform(
       item,
-      Math.round(x / DRAG_GRID) * DRAG_GRID,
-      Math.round(z / DRAG_GRID) * DRAG_GRID,
-      sceneToWorldRotationDeg(item.rotation_y_deg || 0)
+      snapped.x,
+      snapped.z,
+      snapped.rotationDeg ?? sceneToWorldRotationDeg(item.rotation_y_deg || 0)
     );
+    return constrained;
   }
 
   window.addEventListener("pointermove", (event) => {
@@ -5749,6 +5823,11 @@ export function createSceneViewer(
 
   return {
     loadScene,
+    // The bella-new step 5-8 material state machine calls updateRoomSurfaces to
+    // re-apply per-room wall/floor/ceiling materials after the user edits them.
+    // roomId is an unused targeting hint; rebuilding the shell from the current
+    // sceneData yields the same visible result (only edited surfaces change).
+    updateRoomSurfaces,
     addObject,
     removeObject,
     updateObject,
