@@ -85,6 +85,46 @@ def test_style_pack_palette_roles_match_the_reference_material_tiles() -> None:
     }
 
 
+def test_confirmed_door_at_wall_end_snaps_leaf_onto_the_wall_line() -> None:
+    """step4 已確認、無牆縫的門(位於牆段末端,無對向牆可成 gap)過去只能停在偏離
+    牆心約一個牆厚的關門線上,渲染時整扇門浮離鄰牆(feedback.png)。
+    doorOpeningForWallTopology 必須把關門線投影到最近共線牆的中心線,產生對齊牆面的
+    wall_opening_segment;離所有牆都太遠時不得硬貼(避免貼到對側的牆)。"""
+    result = run_workflow_script(
+        f"""
+        import {{ doorOpeningForWallTopology }} from {json.dumps(ARCHITECTURE_MODULE.as_uri())};
+        const walls = [{{ id: "w", start: {{ x: 0, z: 0 }}, end: {{ x: 0, z: -100 }} }}];
+        const near = doorOpeningForWallTopology(walls, {{
+          id: "d-near", step4_confirmed: true,
+          start: {{ x: 8, z: -100 }}, end: {{ x: 118, z: -100 }},
+          swing_end: {{ x: 8, z: -210 }},
+        }}, 12);
+        const far = doorOpeningForWallTopology(walls, {{
+          id: "d-far", step4_confirmed: true,
+          start: {{ x: 300, z: -100 }}, end: {{ x: 410, z: -100 }},
+          swing_end: {{ x: 300, z: -210 }},
+        }}, 12);
+        const mid = (seg) => seg
+          ? {{ x: (seg.start.x + seg.end.x) / 2, z: (seg.start.z + seg.end.z) / 2 }}
+          : null;
+        console.log(JSON.stringify({{
+          nearSource: near.opening_source,
+          nearMid: mid(near.wall_opening_segment),
+          farSource: far.opening_source,
+          farOpening: far.wall_opening_segment || null,
+        }}));
+        """
+    )
+
+    # 偏離 8cm 的關門線被投影回 x=0 牆心,z 位置不變(沿牆方向保留)。
+    assert result["nearSource"] == "projected_wall_line"
+    assert abs(result["nearMid"]["x"]) < 0.5
+    assert abs(result["nearMid"]["z"] - (-155)) < 0.5
+    # 離所有牆 300cm 的門不得亂貼:無投影、無 wall_opening_segment。
+    assert result["farSource"] == "unresolved_closed_leaf"
+    assert result["farOpening"] is None
+
+
 def test_openings_only_cut_their_confirmed_host_wall() -> None:
     result = run_workflow_script(
         f"""
@@ -296,10 +336,13 @@ def test_confirmed_step4_door_keeps_the_wall_gap_and_only_moves_the_leaf() -> No
         """
     )
 
+    # confirmedWallGapForDoor 對這組幾何找不到共線 gap(左右牆之間的縫與關門線
+    # 垂直),故不再標成誤導的 "confirmed_wall_gap";關門線本就落在 left-wall 上,
+    # 投影為 no-op,標成 "projected_wall_line"。關鍵不變式:不切牆、關門線保留。
     assert result == {
         "cutsWall": False,
         "closedLeaf": {"start": {"x": 80, "z": 0}, "end": {"x": 80, "z": 100}},
-        "source": "confirmed_wall_gap",
+        "source": "projected_wall_line",
     }
 
 

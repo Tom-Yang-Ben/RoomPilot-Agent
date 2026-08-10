@@ -146,6 +146,51 @@ export function confirmedWallGapForDoor(segments, door, wallThickness = 12) {
     : null;
 }
 
+// A Step 4-confirmed door may have neither a persisted opening nor a clean
+// two-wall gap: it sits at the *end* of a wall, so candidateGapForDoor finds no
+// collinear pair. Its closed leaf is then ~1 wall-thickness off the wall
+// centerline, and rendering the leaf there makes the door float away from the
+// adjacent wall (feedback.png). Snap the closed leaf onto the nearest collinear
+// wall line so the opening stays coplanar with that wall.
+export function closedLeafProjectedOntoWall(segments, closedLeafSegment, wallThickness = 12) {
+  const leaf = segmentVector(closedLeafSegment || {});
+  if (leaf.length < 24) return null;
+  const maxPerpendicular = Math.max(30, Number(wallThickness) * 2.4);
+  const midX = (leaf.start.x + leaf.end.x) / 2;
+  const midZ = (leaf.start.z + leaf.end.z) / 2;
+  let best = null;
+  (segments || []).forEach((segment) => {
+    const wall = segmentVector(segment);
+    if (wall.length < 4) return;
+    const parallel = Math.abs(wall.unitX * leaf.unitX + wall.unitZ * leaf.unitZ);
+    if (parallel < 0.98) return;
+    const relX = midX - wall.start.x;
+    const relZ = midZ - wall.start.z;
+    const perpendicular = Math.abs(relX * -wall.unitZ + relZ * wall.unitX);
+    if (perpendicular > maxPerpendicular) return;
+    const along = relX * wall.unitX + relZ * wall.unitZ;
+    // Only snap onto a wall the door actually abuts — inside its span, or just
+    // past an end — never a far collinear wall on the other side of the plan.
+    const gapToExtent = along < 0
+      ? -along
+      : (along > wall.length ? along - wall.length : 0);
+    if (gapToExtent > Math.max(leaf.length, 60)) return;
+    const score = perpendicular + gapToExtent * 0.1;
+    if (!best || score < best.score) best = { wall, score };
+  });
+  if (!best) return null;
+  const projectPoint = (targetPoint) => {
+    const relX = targetPoint.x - best.wall.start.x;
+    const relZ = targetPoint.z - best.wall.start.z;
+    const along = relX * best.wall.unitX + relZ * best.wall.unitZ;
+    return {
+      x: best.wall.start.x + best.wall.unitX * along,
+      z: best.wall.start.z + best.wall.unitZ * along,
+    };
+  };
+  return { start: projectPoint(leaf.start), end: projectPoint(leaf.end) };
+}
+
 export function openingBelongsToWall(segment, opening, wallThickness = 12) {
   if (opening?.topology_gap) return false;
   const wall = segmentVector(segment);
@@ -196,16 +241,25 @@ export function doorOpeningForWallTopology(
   if (door.step4_confirmed === true) {
     const persistedOpening = segmentVector(door.confirmed_wall_opening || {});
     const wallGap = confirmedWallGapForDoor(segments, door, wallThickness);
+    // Doors at the end of a wall have no two-wall gap. Snap the closed leaf onto
+    // the nearest wall line so the leaf renders in the wall plane, not floating.
+    const projectedOpening = wallGap
+      ? null
+      : closedLeafProjectedOntoWall(segments, closedLeafSegment, wallThickness);
     const confirmedOpening = persistedOpening.length >= 4
       ? { start: { ...persistedOpening.start }, end: { ...persistedOpening.end } }
-      : wallGap;
+      : (wallGap || projectedOpening);
     return {
       ...door,
       topology_gap: true,
       step4_skip_wall_cut: true,
       opening_source: persistedOpening.length >= 4
         ? "persisted_step4_wall_gap"
-        : "confirmed_wall_gap",
+        : wallGap
+          ? "confirmed_wall_gap"
+          : projectedOpening
+            ? "projected_wall_line"
+            : "unresolved_closed_leaf",
       wall_opening_segment: confirmedOpening,
       topology_gap_key: confirmedOpening
         ? topologyGapKey(confirmedOpening.start, confirmedOpening.end)
