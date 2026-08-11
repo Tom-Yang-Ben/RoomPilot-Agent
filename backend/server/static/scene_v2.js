@@ -3870,12 +3870,17 @@ function renderRoomSchemeGate() {
 
 function roomHasComparableSchemeB(room) {
   const schemeB = state.designSchemes.schemes.B;
-  return Boolean(
-    room
-    && schemeB
-    && !schemeB.stale
-    && schemeFurnitureForRoom("B", room.id).length,
-  );
+  if (!room || !schemeB || schemeB.stale || !schemeFurnitureForRoom("B", room.id).length) {
+    return false;
+  }
+  // B 與 A 在此房擺法完全相同 → 視為「沒有可比較的方案 B」。有些房幾何上只有一種
+  // 合理擺法(客廳沙發+電視需兩面相對實牆+中間淨空走廊,門/窗/陽台開口多時只剩一組
+  // 相對牆),variant B 找不到不同的合法擺法而回退成 A;此時不該顯示兩張一模一樣的卡。
+  const fingerprint = (schemeId) => schemeFurnitureForRoom(schemeId, room.id)
+    .map((item) => `${item.id}|${Math.round(item.xCm)}|${Math.round(item.yCm)}|${Math.round(item.rotationDeg || 0)}`)
+    .sort()
+    .join(";");
+  return fingerprint("A") !== fingerprint("B");
 }
 
 function roomSchemePreviewKey(schemeId, roomId) {
@@ -4405,13 +4410,13 @@ function renderRoomSchemeSelectionDialog() {
     return `<button type="button" data-room-scheme-room="${escapeHtml(item.id)}"
       class="${String(item.id) === String(room.id) ? "is-active" : ""}">
       <strong>${escapeHtml(item.label || "未命名空間")}</strong>
-      <small>${isAutoSelected ? "方案 A（無完整 B 可比較）" : (selectedScheme ? `已選方案 ${selectedScheme}` : "尚未選擇")}</small>
+      <small>${isAutoSelected ? "方案 A（此房無不同擺法可比較）" : (selectedScheme ? `已選方案 ${selectedScheme}` : "尚未選擇")}</small>
     </button>`;
   }).join("");
   const hasComparableB = roomHasComparableSchemeB(room);
   element.roomSchemeStatus.textContent = hasComparableB
     ? `請比較兩個方案的家具位置與 3D 房間畫面，再選擇較符合需求的一個。`
-    : `此房間目前沒有完整的方案 B 3D 場景可比較，系統已先採用方案 A；後續仍可挑選、替換與鎖定家具。`;
+    : `此房沒有與方案 A 不同的擺法可比較（此房型幾何上僅一種合理配置，或方案 B 尚未就緒），系統已先採用方案 A；後續仍可挑選、替換與鎖定家具。`;
   element.roomSchemeChoiceGrid.innerHTML = ["A", ...(hasComparableB ? ["B"] : [])].map((schemeId) => {
     const scheme = state.designSchemes.schemes[schemeId];
     const furniture = schemeFurnitureForRoom(schemeId, room.id);
@@ -12714,6 +12719,8 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
         // When a selected item has no GLB, omit only that item from generation and
         // surface it in step 6. The generator must never add furniture the user did not select.
         selected_furniture_exact: strictSelectedFurniture || allowPendingFurniture,
+        // 方案 B 白模生成也要用 variant B；不帶的話後端預設重排成 A，會讓 A/B 擺設一樣。
+        placement_variant: activeSchemeId(),
       }),
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);

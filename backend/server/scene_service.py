@@ -2891,6 +2891,7 @@ def build_scene_payload(
     floorplan_path: str | None,
     room_width_cm: float,
     room_depth_cm: float,
+    placement_variant: str = "A",
 ) -> dict[str, Any]:
     parsed_floorplan = None
     engine_room = None
@@ -2939,6 +2940,8 @@ def build_scene_payload(
         room=engine_room,
         floorplan=parsed_floorplan,
         regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
+        # 方案 B 白模生成要用 variant B,否則整場被重排成與 A 相同(A/B 擺設一樣的根因)。
+        placement_variant=placement_variant,
         # agent 的擺位紀律(主件先、成組語意)必須從第一次擺位就生效:
         # 沒有 hints 時 generate_layout 不登記 neighbors,成組候選
         # (電視櫃在沙發對面牆、茶几在沙發正前)整條路是死的,電視櫃
@@ -2966,6 +2969,7 @@ def build_scene_payload(
                 room=engine_room,
                 floorplan=parsed_floorplan,
                 regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
+                placement_variant=placement_variant,
                 # 提示每次依潛規則重算,換小/移除後主副件順序仍正確
                 hints=placement_hints(working_items),
             )

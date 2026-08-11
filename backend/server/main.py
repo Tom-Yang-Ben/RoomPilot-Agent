@@ -3626,12 +3626,17 @@ async def generate_scene(payload: dict) -> dict:
         "furniture_random_seed": payload.get("furniture_random_seed"),
     }
 
+    # 方案 A/B 白模生成走各自的 variant；不帶就預設 A（單方案專案不受影響）。
+    placement_variant = str(payload.get("placement_variant") or "A").upper()
+    if placement_variant not in {"A", "B"}:
+        placement_variant = "A"
     scene_payload = build_scene_payload(
         site_payload=site_payload,
         questionnaire=questionnaire,
         floorplan_path=payload.get("floorplan_filename"),
         room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
         room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
+        placement_variant=placement_variant,
     )
     return {
         **scene_payload,

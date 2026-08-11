@@ -115,6 +115,66 @@ def test_scene_payload_prioritizes_library_selected_furniture():
     assert "auto-table" in furniture_ids
 
 
+def test_scene_payload_placement_variant_b_differs_from_a():
+    """方案 B 白模生成走 variant B → 擺法要跟 A 不同。
+
+    根因：第 6 步方案 B 的 2D relayout 本來就用 variant B 算出不同座標，但白模生成
+    ``/api/scene/generate`` → ``build_scene_payload`` → ``generate_layout_by_room`` 之前
+    沒把 variant 帶下去，整場被重排成與 A 相同，覆蓋掉 B 的 relayout（A/B 擺設一樣）。
+    """
+    def _f(fid, ftype, w, d):
+        return {
+            "furniture_id": fid,
+            "name_zh_raw": fid,
+            "normalized_type": ftype,
+            "has_model": True,
+            "model_url": f"/models/{fid}.glb",
+            "primary_style": "scandinavian",
+            "size_cm": {"width": w, "depth": d, "height": 80},
+        }
+
+    catalog = [_f("sofa-1", "sofa", 210, 90), _f("coffee-1", "coffee-table", 110, 60), _f("tv-1", "tv-bench", 160, 45)]
+    site_payload = {
+        "styles": [{"style_id": "scandinavian", "style_name_zh": "北歐風"}],
+        "taiwan_style_cards": [],
+        "surface_catalog": {},
+        "furniture": catalog,
+    }
+    questionnaire = {
+        "space_type": "living_room",
+        "style_preference": "scandinavian",
+        "required_furniture": ["sofa", "coffee-table", "tv-bench"],
+        "selected_furniture": catalog,
+        "selected_furniture_exact": True,
+        "preferred_colors": [],
+        "custom_colors": [],
+    }
+
+    def positions(variant):
+        payload = build_scene_payload(
+            site_payload=site_payload,
+            questionnaire=dict(questionnaire),
+            floorplan_path=None,
+            room_width_cm=450,
+            room_depth_cm=380,
+            placement_variant=variant,
+        )
+        return {
+            obj["furniture_id"]: (
+                round(obj["position_cm"]["x"]),
+                round(obj["position_cm"]["z"]),
+                round(float(obj.get("rotation_y_deg") or 0)),
+            )
+            for obj in payload["scene_objects"]
+            if obj.get("position_cm")
+        }
+
+    scheme_a = positions("A")
+    scheme_b = positions("B")
+    assert scheme_a and scheme_b  # 兩案都有擺好的家具
+    assert scheme_a != scheme_b  # A/B 擺法不同（修好前 variant 沒帶下去，這裡會相等）
+
+
 def test_scene_payload_reports_agent_placement_resolution(monkeypatch):
     selected_sofa = {
         "furniture_id": "huge-sofa",

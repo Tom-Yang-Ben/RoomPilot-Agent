@@ -3767,6 +3767,16 @@ def test_step_six_exposes_the_per_room_scheme_selection_workflow() -> None:
         assert f'id="{element_id}"' in html
 
 
+def test_room_scheme_hides_identical_b_as_no_alternative() -> None:
+    """B 與 A 在某房擺法完全相同時（例：客廳沙發+電視受幾何鎖死，variant B 找不到
+    不同的合法擺法而回退成 A），roomHasComparableSchemeB 回 false → 不顯示兩張一模
+    一樣的卡，標成「已採方案 A」，避免被誤會成 bug。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    fn = source.split("function roomHasComparableSchemeB(room)", 1)[1].split("\nfunction ", 1)[0]
+    assert 'fingerprint("A") !== fingerprint("B")' in fn  # A、B 擺法相同就不算可比較的 B
+    assert "schemeFurnitureForRoom" in fn
+
+
 def test_step_six_gates_furniture_tuning_behind_the_room_scheme_choice() -> None:
     """第 6 步動線:先逐房選定 A/B、合成唯一方案,才拿該方案的擺設去微調家具
     (docs/ROOMPILOT_6_8_AGENT_RENDER_IMPLEMENTATION_SPEC.md §A/B 選擇階段、§驗收條件 3)。
