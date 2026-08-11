@@ -176,8 +176,8 @@ def test_ai_renders_keep_each_room_furniture_isolated() -> None:
     assert {row["room_id"] for row in outcome["results"]} == {LIVING, BEDROOM, STUDY}
 
     prompts = gateway.prompts
-    # 每件家具只出現在自己房間的那一張提示詞，不跨房洩漏。
-    assert sum("北歐布沙發" in prompt for prompt in prompts) == 1
+    # 每件家具只出現在自己房間的提示詞，不跨房洩漏；客廳日光＋夜間兩張都帶自己的沙發。
+    assert sum("北歐布沙發" in prompt for prompt in prompts) == 2  # 客廳日光 + 夜間
     assert sum("雙人床架" in prompt for prompt in prompts) == 1
     # 沒有任何一張提示詞同時混入兩房的家具。
     assert all(

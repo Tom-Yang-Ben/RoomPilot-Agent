@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-17ef73842f8f" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-6cc7e25c8e7e" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -909,7 +909,14 @@
               </div>
               <strong id="locked-scheme-label">尚未鎖定配置</strong>
             </div>
-            <div id="proposal-review-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="方案與渲染比較視角"></div>
+            <div id="proposal-review-viewer" class="rp-three-viewer" data-render-quality="realistic" aria-label="方案與渲染比較視角">
+              <div id="proposal-review-image-stage" class="rp-render-image-stage" hidden role="button" tabindex="0" aria-label="點擊空白處切回 3D 場景">
+                <img id="proposal-review-image" alt="色卡比較圖" />
+                <span id="proposal-review-image-caption" class="rp-render-image-caption" aria-live="polite"></span>
+                <button id="proposal-review-stage-close" type="button" class="rp-render-stage-close">✕ 切回 3D 場景</button>
+                <span class="rp-render-image-hint">點擊空白處切回 3D 場景</span>
+              </div>
+            </div>
             <p id="proposal-review-status" class="rp-viewer-status">先核對方案，最後再調整並鎖定色卡比較視角。</p>
           </div>
           <aside class="rp-control-pane rp-3d-sidebar">
@@ -1207,6 +1214,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-0c58a5cc56ad"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-a2a5b55e8f1d"></script>
   </body>
 </html>

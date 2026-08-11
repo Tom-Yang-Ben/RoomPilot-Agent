@@ -20,7 +20,8 @@
 - `POST /api/projects/{id}/ai-renders`
   - 請求：`{project_id, scene, rooms:[{room_id, room_label, reference_png_data_url, note?}]}`
     - `reference_png_data_url` 為該房鎖定視角的 Three.js 截圖（`data:image/png;base64,...`）。
-  - 回應：`{results:[{room_id, room_label, status, image_id?, image_data_url?, model?, notices}], edit_remaining, revision, updated_at}`
+  - 回應：`{results:[{room_id, room_label, status, image_id?, image_data_url?, model?, notices, night_image_data_url?, night_image_id?, night_model?}], edit_remaining, revision, updated_at}`
+  - 客廳（`room_type=living_room` 或房名含「客廳」）額外回一張夜間燈光圖 `night_image_data_url`（同鎖定視角/同色卡 img2img，只換光影提示）；夜間失敗不影響日光初稿，附 `night_notices`。
   - 單房失敗只標記該房 `status:"failed"`，其餘照常回傳。
 - `POST /api/projects/{id}/ai-renders/{room_id}/edit`
   - 請求：`{feedback, image_data_url}`（`image_data_url` 為要修改的當前圖）。

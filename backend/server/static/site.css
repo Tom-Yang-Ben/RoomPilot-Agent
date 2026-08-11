@@ -13689,6 +13689,37 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
   to { transform: rotate(360deg); }
 }
 
+/* 第 8 步逐房生圖：日光/夜間縮圖（小尺寸不撐破面板；點擊放大到左側 3D 疊層） */
+.rp-final-render-bulk { margin: 2px 0 8px; }
+.rp-final-render-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+.rp-final-render-thumb {
+  display: grid;
+  gap: 3px;
+  padding: 0 0 4px;
+  border: 1px solid #dbe4de;
+  border-radius: 8px;
+  background: #fff;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+.rp-final-render-thumb img {
+  display: block;
+  width: 118px;
+  height: 80px;
+  object-fit: cover;
+}
+.rp-final-render-thumb small {
+  font-size: 11px;
+  color: #5f6c64;
+  text-align: center;
+}
+.rp-final-render-thumb:hover { border-color: #2f6f4f; }
+
 /* 第 8 步:生圖完成後取代左側 3D 場景;點圖回 3D、點「查看生圖」切回 */
 .rp-render-image-stage {
   position: absolute;

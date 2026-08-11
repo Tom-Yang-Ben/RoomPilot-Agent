@@ -144,6 +144,28 @@ def test_prompt_supplements_all_collected_info() -> None:
     assert _png_b64((10, 20, 30)) in gateway.image_inputs[0][0]
 
 
+def test_living_room_gets_extra_night_image() -> None:
+    """客廳額外出一張夜間燈光圖：同鎖定視角/同色卡的第二次 img2img，只換夜間光影提示。
+    夜間圖是額外欄位，不影響日光初稿。"""
+    gateway = CapturingGateway()
+    outcome = generate_room_images(_scene(), _rooms(), gateway=gateway)
+    row = outcome["results"][0]
+    assert row["room_id"] == "living-1" and row["status"] == "completed"
+    assert row["night_image_data_url"].startswith("data:image/png;base64,")
+    # 兩次呼叫：日光 + 夜間；夜間那張帶夜晚光影提示、且同一張視角截圖當 img2img。
+    assert len(gateway.prompts) == 2
+    assert "夜" in gateway.prompts[1]
+    assert gateway.image_inputs[1] == gateway.image_inputs[0]
+
+
+def test_non_living_room_has_no_night_image() -> None:
+    gateway = CapturingGateway()
+    rooms = [{"room_id": "study-1", "room_label": "書房", "reference_png_data_url": REFERENCE_PNG}]
+    outcome = generate_room_images(_scene(), rooms, gateway=gateway)
+    assert "night_image_data_url" not in outcome["results"][0]
+    assert len(gateway.prompts) == 1
+
+
 def test_palette_uses_official_style_cards_not_scene_pack_colors() -> None:
     """v2 前端會把 style_card.palette_hex 蓋成 3D 場景四色（scene_style_packs.js）；
     生圖色調必須以 card_id 回查官方 taiwan_style_cards.json 的 60/30/10 三色。"""

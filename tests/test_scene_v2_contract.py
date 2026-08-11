@@ -903,6 +903,56 @@ def test_step_seven_palette_image_reused_as_step_eight_representative_render() -
     assert "currentRoomState.reused_from_palette && !currentRoomState.image_id" in source
 
 
+def test_step_seven_palette_thumbnails_open_in_proposal_review_3d_overlay() -> None:
+    """第 7 步色卡比較圖：點縮圖放大到 #proposal-review-viewer 自己的疊層（該步 3D
+    區），不是第 8 步 #ai-render-image-stage（在隱藏面板）。綁在動態產生的
+    #proposal-palette-render-results 實際容器上，不用會被重指的
+    element.paletteRenderResults（init 綁的是第 8 步靜態容器）。"""
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    viewer = html.split('id="proposal-review-viewer"')[1][:600]
+    assert 'id="proposal-review-image-stage"' in viewer      # 第 7 步 viewer 內有疊層
+    assert 'class="rp-render-image-stage"' in viewer          # 沿用同款疊層樣式
+
+    stage_fn = source.split("function ensureProposalStyleStage()", 1)[1].split(
+        "\nfunction ", 1
+    )[0]
+    assert '#proposal-palette-render-results")?.addEventListener("click"' in stage_fn
+    assert "showProposalPaletteImageEnlarged(" in stage_fn
+
+    show_fn = source.split("function showProposalPaletteImageEnlarged(src, label)", 1)[1].split(
+        "\nfunction ", 1
+    )[0]
+    assert "element.proposalReviewImageStage" in show_fn      # 作用在第 7 步疊層
+    assert "aiRenderImageStage" not in show_fn                # 不是第 8 步疊層
+
+
+def test_step_eight_bulk_generate_and_day_night_thumbnails() -> None:
+    """第 8 步：一鍵全部生圖只有 bulk 才有全螢幕等待動畫（單張不顯示）；房型送後端判
+    客廳→多回夜間圖；日光/夜間縮圖可點放大到左側 3D 疊層。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    bulk = source.split("async function submitAllRoomRenders()", 1)[1].split(
+        "\nasync function ", 1
+    )[0]
+    assert "beginPlacementBusy(" in bulk and "endPlacementBusy()" in bulk  # 一鍵全生才有等待動畫
+    assert "night_image_data_url: row.night_image_data_url" in bulk        # bulk 也存夜間圖
+
+    single = source.split("async function submitRoomRenders(", 1)[1].split(
+        "\nasync function ", 1
+    )[0]
+    assert "beginPlacementBusy(" not in single                             # 單張不顯示過場動畫
+
+    payload = source.split("function aiRenderRoomPayload(", 1)[1].split("\nfunction ", 1)[0]
+    assert "room_type: room.type || room.room_type" in payload             # 房型給後端判客廳
+
+    flow = source.split("function renderFinalRoomWorkflow()", 1)[1].split("\nfunction ", 1)[0]
+    assert 'id="submit-all-room-renders"' in flow and "submitAllRoomRenders" in flow
+    assert 'data-render-thumb="day"' in flow and 'data-render-thumb="night"' in flow
+    assert "showRenderImageEnlarged(url, label)" in flow                   # 縮圖點擊放大
+
+
 def test_realistic_entry_reveals_the_scene_exactly_once() -> None:
     """進即時寫實一次呈現(bella 架構):realistic_3d 映射白模面板,材質走白模
     側欄「牆面與地面」分頁。進場把問卷表面一次套進場景(applyQuestionnaire

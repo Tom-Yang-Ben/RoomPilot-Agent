@@ -316,6 +316,15 @@ def _layout_room(room: dict, room_id: str, width_cm: float, depth_cm: float) -> 
     )
 
 
+def _is_living_room(room: dict) -> bool:
+    """客廳判定：room_type 權威、中文房名「客廳」後援（對齊 agent 的 _is_living_room）。
+    客廳才額外出一張夜間燈光圖（設計手冊日光＋夜間並列）。"""
+    return (
+        str(room.get("room_type") or "") == "living_room"
+        or "客廳" in str(room.get("room_label") or "")
+    )
+
+
 # ------------------------------------------------------------------- 對外流程
 
 
@@ -374,16 +383,36 @@ def generate_room_images(
                 },
                 None,
             )
+        result = {
+            "room_id": room_id,
+            "room_label": layout_room.name,
+            "status": "completed",
+            "image_id": record.image_id,
+            "image_data_url": _as_data_url(record.image_ref),
+            "model": record.model,
+            "notices": record.notices,
+        }
+        if _is_living_room(room):
+            # 客廳額外出一張夜間燈光圖（同鎖定視角/同色卡 img2img，只換光影提示）。
+            # 夜間失敗不影響日光初稿，只附提示原因，不擋整批。
+            try:
+                night = agent.render_room(
+                    requirements,
+                    scene_doc,
+                    layout_room,
+                    images,
+                    stage="full_render_night",
+                    palette=palette,
+                    viewpoint=viewpoint,
+                    lighting="night",
+                )
+                result["night_image_id"] = night.image_id
+                result["night_image_data_url"] = _as_data_url(night.image_ref)
+                result["night_model"] = night.model
+            except GenPicFailure as exc:
+                result["night_notices"] = exc.notices
         return (
-            {
-                "room_id": room_id,
-                "room_label": layout_room.name,
-                "status": "completed",
-                "image_id": record.image_id,
-                "image_data_url": _as_data_url(record.image_ref),
-                "model": record.model,
-                "notices": record.notices,
-            },
+            result,
             {
                 "room_id": room_id,
                 "room_label": layout_room.name,
