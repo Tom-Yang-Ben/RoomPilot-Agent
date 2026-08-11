@@ -879,8 +879,28 @@ def test_step_eight_render_image_replaces_viewer_and_toggles() -> None:
     assert 'id="ai-render-image-stage"' in viewer_markup       # 圖疊在 3D viewer 內
     assert 'id="ai-render-image-toggle"' in viewer_markup
     assert "function updateAiRenderImageStage" in source
-    assert "aiRenderImageVisible = done > 0" in source          # 生圖完成即取代 3D
+    assert "showRenderImageEnlarged(renderedImage" in source    # 逐房生圖完成即在左側疊層放大呈現(不內嵌面板)
     assert source.count("updateAiRenderImageStage()") >= 4      # 生成/選房/雙向切換都同步
+
+
+def test_step_seven_palette_image_reused_as_step_eight_representative_render() -> None:
+    """少生一張圖:第 7 步選定色卡那張比較圖 = 代表房用該色卡的全房生圖(同視角/
+    同色卡/同 stage),確認色卡時直接塞進 finalRooms[代表房]當初稿,第 8 步不再重生;
+    沿用者無伺服器端 lock_manifest,改圖改走整房重生。"""
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+    seed = source.split("function seedRepresentativeRoomRenderFromPalette()", 1)[1].split(
+        "\nfunction ", 1
+    )[0]
+    assert "state.paletteRenderImages?.[cardId]" in seed      # 用選定色卡那張圖
+    assert "reused_from_palette: true" in seed
+    assert "submitted_at" in seed                             # 塞成已完成初稿,第 8 步跳過
+
+    confirm = source.split("function confirmRenderPalette()", 1)[1].split("\nfunction ", 1)[0]
+    assert "seedRepresentativeRoomRenderFromPalette()" in confirm
+
+    # 沿用房改圖無 lock_manifest → 轉成整房重生
+    assert "currentRoomState.reused_from_palette && !currentRoomState.image_id" in source
 
 
 def test_realistic_entry_reveals_the_scene_exactly_once() -> None:

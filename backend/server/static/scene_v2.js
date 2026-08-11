@@ -571,14 +571,6 @@ const element = {
   aiRenderGallery: $("#ai-render-gallery"),
   aiRenderStageClose: $("#ai-render-stage-close"),
   aiRenderImageToggle: $("#ai-render-image-toggle"),
-  aiOpenrouterStatus: $("#ai-openrouter-status"),
-  aiOpenrouterGenerate: $("#ai-openrouter-generate"),
-  aiOpenrouterGallery: $("#ai-openrouter-gallery"),
-  aiOpenrouterResults: $("#ai-openrouter-results"),
-  aiOpenrouterEditDialog: $("#ai-openrouter-edit-dialog"),
-  aiOpenrouterEditRoom: $("#ai-openrouter-edit-room"),
-  aiOpenrouterEditFeedback: $("#ai-openrouter-edit-feedback"),
-  aiOpenrouterEditStatus: $("#ai-openrouter-edit-status"),
   deliveryProposalStatus: $("#delivery-proposal-status"),
   deliveryProposalGenerate: $("#delivery-proposal-generate"),
   deliveryProposalDownload: $("#delivery-proposal-download"),
@@ -15799,8 +15791,36 @@ function confirmRenderPalette() {
     if (status) status.textContent = message;
     return;
   }
+  seedRepresentativeRoomRenderFromPalette();
   scheduleSave("proposal_review");
   goTo("ai_render");
+}
+
+// 少生一張圖:第 7 步選中的那張色卡比較圖,就是「代表房 × 選定色卡」的全房生圖
+// (同一鎖定視角截圖、同色卡、同 stage=full_render),等同第 8 步會為代表房生的初稿。
+// 確認色卡時直接把它塞進 finalRooms[代表房] 當初稿,第 8 步就不用再為代表房生一次。
+// base64 僅在記憶體(state.paletteRenderImages);重載後沒有就照常重生,與其他房一致。
+function seedRepresentativeRoomRenderFromPalette() {
+  const roomId = state.proposalReview.representativeRoomId;
+  const cardId = state.proposalReview.confirmedStyleCardId;
+  const image = state.paletteRenderImages?.[cardId];
+  if (!roomId || !cardId || !image) return;
+  state.proposalReview.finalRooms ||= {};
+  if (state.proposalReview.finalRooms[roomId]?.submitted_at) return; // 已重生過就不覆蓋
+  state.proposalReview.finalRooms[roomId] = {
+    submitted_at: new Date().toISOString(),
+    notes: "沿用第 7 步選定色卡的比較圖",
+    image_data_url: image,
+    model: null,
+    notices: [],
+    reused_from_palette: true, // 無伺服器端 lock_manifest;要改圖得整房重新生成
+  };
+  // 第 8 步直接落在還要生的房;若代表房是唯一房(全部已備)則標記此步完成。
+  const nextPending = state.rooms.find(
+    (item) => !state.proposalReview.finalRooms?.[item.id]?.submitted_at,
+  );
+  if (nextPending) state.selectedRenderRoomId = nextPending.id;
+  else state.workflow.complete("ai_render", { confirmed: true, initial_room_renders: true });
 }
 
 function legacyConfirmRenderPaletteV1b() {
@@ -16323,7 +16343,6 @@ function legacyRenderFinalRoomWorkflow() {
     </div>`;
   host.querySelectorAll("[data-final-render-room]").forEach((button) => button.addEventListener("click", () => selectRenderRoom(button.dataset.finalRenderRoom)));
   host.querySelector("#submit-final-room-render")?.addEventListener("click", () => openRenderBriefDialog("room_final"));
-  host.querySelector("#download-engineering-delivery")?.addEventListener("click", downloadEngineeringDelivery);
 }
 
 function legacyDownloadEngineeringDeliveryV1() {
@@ -16538,17 +16557,18 @@ function renderFinalRoomWorkflow() {
       ${context.fallbackUsed ? `<p class="rp-context-fallback">${escapeHtml(context.fallbackNotice)}</p>` : ""}
       <strong>已鎖定家具</strong><p>${escapeHtml(context.lockedFurniture.join("、") || "未鎖定")}</p>
     </div>
-    ${finalImageUrl ? `<figure class="rp-final-render-image"><img src="${escapeHtml(finalImageUrl)}" alt="${escapeHtml(room.label)} AI render"><figcaption>${revised ? "已完成一次修圖" : "初稿生圖已完成"}</figcaption></figure>` : ""}
     ${!initialComplete ? `<label>本房初稿補充<textarea id="final-room-adjustment" rows="3" placeholder="例：採光柔和、木質更溫潤、閱讀角更明確。"></textarea></label><button id="submit-final-room-render" type="button" class="primary-action">確認本房並生圖</button>` : ""}
     ${initialComplete && !allInitialComplete ? `<p class="rp-success-message">本房初稿已送出。請完成其他房間初稿後，再回來做每張圖一次修改。</p>` : ""}
     ${initialComplete && allInitialComplete && !revised ? `<label>針對這張圖修改一次<textarea id="final-room-adjustment" rows="3" placeholder="例：讓燈光更暖、減少雜物、窗邊更明亮。不能修改空間、牆、門窗、固定家具或視角。"></textarea></label><button id="request-room-revision" type="button" class="primary-action">確認修改詞彙並重新生圖</button>` : ""}
     ${revised ? `<p class="rp-success-message">本房已使用一次修改額度。</p>` : ""}
-    ${allInitialComplete ? `<button id="download-engineering-delivery" type="button" class="secondary-action">建立並查看裝潢簡報與費用明細</button>` : ""}
+    ${allInitialComplete ? `<button id="download-engineering-delivery" type="button" class="secondary-action">建立並查看成果包（含工程報價與預算）</button>` : ""}
   </section>`;
   host.querySelectorAll("[data-final-render-room]").forEach((button) => button.addEventListener("click", () => selectRenderRoom(button.dataset.finalRenderRoom)));
   host.querySelector("#submit-final-room-render")?.addEventListener("click", () => openRenderBriefDialog("room_final", "initial"));
   host.querySelector("#request-room-revision")?.addEventListener("click", () => openRenderBriefDialog("room_final", "revision"));
   host.querySelector("#download-engineering-delivery")?.addEventListener("click", downloadEngineeringDelivery);
+  // 生圖結果改在左側 3D 疊層呈現(不再內嵌本面板,避免撐破排版);跟著目前選取房間走。
+  updateAiRenderImageStage();
 }
 
 function selectRenderRoom(roomId) {
@@ -16611,8 +16631,6 @@ async function prepareAiRender() {
   } catch (error) {
     element.aiRenderProviderState.textContent = `無法取得生圖服務狀態：${errorMessage(error)}`;
   }
-  void refreshAiOpenrouterStatus();
-  renderAiOpenrouterResults();
   restoreDeliveryProposalPanel();
   updateAiRenderImageStage();
 }
@@ -16946,8 +16964,13 @@ async function submitRoomRenders(renderBrief = null) {
   const room = state.rooms.find((item) => String(item.id) === String(state.selectedRenderRoomId));
   const view = room && state.proposalReview.roomViews?.[room.id];
   if (!room || !view) return;
-  const action = renderBrief?.render_action === "revision" ? "revision" : "initial";
+  let action = renderBrief?.render_action === "revision" ? "revision" : "initial";
   const currentRoomState = state.proposalReview.finalRooms?.[room.id] || {};
+  // 沿用色卡圖的代表房沒有伺服器端 lock_manifest,改圖無圖可改;要改就整房重新生成
+  // (此時才真的消耗一次生成),之後就有 lock_manifest 可正常改圖。
+  if (action === "revision" && currentRoomState.reused_from_palette && !currentRoomState.image_id) {
+    action = "initial";
+  }
   if (action === "revision" && currentRoomState.revision_submitted_at) {
     if (element.aiRenderStatus) element.aiRenderStatus.textContent = "此房已使用一次修改額度。";
     return;
@@ -16956,6 +16979,11 @@ async function submitRoomRenders(renderBrief = null) {
     if (element.aiRenderStatus) element.aiRenderStatus.textContent = "請先完成此房初稿，再提出一次修改。";
     return;
   }
+  // 生圖是數十秒的模型呼叫:全螢幕等待遮罩明確告知進行中,並擋住重複送出。
+  beginPlacementBusy(action === "revision"
+    ? "正在依你的意見修改生圖，請稍候…"
+    : "正在生成寫實圖，請稍候…（依房間數與模型速度可能需數十秒）");
+  if (element.aiRenderStatus) element.aiRenderStatus.textContent = "生圖中，請稍候…";
   try {
     state.proposalReview.finalRooms ||= {};
     if (action === "revision") {
@@ -17004,9 +17032,15 @@ async function submitRoomRenders(renderBrief = null) {
     if (nextRoom) state.selectedRenderRoomId = nextRoom.id;
     else state.workflow.complete("ai_render", { confirmed: true, initial_room_renders: true });
     renderFinalRoomWorkflow();
+    // 生圖完成即把這張圖放到左側 3D 疊層呈現(取代舊的面板內嵌,避免排版跑掉)。
+    const renderedImage = state.proposalReview.finalRooms?.[room.id]?.revision_image_data_url
+      || state.proposalReview.finalRooms?.[room.id]?.image_data_url;
+    if (renderedImage) showRenderImageEnlarged(renderedImage, room.label);
     scheduleSave("ai_render");
   } catch (error) {
     if (element.aiRenderStatus) element.aiRenderStatus.textContent = `生圖失敗：${errorMessage(error)}`;
+  } finally {
+    endPlacementBusy();
   }
 }
 
@@ -17269,81 +17303,22 @@ function roomWalkPayload(room) {
   };
 }
 
-async function refreshAiOpenrouterStatus() {
-  if (!element.aiOpenrouterStatus) return;
-  element.aiOpenrouterStatus.textContent = "正在檢查 OpenRouter 生圖服務…";
-  try {
-    const status = await api("/api/ai-render/status");
-    element.aiOpenrouterStatus.textContent = status.configured
-      ? `已連接 OpenRouter（${status.model}）。`
-      : "尚未設定 OpenRouter 生圖服務（未設定 OPENROUTER_API_KEY）。";
-    if (element.aiOpenrouterGenerate) element.aiOpenrouterGenerate.disabled = !status.configured;
-  } catch {
-    element.aiOpenrouterStatus.textContent = "無法取得 OpenRouter 生圖服務狀態。";
-  }
-}
-
-function lockedRoomViews() {
-  return state.rooms
-    .map((room) => state.proposalReview.roomViews[room.id])
-    .filter(Boolean);
-}
-
-async function runAiOpenrouterRender() {
-  const allViews = lockedRoomViews();
-  if (!allViews.length) {
-    element.aiOpenrouterStatus.textContent = "請先在第 7 步鎖定至少一個房間視角。";
-    return;
-  }
-  if (!state.sceneData) return;
-  // 逐房生圖：第 7 步鎖定的每個房間都要用自己的視角送圖（指南 §3E）。
-  const views = allViews;
-  element.aiOpenrouterGenerate.disabled = true;
-  element.aiOpenrouterStatus.textContent = `正在為 ${views.length} 個房間視角逐一生成寫實圖…`;
-  // 逐房把該視角截圖當 img2img 參考，模型才會保持家具與格局不動。
-  const rooms = views.map((view) => {
-    aiRenderViewer.setCameraState(view.camera);
-    return {
-      room_id: view.room_id,
-      room_label: view.room_label,
-      camera: view.camera,
-      reference_png_data_url: aiRenderViewer.capturePng(),
-    };
-  });
-  try {
-    const result = await api(`/api/projects/${state.projectId}/ai-renders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ project_id: state.projectId, scene: state.sceneData, rooms }),
-    });
-    syncProjectRevision(result);
-    state.proposalReview.openRouterRenders = {
-      results: result.results,
-      editRemaining: result.edit_remaining,
-      generated_at: new Date().toISOString(),
-    };
-    const done = result.results.filter((row) => row.status === "completed").length;
-    const failed = result.results.length - done;
-    element.aiOpenrouterStatus.textContent = failed
-      ? `完成 ${done} 房、失敗 ${failed} 房；完成的圖各可用整批唯一一次修改調整。`
-      : `已完成 ${done} 個房間的寫實生圖；可用整批唯一一次修改調整。`;
-    renderStageView = null;            // 清掉先前色卡放大,改顯示這批新生圖
-    aiRenderImageVisible = done > 0;    // 生圖完成即取代左側 3D;點擊可隨時切換
-    renderAiOpenrouterResults();
-  } catch (error) {
-    element.aiOpenrouterStatus.textContent = errorMessage(error);
-  } finally {
-    element.aiOpenrouterGenerate.disabled = false;
-  }
-}
-
 // 第 8 步版面:生圖可放大蓋住左側 3D 場景,點空白/關閉鈕回 3D。
 // renderStageView 決定疊層內容:single=單張放大(色卡或某房)、gallery=已生成圖片牆;
 // 為 null 時回退到「目前選取房間」的生圖,維持生圖完成即自動預覽的舊行為。
 function completedOpenrouterRows() {
-  return (state.proposalReview.openRouterRenders?.results || []).filter(
-    (row) => row.status === "completed" && row.image_data_url,
-  );
+  // 逐房生圖結果來源:finalRooms(bella 逐房流)。沿用 {room_id, room_label,
+  // image_data_url} 形狀供左側疊層/圖片牆共用;修圖後優先取 revision 圖。
+  const finals = state.proposalReview.finalRooms || {};
+  return state.rooms
+    .map((room) => {
+      const final = finals[String(room.id)];
+      const image = final?.revision_image_data_url || final?.image_data_url;
+      return image
+        ? { room_id: room.id, room_label: room.label, image_data_url: image }
+        : null;
+    })
+    .filter(Boolean);
 }
 
 function currentAiRenderImage() {
@@ -17357,14 +17332,6 @@ function currentAiRenderImage() {
 function showRenderImageEnlarged(src, label) {
   if (!src) return;
   renderStageView = { mode: "single", src, label: label || "" };
-  aiRenderImageVisible = true;
-  updateAiRenderImageStage();
-}
-
-// 「查看已生成圖片」:一次呈現全部房間生圖(各自標房名),點一張再放大。
-function showRenderGallery() {
-  if (!completedOpenrouterRows().length) return;
-  renderStageView = { mode: "gallery" };
   aiRenderImageVisible = true;
   updateAiRenderImageStage();
 }
@@ -17424,100 +17391,6 @@ function updateAiRenderImageStage() {
   }
 }
 
-function renderAiOpenrouterResults() {
-  updateAiRenderImageStage();
-  if (element.aiOpenrouterGallery) {
-    element.aiOpenrouterGallery.hidden = completedOpenrouterRows().length === 0;
-  }
-  const container = element.aiOpenrouterResults;
-  if (!container) return;
-  container.innerHTML = "";
-  const data = state.proposalReview.openRouterRenders;
-  if (!data || !data.results?.length) return;
-  const editRemaining = data.editRemaining > 0;
-  for (const row of data.results) {
-    const card = document.createElement("div");
-    card.className = "rp-render-result-card";
-    const title = document.createElement("strong");
-    title.textContent = row.room_label || row.room_id;
-    card.appendChild(title);
-    if (row.status === "completed" && row.image_data_url) {
-      card.dataset.roomId = String(row.room_id);
-      const img = document.createElement("img");
-      img.src = row.image_data_url;
-      img.alt = `${row.room_label || row.room_id} 寫實生圖`;
-      img.style.maxWidth = "100%";
-      img.style.display = "block";
-      img.style.cursor = "zoom-in";
-      img.title = "點擊放大到左側 3D 區";
-      card.appendChild(img);
-      if (editRemaining) {
-        const editButton = document.createElement("button");
-        editButton.type = "button";
-        editButton.className = "secondary-action";
-        editButton.textContent = "修改這張（整批僅一次）";
-        editButton.addEventListener("click", () => openAiOpenrouterEditDialog(row));
-        card.appendChild(editButton);
-      }
-    } else {
-      const failed = document.createElement("p");
-      failed.className = "rp-viewer-status";
-      failed.textContent = `生圖失敗：${(row.notices || []).join("；") || "未知原因"}`;
-      card.appendChild(failed);
-    }
-    container.appendChild(card);
-  }
-}
-
-function openAiOpenrouterEditDialog(row) {
-  aiOpenrouterEditTarget = row;
-  element.aiOpenrouterEditRoom.textContent = `房間：${row.room_label || row.room_id}`;
-  element.aiOpenrouterEditFeedback.value = "";
-  element.aiOpenrouterEditStatus.textContent = "";
-  setTaskDialogOpen(element.aiOpenrouterEditDialog, true);
-}
-
-function closeAiOpenrouterEditDialog() {
-  setTaskDialogOpen(element.aiOpenrouterEditDialog, false);
-  aiOpenrouterEditTarget = null;
-}
-
-async function submitAiOpenrouterEdit() {
-  const row = aiOpenrouterEditTarget;
-  if (!row) return;
-  const feedback = element.aiOpenrouterEditFeedback.value.trim();
-  if (!feedback) {
-    element.aiOpenrouterEditStatus.textContent = "請先描述想修改的內容。";
-    return;
-  }
-  element.aiOpenrouterEditStatus.textContent = "正在送出修改…";
-  try {
-    const result = await api(
-      `/api/projects/${state.projectId}/ai-renders/${encodeURIComponent(row.room_id)}/edit`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback, image_data_url: row.image_data_url }),
-      },
-    );
-    syncProjectRevision(result);
-    const data = state.proposalReview.openRouterRenders;
-    const target = data.results.find((item) => item.room_id === row.room_id);
-    if (target) {
-      target.image_data_url = result.result.image_data_url;
-      target.notices = result.result.notices;
-      target.revision_image_data_url = result.result.image_data_url;
-      target.revision_submitted_at = new Date().toISOString();
-    }
-    data.editRemaining = result.edit_remaining;
-    renderAiOpenrouterResults();
-    element.aiOpenrouterStatus.textContent = "修改完成（整批唯一一次已用完）。";
-    closeAiOpenrouterEditDialog();
-  } catch (error) {
-    element.aiOpenrouterEditStatus.textContent = errorMessage(error);
-  }
-}
-
 // ---- 第 8 步收尾：Report Agent 設計手冊（PDF）產出與下載 ----
 
 function roomBoundsCm(room) {
@@ -17532,19 +17405,15 @@ function roomBoundsCm(room) {
 }
 
 function deliveryRoomsPayload() {
-  const results = state.proposalReview.openRouterRenders?.results || [];
   return state.rooms.map((room) => {
-    const render = results.find(
-      (row) => row.room_id === room.id && row.status === "completed" && row.image_data_url,
-    );
-    // 兩條生圖主線共用成果包：bella 逐房流寫 finalRooms、OpenRouter 一鍵流寫 openRouterRenders。
+    // 生圖結果統一來自逐房生圖 finalRooms(修圖後優先取 revision 圖)。
     const finalRoom = state.proposalReview.finalRooms?.[room.id];
     return {
       room_id: room.id,
       room_label: room.label,
       ...roomBoundsCm(room),
-      image_data_url: render?.image_data_url || finalRoom?.image_data_url || null,
-      model: render?.model || finalRoom?.model || "",
+      image_data_url: finalRoom?.revision_image_data_url || finalRoom?.image_data_url || null,
+      model: finalRoom?.model || "",
     };
   });
 }
@@ -17657,14 +17526,10 @@ async function generateDesignDelivery() {
     },
   };
   const stylePack = STYLE_PACKS.find((item) => item.id === state.proposalReview.confirmedStyleCardId);
-  const results = state.proposalReview.openRouterRenders?.results || [];
-  const generatedAt = state.proposalReview.openRouterRenders?.generated_at || null;
   const rooms = state.rooms.map((room) => {
-    // 兩條生圖主線共用成果包：OpenRouter 一鍵流優先，否則取 bella 逐房流的 finalRooms。
-    const row = results.find((item) => item.room_id === room.id && item.status === "completed" && item.image_data_url)
-      || (state.proposalReview.finalRooms?.[room.id]?.image_data_url
-        ? { ...state.proposalReview.finalRooms[room.id], room_id: room.id }
-        : null);
+    // 生圖結果統一來自逐房生圖 finalRooms。
+    const final = state.proposalReview.finalRooms?.[room.id];
+    const row = final?.image_data_url ? { ...final, room_id: room.id } : null;
     return {
       room_id: room.id,
       room_name: room.label,
@@ -17672,9 +17537,9 @@ async function generateDesignDelivery() {
       questionnaire: roomQuestionnaireContext(room.id),
       view: state.proposalReview.roomViews?.[room.id] || null,
       render: row ? {
-        image_data_url: row.image_data_url,
+        image_data_url: row.revision_image_data_url || row.image_data_url,
         model: row.model || "",
-        submitted_at: generatedAt || new Date().toISOString(),
+        submitted_at: row.submitted_at || new Date().toISOString(),
         revision_image_data_url: row.revision_image_data_url || null,
         revision_submitted_at: row.revision_submitted_at || null,
       } : null,
@@ -19024,7 +18889,6 @@ function bindEvents() {
   });
   $("#save-room-view")?.addEventListener("click", saveSelectedRoomView);
   $("#submit-room-renders")?.addEventListener("click", () => openRenderBriefDialog("room_final"));
-  element.aiOpenrouterGenerate?.addEventListener("click", runAiOpenrouterRender);
   const galleryTileFrom = (target) => {
     const tile = target?.closest?.("[data-gallery-room]");
     if (!tile) return null;
@@ -19054,7 +18918,6 @@ function bindEvents() {
     aiRenderImageVisible = true;
     updateAiRenderImageStage();
   });
-  element.aiOpenrouterGallery?.addEventListener("click", showRenderGallery);
   // 色卡三張(第 7 步)點縮圖 → 放大到左側 3D 區,標示是哪張色卡。
   element.paletteRenderResults?.addEventListener("click", (event) => {
     const img = event.target?.closest?.("img");
@@ -19062,18 +18925,7 @@ function bindEvents() {
     const label = (img.getAttribute("alt") || "").replace(/\s*色卡渲染$/, "").trim();
     showRenderImageEnlarged(img.src, label || "色卡");
   });
-  // 全房生圖(第 8 步)點縮圖 → 放大到左側 3D 區,標示是哪個房間。
-  element.aiOpenrouterResults?.addEventListener("click", (event) => {
-    const card = event.target?.closest?.(".rp-render-result-card");
-    const roomId = card?.dataset.roomId;
-    if (!roomId) return;
-    const row = completedOpenrouterRows().find((item) => String(item.room_id) === String(roomId));
-    if (row) showRenderImageEnlarged(row.image_data_url, row.room_label || row.room_id);
-  });
-  $("#ai-openrouter-edit-submit")?.addEventListener("click", submitAiOpenrouterEdit);
-  $("#ai-openrouter-edit-cancel")?.addEventListener("click", closeAiOpenrouterEditDialog);
   element.deliveryProposalGenerate?.addEventListener("click", generateDeliveryProposal);
-  $("#ai-openrouter-edit-close")?.addEventListener("click", closeAiOpenrouterEditDialog);
   $("#design-delivery-generate")?.addEventListener("click", () => {
     void generateDesignDelivery();
   });

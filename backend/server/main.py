@@ -2607,6 +2607,113 @@ def _delivery_renovation_lines(rooms: list[dict]) -> list[dict]:
     return lines
 
 
+def _beam_run_length_cm(beam: dict) -> float:
+    start = beam.get("start") or {}
+    end = beam.get("end") or {}
+    try:
+        dx = float(end.get("x", 0)) - float(start.get("x", 0))
+        dy = float(end.get("y", 0)) - float(start.get("y", 0))
+    except (TypeError, ValueError):
+        return 0.0
+    return (dx * dx + dy * dy) ** 0.5
+
+
+def _delivery_structural_work_items(fixed_structure: dict) -> list[dict]:
+    """把第 4 步固定結構裡「對得到費率表」的包覆項（包樑/包柱）組成 work_items。
+    一般牆面/地板/天花無費率不進來（留給 ``_delivery_renovation_lines`` 標待報價）。"""
+    items: list[dict] = []
+    for index, beam in enumerate(fixed_structure.get("beams") or [], start=1):
+        if not isinstance(beam, dict):
+            continue
+        length_m = round(_beam_run_length_cm(beam) / 100.0, 3)
+        if length_m <= 0:
+            continue
+        beam_id = str(beam.get("id") or f"beam-{index}")
+        items.append(
+            {
+                "id": beam_id,
+                "work_code": "wall_wrap.carpentry",
+                "description": "包樑木作",
+                "quantity": {"value": length_m, "unit": "m"},
+                "quantity_evidence": [beam_id, "fixed_structure.beams"],
+                "assumptions": ["以樑兩端點水平距離估算包覆長度；三面展開與轉角須現場確認。"],
+            }
+        )
+    for index, column in enumerate(fixed_structure.get("columns") or [], start=1):
+        if not isinstance(column, dict):
+            continue
+        try:
+            height_m = round(float(column.get("height_cm") or 0) / 100.0, 3)
+        except (TypeError, ValueError):
+            height_m = 0.0
+        if height_m <= 0:
+            continue
+        column_id = str(column.get("id") or f"column-{index}")
+        items.append(
+            {
+                "id": column_id,
+                "work_code": "wall_wrap.carpentry",
+                "description": "包柱木作",
+                "quantity": {"value": height_m, "unit": "m"},
+                "quantity_evidence": [column_id, "fixed_structure.columns"],
+                "assumptions": ["以柱高估算包覆立面長度；轉角與展開面積須現場確認。"],
+            }
+        )
+    return items
+
+
+def _delivery_structural_lines(fixed_structure: dict) -> list[dict]:
+    """對包樑/包柱呼叫後端 ``estimate_project_cost`` 產生「含來源」的概算預算行。
+    無可估項或費率／目錄異常時回空清單（不擋成果包）。"""
+    work_items = _delivery_structural_work_items(fixed_structure)
+    if not work_items:
+        return []
+    try:
+        estimate = estimate_project_cost(work_items, catalog=load_default_cost_catalog())
+    except (ValueError, OSError, KeyError):
+        return []
+    lines: list[dict] = []
+    for item in estimate.get("items") or []:
+        quantity = item.get("quantity") or {}
+        estimate_twd = item.get("estimate_twd") or {}
+        lines.append(
+            {
+                "id": item.get("id"),
+                "category": "renovation",
+                "category_label": "結構包覆工程",
+                "name": item.get("description") or "結構包覆",
+                "quantity": quantity.get("value"),
+                "unit": quantity.get("unit"),
+                "amount_twd": estimate_twd.get("base"),
+                "amount_range_twd": estimate_twd,
+                "status": "concept_estimate",
+                "status_label": "概算（含公開行情來源）",
+                "work_code": item.get("work_code"),
+                "sources": item.get("sources"),
+                "source_ids": item.get("source_ids"),
+                "inclusions": item.get("inclusions"),
+                "exclusions": item.get("exclusions"),
+                "price_date": item.get("price_date"),
+                "assumptions": item.get("assumptions"),
+                "note": "以公開行情概算；不含油漆飾面與轉角，須現場丈量後正式報價。",
+            }
+        )
+    for missing in estimate.get("needs_quote") or []:
+        lines.append(
+            {
+                "id": missing.get("id"),
+                "category": "renovation",
+                "category_label": "結構包覆工程",
+                "name": missing.get("description") or "結構包覆",
+                "amount_twd": None,
+                "status": "pending_quote",
+                "status_label": "待報價",
+                "note": f"費率表無對應項（{missing.get('reason')}），保留待報價。",
+            }
+        )
+    return lines
+
+
 def _delivery_sensitive_paths(value: object, path: str = "$payload") -> list[str]:
     paths: list[str] = []
     if isinstance(value, dict):
@@ -2742,7 +2849,9 @@ def _design_delivery_package(
                 "revision_used": bool(render_status.get("revision_submitted_at")),
             }
         )
+    fixed_structure = snapshot.get("fixed_structure") if isinstance(snapshot.get("fixed_structure"), dict) else {}
     budget_lines = [
+        *_delivery_structural_lines(fixed_structure),
         *_delivery_renovation_lines(rooms),
         *_delivery_furniture_lines(snapshot),
     ]
@@ -2751,18 +2860,31 @@ def _design_delivery_package(
         for line in budget_lines
         if line.get("category") == "furniture" and line.get("amount_twd") is not None
     )
+    estimated_structural_subtotal = sum(
+        int(line["amount_twd"])
+        for line in budget_lines
+        if line.get("status") == "concept_estimate" and line.get("amount_twd") is not None
+    )
     pending_quote_count = sum(1 for line in budget_lines if line.get("status") == "pending_quote")
     budget_report = {
         "title": "裝潢與家具預算報告書",
         "currency": "TWD",
         "pricing_status": "pending_quote" if pending_quote_count else "catalog_reference_only",
-        "pricing_status_label": "含待報價項目" if pending_quote_count else "家具目錄參考價",
+        "pricing_status_label": (
+            "含結構概算與待報價項目"
+            if pending_quote_count and estimated_structural_subtotal
+            else "含待報價項目"
+            if pending_quote_count
+            else "含結構包覆概算"
+            if estimated_structural_subtotal
+            else "家具目錄參考價"
+        ),
         "known_furniture_reference_subtotal_twd": known_furniture_subtotal,
+        "estimated_structural_subtotal_twd": estimated_structural_subtotal,
         "pending_quote_count": pending_quote_count,
         "lines": budget_lines,
-        "disclaimer": "本成果包為概念設計與家具目錄參考；最終工程及家具總價須經現場丈量、材料確認與廠商正式報價。",
+        "disclaimer": "本成果包含結構包覆概算（公開行情）與家具目錄參考價；最終工程及家具總價須經現場丈量、材料確認與廠商正式報價。",
     }
-    fixed_structure = snapshot.get("fixed_structure") if isinstance(snapshot.get("fixed_structure"), dict) else {}
     engineering_report = {
         "title": "RoomPilot 工程報告書",
         "basis": [

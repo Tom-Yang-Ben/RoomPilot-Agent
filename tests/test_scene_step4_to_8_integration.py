@@ -10,7 +10,6 @@
 - 逐房各自一次改圖額度（指南 §3E：每房可在初圖後提出一次修改）。
 - ``/api/projects/{id}/design-delivery`` 成果包：presentation／engineering 逐房只帶
   該 room_id 的家具與視角。
-- 前端一鍵生圖對「所有」第 7 步鎖定視角逐房送圖，不截斷成第一房（指南 §3E）。
 
 room id 刻意用 room-2 / room-7 / room-13（不連續），確保對應不是靠陣列位置或順序。
 """
@@ -269,13 +268,30 @@ def test_design_delivery_packages_each_room_by_room_id(tmp_path, monkeypatch) ->
     assert engineering[BEDROOM]["view"]["camera"]["room_id"] == BEDROOM
 
 
-def test_one_click_render_submits_every_locked_room() -> None:
-    source = (ROOT / "backend/server/static/scene_v2.js").read_text(encoding="utf-8")
-    render_fn = source.split("async function runAiOpenrouterRender()", 1)[1].split(
-        "\nasync function ", 1
-    )[0]
+def test_design_delivery_estimates_beam_and_column_wrapping_from_backend_catalog() -> None:
+    """工程報價接後端估價：第 4 步的樑/柱以 wall_wrap.carpentry（公開行情費率）出
+    概算，帶來源與金額；一般牆面/地板/天花無費率仍走待報價（不在此函式）。"""
+    fixed_structure = {
+        "beams": [
+            {"id": "beam-1", "start": {"x": 0, "y": 0}, "end": {"x": 300, "y": 0}, "height_cm": 40},
+        ],
+        "columns": [
+            {"id": "col-1", "center": {"x": 100, "y": 100}, "size_cm": 35, "height_cm": 270},
+        ],
+    }
+    lines = main._delivery_structural_lines(fixed_structure)
+    by_id = {line["id"]: line for line in lines}
 
-    # 逐房生圖必須送出所有第 7 步鎖定視角，不得截斷成第一房（指南 §3E）。
-    assert "lockedRoomViews()" in render_fn
-    assert "const views = allViews;" in render_fn
-    assert "allViews.slice(0, 1)" not in render_fn
+    beam = by_id["beam-1"]
+    assert beam["status"] == "concept_estimate"
+    assert beam["unit"] == "m"
+    assert beam["amount_twd"] == 7425  # 3.0m × wall_wrap.carpentry base 2475
+    assert beam["amount_range_twd"]["low"] < beam["amount_range_twd"]["high"]
+    assert beam["sources"]  # 帶可驗證公開行情來源
+
+    column = by_id["col-1"]
+    assert column["status"] == "concept_estimate"
+    assert column["amount_twd"] > 0
+
+    # 沒有樑柱 → 不產生結構概算行（一般裝潢留給待報價）
+    assert main._delivery_structural_lines({}) == []
