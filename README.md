@@ -13,6 +13,43 @@ RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識�
 - Git
 - Node.js 24 與 npm 11 供工程文件 XLSX Adapter；也供 `frontend3d/` 原型使用
 - PostgreSQL 17：第 6 步正式家具 catalog 的優先資料來源
+- Linux 使用者需先安裝 [uv](https://docs.astral.sh/uv/)（一鍵安裝的 Linux 路徑用它建環境）
+
+### 一鍵安裝（推薦）
+
+`install.ps1` / `install.sh` 會裝齊全部依賴：`requirements.txt`
+（server/vision/catalog/RAG/tests）＋ OCR ＋ 交付 PDF（playwright/pikepdf）＋
+Playwright Chromium ＋ `frontend/` npm。
+
+Windows（pip）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+Windows（uv，較快，需先裝 uv）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Uv
+```
+
+Linux（uv）：
+
+```bash
+bash install.sh
+```
+
+選項（預設全裝）：`-SkipOCR` / `-SkipFrontend`（Linux 對應 `--skip-ocr` /
+`--skip-frontend`）。不含 RAG 模型快取（約 9 GB），需要時見下方「家具 RAG」段落。
+
+安裝完成後，腳本會印出啟動指令；首次啟動前先複製環境檔：
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+.\.venv\Scripts\python.exe -m uvicorn backend.server.main:app --host 127.0.0.1 --port 8002 --reload
+```
+
+需要逐步手動安裝時，用下列任一方式。
 
 ### 方式一：Python venv 與 requirements.txt
 
