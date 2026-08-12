@@ -123,7 +123,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--crops", default="training/room_crops")
     ap.add_argument("--backbone", default="dinov2_vits14",
-                    help="dinov2_vits14 / dinov2_vitb14 / dinov2_vitl14")
+                    help="dinov2_vits14 / dinov2_vitb14 / dinov2_vitl14，或 HF 庫"
+                         " id（含 '/'，如 facebook/dinov3-vits16-pretrain-lvd1689m"
+                         "，gated 需 hf auth login）")
     ap.add_argument("--report",
                     default="temp/json/eval_rooms/report_own_crops_dinov2.json")
     ap.add_argument("--ink", action="store_true",
@@ -146,8 +148,15 @@ def main():
     train = [m for m in manifest if m["split"] == "train"]
     test = [m for m in manifest if m["split"] == "test"]
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    model = torch.hub.load("facebookresearch/dinov2", a.backbone)
-    model.eval().to(dev)
+    if "/" in a.backbone:            # HF 庫 id → transformers（DINOv3 gated safetensors）
+        from transformers import AutoModel
+        hf = AutoModel.from_pretrained(a.backbone).eval().to(dev)
+        # CLS 在 0（DINOv3 序列＝CLS＋4 register＋patches），同 probe_dino_backbone
+        def model(t):
+            return hf(pixel_values=t).last_hidden_state[:, 0]
+    else:
+        model = torch.hub.load("facebookresearch/dinov2", a.backbone)
+        model.eval().to(dev)
 
     print(f"特徵萃取：train {len(train)}×8 視角、test {len(test)}（TTA 平均）")
     Xtr, ytr = extract(model, dev, train, augment=True, use_ink=a.ink,

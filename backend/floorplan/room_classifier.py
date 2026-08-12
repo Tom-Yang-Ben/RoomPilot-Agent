@@ -38,6 +38,15 @@ CROP_MARGIN = 0.15          # 與 extract_room_crops.py 的預設一致（含鄰
 _states = {}                # variant → None(停用) | dict；骨幹跨頭共用
 
 
+def _backbone_spec(name):
+    """骨幹名 → (kind, patch)。含 '/'（HF 庫 id，如 facebook/dinov3-vits16-…）
+    走 transformers 讀 gated safetensors；其餘走 torch.hub DINOv2。
+    判準同 training/scripts/probe_dino_backbone.py 的 backbone_spec。"""
+    if "/" in name:
+        return "hf", (14 if "dinov2" in name.lower() else 16)
+    return "hub", 14
+
+
 def letterbox(img):
     """等比縮放＋白底填滿（平面圖底色白）到 SIZE×SIZE。同訓練側 letterbox。"""
     h, w = img.shape[:2]
@@ -88,18 +97,24 @@ def _load(variant="gray"):
             model = st["model"]
             torch = st["torch"]
             break
+    kind, patch = _backbone_spec(str(z["backbone"]))
     if model is None:
         try:
-            model = torch.hub.load("facebookresearch/dinov2",
-                                   str(z["backbone"]),
-                                   trust_repo=True, verbose=False)
-        except Exception as e:                   # 離線、hub 快取缺失等
-            print(f"⚠ DINOv2 骨幹載入失敗（{type(e).__name__}）→ 房型分類停用")
+            if kind == "hf":                     # DINOv3 gated safetensors
+                from transformers import AutoModel
+                model = AutoModel.from_pretrained(str(z["backbone"]))
+            else:
+                model = torch.hub.load("facebookresearch/dinov2",
+                                       str(z["backbone"]),
+                                       trust_repo=True, verbose=False)
+        except Exception as e:                   # 離線、hub/HF 快取缺失、門禁未核准等
+            print(f"⚠ DINO 骨幹載入失敗（{type(e).__name__}）→ 房型分類停用")
             return _states[variant]
         model.eval()
         torch.set_num_threads(os.cpu_count() or 4)
     _states[variant] = {"torch": torch, "model": model,
                         "backbone": str(z["backbone"]),
+                        "kind": kind, "patch": patch,
                         "w": z["weight"], "b": z["bias"],
                         "classes": [str(x) for x in z["classes"]]}
     return _states[variant]
@@ -142,7 +157,11 @@ def classify(bgr, labels, rooms, variant="gray"):
             vs = variants(letterbox(c))
             x = np.stack([(cv2.cvtColor(v, cv2.COLOR_BGR2RGB).astype(np.float32)
                            / 255.0 - MEAN) / STD for v in vs])
-            f = model(torch.from_numpy(x.transpose(0, 3, 1, 2))).cpu().numpy()
+            t = torch.from_numpy(x.transpose(0, 3, 1, 2))
+            if st["kind"] == "hf":   # DINOv3 序列＝CLS＋4 register＋patches，CLS 在 0
+                f = model(pixel_values=t).last_hidden_state[:, 0].cpu().numpy()
+            else:
+                f = model(t).cpu().numpy()
             f = f.mean(0)                              # 8 視角 TTA 平均
             logit = st["w"] @ f + st["b"]
             e = np.exp(logit - logit.max())

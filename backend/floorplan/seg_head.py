@@ -18,7 +18,7 @@ import numpy as np
 
 ASSET_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                           "seg_head.npz")
-PATCH = 14
+PATCH = 14              # 預設值；實際 patch 依載入骨幹推定（DINOv2=14、DINOv3=16）
 RIDGE_P = 0.45          # 低於此機率的房內縫隙視為語意牆脊
 _state_cache = "unloaded"
 
@@ -39,7 +39,7 @@ def load_state():
     import room_classifier as rc
     st = rc._load("color")
     if st is None:
-        print("⚠ seg_head: DINOv2 骨幹不可用 → 語意牆帶停用")
+        print("⚠ seg_head: DINO 骨幹不可用 → 語意牆帶停用")
         return _state_cache
     z = np.load(ASSET_PATH, allow_pickle=False)
     if str(z["backbone"]) != st["backbone"]:
@@ -47,6 +47,7 @@ def load_state():
               "→ 語意牆帶停用")
         return _state_cache
     _state_cache = {"torch": st["torch"], "model": st["model"],
+                    "kind": st["kind"], "patch": st["patch"],
                     "w": z["w"], "b": float(z["b"]),
                     "mu": z["mu"], "sd": z["sd"],
                     "max_side": int(z["max_side"])}
@@ -59,23 +60,30 @@ def prob_map(bgr, st=None):
     if st is None or bgr is None:
         return None
     torch, model = st["torch"], st["model"]
+    patch = st.get("patch", PATCH)
     h, w = bgr.shape[:2]
     s = min(1.0, st["max_side"] / max(h, w))
-    nh = max(PATCH, int(round(h * s / PATCH)) * PATCH)
-    nw = max(PATCH, int(round(w * s / PATCH)) * PATCH)
+    nh = max(patch, int(round(h * s / patch)) * patch)
+    nw = max(patch, int(round(w * s / patch)) * patch)
     img = cv2.resize(bgr, (nw, nh), interpolation=cv2.INTER_AREA)
     x = (cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
          / 255.0 - _MEAN) / _STD
     with torch.no_grad():
         t = torch.from_numpy(x.transpose(2, 0, 1)[None])
-        f = model.get_intermediate_layers(t, 1, reshape=True)[0]
-        f = f[0].permute(1, 2, 0).cpu().numpy()
+        if st.get("kind") == "hf":   # HF/DINOv3 無 get_intermediate_layers：
+            lhs = model(pixel_values=t).last_hidden_state   # 去 CLS＋register 後
+            nreg = int(getattr(model.config, "num_register_tokens", 0) or 0)
+            f = (lhs[0, 1 + nreg:].reshape(nh // patch, nw // patch, -1)
+                 .cpu().numpy())     # reshape 回空間格
+        else:
+            f = model.get_intermediate_layers(t, 1, reshape=True)[0]
+            f = f[0].permute(1, 2, 0).cpu().numpy()
     Z = (f - st["mu"]) / st["sd"]
     logit = Z @ st["w"] + st["b"]
     return 1.0 / (1.0 + np.exp(-logit))
 
 
-def ridge_bands(prob, shape_1x, T):
+def ridge_bands(prob, shape_1x, T, patch=PATCH):
     """機率格 → 語意牆帶 rects（1x 座標）。
 
     脊線＝房內縫隙的低機率帶：p < RIDGE_P 且兩側（法向 ±2 patch 內）
@@ -86,7 +94,7 @@ def ridge_bands(prob, shape_1x, T):
                       interpolation=cv2.INTER_LINEAR)
     interior = (p_up > 0.5).astype(np.uint8)
     low = (p_up < RIDGE_P).astype(np.uint8)
-    reach = max(2 * PATCH, int(round(2.5 * T)) + 2)
+    reach = max(2 * patch, int(round(2.5 * T)) + 2)
     kx = np.ones((1, reach), np.uint8)
     ky = np.ones((reach, 1), np.uint8)
     # 兩側皆有房內（單側＝建物外緣，外牆已有暗牆 rects，不重複產帶）：
@@ -132,4 +140,4 @@ def wall_bands(bgr, T):
     p = prob_map(bgr, st)
     if p is None:
         return []
-    return ridge_bands(p, bgr.shape[:2], T)
+    return ridge_bands(p, bgr.shape[:2], T, patch=st.get("patch", PATCH))

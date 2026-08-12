@@ -23,14 +23,14 @@ _ROOT = os.path.dirname(os.path.dirname(
 sys.path.insert(0, os.path.join(_ROOT, "backend", "floorplan"))
 sys.path.insert(0, os.path.join(_ROOT, "training", "scripts"))
 
-PATCH = 14
+PATCH = 14               # 於 main() 依載入骨幹推定（DINOv2=14、DINOv3=16）
 MAX_SIDE = 1148          # 前向解析度上限（82 patch 格；CPU 注意力可承受）
 OUT = "temp/json/seg_head_probe.json"
 VIS_DIR = "temp/seg_head"
 
 
 def prep_image(bgr):
-    """resize 到 14 倍數（等比、上限 MAX_SIDE），回 (img, sx, sy)。"""
+    """resize 到 PATCH 倍數（等比、上限 MAX_SIDE），回 (img, sx, sy)。"""
     h, w = bgr.shape[:2]
     s = min(1.0, MAX_SIDE / max(h, w))
     nh = max(PATCH, int(round(h * s / PATCH)) * PATCH)
@@ -44,12 +44,19 @@ _STD = np.array([0.229, 0.224, 0.225], np.float32)
 
 
 def patch_features(st, img):
-    """整圖前向 → (gh, gw, C) patch 特徵。"""
+    """整圖前向 → (gh, gw, C) patch 特徵。HF/DINOv3 骨幹無 get_intermediate_layers，
+    改取 last_hidden_state 去掉 CLS＋register tokens 後 reshape 回空間格
+    （見 probe_dino_backbone.seg_check 的適配註記）。"""
     torch, model = st["torch"], st["model"]
     x = (cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
          / 255.0 - _MEAN) / _STD
     with torch.no_grad():
         t = torch.from_numpy(x.transpose(2, 0, 1)[None])
+        if st.get("kind") == "hf":
+            gh, gw = t.shape[2] // PATCH, t.shape[3] // PATCH
+            lhs = model(pixel_values=t).last_hidden_state
+            nreg = int(getattr(model.config, "num_register_tokens", 0) or 0)
+            return lhs[0, 1 + nreg:].reshape(gh, gw, -1).cpu().numpy()
         f = model.get_intermediate_layers(t, 1, reshape=True)[0]
     return f[0].permute(1, 2, 0).cpu().numpy()      # (gh, gw, C)
 
@@ -101,6 +108,8 @@ def main():
     args = ap.parse_args()
     st = rc._load("color")
     assert st is not None
+    global PATCH
+    PATCH = st.get("patch", PATCH)   # DINOv3=16、DINOv2=14，依載入骨幹推定
     os.makedirs(VIS_DIR, exist_ok=True)
     root = "testdata/Identify_ans/own_dataset_color"
     data = {}
