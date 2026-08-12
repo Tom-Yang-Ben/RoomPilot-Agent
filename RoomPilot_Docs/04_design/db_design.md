@@ -1,276 +1,213 @@
-# 資料庫設計 (DB Design) - RoomPilot
+# 資料庫設計 (Database Design) - RoomPilot
 
-> **版本:** 0.1 | **更新:** 2026-08-11 | **狀態:** 草稿
-> **Owner:** Kai（PostgreSQL 家具 catalog，POSTGRESQL_CATALOG_READ_PHASE1.md:4）＋ Bella（ProjectStore／FastAPI，POSTGRESQL_PROJECT_STORE_PHASE3.md:4）；AI 衍生，人工核准前為 TO-BE
-> **語域:** L3（工程）
-> **實例:** 每資料庫一份；本專案兩套持久層（PostgreSQL catalog＋SQLite ProjectStore）合寫一份並明列分工
-> **原則:** Schema 是契約。`scripts/sql/roompilot_postgresql_schema.sql` 與 `backend/server/project_store.py` 的 CREATE TABLE 是實作真相，本文件記錄設計意圖與欄位字典。
-> **定位宣告:** 本文件回答「RoomPilot 的資料存在哪、表／view 長什麼樣、怎麼查、怎麼設定連線」；不包含 API 契約（見 [api_spec.md](./api_spec.md)）、workflow JSON 內部結構與狀態機（見 [lld.md](./lld.md)）、catalog 優先序決策論述（見 [../03_architecture/adr/ADR-003-catalog-postgres-first-json-fallback.md](../03_architecture/adr/ADR-003-catalog-postgres-first-json-fallback.md)）與快照保存決策（見 [../03_architecture/adr/ADR-007-workflow-json-single-snapshot-store.md](../03_architecture/adr/ADR-007-workflow-json-single-snapshot-store.md)）。
-> **生成:** AI 由程式碼與文件衍生｜來源版本 git yen@8863a36c
-
----
+> **版本:** v1.0 ｜ **更新:** 2026-08-12 ｜ **狀態:** 草稿（待 owner 核准）
+> **Owner:** MOD-SRV-STORE owner（Bella，執行期 SQLite）＋ MOD-SQL owner（Kai，PostgreSQL `roompilot` schema）；保留與備份政策欄位權威為產品 owner（DEC-015）
+> **語域:** L3（工程）——直接寫表名、欄位、約束、PRAGMA 與失敗行為
+> **實例:** 單例（涵蓋本系統全部三個持久化體，見 §1）
+>
+> **本文件回答**：資料實際落在哪三個持久化體、每張表與 view 的欄位與約束是什麼、原子性與樂觀鎖如何實作、索引支撐哪些查詢、匯入器用什麼條件拒收資料。
+> **本文件不含**：端點請求／回應欄位（去 [`api_spec.md`](./api_spec.md) 與 `openapi-*`）、模組內演算法（去 [`lld.md`](./lld.md)）、儲存選型理由（去 [`ADR-004`](../03_architecture/adr/ADR-004-single-workflow-snapshot-sqlite.md)、[`ADR-005`](../03_architecture/adr/ADR-005-postgres-catalog-source-of-truth.md)、[`ADR-008`](../03_architecture/adr/ADR-008-rag-retrieval-only-offline-models.md)）、維運程序（去 [`deployment_and_operations.md`](../06_ops/deployment_and_operations.md) 與 `runbook-*`）。
+> **佐證基準**：分支 `yen`、HEAD `8f378b24`、2026-08-12 工作樹。行號隨程式碼演進，衝突時以原始碼為準。
 
 ## 目錄
 
-- [1. 儲存架構總覽](#1-儲存架構總覽)
-- [2. PostgreSQL 家具 catalog](#2-postgresql-家具-catalog)
-- [3. ProjectStore（SQLite）](#3-projectstoresqlite)
-- [4. 索引與查詢模式](#4-索引與查詢模式)
-- [5. 資料量與保留／遷移政策](#5-資料量與保留遷移政策)
-- [6. 連線與設定（環境變數）](#6-連線與設定環境變數)
-- [7. 待確認](#7-待確認)
+- [1. 儲存體總覽](#1-儲存體總覽)
+- [2. ERD](#2-erd)
+- [3. 表格定義](#3-表格定義)
+- [4. 資料字典 (Data Dictionary)](#4-資料字典-data-dictionary)
+- [5. 索引與效能](#5-索引與效能)
+- [6. 資料保留與遷移](#6-資料保留與遷移)
+- [7. 假設與待確認](#7-假設與待確認)
 - [8. 追溯](#8-追溯)
 
-## 1. 儲存架構總覽
+---
 
-兩套持久層各管一類資料，互不重疊：
+## 1. 儲存體總覽
 
-| 持久層 | 引擎 | 管什麼 | 不管什麼 | Owner | 證據 |
+| 儲存體 | 位置 | Owner | 角色 | DDL 權威 | 佐證 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 家具 catalog | PostgreSQL（`roompilot`＋`staging` schema） | 8,675 件官方家具 metadata、風格／房間關聯、VLM 標註、S3/CloudFront 資產 URL（REQ-013、FR-013） | GLB／圖片位元組（留在 S3/CloudFront）、專案狀態 | Kai | schema.sql:1-4、POSTGRESQL_CATALOG_READ_PHASE1.md:34 |
-| ProjectStore | SQLite 單檔 `projects.sqlite3` | 八步 workflow JSON 快照（≤2MB）、revision 樂觀鎖、上傳與 render metadata（REQ-001、FR-001、NFR-002） | 家具資料；PNG/DXF/JPG 位元組（留在 `.runtime/uploads/`、`.runtime/renders/` 檔案系統） | Bella | project_store.py:11、77-142 |
+| 執行期專案庫 | `.runtime/projects.sqlite3` | Bella | 八步工作流唯一快照＋上傳／輸出檔中繼資料，**讀寫** | 程式碼內建表（無 migration 工具） | `project_store.py:96-142`；`main.py:147-149` |
+| 問卷影像索引 | `.runtime/indexes/questionnaire_visuals.sqlite3` | Bella | 由版本化 JSON 產生的查詢索引，**可重建** | 程式碼內建表 | `questionnaire_visuals.py:153-178`；`main.py:207-211` |
+| 家具型錄與向量庫 | PostgreSQL `roompilot` schema（＋`staging`） | Kai | 正式型錄與 pgvector 檢索來源，Web 端**唯讀**、寫入只由匯入器負責 | `scripts/sql/roompilot_postgresql_schema.sql`、`scripts/sql/roompilot_furniture_embeddings_schema.sql` | `postgres_repository.py:20,673-683`；`rag_repository.py:131-164` |
 
-FastAPI（`backend/server/main.py`）是兩者唯一的 consumer；家具幾何合法性只由 `backend/engine/` 計算，兩套持久層都不存座標裁決結果（NFR-004）。
+執行資料根目錄由 `ROOMPILOT_RUNTIME_DIR` 覆寫，否則為 repo 根的 `.runtime/`（`runtime_paths.py:20-25`）。二進位內容（平面圖、PNG、PDF）一律落檔案系統，資料庫只存路徑與中繼資料（`project_store.py:275-278,349-356`；`main.py:2291`）。**本 repo 無 migration 框架、無 seed 腳本、無備份腳本**，SQLite schema 演進只有一處線上補欄（`project_store.py:116-123`）。
 
-```mermaid
-flowchart LR
-    subgraph 匯入 ["Kai 匯入管線"]
-        SRC["5 份官方 JSON/CSV<br/>(JSON/furniture、JSON/manifests)"] -->|"import_official_catalog_to_postgres.py<br/>單一 transaction"| STG["staging.stg_*<br/>(batch_key=輸入檔 SHA-256)"]
-        STG --> TBL["roompilot 正規化表<br/>furniture_items 等 10 表"]
-        TBL --> V1["view furniture_catalog_current<br/>(WHERE is_active)"]
-        V1 --> V2["view furniture_catalog_api_current"]
-    end
-    V1 -->|"parameterized SQL<br/>filter/count/facet/page"| REPO["backend/catalog/<br/>postgres_repository.py"]
-    REPO --> API["FastAPI main.py"]
-    S3["S3 / CloudFront<br/>GLB＋三視角 PNG 位元組"] -.->|"僅 URL 進 SQL"| TBL
-    subgraph 專案保存 ["ProjectStore（Bella）"]
-        API --> PS["project_store.py<br/>BEGIN IMMEDIATE + revision"]
-        PS --> SQLITE[(".runtime/projects.sqlite3<br/>projects / render_outputs")]
-        PS --> FILES[".runtime/uploads/、renders/<br/>平面圖與 render PNG 檔案"]
-    end
-    API --> UI["static/ 八步前端"]
-```
-
-## 2. PostgreSQL 家具 catalog
-
-Schema 來源：`scripts/sql/roompilot_postgresql_schema.sql`（importer 於同一 transaction 執行，import_official_catalog_to_postgres.py:1341-1344）。`item_id` 是家具、GLB、三視角圖、VLM 標註與 embedding 共用的核心鍵（schema.sql:4）。
+## 2. ERD
 
 ```mermaid
 erDiagram
-    furniture_categories ||--o{ furniture_items : "category_id"
-    furniture_items ||--o{ furniture_styles : "item_id"
-    styles ||--o{ furniture_styles : "style_id"
-    furniture_items ||--o{ furniture_rooms : "item_id"
-    rooms ||--o{ furniture_rooms : "room_id"
-    furniture_items ||--o{ furniture_vlm_annotations : "item_id (is_current 唯一)"
-    furniture_items ||--o{ furniture_assets : "item_id (glb 唯一/image 每 view_role 唯一)"
-    furniture_items ||--o{ furniture_embeddings : "item_id (選配 pgvector)"
-    furniture_items ||--o{ furniture_quality_issues : "item_id"
+    PROJECTS ||--o{ RENDER_OUTPUTS : has
+    PROJECTS {
+        text project_id PK
+        text workflow_json "單一快照，≤2 MB"
+        integer revision "樂觀鎖"
+        text upload_path "檔案系統路徑"
+        text updated_at
+    }
+    RENDER_OUTPUTS {
+        text render_id PK
+        text project_id FK
+        text file_path
+        integer byte_size
+    }
 ```
-
-### 2.1 表格清單
-
-| 表（roompilot.） | PK | 關鍵欄位／約束 | 說明 | 證據（schema.sql） |
-| :--- | :--- | :--- | :--- | :--- |
-| `furniture_categories` | `category_id` SERIAL | `category_code`、`name_zh` 各 UNIQUE；自參照 `parent_category_id` | 64 類分類字典 | 30-39 |
-| `furniture_items` | `item_id` TEXT | 見 §2.2 欄位字典 | 家具核心主表（8,675 筆） | 42-74 |
-| `styles` | `style_id` SERIAL | `style_code` UNIQUE | 6 種正式風格字典 | 77-83 |
-| `furniture_styles` | (`item_id`,`style_rank`) | `style_rank IN (1,2)`；`confidence` 0–1；FK CASCADE | 主／次風格（1,039 筆主次相同，故以 rank 為鍵） | 86-96 |
-| `rooms` | `room_id` SERIAL | `room_code` UNIQUE | 9 種房間字典 | 99-104 |
-| `furniture_rooms` | (`item_id`,`room_id`) | FK CASCADE | 家具可用房間多對多 | 107-112 |
-| `furniture_vlm_annotations` | `annotation_id` BIGSERIAL | UNIQUE(`item_id`,`annotation_hash`)；partial UNIQUE：每件家具僅一筆 `is_current` | VLM 分析版本表（object_type_zh、description、rag_text、mood/shape/features/search_keywords 等） | 115-147 |
-| `furniture_assets` | `asset_id` BIGSERIAL | `external_id`、`object_key` UNIQUE；CHECK：`glb` 無 `view_role`／`image` 限 front・side・angle-45；partial UNIQUE：每件 1 GLB、每 view_role 1 圖 | S3/CloudFront 資產 metadata（`delivery_url`、`sha256`、`upload_status`、`validation_status`） | 150-202 |
-| `furniture_embeddings` | `embedding_id` BIGSERIAL | UNIQUE(`item_id`,`embedding_model`,`text_hash`)；`vector_dims` CHECK | 選配 RAG embedding——僅安裝 pgvector 時以動態 SQL 建立 | 205-238 |
-| `furniture_quality_issues` | `issue_id` BIGSERIAL | UNIQUE(`item_id`,`issue_type`,`issue_source`)；`status IN (open,confirmed,fixed,ignored)` | 匯入與人工資料品質問題登記 | 241-261 |
-| `furniture_admin_audit` | `event_id` BIGSERIAL | `action IN (create,update,soft_delete)`；不存 Authorization token | Phase 2 管理 API 稽核，與異動同 transaction | 265-276 |
-| `staging.stg_furniture_catalog` 等 5 表 | (`batch_key`,`row_number`) | `batch_key` 為五個輸入檔 SHA-256；UNIQUE(batch_key, item_id／image_id) | 每次匯入的原始列，可重跑不混批 | 279-340 |
-
-共用 trigger：`roompilot.set_updated_at()` 於 UPDATE 時刷新 `updated_at`（categories／items／assets／quality_issues，schema.sql:568-600）。
-
-### 2.2 `furniture_items` 欄位字典
-
-| 欄位 | 型態 | 約束 | 業務語意 | 敏感等級 |
-| :--- | :--- | :--- | :--- | :--- |
-| `item_id` | TEXT | PK | 官方家具唯一 ID，跨 GLB／圖片／VLM／embedding 共用鍵 | 一般 |
-| `category_id` | INTEGER | FK categories | 64 類分類 | 一般 |
-| `source` / `source_group` / `catalog` / `kind` / `source_type` | VARCHAR | `source` NOT NULL | 來源與品類標記；view 查詢固定 `kind='furniture'` | 一般 |
-| `name_en` / `name_zh` | TEXT | `name_en` NOT NULL | 家具名稱 | 一般 |
-| `primary_color` / `colors` | TEXT / TEXT[] | `colors` DEFAULT `{}` | 主色與色彩清單（facet 篩選來源） | 一般 |
-| `primary_material` / `materials` | TEXT / TEXT[] | 同上 | 主材質與材質清單 | 一般 |
-| `width_cm` / `depth_cm` / `height_cm` | NUMERIC(10,2) | CHECK > 0（可 NULL） | 公分制尺寸（NFR-001），引擎擺位輸入 | 一般 |
-| `price_twd` | INTEGER | CHECK ≥ 0 | 台幣售價；`price_is_estimated` 標記估價 | 一般 |
-| `product_url` | TEXT | | 原廠商品頁 | 一般 |
-| `is_active` | BOOLEAN | NOT NULL DEFAULT TRUE | 正式可見性開關；view 以 `WHERE is_active` 排除 599 件 inactive（NFR-005） | 一般 |
-| `raw_data` | JSONB | NOT NULL | 匯入原始列（可追溯，Golden Rule 2） | 一般 |
-| `created_at` / `updated_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | trigger 維護 `updated_at` | 一般 |
-
-本 schema 無個資欄位；帳密只存 `.env`，不進資料庫（POSTGRESQL_CATALOG_READ_PHASE1.md:107）。
-
-### 2.3 View `roompilot.furniture_catalog_current`（schema.sql:386-471）
-
-API 常用的「目前版」聚合 read model，`WHERE i.is_active` 過濾（471 行）——quarantine 資料（`backend/catalog/data/quarantine/`）根本不匯入，inactive 599 件留在主表供複核但不出現在本 view（NFR-005、backend/catalog/AGENTS.md:8、README.md:282）。
-
-| 欄位群 | 欄位 | 來源與規則 |
-| :--- | :--- | :--- |
-| 主表直出 | `item_id`、`name_en`、`name_zh`、`source`、`source_group`、`catalog`、`kind`、`source_type`、`primary_color`、`colors`、`primary_material`、`materials`、`width_cm`、`depth_cm`、`height_cm`、`price_twd`、`price_is_estimated`、`product_url` | `furniture_items`（387-407） |
-| 分類 | `category_code`、`category_name_zh` | LEFT JOIN `furniture_categories`（431-432） |
-| 風格 | `style_codes`、`style_confidences`（皆 ARRAY_AGG ORDER BY style_rank）、`style_confidence`＝`style_confidences[1]` | LATERAL 對 `furniture_styles`×`styles`（433-440、426） |
-| 房間 | `room_codes`（ARRAY_AGG ORDER BY room_code） | LATERAL 對 `furniture_rooms`×`rooms`（441-446） |
-| VLM 標註 | `object_type_zh`、`description`、`rag_text`、`role`、`visual_weight`、`height_zone`、`size_class`、`pattern`、`mood_tags`、`features`、`search_keywords`、`annotation_confidence`、`style_assignment_source`＝COALESCE(`description_source`,'kai_postgresql_vlm') | LEFT JOIN `furniture_vlm_annotations` 且 `is_current`（447-448、410-428） |
-| 資產 URL | `glb_url`、`front_image_url`、`side_image_url`、`angle_45_image_url` | LATERAL 對 `furniture_assets`，僅計入 `upload_status` ∈ {already_exists, complete, completed, skipped_existing, success, uploaded} 且 `validation_status` ∈ {'', ready, success, valid}（449-470） |
-
-### 2.4 View `roompilot.furniture_catalog_api_current`（schema.sql:475-566）
-
-FastAPI 專用穩定 read model＝`furniture_catalog_current` 全欄位＋以下衍生欄位；UI 分類與安全預設集中在 SQL，repository 只查詢（474-475 註解）：
-
-| 衍生欄位 | 規則 |
-| :--- | :--- |
-| `normalized_type` | `planter`→`flower-pots-planter`，否則 COALESCE(category_code, source_type, 'furniture')（477-481） |
-| `taxonomy_group` / `taxonomy_group_zh` | category_code 對映六群（living／dining_kitchen／bedroom／study／storage／soft_decor 及中文名）；無分類時退回 room_codes 推斷，最後 `soft_decor`（482-549） |
-| `taxonomy_type_zh`、`category_label` | COALESCE(category_name_zh, category_code, source_type, 'furniture')（550-561） |
-| `catalog_scope` | 常數 `'kai_postgresql'`（562） |
-| `must_against_wall`＝FALSE、`can_rotate`＝TRUE、`usable_for_moodboard`＝TRUE | 安全預設常數（563-565）；靠牆／旋轉的實際裁決仍在 `backend/engine/`（NFR-004） |
-
-**注意**：runtime repository 目前查的是 `furniture_catalog_current` 而非 `api_current`（postgres_repository.py:18-20，「imported Kai migration currently publishes this compatibility view」），但其 SQL 引用 `normalized_type`／`taxonomy_group` 等只存在於本 repo schema.sql 之 `api_current` 的欄位——live DB 的 view 定義與 schema.sql 是否同步，見 §7 待確認 2。
-
-## 3. ProjectStore（SQLite）
-
-單檔 `projects.sqlite3`，位於共用 runtime 目錄（預設 `<repo 根>/.runtime/`，可用 `ROOMPILOT_RUNTIME_DIR` 覆蓋，runtime_paths.py:20-25）；連線設 `PRAGMA foreign_keys=ON`＋`journal_mode=WAL`（project_store.py:89-94）。FastAPI 啟動時建構並合併舊 worktree 的 legacy runtime（main.py:147-149）。
 
 ```mermaid
 erDiagram
-    projects ||--o{ render_outputs : "project_id"
-    projects {
-        TEXT project_id PK
-        TEXT name
-        TEXT workflow_json
-        INTEGER revision
-        TEXT upload_path
-        TEXT updated_at
-    }
-    render_outputs {
-        TEXT render_id PK
-        TEXT project_id FK
-        INTEGER viewpoint_version
-        TEXT file_path
-    }
+    FURNITURE_CATEGORIES ||--o{ FURNITURE_ITEMS : classifies
+    FURNITURE_ITEMS ||--o{ FURNITURE_STYLES : tagged
+    FURNITURE_ITEMS ||--o{ FURNITURE_ROOMS : usable_in
+    FURNITURE_ITEMS ||--o{ FURNITURE_VLM_ANNOTATIONS : annotated
+    FURNITURE_ITEMS ||--o{ FURNITURE_ASSETS : delivers
+    FURNITURE_ITEMS ||--o{ FURNITURE_EMBEDDINGS : vectorized
+    FURNITURE_ITEMS ||--o{ FURNITURE_QUALITY_ISSUES : flagged
+    STYLES ||--o{ FURNITURE_STYLES : referenced
+    ROOMS ||--o{ FURNITURE_ROOMS : referenced
+    FURNITURE_VLM_ANNOTATIONS ||--o{ FURNITURE_EMBEDDINGS : sourced
 ```
 
-### 3.1 `projects`（project_store.py:100-114 實讀）
+> `roompilot.furniture_catalog_current` 與 `..._api_current` 是上圖的聚合 view，不是表；`staging.stg_*` 五張批次表不進 ERD（只供匯入追溯，`roompilot_postgresql_schema.sql:279-340`）。
+
+## 3. 表格定義
+
+### 3.1 `.runtime/projects.sqlite3`（Bella；FR-001–009、NFR-001、NFR-003–005）
+
+**`projects`**（`project_store.py:98-115`）
 
 | 欄位 | 型態 | 約束 | 說明 |
 | :--- | :--- | :--- | :--- |
-| `project_id` | TEXT | PK | `uuid4().hex`（165-166） |
-| `name` / `notes` | TEXT | NOT NULL（notes DEFAULT ''） | 專案名稱與備註 |
-| `current_step` | TEXT | NOT NULL | 八步進度指標；新專案為 `"project"`（176） |
-| `workflow_json` | TEXT | NOT NULL | 八步狀態單一 JSON 快照；深合併更新（`_merge_dict`，18-25）、顯示文字欄位超過 512 字截斷防膨脹（40-74）、序列化後 >2MB 丟 `WorkflowTooLargeError`（11、224-225；NFR-002／ADR-007） |
-| `revision` | INTEGER | NOT NULL DEFAULT 0 | 樂觀鎖版本；舊 DB 以 ALTER TABLE 增補（116-123）。`expected_revision`／`expected_updated_at` 不符丟 `ProjectVersionConflict` → API 409 `project_revision_conflict`（209-218；ACPT-014） |
-| `upload_filename` / `upload_extension` / `upload_mime` / `upload_path` | TEXT | 可 NULL | 平面圖上傳 metadata；位元組存 `.runtime/uploads/<project_id>/floorplan<ext>`（275-297） |
-| `created_at` / `updated_at` | TEXT | NOT NULL | UTC ISO8601 字串（14-15） |
+| `project_id` | TEXT | PK | `uuid4().hex`（`:166`） |
+| `name` / `notes` | TEXT | NOT NULL；`notes` DEFAULT `''` | 空名稱由 API 層擋（FR-001） |
+| `current_step` | TEXT | NOT NULL | 值域為 `WORKFLOW_STEPS` 11 個內部步（`main.py:164-176`），對外折疊為 8 步（FR-020） |
+| `workflow_json` | TEXT | NOT NULL | **單一快照**：`layout_json`／問卷／`scene_json`／視角／`render_context` 全在此欄，無版本歷史表、無事件流 |
+| `revision` | INTEGER | NOT NULL DEFAULT 0 | 每次成功寫入 +1；既有庫以 `ALTER TABLE` 補欄（`:116-123`） |
+| `upload_filename` / `upload_extension` / `upload_mime` / `upload_path` | TEXT | 可空 | 原始平面圖中繼資料；實體檔在 `uploads/<project_id>/floorplan<ext>`（`:275-278`） |
+| `created_at` / `updated_at` | TEXT | NOT NULL | UTC ISO-8601 字串（`:14-15`），非原生時間型別 |
 
-### 3.2 `render_outputs`（project_store.py:124-142 實讀）
+**`render_outputs`**（`project_store.py:124-142`）：`render_id` PK、`project_id` FK→`projects`、`white_model_version`／`viewpoint_version`／`style_version` INTEGER、`style_card_id`、`provider`（API 層限 `browser_capture`）、`mime_type`（固定寫入 `image/png`，`:385`）、`filename`、`file_path`、`byte_size`、`created_at`，全部 NOT NULL。
 
-| 欄位 | 型態 | 約束 | 說明 |
-| :--- | :--- | :--- | :--- |
-| `render_id` | TEXT | PK | `uuid4().hex` |
-| `project_id` | TEXT | NOT NULL、FK `projects` | 所屬專案 |
-| `white_model_version` / `viewpoint_version` / `style_version` | INTEGER | NOT NULL | 第 6/7 步版本戳，保留提案歷史不覆蓋（349 docstring；FR-009） |
-| `style_card_id` / `provider` | TEXT | NOT NULL | 色卡 ID 與生圖來源 |
-| `mime_type` / `filename` / `file_path` / `byte_size` | TEXT/INTEGER | NOT NULL | PNG 位元組存 `.runtime/renders/<project_id>/`，DB 只存 metadata（350-355）；寫檔後 DB 失敗即刪檔回滾（400-402） |
-| `created_at` | TEXT | NOT NULL | UTC ISO8601 |
+**連線與交易語意**
 
-寫入皆以 `BEGIN IMMEDIATE` 先取寫鎖再比對 revision，使版本檢查與更新原子化（199-243、260-297、357-399）。
-
-## 4. 索引與查詢模式
-
-### 4.1 PostgreSQL 索引（schema.sql:145-202、342-383）
-
-| 索引 | 欄位 | 支撐的查詢 | 依據 |
-| :--- | :--- | :--- | :--- |
-| `idx_furniture_items_category` / `_source` / `_active` | category_id／source／is_active | view JOIN 與 `is_active` 過濾 | NFR-005 |
-| `idx_furniture_items_name_en_trgm` / `_name_zh_trgm` | GIN gin_trgm_ops | 名稱模糊搜尋（pg_trgm，schema.sql:6） | FR-013 |
-| `idx_furniture_styles_style`、`idx_furniture_rooms_room` | style_id／room_id | 風格／房間 LATERAL 聚合 | FR-013 |
-| `idx_furniture_assets_item`、`_upload_status` | item_id／upload_status | 資產 URL LATERAL＋狀態白名單 | REQ-013 |
-| `uq_current_vlm_annotation`（partial） | item_id WHERE is_current | 每家具唯一現行 VLM 標註 | schema.sql:145-147 |
-| `uq_furniture_glb`、`uq_furniture_image_role`（partial） | item_id（＋view_role） | 每家具 1 GLB、每視角 1 圖 | schema.sql:196-202 |
-| `idx_furniture_quality_open`（partial） | (item_id, severity) WHERE status='open' | 未結案品質問題查詢 | schema.sql:371-373 |
-| `idx_furniture_admin_audit_item_created` | (item_id, created_at DESC) | 稽核回查 | schema.sql:374-375 |
-| `idx_stg_*_item` ×4 | item_id | staging 對帳 | schema.sql:376-383 |
-
-### 4.2 PostgreSQL 查詢模式（backend/catalog/postgres_repository.py 實讀）
-
-所有查詢固定謂詞 `kind = 'furniture'`（457 行）、parameterized SQL、對 `_VIEW = roompilot.furniture_catalog_current`（20 行）：
-
-| 模式 | SQL 形狀 | 證據 |
+| 項目 | 實作 | 佐證 |
 | :--- | :--- | :--- |
-| 分頁清單（`GET /api/furniture`） | 同一 WHERE 下：`COUNT(*)` → `SELECT * ... ORDER BY item_id LIMIT %s OFFSET %s`（`page_size` 1–80）→ type／group 聚合 → facet 計數 → 前 24 筆 `glb_url` 預載清單 | 590-637 |
-| 過濾謂詞 | `style`：`style_codes && ARRAY[...]`（六 UI 風格先映射為來源風格，22-45）；`group`／`type`：對 `taxonomy_group`／`normalized_type` 等值；`q`：CONCAT_WS 多欄位 substring（139-148）；`color`／`material`：中英 alias 正規化後等值；`size`：寬深最長邊 CASE 分 small/medium/large（131-138）；`has_model`：`glb_url` 非空 | 446-485 |
-| facet 選項 | `GROUP BY primary_color`／`primary_material` 計數，排除亂碼與「尚未整理」，取前 18 | 501-523 |
-| 單筆詳情 | `WHERE kind='furniture' AND item_id = %s`（PK 查詢，不掃 list） | 640-649 |
-| 批次取件 | `item_id = ANY(%s::TEXT[])`，避免 N+1 | 652-670 |
-| 全量載入（scene／問卷 consumer 相容） | `SELECT * ... ORDER BY item_id`；0 筆丟 `postgres_catalog_empty`；main.py 只在回滿 8,675 筆時採用，否則退回 JSON（NFR-003 相關，見 §7 待確認 3） | 673-683、main.py:910-921 |
-| 六風格統計 | `style_map` VALUES CTE＋UNNEST style_codes 後 GROUP BY | 686-745 |
-| provider 狀態探測（`/api/catalog/status`） | 筆數＋GLB／三視角完整度 FILTER 計數；失敗回 `available=False`＋例外類型，不洩連線設定 | 748-851；ACPT-012 |
+| 連線 PRAGMA | `timeout=10`、`foreign_keys=ON`、`journal_mode=WAL` | `project_store.py:89-94` |
+| 寫入原子性 | 每次寫入先 `BEGIN IMMEDIATE` 取寫鎖，再讀版本；`UPDATE … WHERE project_id=? AND revision=?` 二次防護 | `:199-243,261,359` |
+| 樂觀鎖 | `expected_revision` 或 `expected_updated_at` 任一不符即 `ProjectVersionConflict` | `:209-218,28-33` |
+| 寫入合併 | 遞迴深合併（dict 對 dict 才遞迴，其餘直接覆蓋） | `:18-25,220-222` |
+| 容量閘 | `json.dumps(ensure_ascii=False)` 後 UTF-8 位元組 >2 MB 即拋 `WorkflowTooLargeError`，交易內拋出、整筆不落地 | `:11,223-225` |
+| 顯示字串防爆 | `name/name_en/name_zh/name_zh_raw/label/title` >512 字元時以 `normalized_type`→`furniture_id`→`id`→`未命名項目` 取代 | `:40-74` |
+| 檔案回滾 | `save_render` 交易失敗時 `unlink(missing_ok=True)` 刪已寫入 PNG | `:400-402` |
 
-### 4.3 SQLite 查詢模式
+**`import_runtime()` 合流語意**（`project_store.py:433-561`；啟動時對每個 legacy worktree 各跑一次，`main.py:147-149`）：來源與目的同檔或非 SQLite 檔即回 0（`:436-447`）；逐列以 `updated_at` 字串比較決勝，`current["updated_at"] >= row["updated_at"]` 就跳過（`:466`）；上傳檔以 `shutil.copy2` 複製到本庫路徑，來源檔已遺失則**保留目的端現值而非寫入死路徑**（`:474-484`）；專案列用 `ON CONFLICT(project_id) DO UPDATE` 全欄覆蓋（含 `revision`、`created_at`，`:486-520`）；render 列僅在專案存在且來源檔存在時 `INSERT OR IGNORE`（`:523-560`）。
 
-無自建索引（僅 PK／FK）；查詢皆以 `project_id` 主鍵定位：單筆 SELECT（project_store.py:180-188）、`BEGIN IMMEDIATE` 讀改寫（199-243）、`list_renders` 以 `ORDER BY created_at DESC, render_id DESC` 列出（405-416）。單機 Pilot 資料量下無效能疑慮。
+> **殘留表**：現場資料庫另有 `users`(1 列)、`refresh_tokens`(1 列)、`project_members`(386 列) 三張表與 `idx_project_members_user`／`idx_refresh_tokens_user` 兩個索引（2026-08-12 唯讀查詢）。本分支 `ProjectStore._initialize` 不建立也不讀取它們，`backend/server/auth/` 只剩 `__pycache__` 無 `.py` 原始碼；`.runtime/engineering/`（208 KB）同樣無本分支程式碼引用。屬他分支寫入本共用執行資料的殘留，處置待確認（見 §7）。
 
-## 5. 資料量與保留／遷移政策
+### 3.2 `.runtime/indexes/questionnaire_visuals.sqlite3`（FR-026）
 
-### 5.1 資料量（現行驗收值）
-
-| 項目 | 數量 | 證據 |
+| 表 | 欄位 | 說明 |
 | :--- | :--- | :--- |
-| 官方家具主表 | 8,675 筆 | schema.sql:1、cloud_catalog.py:18、POSTGRESQL_CATALOG_READ_PHASE1.md:214 |
-| current／api view（active） | 8,076 筆；inactive 599 筆留主表複核（8,076＋599＝8,675） | README.md:282、POSTGRESQL_CATALOG_READ_PHASE1.md:214、NFR-005 |
-| 分類／風格／房間字典 | 64 類／6 風格／9 房間 | schema.sql:29、76、98 |
-| GLB／三視角圖 | 8,675 個 GLB；26,025 張圖（front/side/angle-45） | POSTGRESQL_CATALOG_READ_PHASE1.md:219-220 |
-| 主次風格相同列 | 1,039 筆（故 furniture_styles 以 rank 為鍵） | schema.sql:85 |
-| workflow JSON 快照 | 每專案單一快照 ≤2MB | project_store.py:11（NFR-002） |
+| `questionnaire_questions` | `question_id` PK、`space_type`、`sequence`、`ready`（INTEGER 0/1）、`payload_json` | `ready` 為該題所有選項 `generation_status == "ready"` 的合取（`questionnaire_visuals.py:185-188`） |
+| `questionnaire_images` | `image_id` PK、`question_id` FK、`option_id`、`generation_status`、`image_path`、`payload_json` | 供 `GET /api/questionnaire/visual-images/{id}` 反查實體圖 |
 
-### 5.2 保留與遷移
+連線只設 `foreign_keys=ON`，**不設 WAL**（`:147-151`）。`sync()` 每次先 `DELETE` 兩張表再全量重灌（`:180-183`），權威來源是版本化 JSON；此庫可刪除重建。首次被問卷端點使用時才建（`main.py:200-214`）。
 
-| 項目 | 政策 | 證據 |
-| :--- | :--- | :--- |
-| catalog 匯入 | 交易式：staging＋正規化表＋schema 於同一 transaction；`batch_key`＝五輸入檔 SHA-256，可重跑不混批；`--dry-run` 不連線驗證；`--replace-existing` 整組 DROP 重建（不動 project／runtime tables）；`--skip-schema` 禁與 replace 併用 | import_official_catalog_to_postgres.py:41-70、126、1341-1378；schema.sql:278 |
-| catalog 品質問題 | 進 `furniture_quality_issues` 登記複核，不直接刪資料；管理異動走 `furniture_admin_audit`（soft_delete，含前後快照） | schema.sql:240-276 |
-| catalog 保留期限 | 無定時清除；inactive 家具留主表複核、不進 API／RAG | README.md:282（NFR-005） |
-| SQLite schema 演進 | `CREATE TABLE IF NOT EXISTS`＋additive `ALTER TABLE`（revision 欄位增補），無 migration 工具 | project_store.py:96-123 |
-| 舊 worktree 合併 | 啟動時 `import_runtime` 以 `updated_at` 較新者為準 UPSERT 專案與 render，並複製檔案到共用目錄 | project_store.py:433-561、main.py:148-149 |
-| 專案／render 保留期限 | 無刪除／歸檔政策（見 §7 待確認 5）；`.runtime`、SQLite、上傳與 render 檔不得提交 Git | POSTGRESQL_PROJECT_STORE_PHASE3.md:53 |
-| ProjectStore → PostgreSQL（Phase 3） | **TO-BE**：契約規劃 `roompilot.projects`（workflow_json JSONB）＋一次性 SQLite migration；現況 repo 無 `backend/server/postgres_project_store.py`、無 `scripts/project_store/` migration 腳本，runtime 為純 SQLite（見 §7 待確認 1） | POSTGRESQL_PROJECT_STORE_PHASE3.md:9-31、91-99 |
+### 3.3 PostgreSQL `roompilot`（Kai；FR-039–045、NFR-006–008）
 
-## 6. 連線與設定（環境變數）
-
-設定讀取順序：程序環境變數優先，其次專案根 `.env`（postgres_repository.py:181-196；不輸出帳密）。
-
-| 變數 | 預設 | 作用 | 證據 |
+| 表 | 主鍵／唯一鍵 | 關鍵欄位與約束 | 佐證 |
 | :--- | :--- | :--- | :--- |
-| `ROOMPILOT_CATALOG_PROVIDER` | `postgres`（strict） | `json`／`local`／`fallback` 視為明確離線 JSON 模式；未設定即 strict PostgreSQL，DB 失敗回 503 不靜默回退（ADR-003、NFR-003） | postgres_repository.py:199-204、POSTGRESQL_CATALOG_READ_PHASE1.md:69-97 |
-| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | localhost / 5432 / roompilot_db / postgres /（空） | PostgreSQL 連線；密碼只在 `.env`，不可 commit | postgres_repository.py:211-217 |
-| `DB_CONNECT_TIMEOUT` / `DB_SSLMODE` / `DB_APPLICATION_NAME` | 3 / disable / roompilot_catalog_api | 連線逾時、SSL、application_name | postgres_repository.py:218-223 |
-| `DB_POOL_MIN` / `DB_POOL_MAX` | 1 / 8 | psycopg2 `ThreadedConnectionPool` 上下限；pool 以設定值為 key 快取、可 `close_catalog_pools()` 收攤 | postgres_repository.py:226-275 |
-| `ROOMPILOT_RUNTIME_DIR` | `<repo 根>/.runtime` | ProjectStore SQLite／uploads／renders 的共用 runtime 目錄（worktree 共用） | runtime_paths.py:20-25 |
-| `ROOMPILOT_PROJECT_STORE_PROVIDER` | —（**TO-BE**） | Phase 3 契約規劃的 provider 切換；yen@8863a36c 程式碼無讀取點 | POSTGRESQL_PROJECT_STORE_PHASE3.md:60-71 |
-| `ROOMPILOT_RUNTIME_CATALOG_PROVIDER` | —（待確認） | README 設定範例出現，backend 無讀取證據 | README.md:296（見 §7 待確認 4） |
+| `furniture_categories` | `category_id`；UK `category_code`、`name_zh` | 自參照 `parent_category_id` | `roompilot_postgresql_schema.sql:30-39` |
+| `furniture_items` | `item_id` TEXT | `raw_data` JSONB NOT NULL（含 `chroma_metadata`、`embedded_text`、`text_hash`）；`width_cm`／`depth_cm`／`height_cm` NUMERIC(10,2) CHECK >0；`price_twd` CHECK ≥0；`colors`／`materials` TEXT[]；`is_active` | `:42-74` |
+| `styles` / `rooms` | `style_id` / `room_id`；UK code | 字典表 | `:77-83,99-104` |
+| `furniture_styles` | PK (`item_id`,`style_rank`) | CHECK `style_rank IN (1,2)`、`confidence` ∈ [0,1]；以 rank 為鍵是為保留主／次風格相同的原始列 | `:86-96` |
+| `furniture_rooms` | PK (`item_id`,`room_id`) | 多對多 | `:107-112` |
+| `furniture_vlm_annotations` | `annotation_id`；UK (`item_id`,`annotation_hash`) | 部分唯一索引保證每件僅一筆 `is_current`；`mood_tags`／`shape_tags`／`features`／`search_keywords`／`rag_text` 皆 TEXT[] | `:115-147` |
+| `furniture_assets` | `asset_id`；UK `external_id`、`object_key` | CHECK：`glb` 不得帶 `view_role`，`image` 的 `view_role ∈ {front, side, angle-45}`；部分唯一索引鎖「每件恰一個 GLB」與「每件每角色恰一張圖」 | `:150-202` |
+| `furniture_embeddings` | `embedding_id`；UK (`item_id`,`embedding_model`,`text_hash`) | 僅在 pgvector 可用時以動態 SQL 建立；`embedding VECTOR`（開發階段**不固定維度**）；CHECK `vector_dims(embedding) = embedding_dimension`、`embedding_dimension > 0`、`text_hash ~ '^[0-9a-f]{64}$'` | `:205-238`；`roompilot_furniture_embeddings_schema.sql:7-45` |
+| `furniture_quality_issues` | `issue_id`；UK (`item_id`,`issue_type`,`issue_source`) | `severity ∈ {low,medium,high}`、`status ∈ {open,confirmed,fixed,ignored}` | `:241-261` |
+| `furniture_admin_audit` | `event_id` | `action ∈ {create,update,soft_delete}`；保留前後快照，**不存 Authorization token** | `:263-276` |
+| `staging.stg_*`（5 張） | PK (`batch_key`,`row_number`) | `batch_key` 為五份輸入檔 SHA-256 串接後再取 SHA-256，可重跑不混批 | `:279-340`；`import_official_catalog_to_postgres.py:465-466` |
 
-## 7. 待確認
+`updated_at` 由 `roompilot.set_updated_at()` trigger 維護（4 張表，`:568-600`）；`pg_trgm` 必裝、`vector` 為選用（缺席時跳過向量表並保留其餘 schema，`:6-24`）。
 
-1. **ProjectStore 現況 vs Phase 3 契約**：契約稱 `backend/server/postgres_project_store.py` runtime path 存在（POSTGRESQL_PROJECT_STORE_PHASE3.md:9），但 yen@8863a36c 該檔不存在（僅殘留 `__pycache__` .pyc），migration 腳本亦缺；現況為純 SQLite。契約文字已過時，遷移時程與範圍待 owner 於 `requirements_tracker.xlsx` 拍板（登錄簿 §7 已列）。
-2. **view 欄位與 repository SQL 的落差**：schema.sql 的 `furniture_catalog_current`（386-471）沒有 `normalized_type`／`taxonomy_group`／`taxonomy_type_zh`／`category_label` 欄位（它們在 `api_current`，475-566），但 repository 對 `furniture_catalog_current` 的 SQL 直接引用這些欄位（postgres_repository.py:128-129、536-538）；程式註解稱 live DB 由「imported Kai migration」發布相容版 view（18-20）。live view 定義與本 repo schema.sql 是否一致，需對 live DB `pg_get_viewdef` 驗證。
-3. **8,675 vs 8,076 採用門檻**：全量載入路徑要求回滿 8,675 筆才採用 DB 結果（main.py:918-920、cloud_catalog.py:18），但契約與 README 記 current view 僅提供 8,076 筆 active（POSTGRESQL_CATALOG_READ_PHASE1.md:214）。若 live view 實際回 8,076，該路徑將恆定退回 JSON——與 NFR-003「DB 失敗必須可見」的互動待 live 驗證與 owner 裁決。
-4. `ROOMPILOT_RUNTIME_CATALOG_PROVIDER` 出現在 README 設定範例（README.md:296）但 backend 無讀取證據，是文件殘留或待實作，待確認。
-5. `.runtime` 專案資料、上傳圖與 render PNG 無保留期限／清理政策；Pilot 內部可接受，正式化前須訂定。
-6. `furniture_embeddings`（pgvector）為選配動態建立（schema.sql:205-238）；live DB 是否啟用未在本文件驗證範圍，以 `/api/rag/status` 與 runbook 為準。
+### 3.4 消費端 view 與檢索函式
+
+| 物件 | 定義要點 | 消費者 | 佐證 |
+| :--- | :--- | :--- | :--- |
+| `roompilot.furniture_catalog_current` | `WHERE i.is_active`；風格／房間以 LATERAL `ARRAY_AGG`；資產 URL 從 `furniture_assets` 聚合且只採 `upload_status ∈ {already_exists, complete, completed, skipped_existing, success, uploaded}` 且 `validation_status ∈ {'', ready, success, valid}` 的列 | 第 6 步型錄全部查詢（分頁／facet／單件／狀態） | `roompilot_postgresql_schema.sql:386-471`；`postgres_repository.py:20,590-626` |
+| `roompilot.furniture_catalog_api_current` | 在上者之上補 `normalized_type`、`taxonomy_group(_zh)`、`category_label`、`catalog_scope='kai_postgresql'`、`must_against_wall=FALSE`、`can_rotate=TRUE` | 契約驗證與外部查驗；**本分支 runtime 仍固定走 `furniture_catalog_current`** | `:475-566`；`postgres_repository.py:18-20` |
+| `roompilot.furniture_embedding_source_current` | 投影 `raw_data->>'embedded_text'`／`text_hash`／`chroma_metadata`＋當前 `annotation_id`；篩 `kind='furniture' AND is_active AND embedded_text<>'' AND text_hash ~ 64 hex` | 向量匯入驗證與檢索 JOIN | `roompilot_furniture_embeddings_schema.sql:52-82` |
+| `roompilot.search_furniture_embeddings(...)` | 精確 cosine（`<=>`），以 `(embedding_model, vector_dims)` 為域；`LIMIT LEAST(GREATEST(match_count,1),100)` | 匯入器契約 probe | `:86-116`；`import_furniture_embeddings_to_postgres.py:313-319` |
+| `roompilot.search_furniture_embeddings_filtered(...)` | SQL **硬篩** room／category／price／`max_width_cm`／`max_height_cm`／role／size_class（全部讀 `chroma_metadata`），排序仍為 cosine；風格與 mood **刻意留在 Python 做軟排序** | 第 5 步檢索（FR-047） | `:118-196`；`rag_repository.py:131-164` |
+
+檢索模型固定 `BAAI/bge-m3`（`rag_repository.py:12`）。狀態探測回 `current_embeddings`、`embedding_dimension`、`search_function_available`（`rag_repository.py:53-89`），對應具名 blocker `furniture_embeddings_empty`／`filtered_search_function_missing`／`postgresql_unavailable`（`spatial_data/rag/service.py:94,96,106`）。
+
+## 4. 資料字典 (Data Dictionary)
+
+| 欄位／集合 | 業務語意 | 來源 | 敏感等級 |
+| :--- | :--- | :--- | :--- |
+| `projects.workflow_json` | 使用者走到第幾步、每步填了什麼；恢復進度的唯一依據 | FR-003、FR-022 | **中：可能含業主自填名稱、需求描述、聯絡資訊**；輸出時於兩處脫敏（`main.py:2475-2491`；`render_service.py:52-61`，NFR-020） |
+| `projects.revision` | 「別人改過了」的判定基準 | FR-004、NFR-003 | 一般 |
+| `projects.upload_path` | 原始平面圖落點 | FR-005 | 中：住宅平面可識別具體物件 |
+| `render_outputs.file_path` / `byte_size` | 瀏覽器輸出 PNG 的存證 | FR-009、NFR-002 | 低 |
+| `workflow_json.render_context.appliance_requirements` | 家電需求；**只供第 8 步生圖，不進 2D/3D 擺設** | FR-028、[`ADR-006`](../03_architecture/adr/ADR-006-appliances-render-context-only.md) | 低 |
+| `furniture_items.width_cm/depth_cm/height_cm` | 家具實體尺寸，引擎碰撞與淨空的輸入 | FR-034、NFR-017（公分契約） | 低 |
+| `furniture_assets.delivery_url` | GLB／三視角圖的 CloudFront 交付位址 | FR-042 | 低 |
+| `furniture_embeddings.embedding` | 檢索候選排序訊號；**不決定放哪、不新增候選** | FR-047、FR-049、[`ADR-008`](../03_architecture/adr/ADR-008-rag-retrieval-only-offline-models.md) | 低 |
+| `furniture_admin_audit.before_data/after_data` | 型錄異動稽核；同交易寫入 | FR-043 | 低（規約禁存 token，`roompilot_postgresql_schema.sql:263-264`） |
+| 隔離區集合（不在資料庫內） | `unmatched_cloud_furniture`(1,514)、`sf3d_legacy`(1,509) 以 JSON 保存於 `backend/catalog/data/quarantine/`，**永不進任何家具 API 或場景** | FR-045、DEC-007 | 低（`tests/test_cloud_quarantine.py:22-41`） |
+
+**現場實測（2026-08-12 唯讀查詢／`du`）**：`projects` 741 列、`render_outputs` 0 列；`workflow_json` 最大 1,316,192 bytes（佔 2 MB 上限 63%）、平均 91,046 bytes、最大 `revision` 458；`.runtime` 目錄 `uploads/` 115 MB、`manuals/` 45 MB、`projects.sqlite3` 67 MB、`indexes/` 232 KB、`renders/` 與 `agent_pipeline/` 為空。
+
+## 5. 索引與效能
+
+| 索引／機制 | 欄位 | 支撐的查詢 | 依據 |
+| :--- | :--- | :--- | :--- |
+| `sqlite_autoindex_projects_1` | `projects.project_id` | 逐案讀寫（全部走 PK） | NFR-004 |
+| **（缺）** `render_outputs.project_id` | — | `list_renders` 以 `WHERE project_id=? ORDER BY created_at DESC, render_id DESC` 全表掃描；現況 0 列故無影響 | `project_store.py:405-416`；2026-08-12 實測僅兩個 autoindex |
+| `idx_furniture_items_{category,source,active}` | 對應單欄 | 型錄 facet 與硬篩 | `roompilot_postgresql_schema.sql:342-347` |
+| `idx_furniture_items_name_{en,zh}_trgm` | GIN + `gin_trgm_ops` | `q=` 關鍵字模糊查詢 | `:348-351` |
+| `idx_furniture_{styles_style, rooms_room, assets_item, assets_upload_status}` | 對應單欄 | view 的 LATERAL 聚合與資產健康統計 | `:352-359` |
+| `uq_current_vlm_annotation`／`uq_furniture_glb`／`uq_furniture_image_role` | 部分唯一索引 | 保證「一件一 current 標註／一 GLB／每角色一圖」 | `:145-147,196-202` |
+| `idx_furniture_embeddings_item_model` | (`item_id`,`embedding_model`) | 向量 UPSERT 與 JOIN；**HNSW 刻意未建**，匯入器偵測到 HNSW 直接拒收 | `roompilot_furniture_embeddings_schema.sql:47-48,84-85`；`import_furniture_embeddings_to_postgres.py:309-311` |
+| 連線池 | `DB_POOL_MIN=1`／`DB_POOL_MAX=8`／`DB_CONNECT_TIMEOUT=3` 秒；`autocommit=True`；缺驅動拋 `postgres_driver_unavailable` | 全部型錄與檢索查詢共用同一池 | `postgres_repository.py:211-260`；NFR-007 |
+| 分頁上界 | `page ≥ 1`、`page_size` 1–80；`SELECT * … ORDER BY item_id LIMIT/OFFSET`，另取 `glb_url` 前 24 筆預熱 | `GET /api/furniture` | `postgres_repository.py:590-626`；NFR-006 |
+| 檢索上界 | 硬篩後 `LIMIT LEAST(GREATEST(match_count,1),100)`，預設 top-50 | 第 5 步檢索 | `roompilot_furniture_embeddings_schema.sql:194-196` |
+
+> SQLite 端唯一的併發保護是 WAL＋`BEGIN IMMEDIATE`；無讀寫分離、無連線池、無查詢層快取。型錄端無 process 級快取的只有 `catalog_summary`（`postgres_repository.py:686-688`），家具 payload 走 `lru_cache`（`main.py:909-926`）。
+
+## 6. 資料保留與遷移
+
+| 項目 | 現況（可由程式碼驗證） | 政策 |
+| :--- | :--- | :--- |
+| 保留期限 | 無 TTL、無輪替、無配額；無專案刪除 API（`rg "unlink\|rmtree\|DELETE FROM" backend/server/*.py` 僅命中失敗回滾與問卷索引重灌） | **待 DEC-015 核准**（NFR-022、OPEN-06 以外另計，見 §7） |
+| 備份 | repo 內無備份腳本、無排程；`.runtime/` 不得進 Git | **待 DEC-015 核准** |
+| 結案刪除／交還 | 無實作 | **待 DEC-015 核准** |
+| Migration 策略 | **本 repo 無 migration 框架**。SQLite 僅一處 `ALTER TABLE ADD COLUMN revision`（`project_store.py:116-123`）；PostgreSQL 靠 `CREATE … IF NOT EXISTS` ＋ `CREATE OR REPLACE VIEW/FUNCTION` 冪等重跑，view 刻意把新欄位排在最後以免 `CREATE OR REPLACE` 失敗（`roompilot_furniture_embeddings_schema.sql:62-64`） | 待確認：是否引入 migration 工具（無既有 OPEN） |
+| 跨 worktree 合流 | `import_runtime()` 以 `updated_at` 決勝合併 legacy `.runtime`，**只增不刪、來源檔遺失時保留現值** | FR-008 |
+| 型錄重建（種子） | 匯入器交易式重建：先驗證再寫，`staging` 依 `batch_key` 清舊列（`import_official_catalog_to_postgres.py:938`）、子表依 `item_id` 重寫（`:1050,1062`） | FR-043 |
+| 型錄匯入拒收條件 | 總數須為 8,675（`:28,320-324`）；四份 CSV 與 catalog 的 `item_id` 集合須一致（`:383-411`）；每件恰 3 張角色圖 `front/side/angle-45`（`:29,440-453`）；`upload_status` 全 `uploaded`、`validation_status` 全 `ready`（`:455-463`） | FR-043、ACPT-039 |
+| 向量匯入拒收條件 | `item_id` 須屬 8,076 筆 active／RAG-indexable（`import_furniture_embeddings_to_postgres.py:35,129,190-195`）；`embedded_text`／`text_hash` 須與官方 JSON 一致且 SHA-256 自洽（`:197-203`）；宣告維度須等於實際長度（`:215-224`）；目標模型向量 L2 norm ∈ [0.98, 1.02]（`:225-228`）；DB 端須有三個 constraint、須有 item/model 索引、**不得有 HNSW**、契約 probe 須回 0 列（`:282-325`）；UPSERT 後回查鍵集合確認（`:379-399`） | FR-044、ACPT-039 |
+| 一鍵重建 | `pgvector/pgvector:pg17`＋空 volume 首次自動還原 dump；`pg_isready` healthcheck | FR-066；`docker_postgresql/docker-compose.yml:8-27` |
+
+## 7. 假設與待確認
+
+| 編號 | 待確認內容 | 目前可驗證的事實 | 承接處 |
+| :--- | :--- | :--- | :--- |
+| DEC-015 | 執行資料的保留期限、備份頻率、結案刪除與交還政策；`.runtime` 現以 227 MB 持續成長且無任何清理路徑 | 2026-08-12 `du` 實測；程式碼無刪除／輪替／備份實作 | [`deployment_and_operations.md`](../06_ops/deployment_and_operations.md)、[`runbook-runtime-storage-growth.md`](../06_ops/runbook-runtime-storage-growth.md)（RB-009） |
+| OPEN-06 | 型錄筆數閘門不一致：`main.py:919` 要求 `len(items) == 8,675`（`cloud_catalog.py:18`）才採用 PostgreSQL 結果，但 `load_catalog` 查的 `furniture_catalog_current` 已 `WHERE is_active`，契約記為 8,076 筆 active／599 inactive（`POSTGRESQL_FURNITURE_EMBEDDINGS.md:9`）。條件不成立時 `_furniture_payload_for_provider` 靜默落回 JSON 合併型錄（`main.py:917-921`），與 DEC-007「DB 優先、失敗要可見」相衝 | `postgres_repository.py:673-683`；`main.py:917-921`；`docker_postgresql/DOCKER_ONECLICK.md:25` 的驗收查詢期望值即為 8,076 | [`ADR-005`](../03_architecture/adr/ADR-005-postgres-catalog-source-of-truth.md)、[`runbook-catalog-db-unavailable.md`](../06_ops/runbook-catalog-db-unavailable.md)（RB-001） |
+| OPEN-43 | 向量筆數在契約間有 8,076 與 7,958 兩個數字；本 repo 的匯入器與 view 註解一致採 8,076，**未實測 live DB**（本機 PostgreSQL 未啟動） | `import_furniture_embeddings_to_postgres.py:35`；`roompilot_furniture_embeddings_schema.sql:81-82` | [`ADR-008`](../03_architecture/adr/ADR-008-rag-retrieval-only-offline-models.md)、[`test_plan.md`](../05_qa/test_plan.md) |
+| 待確認（無既有 OPEN） | 現場 `projects.sqlite3` 含本分支未定義的 `users`／`refresh_tokens`／`project_members` 三表（386 列成員關係）與 `.runtime/engineering/`；是要在本分支恢復認證功能、清除殘留，還是視為他分支共用同一執行資料的既定現象 | 2026-08-12 唯讀查詢；`backend/server/auth/` 僅存 `__pycache__` | [`sad.md`](../03_architecture/sad.md)、[`deployment_and_operations.md`](../06_ops/deployment_and_operations.md) |
+| 待確認（無既有 OPEN） | `POSTGRESQL_PROJECT_STORE_PHASE3.md:9` 宣稱 `backend/server/postgres_project_store.py` 與 `roompilot.projects`／`render_outputs` 的 runtime path「仍存在」，**本分支查無此檔**；專案保存是否仍以 PostgreSQL 為目標 | `rg postgres_project_store backend/` 僅命中 `.pyc`；`main.py:147` 直接建立 SQLite `ProjectStore` | [`ADR-004`](../03_architecture/adr/ADR-004-single-workflow-snapshot-sqlite.md) |
+| 待確認（無既有 OPEN） | Docker 還原路徑不一致：compose 掛載 `./scripts/sql/roompilot_db_dump.sql.gz`，但 compose 檔位於 `docker_postgresql/`，該相對路徑下無此檔；實際 dump 在 `docker_postgresql/roompilot_db_dump.sql.gz` | `docker_postgresql/docker-compose.yml:19`；`ls` 實測 `scripts/sql/` 無 `.gz` | [`deployment_and_operations.md`](../06_ops/deployment_and_operations.md) |
+| 待確認（無既有 OPEN） | SQLite `created_at`／`updated_at` 為 ISO 字串而非時間型別，`import_runtime` 的決勝與 `list_renders` 的排序都依賴字串比較；跨時區或非 UTC 來源列的正確性未經測試 | `project_store.py:14-15,412,466` | [`test_plan.md`](../05_qa/test_plan.md) |
 
 ## 8. 追溯
 
-| 項目 | ID／來源 |
+| 項目 | ID／文件 |
 | :--- | :--- |
-| 上游需求 | REQ-001、REQ-013；FR-001、FR-013；NFR-002、NFR-003、NFR-005（[../00-registry.md](../00-registry.md) §2） |
-| 上游決策 | [ADR-003](../03_architecture/adr/ADR-003-catalog-postgres-first-json-fallback.md)（catalog PostgreSQL 優先）、[ADR-007](../03_architecture/adr/ADR-007-workflow-json-single-snapshot-store.md)（workflow 單一快照＋樂觀鎖） |
-| 上游契約 | `docs/contracts/POSTGRESQL_CATALOG_READ_PHASE1.md`、`docs/contracts/POSTGRESQL_PROJECT_STORE_PHASE3.md` |
-| 實作真相 | `scripts/sql/roompilot_postgresql_schema.sql`、`scripts/sql/import_official_catalog_to_postgres.py`、`backend/catalog/postgres_repository.py`、`backend/server/project_store.py`、`backend/server/runtime_paths.py`（git yen@8863a36c） |
-| 驗收對齊 | ACPT-012（catalog 失敗可見）、ACPT-014（revision 409）；SCN-006、SCN-009 |
-| 下游文件 | [api_spec.md](./api_spec.md) §6 資料模型（欄位命名對齊）、[lld.md](./lld.md)（workflow JSON 內部結構）、[../05_qa/test_plan.md](../05_qa/test_plan.md)、[../06_ops/runbook-catalog-db-unavailable.md](../06_ops/runbook-catalog-db-unavailable.md)、[../06_ops/runbook-workflow-revision-conflict.md](../06_ops/runbook-workflow-revision-conflict.md)、[../06_ops/deployment_and_operations.md](../06_ops/deployment_and_operations.md)（環境變數表） |
+| 上游需求 | FR-003、FR-004、FR-005、FR-008、FR-009、FR-026、FR-039、FR-041、FR-043、FR-044、FR-045、FR-047、FR-066；NFR-001、NFR-003–008、NFR-022；DEC-002、DEC-007、DEC-015、DEC-016（見 [`srs.md`](../01_requirements/srs.md) §2–§4） |
+| 設計決策 | ADR-004（單一 workflow 快照）、ADR-005（PostgreSQL 為型錄真相）、ADR-006（家電只入 `render_context`）、ADR-007（公分契約）、ADR-008（檢索唯讀、離線模型）；架構定位見 [`sad.md`](../03_architecture/sad.md) 的 MOD-SRV-STORE、MOD-CAT、MOD-SQL、MOD-RAG |
+| 同層對齊 | 欄位命名與端點 payload 對齊 [`api_spec.md`](./api_spec.md)、[`openapi-project-workflow-v1.yaml`](./openapi-project-workflow-v1.yaml)、[`openapi-agent-rag-v1.yaml`](./openapi-agent-rag-v1.yaml)；模組內部流程見 [`lld.md`](./lld.md) |
+| 下游驗證 | ACPT-002、ACPT-003、ACPT-007、ACPT-008、ACPT-036、ACPT-037、ACPT-039、ACPT-040、ACPT-042、ACPT-058 → [`test_plan.md`](../05_qa/test_plan.md) 的 TC-002、TC-003、TC-007、TC-008、TC-036、TC-037、TC-039、TC-040、TC-042、TC-058 |
+| 失效模式 | RB-001（型錄 DB 不可用）、RB-003（存檔衝突或超限）、RB-004（檢索模型快取缺）、RB-009（執行資料成長）→ [`06_ops/`](../06_ops/deployment_and_operations.md) |
+| 決策權威 | 保留、備份與刪除政策（DEC-015）由產品 owner 於 [`requirements_tracker.xlsx`](../01_requirements/requirements_tracker.xlsx) ①需求決策拍板；本文件所有政策欄在核准前一律為「待確認」 |

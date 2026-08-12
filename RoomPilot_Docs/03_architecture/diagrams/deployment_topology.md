@@ -1,85 +1,110 @@
 # 部署拓撲圖 (Deployment Topology) - RoomPilot
 
-> **版本:** 0.1 | **更新:** 2026-08-11 | **狀態:** 草稿
-> **Owner:** Bella（跨模組整合，依 `AGENTS.md` 目錄責任；本檔為 AI 衍生草稿，人工核准前為 TO-BE）
-> **語域:** L3（工程；本檔為 drawio 生成規格）
-> **實例:** 單例（每專案一張；多環境／future state 以分頁承載，不另開檔）
-> **生成:** AI 由程式碼與文件衍生｜來源版本 git yen@8863a36c
+> **版本:** v1.0 ｜ **更新:** 2026-08-12 ｜ **狀態:** 草稿（待 owner 核准）
+> **Owner:** 架構師；安裝腳本與環境變數由 MOD-OPS owner（Bella）維護
+> **語域:** L2（橋接）——邏輯容器名與實際行程、埠、檔案路徑並列
+> **實例:** 單例（整個 RoomPilot 一份；Pilot 現況只有一種環境，repo 內無 dev／stage／prod 分歧設定）
 >
-> **定位**：部署與邊界溝通圖的生成規格——把 [c4_container](./c4_container.md) 的邏輯容器落到具體 Node（本機單機部署）。部署程序與環境設定歸 [../../06_ops/deployment_and_operations.md](../../06_ops/deployment_and_operations.md)；邏輯容器分工歸 c4_container。ID 沿用 [../../00-registry.md](../../00-registry.md)。
+> **本文件回答**：八步工作流的邏輯容器目前跑在哪台機器、哪個行程、哪個埠，執行資料落在哪個檔案或資料庫，跨邊界連線各是什麼協定與失敗語意。
+> **本文件不含**：容器責任分工（見 [`c4_container.md`](./c4_container.md)）、系統邊界與外部角色（見 [`c4_context.md`](./c4_context.md)）、架構取捨理由（見 [`../sad.md`](../sad.md) 與 `../adr/`）、安裝與日常維運步驟（見 [`deployment_and_operations.md`](../../06_ops/deployment_and_operations.md)）、故障處置（見 `runbook-*`）。
+> **佐證基準**：分支 `yen`、HEAD `8f378b24`、2026-08-12 工作樹。行號隨程式碼演進，衝突時以原始碼為準。
 
 ## 目錄
 
 - [1. 圖面資訊](#1-圖面資訊)
-- [2. 生成 prompt](#2-生成-prompt)
-- [3. 約束與檢查](#3-約束與檢查)
-- [4. 待確認](#4-待確認)
-- [5. 追溯](#5-追溯)
+- [2. 部署拓撲圖](#2-部署拓撲圖)
+- [3. 元素對照表](#3-元素對照表)
+- [4. 本 repo 不存在的部署元件](#4-本-repo-不存在的部署元件)
+- [5. 待確認](#5-待確認)
+- [6. 追溯](#6-追溯)
 
 ## 1. 圖面資訊
 
 | 欄位 | 值 |
-|---|---|
-| 受眾 | 團隊組員（自行架環境）、維運/展示窗口 |
-| 回答的問題 | 什麼跑在同一台機器上？哪些是外部雲服務？資料落在哪裡？ |
-| 正典來源 | [sad](../sad.md) §7（待產出）、[../../06_ops/deployment_and_operations.md](../../06_ops/deployment_and_operations.md) |
-| 最後校驗 | 2026-08-11（對照 git yen@8863a36c） |
-| 階段 | Pilot |
+| :--- | :--- |
+| 受眾 | 團隊成員（自行架環境）、示範窗口、稽核 |
+| 回答的問題 | 什麼跑在同一台機器、同一個行程裡？資料落在哪？哪些連線出得了本機？ |
+| 正典來源 | [`../sad.md`](../sad.md) 部署視圖、[`srs.md`](../../01_requirements/srs.md) FR-065–067／NFR-019–023 |
+| 最後校驗／階段 | 2026-08-12 對照 `yen@8f378b24` 逐項驗證；Pilot 現況 AS-IS，本圖不含任何 TO-BE 節點 |
 
-## 2. 生成 prompt
+## 2. 部署拓撲圖
 
-畫部署拓撲：**本機單機部署**，單租戶、單使用者工作站——不是雲端架構，不畫 LB／K8s／多 AZ。模板的「per-tenant／集中平台／加購模組」三分模式不適用（無多租戶證據），改為三分組：① 本機工作站、② 外部雲服務、③ 使用者瀏覽器。
+```mermaid
+graph LR
+    subgraph HOST["開發者工作站（單機；app 未容器化、無反向代理、無 TLS）"]
+        WEB["瀏覽器：靜態單頁前端<br/>scene.html + scene_v2.js"]
+        subgraph PROC["uvicorn 單一 Python 行程 127.0.0.1:8002 --reload"]
+            API["FastAPI app：REST 路由 + 靜態檔掛載"]
+            ENG["幾何引擎（同行程函式呼叫）"]
+            CONC["行程內併發：生圖執行緒池 + 檢索單一 worker"]
+        end
+        RT[("本機 .runtime/：projects.sqlite3｜uploads｜renders<br/>manuals｜indexes｜agent_pipeline")]
+        PDF["Chromium 子行程：交付提案 PDF 排版"]
+        CACHE[("檢索模型權重快取（offline-only）")]
+    end
+    subgraph DB["Docker 容器（本機或遠端主機，由 DB_HOST 決定）"]
+        PG[("PostgreSQL 17 + pgvector：型錄 view + 向量")]
+    end
+    subgraph EXT["外部 HTTPS 出向"]
+        OR["OpenRouter：LLM 與生圖唯一閘道"]
+        CF["CloudFront：GLB 與型錄圖片"]
+        RP["遠端算圖 provider（未設 URL 即停用）"]
+    end
 
-### 2.1 Node 與部署單元
+    WEB -->|"HTTP 127.0.0.1:8002（明文）"| API
+    WEB -.->|"HTTPS 直載，經 307 導向"| CF
+    API --> ENG & CONC
+    API -->|"本機檔案 I/O"| RT
+    API -->|"子行程，逾時 180 秒"| PDF
+    API -->|"TCP 5432，sslmode 預設 disable"| PG
+    CONC -->|"HTTPS，逾時 120 秒"| OR
+    CONC -->|"本機檔案，不在請求路徑下載"| CACHE
+    API -.->|"HTTPS，可選；未設定即停用"| RP
+```
 
-| 分組 | Node / 部署單元 | 屬性與數量 | 證據 |
-|---|---|---|---|
-| ① 本機工作站（藍） | uvicorn `backend.server.main:app` | 127.0.0.1:8002 ×1（占用時改 8023）；Python 3.12 `.venv`；`--reload` 開發模式 | `README.md:47-50,68`、事實檔 06-ops §1 |
-| ① 本機工作站 | 靜態前端（同 process） | FastAPI 直接服務 `backend/server/static/`，無獨立 web server | ADR-006、`backend/server/main.py:195` |
-| ① 本機工作站 | SQLite ProjectStore | 檔案型 DB（`DB_PATH` 可覆寫）；workflow JSON 單一快照 ≤2MB | `backend/server/main.py:127,460-469`、NFR-002 |
-| ① 本機工作站 | runtime 目錄 | 上傳圖／渲染圖等落地檔；`ROOMPILOT_RUNTIME_DIR` 可覆寫；不進 git | `backend/server/runtime_paths.py:22`、`AGENTS.md:59` |
-| ① 本機工作站 | PostgreSQL 17.10 ＋ pgvector v0.8.2 | localhost:5432、`roompilot_db` ×1；原生 Windows 安裝或 Docker（`pgvector/pgvector`）二擇一 | `scripts/sql/PostgreSQL 17.10 安裝與資料匯入指南.md:3`、`docker_postgresql/docker-compose.yml:7`、事實檔 06-ops §2 |
-| ① 本機工作站 | Playwright Chromium | 第 8 步 PDF print 引擎；缺席時交付提案回 503（設計行為） | `requirements-delivery.txt:2`、事實檔 06-ops §6 |
-| ① 本機工作站 | RAG 模型快取（可選） | 約 9GB，repo 外；伺服器只 lazy-load 已快取模型，BGE-M3+reranker 約 4.6GB 常駐記憶體 | `README.md:98-107`、事實檔 06-ops §7 |
-| ② 外部雲服務（灰） | OpenRouter | HTTPS；LLM/VLM/生圖唯一閘道（單一 `OPENROUTER_API_KEY`） | `backend/agent/llm.py:133`、事實檔 06-ops §2 |
-| ② 外部雲服務 | AWS S3/CloudFront | 家具 GLB 與三視角圖；API 以 307 redirect，瀏覽器直載 | `backend/server/main.py:4012`、`cloud_models.py:47-72` |
-| ② 外部雲服務 | 遠端算圖 provider（可選） | `ROOMPILOT_RENDER_PROVIDER_URL/_TOKEN`，timeout 預設 60s；未設定時不啟用 | `backend/server/render_service.py:34-44` |
-| ③ 使用者瀏覽器（青） | Three.js 八步精靈 | 與 server 同機（127.0.0.1 bind，僅本機可達）×1 | `README.md:47-50`、ADR-006 |
+**圖例**：實線＝現況必經路徑；虛線＝可選或由瀏覽器直連（不經本機行程）；圓柱＝資料存放；外框＝實體邊界（工作站／容器／外網）。全圖無 `🔜` 節點——未落地的元件一律不畫，改列於 §4。
 
-### 2.2 連線（只畫跨組線）
+**對外溝通級正典載體**：[`deployment_topology.drawio`](./deployment_topology.drawio)（由宣告式 spec [`deployment_topology.py`](./deployment_topology.py) 生成，`analyze_layout.py` 量測 cross=0／pierce=0；**絕不手改生成物**）｜最後校驗 2026-08-12。
 
-| 從 → 到 | 語意與協定 | 證據 |
-|---|---|---|
-| 瀏覽器 → uvicorn | HTTP 127.0.0.1:8002（頁面、REST API、上傳） | `README.md:47-50` |
-| 瀏覽器 → CloudFront | HTTPS 直載 GLB／圖（經 API 307 redirect） | `main.py:4012` |
-| uvicorn → PostgreSQL | TCP 5432，查 view `roompilot.furniture_catalog_current`；失敗必須可見，僅顯式設定才回退已驗證 JSON | ADR-003、NFR-003、`main.py:909-926` |
-| uvicorn → OpenRouter | HTTPS，統一閘道一條線（問卷解析／場景規劃／生圖） | 事實檔 06-ops §2 |
-| uvicorn → SQLite／runtime | 本機檔案 I/O（同 Node 內部線，虛線淡化） | `main.py:460-469`、`runtime_paths.py:22` |
+## 3. 元素對照表
 
-### 2.3 註記帶（畫進圖）
+| 圖上節點 | 實體、屬性與失敗語意 | 佐證 file:line | MOD |
+| :--- | :--- | :--- | :--- |
+| WEB | 由同一個 uvicorn 行程掛載 `/static` 與 `/docs-assets`，`scene.html` 以 `FileResponse` 直供；**無獨立 web server** | `main.py:216-217,1646,1667` | MOD-WEB |
+| PROC | 單行程 `uvicorn backend.server.main:app --host 127.0.0.1 --port 8002 --reload`；8002 被占用時改埠；安裝腳本釘 Python 3.12（實測虛擬環境 3.13.5，見 NFR-023） | `README.md:49,66,68`；`install.ps1:44,47,79`；`install.sh:35,65`；`pyproject.toml:5` | MOD-OPS |
+| API | app 只掛 `GZipMiddleware`；**無 CORS、無認證、無授權、無限流中介層**（NFR-019） | `main.py:195-197` | MOD-SRV-API |
+| ENG | 家具合法位置只由 `backend/engine/` 在同行程計算，不經任何外部服務 | [`AGENTS.md`](../../../AGENTS.md) §不可違反的契約；`engine/clearance.py:118-143` | MOD-ENG |
+| CONC | 生圖／色卡走 `ThreadPoolExecutor`（`max_workers` ＝房數）；檢索走單一 daemon worker，佇列上限 24、完成後保留 3600 秒，狀態存行程記憶體，重啟即失 | `ai_render_service.py:423-429`；`rag_api.py:28-32,121-137` | MOD-SRV-RENDER、MOD-RAG |
+| RT | 預設 repo 根 `.runtime/`，`ROOMPILOT_RUNTIME_DIR` 可覆寫；含 `uploads/`、`renders/`、`projects.sqlite3`（WAL、`foreign_keys=ON`）、`manuals/<project_id>/`、`indexes/questionnaire_visuals.sqlite3`、`agent_pipeline/<project_id>.json`。2026-08-12 實測 `uploads/` 118 MB、`projects.sqlite3` 67 MB、`manuals/` 45 MB，無配額與輪替（NFR-022、RB-009） | `runtime_paths.py:20-25`；`project_store.py:80-93`；`main.py:206-214,2291`；`agent_pipeline_service.py:54-60`；`du -sh .runtime/*` | MOD-SRV-STORE |
+| PDF | 以 `sys.executable` 起子行程跑打包 skill 的 `build_pdf.py`，逾時 180 秒；未安裝 playwright 回 503 並附安裝指令（RB-005） | `agent/skills/delivery/__init__.py:40-57,275-300` | MOD-SRV-RENDER |
+| CACHE | 目錄取 `ROOMPILOT_RAG_MODEL_CACHE`，否則 `HF_HOME` 或 `~/.cache/huggingface`；embedding 與 reranker 皆 `local_files_only=True`，未快取直接 `RagDependencyError` → 503（RB-004） | `rag/settings.py:59-60,96-97`；`model_runtime.py:104-127` | MOD-RAG |
+| PG | `pgvector/pgvector:pg17`，埠 `${DB_PORT:-5432}`，`pg_isready` healthcheck，空 volume 首次自動還原 dump；用戶端預設 `localhost:5432/roompilot_db`、池 1–8、連線逾時 3 秒、`DB_SSLMODE` 預設 `disable`；第 6 步讀 view `roompilot.furniture_catalog_current`，不可用時 `/api/catalog/status` 回 `available=false`（RB-001） | `docker_postgresql/docker-compose.yml:5-27`；`postgres_repository.py:20,194-196,211-224,226-245` | MOD-SQL、MOD-CAT |
+| OR | 端點寫死 `https://openrouter.ai/api/v1/chat/completions`，逾時 `ROOMPILOT_AGENT_LLM_TIMEOUT` 預設 120 秒；未設 `OPENROUTER_API_KEY` 時狀態端點回 `configured:false`、呼叫回 503（RB-002） | `agent/llm.py:31,143-149`；`ai_render_service.py:67-74` | MOD-SRV-RENDER、MOD-AGT |
+| CF | 交付模式預設 `cloudfront`，base `https://ddgsm1yg3xikc.cloudfront.net`；`/model` 回 307 由瀏覽器直載，`model.gltf`／`buffer.bin`／`images/{i}` 回 410（RB-008） | `services/cloud_models.py:32,45-52`；`main.py:4012-4018,4021-4048` | MOD-CAT |
+| RP | `ROOMPILOT_RENDER_PROVIDER_URL` 未設即 `configured:false`（現況預設未啟用）；逾時夾限 5–180 秒、預設 60 秒；有 token 才加 `Authorization`；上游拒絕／連不上分別回 `render_provider_http_<code>`／`render_provider_unreachable` | `render_service.py:33-51,136-149` | MOD-SRV-RENDER |
 
-- 資料隔離：單機單租戶，無 tenant 概念；秘密只在本機 `.env`（不提交，`AGENTS.md:59`），且 `.env` 檔優先於 process env（`backend/spatial_data/rag/settings.py:23-28`）。
-- 幾何合法性只在 uvicorn 內的 `backend/engine/` 計算（ADR-002）——外部服務線不得標「決定擺位」。
-- 無 CI/CD、無反向代理、無 TLS 終結：目前拓撲即開發機即產品展示機。
+## 4. 本 repo 不存在的部署元件
 
-## 3. 約束與檢查
+| 元件 | 現況 | 佐證 |
+| :--- | :--- | :--- |
+| 反向代理／TLS 終結 | 無 nginx／Caddy／Traefik 設定與憑證檔；對外只有明文 HTTP loopback | `rg -i "nginx\|traefik\|caddy\|letsencrypt"` 無命中；`README.md:49` |
+| 認證／授權／CORS／限流 | app 只掛 GZip 一個中介層，唯一節流是檢索佇列上限 24；`.runtime/auth_secret.key` 存在但**全 repo 無程式碼引用**（殘留檔） | `main.py:195-197`；`rag_api.py:28-32`；`rg "auth_secret"` 無命中 |
+| app 容器化／服務化 | 無 Dockerfile、無 app compose（`docker_postgresql/` 只含資料庫）、無 systemd／supervisord；啟動指令帶 `--reload`（開發伺服器即展示環境） | 根目錄無 `Dockerfile`；`install.ps1:79` |
+| CI／CD | 無 `.github/` 目錄與任何 pipeline 設定；驗證靠本機 `pytest -q`（NFR-024） | `.github` 不存在；[`AGENTS.md`](../../../AGENTS.md) §驗證矩陣 |
+| 訊息佇列／分散式快取／多實例／可觀測性 | 依賴清單無 redis／celery／rabbitmq／kafka，無 sentry／opentelemetry／prometheus 與 logging 設定；併發只有行程內執行緒與單一全域鎖 | `requirements.txt`、`pyproject.toml` 無命中；`agent_pipeline_service.py:28-30` |
+| 備份／保留／刪除機制 | 無備份腳本、無 TTL、無專案刪除 API（NFR-022；DEC-015 未核准） | [`srs.md`](../../01_requirements/srs.md) §4 資料需求、NFR-022 |
 
-- [ ] 每個 Node 標屬性（port／數量 ×1／可選與否）；可選元件（RAG 快取、遠端算圖、OCR）以虛框標示
-- [ ] 只畫 §2.2 跨組連線；同 Node 內部檔案 I/O 淡化，不畫滿
-- [ ] 資料隔離註記為「單機單租戶」，不虛構 schema／tenant_id 隔離
-- [ ] 不畫目標雲端拓撲；未來狀態（如 ProjectStore 遷 PostgreSQL）僅得以 `🔜` 註記，見 §4
-- [ ] 圖例＋metadata banner 已附（版本 0.1、git yen@8863a36c）
+## 5. 待確認
 
-## 4. 待確認
+| # | 待確認內容 | 掛的 OPEN／DEC | 目前可驗證的事實 | 承接處 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | 「僅本機 loopback、無認證」是既定 Pilot 範圍還是待補缺口；若要開放內網共用，反向代理／TLS／認證需一次補齊 | OPEN-02（DEC-014、NFR-019） | `main.py:195-197` 無認證與 CORS 中介層；唯一邊界是 `--host 127.0.0.1` | [`../sad.md`](../sad.md)、[`deployment_and_operations.md`](../../06_ops/deployment_and_operations.md) |
+| 2 | 備份頻率、保留天數、結案刪除與工作站最低配備（檢索常駐約 4.6 GB）——**目標值未定義**，無法由程式碼推導 | DEC-015、NFR-025 | repo 無備份腳本、無配額設定、無硬體規格文件 | [`deployment_and_operations.md`](../../06_ops/deployment_and_operations.md)、[`runbook-runtime-storage-growth.md`](../../06_ops/runbook-runtime-storage-growth.md) |
+| 3 | PostgreSQL 正式部署形態（Docker vs 原生安裝）未拍板，且 Docker 首次自動還原的掛載路徑對不上實體檔位置，一鍵還原是否成立需實跑驗證 | 本文件新增（無既有 OPEN） | `docker_postgresql/DOCKER_ONECLICK.md:40-41` 保留原生安裝路徑；`docker-compose.yml:19` 綁 `./scripts/sql/roompilot_db_dump.sql.gz`（相對 compose 檔所在的 `docker_postgresql/`），但 dump 實體在 `docker_postgresql/roompilot_db_dump.sql.gz`（57,498,367 bytes），`docker_postgresql/scripts/` 不存在、`scripts/sql/` 亦無 `.gz` | [`runbook-catalog-db-unavailable.md`](../../06_ops/runbook-catalog-db-unavailable.md)、[`deployment_and_operations.md`](../../06_ops/deployment_and_operations.md) |
+| 4 | 環境設定優先序**兩套並存**：型錄模組以 process env 優先於 `.env`，檢索模組以 `.env` 優先於 process env；同一部署可能讀到不同設定 | 本文件新增（無既有 OPEN） | `postgres_repository.py:194-196` 為 `os.getenv(name, file_values.get(...))`；`rag/settings.py:23-28` 為 `file_values.get(name, os.getenv(...))` | [`deployment_and_operations.md`](../../06_ops/deployment_and_operations.md)、[`lld.md`](../../04_design/lld.md) |
 
-1. 正典來源 [sad](../sad.md) §7 與 [deployment_and_operations](../../06_ops/deployment_and_operations.md) 尚未產出（登錄簿 §6 已列計畫）；產出後本檔須與其對齊。
-2. PostgreSQL 正式部署方式（原生 Windows 或 Docker）團隊未拍板——兩份指南並存（`scripts/sql/` 與 `docker_postgresql/`），圖上以二擇一註記。
-3. 遠端算圖 provider 是否實際啟用無 `.env` 證據（預設未設定），圖上標可選虛框。
-4. ProjectStore 遷移 PostgreSQL 的 Phase 3 說法僅見契約文件（登錄簿 §7 待確認項），是否入圖為 `🔜` 待 owner 決定。
-5. 工作站硬體規格（RAM 需求：RAG 常駐約 4.6GB）未有正式最低配備文件。
+## 6. 追溯
 
-## 5. 追溯
-
-- 上游：[../../00-registry.md](../../00-registry.md)（ADR-002/003/006、NFR-002/003）、[c4_container](./c4_container.md)、[../sad.md](../sad.md) §7（待產出）；事實檔 06-ops（git yen@8863a36c）。
-- 下游：[../../06_ops/deployment_and_operations.md](../../06_ops/deployment_and_operations.md)、[../../06_ops/runbook-catalog-db-unavailable.md](../../06_ops/runbook-catalog-db-unavailable.md)、[../../06_ops/runbook-delivery-proposal-503.md](../../06_ops/runbook-delivery-proposal-503.md)、對外展示簡報。
-- 產圖：以本 §2 規格走 `VibeCoding_Workflow_Templates/03_architecture/diagrams/_tools/drawio_kit.py` 生成 `.drawio`，再以 `_tools/analyze_layout.py` 驗 cross=0, pierce=0。
+- **上游**：DEC-014、DEC-015、DEC-017；FR-065、FR-066、FR-067；NFR-007、NFR-010、NFR-013、NFR-014、NFR-018、NFR-019、NFR-022、NFR-023、NFR-024、NFR-025（[`srs.md`](../../01_requirements/srs.md)）；[`../sad.md`](../sad.md) 部署視圖與 MOD-* 目錄；[`c4_container.md`](./c4_container.md) 的邏輯容器。
+- **決策依據**：[`ADR-012`](../adr/ADR-012-pilot-loopback-deployment.md)、[`ADR-010`](../adr/ADR-010-static-frontend-and-eight-step-collapse.md)、[`ADR-004`](../adr/ADR-004-single-workflow-snapshot-sqlite.md)、[`ADR-005`](../adr/ADR-005-postgres-catalog-source-of-truth.md)、[`ADR-008`](../adr/ADR-008-rag-retrieval-only-offline-models.md)、[`ADR-009`](../adr/ADR-009-server-governed-ai-generation.md)、[`ADR-011`](../adr/ADR-011-agent-pipeline-flag-isolation.md)。
+- **下游**：[`deployment_and_operations.md`](../../06_ops/deployment_and_operations.md)；RB-001、RB-002、RB-004、RB-005、RB-008、RB-009；[`test_plan.md`](../../05_qa/test_plan.md) 的 TC-056–059；[`engineering_tracker.xlsx`](../engineering_tracker.xlsx) ①規格追溯。

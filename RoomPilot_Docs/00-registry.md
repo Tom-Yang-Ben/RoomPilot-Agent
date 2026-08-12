@@ -1,10 +1,13 @@
 # 文件登錄簿 (Document Registry) - RoomPilot
 
-> **版本:** 1.0 | **更新:** 2026-08-11 | **狀態:** 活躍
-> **Owner:** 文件系統（AI 衍生，人工核准前為 TO-BE）
-> **語域:** L2（橋接：業務詞與工程詞並列）
-> **實例:** 單例——整套文件共用的唯一 ID 真相源
-> **定位宣告:** 本文件回答「這套文件的穩定 ID 骨幹、ADR/runbook 清單、術語對照與輸出檔案計畫是什麼」；不包含需求細節（見 prd/srs）、架構論述（見 sad/ADR-*）與操作步驟（見 runbook-*）。
+> **版本:** v1.0 ｜ **更新:** 2026-08-12 ｜ **狀態:** 草稿（待 owner 核准）
+> **Owner:** 文件系統維護者（架構師合成）；各 ID 家族的欄位權威見 §2 的「定義在哪」欄，本檔不覆寫任一家族的內文
+> **語域:** L2（橋接）——業務詞與工程詞並列，跨層一律用穩定 ID
+> **實例:** 單例（整套 RoomPilot_Docs 共用的唯一 ID 索引）
+>
+> **本文件回答**：這套文件由哪些檔案組成、每份的定位與 owner 是誰、十一個穩定 ID 家族各有幾個成員、定義在哪一份、被誰消費，以及目前有哪些 ID 缺口。
+> **本文件不含**：任何 ID 的內文——業務論述去 [`01_requirements/brd.md`](01_requirements/brd.md)、產品承諾與允收去 [`01_requirements/prd.md`](01_requirements/prd.md)、可測需求與佐證去 [`01_requirements/srs.md`](01_requirements/srs.md)、架構取捨去 [`03_architecture/sad.md`](03_architecture/sad.md) 與 `03_architecture/adr/`、端點欄位去 [`04_design/api_spec.md`](04_design/api_spec.md)、測試對照去 [`05_qa/test_plan.md`](05_qa/test_plan.md)、處置動作去 `06_ops/runbook-*`。
+> **佐證基準**：分支 `yen`、HEAD `8f378b24`、2026-08-12 工作樹。行號隨程式碼演進，衝突時以原始碼為準。
 
 ## 目錄
 
@@ -13,207 +16,174 @@
 - [3. ADR 清單](#3-adr-清單)
 - [4. Runbook 症狀清單](#4-runbook-症狀清單)
 - [5. 術語表](#5-術語表)
-- [6. 輸出檔案計畫](#6-輸出檔案計畫)
+- [6. 檔案索引](#6-檔案索引)
 - [7. 追溯](#7-追溯)
+
+---
 
 ## 1. 專案資訊
 
 | 欄位 | 值 |
-|---|---|
-| 專案名稱 | RoomPilot（AIPE03 第四組 AI 室內設計系統） |
-| 階段 | Pilot |
-| 來源版本 | git `yen`@`8863a36c` |
-| 生成日期 | 2026-08-11 |
-| 生成方式 | AI 由程式碼與現有文件衍生（事實檔 `01-product.md`、`02-api.md`、`03-engine.md`、`04-frontend.md`、`05-data.md`、`06-ops.md`），人工核准前所有內容視為 TO-BE |
+| :--- | :--- |
+| **專案名稱** | RoomPilot ── 由一張既有平面圖走完八步、產出成套住宅設計成果的網頁工作流 |
+| **階段** | Pilot（內部驗收前）；服務邊界屬 DEC-014，**待 owner 核准** |
+| **來源版本** | git 分支 `yen`、HEAD `8f378b24`、2026-08-12 工作樹 |
+| **生成日期** | 2026-08-12（全批 41 份文件同批重建） |
+| **生成方式** | 由現行可執行程式碼、`AGENTS.md` 與 `docs/contracts/` 逐條反推，每條事實主張附 `file:line`；程式碼看不出答案者一律掛 OPEN-\* 標「待確認」，不寫成既成事實 |
+| **核准狀態** | **全批草稿。** DEC-001..019 全部待產品 owner 核准；ADR-001..012 皆為「現況追認」；TC-001..060 的狀態為 2026-08-12 實跑結果，非核准後的驗收結論 |
+| **前批關係** | 先前一套工程文件只存在於版本歷史（採 REQ-\* 舊 ID 體系），與本批 ID **無對映保證**；本批是重建同一套或另立新版，待 owner 拍板（OPEN-48，見 [`prd.md`](01_requirements/prd.md) §6） |
+
+---
 
 ## 2. 穩定 ID 骨幹
 
-### 2.1 REQ（業務需求）
+主鏈：`DEC-* → FR-*／NFR-* → ACPT-* → SCN-*／TC-* → 證據`，橫向掛 `MOD-*`（誰做）、`ADR-*`（為何這樣做）、`RB-*`（壞掉怎麼辦）。八步 × owner × 失效模式的完整交叉矩陣**只維護在** [`srs.md`](01_requirements/srs.md) §9.2，本節不重抄。
 
-| ID | 一行標題 | 證據 |
-|---|---|---|
-| REQ-001 | 專案可建立、保存並跨瀏覽器工作階段恢復，八步進度不遺失 | 01-product §5 |
-| REQ-002 | 上傳 PNG/JPG/DXF 平面圖並自動辨識牆/門/窗/房間與信心度 | 01-product §2 步 2 |
-| REQ-003 | 兩點標定把平面圖換算為公分尺度 | 01-product §2 步 3 |
-| REQ-004 | 人工校正結構並確認，產出鎖定的 layout_json；改結構須回第 4 步 | 01-product §2 步 4 |
-| REQ-005 | 逐房問卷收集需求、家電需求與三張風格色卡選擇 | 01-product §2 步 5 |
-| REQ-006 | 依 layout_json＋需求＋catalog 自動產生方案 A/B 家具配置（scene_json） | 03-engine §5 |
-| REQ-007 | 2D/3D 同步編輯家具；碰撞、淨空、超界問題阻擋下一步 | 01-product §2 步 6、README:154-155 |
-| REQ-008 | 材質、天花、燈光微調與 3D 走動預覽 | 04-frontend §5 |
-| REQ-009 | 鎖定方案與逐房生成視角，供第 8 步生圖參考 | 01-product §2 步 7 |
-| REQ-010 | 第 7 步代表房色卡低解析比較圖，每專案只能成功一次 | 02-api main.py:2135-2140 |
-| REQ-011 | 第 8 步逐房 AI 寫實生圖，每房一次改圖額度，客廳另有夜間圖 | 04-frontend §7 |
-| REQ-012 | 交付成果包：交付提案 PDF、設計手冊、工程報告與台灣行情估價 | 02-api §1.6 |
-| REQ-013 | 家具只來自 8,675 件已驗證官方 catalog，含 CloudFront GLB 與三視角圖 | 05-data §3、§5 |
-| REQ-014 | 家電需求只影響第 8 步生圖，不出現在 2D/3D 擺設 | AGENTS.md:56、scene_service.py:715-740 |
+### 2.1 ID 家族總表
 
-### 2.2 FR / NFR（功能／非功能需求）
+| 家族 | 範圍與數量 | 內文定義在哪 | 主要消費者 |
+| :--- | :--- | :--- | :--- |
+| **DEC** | DEC-001..019（19，連續） | 業務論述在 [`brd.md`](01_requirements/brd.md)；翻譯成 FR／NFR 的對照在 [`srs.md`](01_requirements/srs.md) §1.1 | `prd.md` §3、全部 ADR 的「上游」欄、[`ux_research_and_journey.md`](02_ux_ui/ux_research_and_journey.md) |
+| **FR** | FR-001..067（67，連續） | [`srs.md`](01_requirements/srs.md) §2，依 MOD-\* 分 9 節，每條附 `file:line` | [`sad.md`](03_architecture/sad.md) §1.3、[`lld.md`](04_design/lld.md)、[`api_spec.md`](04_design/api_spec.md)、[`test_plan.md`](05_qa/test_plan.md) §3 |
+| **NFR** | NFR-001..025（25，連續） | [`srs.md`](01_requirements/srs.md) §3，每條有「數值來源」欄，無依據者標待確認 | [`sad.md`](03_architecture/sad.md) 非功能段、[`deployment_and_operations.md`](06_ops/deployment_and_operations.md)、`06_ops/runbook-*` |
+| **ACPT** | ACPT-001..060（60，連續） | S1–S8 內文在 [`prd.md`](01_requirements/prd.md) §3；全體對照與狀態在 [`srs.md`](01_requirements/srs.md) §7 | `02_ux_ui/ui_spec-step*.md` §7、[`test_plan.md`](05_qa/test_plan.md)（TC 同號 1:1）、[`UAT 計畫`](05_qa/UAT_RoomPilot_Pilot_內部_2026-08-12.md) |
+| **SCN** | SCN-001..042（42，見 §2.2 缺口） | 逐步引用在 [`prd.md`](01_requirements/prd.md) §3；六個關鍵卡點展開在 [`ux_research_and_journey.md`](02_ux_ui/ux_research_and_journey.md) §5 | `ui_spec-step*.md`、[`UAT 計畫`](05_qa/UAT_RoomPilot_Pilot_內部_2026-08-12.md)、`06_ops/runbook-*` §1 |
+| **UC** | UC-001..003（3） | [`srs.md`](01_requirements/srs.md) §6（只展開「例外路徑會改變業務結果」的三條） | [`lld.md`](04_design/lld.md) §6 狀態機、[`test_plan.md`](05_qa/test_plan.md) 端到端案例 |
+| **ADR** | ADR-001..012（12，連續） | `03_architecture/adr/` 每決策一份，清單見 §3 | [`sad.md`](03_architecture/sad.md) §3.2、`04_design/`、`06_ops/runbook-*` 的「不含」段 |
+| **MOD** | 14 個（`MOD-SRV-API`／`-STORE`／`-SCENE`／`-RENDER`、`MOD-FP`、`MOD-U3D`、`MOD-WEB`、`MOD-ENG`、`MOD-CAT`、`MOD-SQL`、`MOD-RAG`、`MOD-AGT`、`MOD-OPS`、`MOD-TEST`） | [`sad.md`](03_architecture/sad.md) §1.3（含 owner 與 FR 對應） | [`srs.md`](01_requirements/srs.md) §2 分節、`03_architecture/diagrams/`、全部 ui_spec 與 runbook 的 Owner 欄 |
+| **TC** | TC-001..060（60，與 ACPT 同號 1:1） | [`test_plan.md`](05_qa/test_plan.md) §3（層級、佐證測試檔、綠／紅／部分／缺口狀態） | [`qa_tracker.xlsx`](05_qa/qa_tracker.xlsx) ②執行證據（60 列已填）、[`UAT 計畫`](05_qa/UAT_RoomPilot_Pilot_內部_2026-08-12.md) |
+| **RB** | RB-001..009（9，連續） | `06_ops/runbook-*.md` 每症狀一份，清單見 §4 | [`prd.md`](01_requirements/prd.md) §4 邊界場景、[`srs.md`](01_requirements/srs.md) §9.2、[`deployment_and_operations.md`](06_ops/deployment_and_operations.md) |
+| **OPEN** | 22 個，編號**兩位數且不連續**：02、03、04、06、09、10、13、14、16、17、18、21、22、25、28、29、32、39、43、46、48、50 | 無單一定義檔——各由主責文件的「待確認」段登記（見 §2.2） | 全批文件；決策沿革留在 [`requirements_tracker.xlsx`](01_requirements/requirements_tracker.xlsx) ②決策沿革（18 列已建，決策者／日期待 owner 拍板後回填） |
 
-| ID | 一行標題 | 證據 |
-|---|---|---|
-| FR-001 | ProjectStore：workflow JSON 深合併保存與 `GET /api/projects/{id}` 恢復 | main.py:1806、project_store.py:18 |
-| FR-002 | 平面圖辨識 API 產出 analysis＋layout_json | main.py:2981、4106-4146 |
-| FR-003 | 前端 `scene_calibration.js` 兩點標定，結果隨 workflow JSON 保存 | 01-product §2 步 3 |
-| FR-004 | `POST /api/floorplan/confirm` 套用人工修正並回 layout_json | main.py:4149-4159 |
-| FR-005 | Agent intake 訪談（`/api/agent/intake/start|answer`）＋問卷視覺題庫 | main.py:3336、3343、3195 |
-| FR-006 | `POST /api/scene/generate` 支援 `placement_variant` A/B（B 反轉錨點嘗試順序） | main.py:3630-3639、scene_service.py:2539-2545 |
-| FR-007 | `/api/scene/layout`（重排／validate_only）與 `/api/scene/validate`（拖曳落點）由引擎裁決 | main.py:3647-3709、3998 |
-| FR-008 | 材質套用走 `whiteViewer.updateRoomSurfaces`；風格軟裝走 `/api/scene/decorate` | scene_v2.js:14049、main.py:3799 |
-| FR-009 | 第 7 步鎖定視角＋3D 截圖上傳 `POST /api/projects/{id}/renders` | main.py:1937、scene.html:943 |
-| FR-010 | `POST /api/projects/{id}/palette-renders`，重複生成回 409 | main.py:2135-2140 |
-| FR-011 | `POST /api/projects/{id}/ai-renders` 與 `/ai-renders/{room_id}/edit`（額度用完 409） | main.py:2070、2224 |
-| FR-012 | delivery-proposal／design-delivery／design-manual PDF 與 `POST /api/cost/estimate` | main.py:2384、2947、2300、4162 |
-| FR-013 | `GET /api/furniture` 走 PostgreSQL view，含分頁/風格/分組過濾 | main.py:3229、postgres_repository.py:590-637 |
-| FR-014 | 問卷家電進 `scene_json.render_context.appliance_requirements` | scene_service.py:3058-3062 |
-| FR-015 | MasterAgent 並存管線：start/submit/undo/status/reconcile（HITL） | main.py:3504-3575 |
-| NFR-001 | 公分制契約：跨模組長度/座標一律 `_cm`，payload 帶 `coordinate_unit: "cm"`；角度用度數 | AGENTS.md:50-51、scene_service.py:3020 |
-| NFR-002 | 可恢復保存：workflow JSON 單一快照 ≤2MB＋revision 樂觀鎖（落後回 409） | project_store.py:12、28-33 |
-| NFR-003 | catalog 優先序：預設 PostgreSQL，須回滿 8,675 筆才採用；DB 失敗必須可見，只有明確設定才走 JSON | main.py:909-926、README:299-304 |
-| NFR-004 | 幾何合法性單一權威：家具座標、碰撞、淨空只由 `backend/engine/` 計算；RAG/LLM/前端不決定幾何 | AGENTS.md:53、scene_service.py:2228-2230 |
-| NFR-005 | quarantine 與 inactive（599 件）資料不進正式 API、RAG 與場景 | backend/catalog/AGENTS.md:6-8、README:282 |
-| NFR-006 | 測試預設決定論、離線；外部資產/DB/網路顯式 opt-in 或安全 skip | tests/AGENTS.md |
+**文件內局部 ID（不進主鏈，不得跨文件引用）**：`GAP-01..06`（[`test_plan.md`](05_qa/test_plan.md) 的測試缺口）、`UAT-001..029`（[`UAT 計畫`](05_qa/UAT_RoomPilot_Pilot_內部_2026-08-12.md) 的人工案例）。
 
-### 2.3 ACPT（驗收條件）
+### 2.2 已知 ID 缺口（誠實登記，非 TO-BE）
 
-| ID | 一行標題 |
-|---|---|
-| ACPT-001 | 重開瀏覽器後 `GET /api/projects/{id}` 還原到 `current_step`，原圖與渲染圖可重取 |
-| ACPT-002 | 上傳平面圖後 analyze 回應含 `analysis`＋`layout_json`，且 layout_json 不含家具/材質欄位 |
-| ACPT-003 | 兩點標定後所有下游幾何欄位為公分（`_cm`） |
-| ACPT-004 | 第 4 步確認後結構鎖定；改結構強制回第 4 步並重新驗證家具 |
-| ACPT-005 | 問卷完成後 client_brief（schema 1.1）含硬/軟需求與家電三分流 |
-| ACPT-006 | 同一輸入下方案 B 與方案 A 的家具擺設不同（placement_variant 生效） |
-| ACPT-007 | 拖曳家具到門前 75cm 淨空、窗前採光帶（高 ≥90cm）或房外時被拒且有分流訊息 |
-| ACPT-008 | `validate_only=true` 時每件座標照舊、絕不重排，只回報合法與否 |
-| ACPT-009 | 色卡比較圖每專案僅一次，二次請求回 409 `palette_already_generated` |
-| ACPT-010 | 每房改圖僅一次額度，超過回 409 |
-| ACPT-011 | 缺 Playwright Chromium 時交付提案回 503 附安裝指引，不產出殘缺 PDF |
-| ACPT-012 | postgres 模式回傳不足 8,675 筆時不採用 DB 結果，且失敗狀態可由 `/api/catalog/status` 查見 |
-| ACPT-013 | `scene_objects` 不含任何家電；家電僅存在於 `render_context.appliance_requirements` |
-| ACPT-014 | 兩分頁同時保存時，落後的 revision 收到 409 `project_revision_conflict`，不覆寫他人變更 |
-| ACPT-015 | 未設 `ROOMPILOT_AGENT_PIPELINE` 時管線 start 回錯誤；status 永遠可查 |
-| ACPT-016 | 全套 `pytest -q` 通過（對照 yen 分支 HEAD 既有失敗基準）＋`git diff --check` 乾淨 |
+| 缺口 | 事實 | 影響 | 處置 |
+| :--- | :--- | :--- | :--- |
+| **SCN-018／019／020／041 無內文** | 這四個編號在全批文件中**只出現在範圍寫法內**（`SCN-017–025`、`SCN-040–042`），沒有任何一處給出情境敘述 | S6 的 UAT 對位不完整；[`UAT 計畫`](05_qa/UAT_RoomPilot_Pilot_內部_2026-08-12.md) UAT-012 已自標「SCN-017–025 內（待對位）」 | 由 `prd.md` owner 補內文或明文註銷；在補齊前不得宣稱 SCN-001..042 全數可驗 |
+| **ACPT 跨步段（SX）內文不在 prd** | ACPT-007、018–023、046、056–059 只在 [`srs.md`](01_requirements/srs.md) §7 與 [`test_plan.md`](05_qa/test_plan.md) §3 以對照列存在，`prd.md` §3 只覆蓋 S1–S8 | 這 12 條沒有 L1 允收敘述，僅有 L3 測試佐證 | srs §7 已註明其屬「非使用者可觀察面」，由 TC-\* 承接；是否補 L1 敘述待 owner 決定 |
+| **OPEN-\* 編號不連續且無主檔** | 22 個實際使用的編號散落 02–50，缺號 28 個；無任一文件持有完整 OPEN 清單 | 無法從單點得知「還有幾件待核准」；新增待確認項時有撞號風險 | 本節即為現行唯一清單；新增 OPEN 前先比對本表，**不自創新號**由 owner 統一發號 |
+| **三份 `*_tracker.xlsx` 的 owner 欄位未填** | 三簿已於 2026-08-12 實例化（骨架列齊備：①需求決策 19 列 DEC-001..019、②決策沿革 18 列 OPEN-\*、③Gate 9 列；①規格追溯 92 列 FR＋NFR、②模組BOM 14 列、③切片看板 17 列；①測試設計＋②執行證據各 60 列 TC-\*）。**但 owner 決策欄一律留白**：①需求決策的優先序／範圍／里程碑／核准／Owner 五欄、③Gate 的里程碑／決策／決策者／日期四欄 | `workflow_manual.md` §8 的 `/specify` 硬閘要求「核准 = 已核准」且優先序、範圍、里程碑非空——**目前逐項不成立，硬閘無法放行** | 五欄由產品 owner 於 Excel 直接填寫（分頁名與欄序不得更動，稽核腳本靠其對位）；AI 不得代填（`workflow_manual.md` §8「需求決策不可由規則或 AI 自動衍生」）。填妥前所有引用該簿的文件維持「待 owner 核准」表述 |
+| **`room_requirements` 版本號不一致** | 程式碼為 `ROOM_REQUIREMENTS_SCHEMA_VERSION = 2`（`scene_room_requirements.js:1,214`），[`srs.md`](01_requirements/srs.md) FR-027 記為 `schema_version 1.0` | 第 5 步問卷產物的版本契約敘述與實作對不上 | 由 MOD-WEB owner（Bella）裁定；修正前以原始碼為準（srs 已聲明此原則） |
 
-### 2.4 SCN（關鍵情境）
-
-| ID | 一行標題 |
-|---|---|
-| SCN-001 | 使用者中途關閉瀏覽器，隔天重開恢復到第 6 步繼續編輯 |
-| SCN-002 | 上傳 → 辨識 → 校正 → 確認 layout_json 的全鏈 happy path |
-| SCN-003 | 使用者逐房在 A/B 之間切換並合成回單一方案（座標鎖定不漂移） |
-| SCN-004 | 使用者把衣櫃拖進門前淨空區，系統拒絕並提示讓開動線 |
-| SCN-005 | 確認白模（confirmWhiteModel）帶 validate_only，家具不被整屋重排 |
-| SCN-006 | PostgreSQL 斷線時第 6 步家具查詢的可見失敗與明確回退路徑 |
-| SCN-007 | 第 7 步鎖定視角 → 第 8 步逐房生圖 → 一次改圖 → 成果包 PDF |
-| SCN-008 | 家電（冰箱/洗衣機）只出現在生圖 prompt context，2D/3D 場景不見蹤影 |
-| SCN-009 | 兩個分頁同時編輯同一專案，落後方收到 409 並重載 |
-| SCN-010 | 開啟 ROOMPILOT_AGENT_PIPELINE 後管線與 step6 並行，reconcile 對帳覆蓋率 |
-
-### 2.5 REQ → FR/NFR → ACPT → SCN 對照表
-
-| REQ | FR/NFR | ACPT | SCN |
-|---|---|---|---|
-| REQ-001 | FR-001、NFR-002 | ACPT-001、ACPT-014 | SCN-001、SCN-009 |
-| REQ-002 | FR-002 | ACPT-002 | SCN-002 |
-| REQ-003 | FR-003、NFR-001 | ACPT-003 | SCN-002 |
-| REQ-004 | FR-004 | ACPT-004 | SCN-002 |
-| REQ-005 | FR-005 | ACPT-005 | SCN-008 |
-| REQ-006 | FR-006、NFR-004 | ACPT-006 | SCN-003 |
-| REQ-007 | FR-007、NFR-004 | ACPT-007、ACPT-008 | SCN-004、SCN-005 |
-| REQ-008 | FR-008 | ACPT-016 | SCN-005 |
-| REQ-009 | FR-009 | ACPT-016 | SCN-007 |
-| REQ-010 | FR-010 | ACPT-009 | SCN-007 |
-| REQ-011 | FR-011 | ACPT-010 | SCN-007 |
-| REQ-012 | FR-012 | ACPT-011 | SCN-007 |
-| REQ-013 | FR-013、NFR-003、NFR-005 | ACPT-012 | SCN-006 |
-| REQ-014 | FR-014 | ACPT-013 | SCN-008 |
-| （橫切） | FR-015、NFR-006 | ACPT-015、ACPT-016 | SCN-010 |
+---
 
 ## 3. ADR 清單
 
-只收程式碼／文件中有證據的既成決策；檔案落在 `RoomPilot_Docs/03_architecture/adr/`。
+全部 12 份狀態皆為 **已接受（現況追認，待 owner 核准）**，日期 2026-08-12；「現況追認」＝記錄既成實作的取捨理由，不是新提案。
 
-| ID | Slug | 標題 | 核心證據 |
-|---|---|---|---|
-| ADR-001 | layout-json-scene-json-boundary | 平面圖辨識止於 layout_json，設計方案用 scene_json，兩者是唯一模組邊界產物 | docs/contracts/LAYOUT_SCENE_BOUNDARY_CONTRACT.md、AGENTS.md:52 |
-| ADR-002 | geometry-legality-engine-only | 家具幾何合法性只在 backend/engine 計算，不移到 Graph RAG、瀏覽器或 LLM | AGENTS.md:53、scene_service.py:2228-2230 |
-| ADR-003 | catalog-postgres-first-json-fallback | 家具 catalog 以 PostgreSQL view `roompilot.furniture_catalog_current` 優先，DB 失敗必須可見，僅顯式設定才回退已驗證 JSON | main.py:909-926、postgres_repository.py:20、README:299-304 |
-| ADR-004 | appliances-render-context-only | 家電只進問卷與 scene_json.render_context 供生圖，不進 2D/3D 擺設與正式家具 API | AGENTS.md:56、scene_service.py:715-740、3058-3062 |
-| ADR-005 | agent-pipeline-parallel-flag | MasterAgent 管線以 ROOMPILOT_AGENT_PIPELINE flag 與 step6 並存，可隨時回退，不取代正式路徑 | agent_pipeline_service.py:1-11、main.py:3514 |
-| ADR-006 | static-frontend-as-production | 正式前端是 backend/server/static 單頁八步精靈；frontend3d/ 與 frontend/ 為次要原型 | AGENTS.md:58、scene.html:7 |
-| ADR-007 | workflow-json-single-snapshot-store | 八步狀態併入單一 workflow JSON 快照（≤2MB）存 ProjectStore，revision 樂觀鎖防多分頁互踩 | project_store.py:12、18、28-33 |
-| ADR-008 | hybrid-shapely-raster-engine | 兩套幾何引擎並存：Shapely 提議候選、5cm 柵格為碰撞判定唯一權威 | layout_model.py:3-5、raster.py:18-20、scene_service.py:2269-2286 |
+| ID | 標題 | 主決策者（MOD owner） | 檔案 |
+| :--- | :--- | :--- | :--- |
+| ADR-001 | 辨識產物 `layout_json` 與方案產物 `scene_json` 的邊界 | Bella ＋ Cody／Ancai／Yen | [`ADR-001`](03_architecture/adr/ADR-001-layout-json-scene-json-boundary.md) |
+| ADR-002 | 幾何合法性唯一裁決者是 `backend/engine/` | Ancai（MOD-ENG）＋ Bella | [`ADR-002`](03_architecture/adr/ADR-002-engine-sole-geometry-authority.md) |
+| ADR-003 | Shapely 與 raster 雙路徑並存的碰撞引擎 | Ancai（MOD-ENG）＋ Bella（MOD-SRV-SCENE） | [`ADR-003`](03_architecture/adr/ADR-003-dual-path-shapely-raster-engine.md) |
+| ADR-004 | 單一 `workflow_json` 快照存 SQLite，不做事件流 | Bella（MOD-SRV-STORE） | [`ADR-004`](03_architecture/adr/ADR-004-single-workflow-snapshot-sqlite.md) |
+| ADR-005 | PostgreSQL view 為家具型錄唯一權威，JSON 只是降級路徑 | Kai（MOD-CAT／SQL）＋ Bella | [`ADR-005`](03_architecture/adr/ADR-005-postgres-catalog-source-of-truth.md) |
+| ADR-006 | 家電只寫入 `render_context`，不進 2D/3D 擺設 | Bella（MOD-SRV-SCENE／WEB）＋ Yen（MOD-AGT） | [`ADR-006`](03_architecture/adr/ADR-006-appliances-render-context-only.md) |
+| ADR-007 | 跨模組一律公分制的單位契約 | Bella（跨目錄公開契約）；Ancai／Cody／Yen 共同確認 | [`ADR-007`](03_architecture/adr/ADR-007-centimeter-unit-contract.md) |
+| ADR-008 | 檢索只做排序、模型 offline-only | Django（MOD-RAG）＋ Bella（API 轉接） | [`ADR-008`](03_architecture/adr/ADR-008-rag-retrieval-only-offline-models.md) |
+| ADR-009 | AI 生成一律由伺服器治理，前端不持金鑰 | Bella（MOD-SRV-RENDER）＋ Yen（MOD-AGT） | [`ADR-009`](03_architecture/adr/ADR-009-server-governed-ai-generation.md) |
+| ADR-010 | 靜態單頁前端即正式產品，11 步內部狀態折疊為 8 步 | Bella（MOD-WEB） | [`ADR-010`](03_architecture/adr/ADR-010-static-frontend-and-eight-step-collapse.md) |
+| ADR-011 | Agent 並存管線以環境旗標隔離，不動 live 路徑 | Yen（MOD-AGT） | [`ADR-011`](03_architecture/adr/ADR-011-agent-pipeline-flag-isolation.md) |
+| ADR-012 | Pilot 階段只綁 `127.0.0.1`，不做認證與 CORS | Bella（MOD-OPS）；DEC-014 屬產品 owner | [`ADR-012`](03_architecture/adr/ADR-012-pilot-loopback-deployment.md) |
+
+---
 
 ## 4. Runbook 症狀清單
 
-檔案落在 `RoomPilot_Docs/06_ops/`，命名 `runbook-<slug>.md`。
+九份皆記載同一前提：**本 repo 無監控、無 dashboard、無告警規則、無 on-call 輪值**，故障入口只有使用者回報、畫面錯誤文案與 uvicorn 主控台輸出。
 
-| Slug | 症狀 | 證據 |
-|---|---|---|
-| delivery-proposal-503 | 第 8 步「產出設計提案」回 503 `delivery_engine_not_configured`（缺 Playwright Chromium） | requirements-delivery.txt:2、README:111-117、main.py:2384 |
-| catalog-db-unavailable | 第 6 步家具清單為空或 provider 回報 `json_fallback, available=False`（PostgreSQL 不可用/回傳不足 8,675 筆） | main.py:909-926、postgres_catalog.py:229-238 |
-| workflow-revision-conflict | 保存工作流回 409 `project_revision_conflict`（多分頁/多 session 互踩） | main.py:1806-1867、project_store.py:28-33 |
-| rag-model-cache-missing | /rag 檢索不可用，status 回報 blockers（模型快取缺失即 raise RagDependencyError、offline-only 不自動下載） | model_runtime.py:104-131、service.py:76-108 |
+| RB | 症狀（使用者或維運者實際看到的） | 主要 owner | 檔案 |
+| :--- | :--- | :--- | :--- |
+| RB-001 | 第 5 步按「確認全屋需求」後停住不進第 6 步，錯誤區顯示無法連線 Kai 家具型錄、無法建立可靠配置 | Kai ＋ Bella | [`runbook-catalog-db-unavailable`](06_ops/runbook-catalog-db-unavailable.md) |
+| RB-002 | 第 8 步狀態列顯示「尚未設定生圖服務」，或逐房生圖／改圖回失敗且無影像 | Bella（MOD-SRV-RENDER）＋ Yen | [`runbook-genpic-provider-failure`](06_ops/runbook-genpic-provider-failure.md) |
+| RB-003 | 右上狀態列卡在「正在保存…」後轉「保存失敗」；版本衝突或單筆快照撞 2 MB 上限 | Bella（MOD-SRV-STORE／WEB） | [`runbook-workflow-save-conflict-or-oversize`](06_ops/runbook-workflow-save-conflict-or-oversize.md) |
+| RB-004 | `GET /api/rag/status` 回 `ready:false` ＋具名 blocker；檢索回 503，第 5 步排序未套用 | Django（MOD-RAG）＋ Bella | [`runbook-rag-model-cache-missing`](06_ops/runbook-rag-model-cache-missing.md) |
+| RB-005 | 按「產出設計提案」立刻失敗，訊息含「尚未安裝交付提案排版引擎」與安裝指令 | Bella（MOD-SRV-RENDER）＋ Yen | [`runbook-delivery-pdf-engine-missing`](06_ops/runbook-delivery-pdf-engine-missing.md) |
+| RB-006 | 第 3 步辨識出不來（前端自擋或 422），或第 4 步空間確認存不進去 | Cody ＋ Bella | [`runbook-recognition-failed-or-review-blocked`](06_ops/runbook-recognition-failed-or-review-blocked.md) |
+| RB-007 | 第 6 步側欄待處理計數 > 0 清不掉，「確認家具配置」鈕反灰擋住第 7 步 | Ancai ＋ Yen ＋ Bella | [`runbook-placement-blocked`](06_ops/runbook-placement-blocked.md) |
+| RB-008 | 3D 出現橘色半透明方塊替身取代真家具，或模型端點回 410 | Kai ＋ Bella | [`runbook-glb-asset-missing`](06_ops/runbook-glb-asset-missing.md) |
+| RB-009 | `.runtime/` 只增不減、磁碟餘量持續下降，且無專案刪除途徑與容量端點 | Bella（MOD-SRV-STORE／OPS） | [`runbook-runtime-storage-growth`](06_ops/runbook-runtime-storage-growth.md) |
+
+---
 
 ## 5. 術語表
 
-| 中文 | 程式碼／英文名詞 | 說明與證據 |
-|---|---|---|
-| 平面圖辨識結果 | `layout_json` | 只描述空間本身（牆/門/窗/樑/柱/房間），不含設計決策；辨識邊界終點（LAYOUT_SCENE_BOUNDARY_CONTRACT.md:16-34） |
-| 設計方案 | `scene_json` | layout_json＋需求＋catalog＋規則的產物；含家具座標、材質、render_context（scene_service.py:2995-3088） |
-| 白模 | white model（`#white-model-viewer`、`confirmWhiteModel`） | 第 6 步無材質 3D 檢視與確認（scene.html、scene_v2.js） |
-| 色卡 | style card／palette（`palette-renders`、`taiwan_style_cards.json`） | 6 風格 × 3 色卡共 18 張；第 7 步代表房低解析比較圖 |
-| 方案 A/B | `placement_variant`（server 端）／STRATEGIES（agent 端） | server 端 B 只反轉錨點嘗試順序；agent 端 A=動線優先、B=收納優先，語意不同（03-engine §5） |
-| 走動預覽 | walk mode（`setWalkRoom`、`setViewMode`） | 第 6 步 3D 第一人稱檢視（scene_viewer.js） |
-| 淨空 | clearance（`DOOR_CLEARANCE_CM=75` 等） | 門前 75、窗前 40、櫃正面 50 等禁放規則（constraints.py、engine/clearance.py） |
-| 工作流快照 | workflow JSON（`workflow_json` 欄位） | 八步狀態單一快照，≤2MB，深合併更新（project_store.py） |
-| 版本鎖 | revision／`expected_revision` | 樂觀鎖，落後回 409（project_store.py:28-33） |
-| 生圖上下文 | `render_context.appliance_requirements` | 家電唯一合法去處，只供第 8 步生圖 prompt |
-| 隔離區 | quarantine（`backend/catalog/data/quarantine/`） | 未驗證/未匹配家具，執行期程式不得載入 |
-| 家具目錄 | catalog view `roompilot.furniture_catalog_current` | 8,675 件官方家具的唯一正式讀取面（schema.sql:386-471） |
-| 生圖 | AI render（`ai-renders`、nano banana via OpenRouter） | 第 8 步逐房寫實圖 |
-| 改圖 | revision／edit（`/ai-renders/{room_id}/edit`） | 每房一次額度的整批修圖 |
-| 只驗不排 | `validate_only` | 信任使用者配置、座標照舊只回報合法性（scene_service.py:2188-2191） |
-| 視角鎖定 | viewpoint（`lock-master-view`、`viewpoint_version`） | 第 7 步鎖定的相機狀態，生圖 img2img 參考 |
-| 交付成果包 | design delivery（`/design-delivery`、schema 1.1） | 第 8 步五章 JSON＋提案 PDF |
-| 併存管線 | agent pipeline（`ROOMPILOT_AGENT_PIPELINE`、MasterAgent） | HITL state machine，與 step6 並行不取代 |
+業務詞（L1，訪談與 PRD 用語）↔ 工程詞（L3，程式碼中的實際識別字）。佐證為本批實讀，路徑相對 repo 根。
 
-## 6. 輸出檔案計畫
+| 業務詞（L1） | 工程詞（L3） | 語意邊界與佐證 |
+| :--- | :--- | :--- |
+| 平面圖辨識結果 | `layout_json` | 只描述空間本身（牆／門／窗／樑／柱／房間），辨識責任的終點；不含任何設計決策（`AGENTS.md:52`、ADR-001） |
+| 設計方案 | `scene_json` | 由 `layout_json` ＋問卷＋型錄產出，含家具座標、材質與 `render_context`；方案生成與編輯的唯一載體（`AGENTS.md:52`） |
+| 進度快照 | `workflow_json` | 八步狀態全存 `projects` 表單一 TEXT 欄（`project_store.py:105`），深合併寫入、序列化上限 2 MB（`project_store.py:11`）；無版本歷史表、無事件流（ADR-004） |
+| 使用者校正後的結構 | `floorplan_editor` | 第 4 步房間／牆／門／窗／樑／柱的確認結果，是下游共同幾何基準；由 `confirmedFloorplanEditor()` 產生（`scene_v2.js:2216`） |
+| 逐房需求 | `room_requirements` | 第 5 步問卷的房層級產物（用途、家具、面材、天花、複核五段）；版本常數 `ROOM_REQUIREMENTS_SCHEMA_VERSION = 2`（`scene_room_requirements.js:1,214`，與 srs 記載不一致，見 §2.2） |
+| 生圖用畫面說明 | `render_context` | 家電需求的**唯一**合法去處：`scene_json.render_context.appliance_requirements`（`scene_service.py:3058-3062`）；不進 `scene_objects`、不進家具 API（ADR-006） |
+| 方案 A／B | `placement_variant` | B 只反轉類型錨點的嘗試順序，仍走完全相同的碰撞與淨空驗證（`scene_service.py:2539`、`main.py:3630-3632`）；不是兩套不同規則（ADR-002） |
+| 隔離區 | quarantine | 未匹配或未驗證的家具資料，**不得進任何 API 或場景**，也不得替其猜測 `model_url`（`AGENTS.md:57`；`unmatched_cloud_furniture` 1,514 筆，`tests/test_cloud_quarantine.py:25`） |
+| 色卡 | `STYLE_PACKS` ／ palette | 凍結的風格×色卡組合表（`scene_style_packs.js:301`）；第 7 步對代表房產出比較圖，每案只能成功一次（依據待追認，OPEN-17） |
+| 鎖定視角 | `master_view` | 第 7 步逐房鎖定的相機三元組；`position_cm`／`target_cm` 各三元素且 `fov_deg > 0` 才算完成本步（`scene_workflow.js:150-157`、`scene_v2.js:16046`） |
+| 走得過去 | clearance | 門前 75 cm、窗前 40 cm、窗台 90 cm 等公分常數（`backend/engine/constraints.py:21-23`）；由引擎裁決，非前端或 LLM |
+| 正式家具型錄 | `roompilot.furniture_catalog_current` | PostgreSQL view，第 6 步優先來源（`postgres_repository.py:20`）；只有 `ROOMPILOT_CATALOG_PROVIDER ∈ {json,local,fallback}` 才走已驗證 JSON（`postgres_repository.py:199-204`、ADR-005） |
+| 八步 | `WORKFLOW_STEPS` | 內部實為 11 個 step key（`main.py:164-176`），對外折疊為 8 顆導覽（ADR-010）；文件寫「第 N 步」一律指對外 8 步 |
+| 只驗不排 | `validate_only` | 第 6→7 步整屋確認用：信任使用者配置、座標照舊，只回報合法性（FR-032） |
+| 並存管線 | agent pipeline | 由 `ROOMPILOT_AGENT_PIPELINE` 旗標保護的 MasterAgent 路徑，未設＝關閉；與第 6 步 live 路徑並存、不取代（ADR-011） |
 
-全部落在 `D:\RoomPilot-Agent\RoomPilot_Docs\`，結構依 `VibeCoding_Workflow_Templates/INDEX.md` 的 Pilot 文件組；多實例模板依實例化規則展開（ADR 每決策一份、runbook 每症狀一份）。
+---
 
-| 路徑 | 模板 | 實例規則 |
-|---|---|---|
-| `RoomPilot_Docs/00-registry.md` | （本檔） | 單例 |
-| `RoomPilot_Docs/01_requirements/brd.md` | brd | 單例 |
-| `RoomPilot_Docs/01_requirements/prd.md` | prd | 單例 |
-| `RoomPilot_Docs/01_requirements/srs.md` | srs | 單例 |
-| `RoomPilot_Docs/02_ux_ui/ux_research_and_journey.md` | ux_research_and_journey | 單例 |
-| `RoomPilot_Docs/02_ux_ui/information_architecture.md` | information_architecture | 單例 |
-| `RoomPilot_Docs/02_ux_ui/ui_spec-scene.md` | ui_spec | 每頁面一份（八步精靈 `/scene` 為主頁面） |
-| `RoomPilot_Docs/03_architecture/sad.md` | sad | 單例 |
-| `RoomPilot_Docs/03_architecture/adr/ADR-001-layout-json-scene-json-boundary.md` | adr | 每決策一份 |
-| `RoomPilot_Docs/03_architecture/adr/ADR-002-geometry-legality-engine-only.md` | adr | 每決策一份 |
-| `RoomPilot_Docs/03_architecture/adr/ADR-003-catalog-postgres-first-json-fallback.md` | adr | 每決策一份 |
-| `RoomPilot_Docs/03_architecture/adr/ADR-004-appliances-render-context-only.md` | adr | 每決策一份 |
-| `RoomPilot_Docs/03_architecture/adr/ADR-005-agent-pipeline-parallel-flag.md` | adr | 每決策一份 |
-| `RoomPilot_Docs/03_architecture/adr/ADR-006-static-frontend-as-production.md` | adr | 每決策一份 |
-| `RoomPilot_Docs/03_architecture/adr/ADR-007-workflow-json-single-snapshot-store.md` | adr | 每決策一份 |
-| `RoomPilot_Docs/03_architecture/adr/ADR-008-hybrid-shapely-raster-engine.md` | adr | 每決策一份 |
-| `RoomPilot_Docs/04_design/api_spec.md` | api_spec | 單例（約定） |
-| `RoomPilot_Docs/04_design/openapi-roompilot-v1.yaml` | openapi | 每服務一份（單一 FastAPI app） |
-| `RoomPilot_Docs/04_design/db_design.md` | db_design | 單例 |
-| `RoomPilot_Docs/04_design/lld.md` | lld | 單例（狀態機依 Aggregate 分節） |
-| `RoomPilot_Docs/05_qa/test_plan.md` | test_plan | 單例 |
-| `RoomPilot_Docs/05_qa/UAT_RoomPilot_Pilot_內部_2026-08-11.md` | uat_plan | 每驗收輪次一份（首輪） |
-| `RoomPilot_Docs/06_ops/deployment_and_operations.md` | deployment_and_operations | 單例 |
-| `RoomPilot_Docs/06_ops/runbook-delivery-proposal-503.md` | runbook | 每症狀一份 |
-| `RoomPilot_Docs/06_ops/runbook-catalog-db-unavailable.md` | runbook | 每症狀一份 |
-| `RoomPilot_Docs/06_ops/runbook-workflow-revision-conflict.md` | runbook | 每症狀一份 |
-| `RoomPilot_Docs/06_ops/runbook-rag-model-cache-missing.md` | runbook | 每症狀一份 |
+## 6. 檔案索引
+
+實際存在 **54 份**（本檔在內）＝ 47 `.md` ＋ 4 `.yaml` ＋ 3 `.xlsx`。ADR 12 份的定位見 §3、runbook 9 份見 §4，此處不重複列。
+
+另有 4 個**非文件**產物不列入計數：`03_architecture/diagrams/` 下的 `solution_overview.py`／`deployment_topology.py`（宣告式 spec）與其生成物 `solution_overview.drawio`／`deployment_topology.drawio`（**勿手改**，改 spec 重生；驗收 `analyze_layout.py` 目標 score=0）。
+
+| 路徑 | 定位一句話 | Owner |
+| :--- | :--- | :--- |
+| [`00-registry.md`](00-registry.md) | 本檔：ID 家族索引、ADR／runbook 清單、術語對照與檔案索引 | 文件系統維護者 |
+| [`01_requirements/brd.md`](01_requirements/brd.md) | 為誰解決什麼、Pilot 要達成什麼商業結果、DEC-\* 的業務論述 | 產品 owner |
+| [`01_requirements/prd.md`](01_requirements/prd.md) | 八步旅程每步要達成什麼、系統承諾什麼、什麼算完成（ACPT／SCN） | 產品 owner |
+| [`01_requirements/srs.md`](01_requirements/srs.md) | DEC-\* 翻成 FR-\*／NFR-\*，每條附 `file:line`；§9.2 為全域追溯矩陣 | 系統分析（架構師合成） |
+| [`01_requirements/requirements_tracker.xlsx`](01_requirements/requirements_tracker.xlsx) | ①需求決策 DEC-001..019／②決策沿革 OPEN-\*／③Gate；**優先序、範圍、里程碑、核准、Owner 五欄留白待填**（見 §2.2） | 產品 owner |
+| [`02_ux_ui/ux_research_and_journey.md`](02_ux_ui/ux_research_and_journey.md) | 八步旅程、六個關鍵卡點與復原路徑、可用性測試現況 | 產品 owner／Bella |
+| [`02_ux_ui/information_architecture.md`](02_ux_ui/information_architecture.md) | 頁面組成、URL、11 步→8 步折疊、步驟間的資料載體 | 產品＋設計；Bella 審 DOM 契約 |
+| [`02_ux_ui/ui_spec-step1-project.md`](02_ux_ui/ui_spec-step1-project.md) | 第 1 步建立專案的畫面元素、狀態與 DOM 契約 | MOD-WEB（Bella）＋ PM |
+| [`02_ux_ui/ui_spec-step2-upload.md`](02_ux_ui/ui_spec-step2-upload.md) | 第 2 步上傳平面圖與格式擋下的畫面規格 | MOD-WEB（Bella） |
+| [`02_ux_ui/ui_spec-step3-recognition.md`](02_ux_ui/ui_spec-step3-recognition.md) | 第 3 步辨識、比例標定與信心呈現 | MOD-WEB（Bella）；輸出契約屬 Cody |
+| [`02_ux_ui/ui_spec-step4-space-confirmation.md`](02_ux_ui/ui_spec-step4-space-confirmation.md) | 第 4 步結構編輯與逐房複核閘門 | MOD-WEB（Bella）；QA 會簽 |
+| [`02_ux_ui/ui_spec-step5-requirements.md`](02_ux_ui/ui_spec-step5-requirements.md) | 第 5 步問卷三 stage、逐房五段與檢索降級呈現 | Bella ＋ 產品 owner ＋ Django |
+| [`02_ux_ui/ui_spec-step6-layout-2d.md`](02_ux_ui/ui_spec-step6-layout-2d.md) | 第 6 步 2D／3D 配置、待處理清單與型錄瀏覽 | Bella ＋ Ancai ＋ Kai |
+| [`02_ux_ui/ui_spec-step7-proposal-review.md`](02_ux_ui/ui_spec-step7-proposal-review.md) | 第 7 步逐房鎖視角與色卡比較疊層 | Bella ＋ 產品 owner（OPEN-17） |
+| [`02_ux_ui/ui_spec-step8-ai-render.md`](02_ux_ui/ui_spec-step8-ai-render.md) | 第 8 步逐房生圖、改圖額度與成果包下載 | Bella ＋ Yen ＋ 產品 owner |
+| [`03_architecture/sad.md`](03_architecture/sad.md) | 系統全貌：MOD-\* 十四模組與 owner、Context Map、非功能落點、ADR 索引 | 架構師（合成） |
+| `03_architecture/adr/`（12 份） | 每決策一份的取捨記錄，清單與狀態見 §3 | 各 MOD owner |
+| [`03_architecture/diagrams/c4_context.md`](03_architecture/diagrams/c4_context.md) | 誰在用、對外依賴哪些外部系統、失效時的對外表現 | 架構師 |
+| [`03_architecture/diagrams/c4_container.md`](03_architecture/diagrams/c4_container.md) | 哪些是可獨立執行的 runtime、哪些其實同屬一個 Python 行程 | 架構師；Bella 實作 |
+| [`03_architecture/diagrams/solution_overview.md`](03_architecture/diagrams/solution_overview.md) | 八步之間流動什麼資料、每步產出存到哪、靠什麼條件放行 | 架構師 |
+| [`03_architecture/diagrams/deployment_topology.md`](03_architecture/diagrams/deployment_topology.md) | 跑在哪台機器／行程／埠，執行資料落在哪，跨邊界協定與失敗語意 | 架構師；MOD-OPS 維護 |
+| [`03_architecture/diagrams/ai_guardrails.md`](03_architecture/diagrams/ai_guardrails.md) | AI 能碰什麼、永不碰什麼（幾何裁決留在 `backend/engine/`）、哪些資料離開本機、七項護欄缺口 | 架構師；MOD-AGT（Yen）＋ MOD-RAG（Django）會簽 |
+| [`03_architecture/engineering_tracker.xlsx`](03_architecture/engineering_tracker.xlsx) | ①規格追溯 FR-001..067＋NFR-001..025／②模組BOM 14 個 MOD-\*／③切片看板 17 個 OPEN-\*（認領者、認領時間待工程 owner 填） | 架構師 |
+| [`04_design/api_spec.md`](04_design/api_spec.md) | 開了哪些路由、分屬哪個 MOD owner、關鍵失敗碼與狀態碼慣例 | MOD-SRV-API（Bella） |
+| [`04_design/db_design.md`](04_design/db_design.md) | 三個持久化體的表／view／約束、原子性與樂觀鎖、匯入器條件 | Bella（SQLite）＋ Kai（PostgreSQL） |
+| [`04_design/lld.md`](04_design/lld.md) | codebase 依賴圖與七條「看不懂就無法安全改動」的演算法 | 架構師（§6）＋各 MOD owner |
+| [`04_design/openapi-project-workflow-v1.yaml`](04_design/openapi-project-workflow-v1.yaml) | `/api/projects` 家族欄位級契約（快照寫入、上傳、renders） | Bella |
+| [`04_design/openapi-scene-v1.yaml`](04_design/openapi-scene-v1.yaml) | 第 5–6 步場景與型錄 API 契約 | Bella；型錄面 Kai、幾何面 Ancai |
+| [`04_design/openapi-agent-rag-v1.yaml`](04_design/openapi-agent-rag-v1.yaml) | `/api/agent/*` 與 `/api/rag/*` 兩家族契約 | Yen ＋ Django ＋ Bella |
+| [`04_design/openapi-render-delivery-v1.yaml`](04_design/openapi-render-delivery-v1.yaml) | 第 7／8 步生圖與交付家族契約 | Bella；Agent 側 Yen |
+| [`05_qa/test_plan.md`](05_qa/test_plan.md) | TC-001..060 的層級、佐證測試檔與狀態；2026-08-12 可驗證性基準線 | QA |
+| [`05_qa/UAT_RoomPilot_Pilot_內部_2026-08-12.md`](05_qa/UAT_RoomPilot_Pilot_內部_2026-08-12.md) | 本輪內部驗收的 UAT-001..029 人工案例與外部相依故障演練 | 產品 owner 主導；QA 支援 |
+| [`05_qa/qa_tracker.xlsx`](05_qa/qa_tracker.xlsx) | ①測試設計 TC-001..060（層級、環境、Entry／Exit）／②執行證據（實跑結果、Pass／Fail、執行版本 `yen@8f378b24`）；兩頁皆已填 | QA |
+| [`06_ops/deployment_and_operations.md`](06_ops/deployment_and_operations.md) | 怎麼裝、怎麼啟動、需要哪些環境變數、執行資料長在哪、缺哪些維運機制 | MOD-OPS（Bella 整合） |
+| `06_ops/runbook-*.md`（9 份） | 每症狀一份的處置程序，症狀與 owner 見 §4 | 各 MOD owner |
+
+---
 
 ## 7. 追溯
 
-- 上游：事實檔 `01-product.md`、`02-api.md`、`03-engine.md`、`04-frontend.md`、`05-data.md`、`06-ops.md`（git `yen`@`8863a36c`）；實例化規則 `VibeCoding_Workflow_Templates/INDEX.md`；六要素 `VibeCoding_Workflow_Templates/_meta/template_standard.md`。
-- 下游：§6 全部輸出文件——每份文件引用本檔的 `REQ-*/FR-*/NFR-*/ACPT-*/SCN-*/ADR-*` ID，不得另行造 ID。
-- 待確認：本登錄簿為 AI 衍生，REQ 優先序與範圍尚未經 `requirements_tracker.xlsx` ①需求決策 owner 核准；ProjectStore 實際為 SQLite 而契約稱 PostgreSQL Phase 3（見 01-product §5 待確認項）。
+| 項目 | ID／文件 |
+| :--- | :--- |
+| **上游** | 現行程式碼（分支 `yen`、HEAD `8f378b24`）、[`AGENTS.md`](../AGENTS.md) §不可違反的契約（`AGENTS.md:48-59`）、`docs/contracts/`、[`docs/TEAM_AI_OWNERSHIP.md`](../docs/TEAM_AI_OWNERSHIP.md)；ID 家族的內文權威見 §2.1「定義在哪」欄 |
+| **本文件產出** | ID 家族的數量、範圍與消費者對照（§2.1）；五項 ID 缺口登記（§2.2）；ADR-001..012 清單（§3）；RB-001..009 症狀對照（§4）；L1↔L3 術語對照（§5）；54 份檔案索引與 owner（§6） |
+| **下游** | 全批文件的交叉引用皆以本檔的檔名與 ID 為準；`requirements_tracker.xlsx` ①需求決策（DEC-\*）、`engineering_tracker.xlsx` ①規格追溯（FR／NFR／MOD）、`qa_tracker.xlsx` ②執行證據（TC-\*）——三簿已實例化，owner 決策欄待填（見 §2.2） |
+| **本檔不決定** | 任何 ID 的內文與狀態：DEC-\* 核准屬產品 owner；FR／NFR 佐證屬 [`srs.md`](01_requirements/srs.md)；ACPT／SCN 內文屬 [`prd.md`](01_requirements/prd.md)；TC 狀態屬 [`test_plan.md`](05_qa/test_plan.md)；ADR 決策屬各 MOD owner |
+| **待確認** | OPEN-48（本批是重建先前那套文件或另立新版，影響 ID 連續性與舊 REQ-\* 註銷處理）；§2.2 的五項缺口在 owner 裁定前一律視為未收斂，不得在下游文件寫成既成事實 |

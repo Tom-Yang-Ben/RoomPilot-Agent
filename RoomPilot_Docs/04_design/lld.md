@@ -1,124 +1,209 @@
 # 低階設計與程式碼地圖 (LLD / Code Map) - RoomPilot
 
-> **版本:** 0.1 | **更新:** 2026-08-11 | **狀態:** 草稿
-> **Owner:** Bella（`backend/server/` 整合，AGENTS.md:36）＋各模組 owner：Ancai（engine）、Yen（agent）、Kai（catalog）（AGENTS.md:39-41；AI 衍生，人工核准前為 TO-BE）
-> **語域:** L3（工程）
-> **實例:** 單例；§5 狀態機依 Aggregate 分節（登錄簿 §6 實例規則），量大時拆 `lld-<aggregate>.md`
-> **定位宣告:** 本文件回答「RoomPilot codebase 長什麼樣、誰依賴誰、五個 Aggregate 的狀態機與不變量」；不包含 API 契約（見 [api_spec.md](./api_spec.md)）、資料表設計（見 [db_design.md](./db_design.md)）與系統級架構論述（見 [../03_architecture/sad.md](../03_architecture/sad.md) 與 ADR-*）。
-> **生成:** AI 由程式碼與文件衍生｜來源版本 git yen@8863a36c
-
----
+> **版本:** v1.0 ｜ **更新:** 2026-08-12 ｜ **狀態:** 草稿（待 owner 核准）
+> **Owner:** 架構師維護 §6 狀態機（人工核准的設計契約）；§2–§5 為 AS-BUILT 生成物，由各 MOD owner（[`AGENTS.md`](../../AGENTS.md) §目錄責任與資料邊界）覆核
+> **語域:** L3（工程）——直接寫模組路徑、函式名、常數與失敗行為
+> **實例:** 單例（整個 RoomPilot 一份；量大時才拆 `lld-<模組>.md`，目前未拆）
+>
+> **本文件回答**：codebase 長什麼樣、誰依賴誰，以及七條「看不懂就無法安全改動」的演算法各自吃什麼輸入、在哪裡分岔、吐什麼輸出、壞掉會怎樣。
+> **本文件不含**：架構取捨理由（去 [`sad.md`](../03_architecture/sad.md) 與 `adr/`）、端點欄位級契約（去 [`api_spec.md`](./api_spec.md) 與 `openapi-*`）、資料表與 view 定義（去 [`db_design.md`](./db_design.md)）、DOM 與互動規格（去 [`ui_spec-step1-project.md`](../02_ux_ui/ui_spec-step1-project.md)–[`ui_spec-step8-ai-render.md`](../02_ux_ui/ui_spec-step8-ai-render.md)）、需求與驗收（去 [`srs.md`](../01_requirements/srs.md) 與 [`prd.md`](../01_requirements/prd.md)）。
+> **佐證基準**：分支 `yen`、HEAD `8f378b24`、2026-08-12 工作樹。行號隨程式碼演進，衝突時以原始碼為準。
 
 ## 目錄
 
 - [1. 生成資訊](#1-生成資訊)
 - [2. 模組結構](#2-模組結構)
 - [3. 模組依賴圖](#3-模組依賴圖)
-- [4. 關鍵類別關係](#4-關鍵類別關係)
-- [5. 狀態機（設計契約）](#5-狀態機設計契約)
-- [6. 追溯](#6-追溯)
+- [4. 關鍵資料結構](#4-關鍵資料結構)
+- [5. 關鍵演算法](#5-關鍵演算法)
+- [6. 狀態機（設計契約）](#6-狀態機設計契約)
+- [7. 假設與待確認](#7-假設與待確認)
+- [8. 追溯](#8-追溯)
 
 ## 1. 生成資訊
 
-§2–§4 描述**程式碼現況（AS-BUILT）**，必須可重新生成，過期即重掃；§5 為設計契約，人工核准後才生效。
+§2–§5 描述**程式碼現況（AS-BUILT）**，過期即重掃；不得手工改寫後宣稱是現況。
 
 | 項目 | 值 |
 | :--- | :--- |
-| 生成時間 | 2026-08-11 |
-| 對應 commit | git `yen`@`8863a36c` |
-| 生成方式 | AI 逐檔實讀（Read/Grep）；行號逐一核對 |
+| 生成時間 | 2026-08-12 |
+| 對應 commit | `8f378b24`（分支 `yen`） |
+| 生成方式 | 人工逐檔閱讀原始碼，每條主張附 `file:line`；未執行靜態依賴工具（repo 內無 `madge`／`pydeps` 設定） |
+| 涵蓋範圍 | `backend/` 全部 Python 模組；前端只涵蓋狀態機（`static/scene_workflow.js`），其餘見 `ui_spec-step*.md`。不涵蓋 `frontend3d/`（次要原型）、`scripts/`、`testdata/` |
 
 ## 2. 模組結構
 
 ```text
 backend/
-├── server/     # FastAPI、專案保存、八步 UI 調度、生圖與交付（Bella）
-│   ├── main.py                    # 全部 HTTP 路由（單一 app）
-│   ├── project_store.py           # SQLite ProjectStore：workflow 快照＋revision 樂觀鎖
-│   ├── scene_service.py           # scene_json 組裝、擺放調度（呼叫 engine 裁決）
-│   ├── agent_pipeline_service.py  # MasterAgent 併存管線入口（flag 保護）
-│   └── static/                    # 正式前端（scene.html／scene_v2.js，ADR-006）
-├── engine/     # 幾何單一權威：配置、碰撞、淨空、柵格（Ancai，NFR-004）
-├── catalog/    # 官方家具 8,675 件、PostgreSQL view、風格/材質資料（Kai）
-└── agent/      # MasterAgent＋4 sub-agent、選件/擺位紀律/生圖/報告（Yen）
+├── server/        # FastAPI 路由、專案保存、場景組裝、生圖與交付（main.py 4,199 行）
+│   └── static/    # 正式單頁前端（scene_v2.js 19,583 行）
+├── floorplan/     # 影像／DXF 辨識，輸出止於 layout_json
+├── engine/        # 幾何合法性唯一權威：柵格、OBB、淨空、靠牆錨定
+├── agent/         # 需求結構化、選件潛規則、擺位修復、生圖提示詞
+├── catalog/       # PostgreSQL 型錄與向量檢索的資料存取
+├── spatial_data/  # 檢索計畫、排序與服務層
+└── upgrade3d/     # 已確認 layout → 3D 可用結構
 ```
 
-| 模組 | 職責（單一） | 證據 |
+| 模組 | 職責（單一） | MOD（owner） |
 | :--- | :--- | :--- |
-| `backend/server/` | HTTP 面與流程編排；不自行判定幾何 | AGENTS.md:36 |
-| `backend/engine/` | 家具合法位置唯一裁決者（Shapely 提議、5cm 柵格判定） | AGENTS.md:41、54；scene_service.py:2228-2230 |
-| `backend/catalog/` | 正式家具與 CloudFront 資產、PostgreSQL/RAG metadata | AGENTS.md:39 |
-| `backend/agent/` | 需求結構化、選件、擺位 hints、生圖/報告 sub-agent；不決定幾何合法性 | AGENTS.md:40、53 |
+| `server/main.py`、`project_store.py` | HTTP 路由、`workflow_json` 單一快照保存 | MOD-SRV-API／MOD-SRV-STORE（Bella） |
+| `server/scene_service.py` | 問卷＋`layout_json` → `scene_json`；逐房擺位編排 | MOD-SRV-SCENE（Bella） |
+| `server/ai_render_service.py`、`design_manual_service.py`、`cost_estimation.py` | 色卡／逐房生圖／PDF／概算 | MOD-SRV-RENDER（Bella） |
+| `server/static/` | 八步單頁前端與 Three.js viewer | MOD-WEB（Bella） |
+| `floorplan/vision/`、`cody_adapter.py`、`floorplan2*.py` | 影像辨識管線與房型語意 | MOD-FP（Cody） |
+| `engine/` | 碰撞、淨空、靠牆錨定、移動旋轉合法性 | MOD-ENG（Ancai） |
+| `agent/` | 選件潛規則、擺位修復、提示詞組裝、並存管線 | MOD-AGT（Yen） |
+| `catalog/` | 型錄 view、pgvector 檢索、隔離區隔離 | MOD-CAT／MOD-SQL（Kai） |
+| `spatial_data/rag/` | 檢索計畫、rerank 與加權排序 | MOD-RAG（Django） |
+| `upgrade3d/` | layout → 3D 結構轉換 | MOD-U3D（Cody） |
 
 ## 3. 模組依賴圖
 
-箭頭語意＝import。設計上 `engine` 是最底層（幾何權威，NFR-004），任何反向 import 視為分層違規，列入 §6。
+箭頭語意＝import。分層規則寫在程式碼註解裡：`engine/rules.py:3-4`（引擎層不認得開合淨空，由 agent 層收尾）與 `engine/clearance.py:32`（engine 層不反向 import `agent.knowledge`）。
 
 ```mermaid
 flowchart TD
-    server["backend/server"] --> engine["backend/engine"]
-    server --> catalog["backend/catalog"]
-    server --> agent["backend/agent"]
+    static[server/static] --> main[server/main.py]
+    main --> scene[server/scene_service.py]
+    main --> render[server/ai_render_service.py]
+    main --> ragapi[server/rag_api.py]
+    scene --> agent[agent/]
+    scene --> engine[engine/]
+    scene --> catalog[catalog/style_db]
+    render --> agent
     agent --> engine
-    catalog --> engine
-    engine -. "違規：layout_bridge.py:13" .-> agent
+    ragapi --> ragsvc[spatial_data/rag]
+    ragsvc --> ragrepo[catalog/rag_repository]
+    engine -.違規.-> agentk[agent/knowledge]
 ```
 
-| 依賴 | 證據 |
+| 檢查項 | 結果 | 佐證 |
+| :--- | :--- | :--- |
+| `agent/` → `engine/` 單向 | 是（`agent/clearance.py:14-17` 只 import `engine.obb`／`engine.raster`） | `agent/clearance.py:14-17` |
+| **分層違規** | `engine/layout_bridge.py:13` 反向 `from ..agent.knowledge import family_of`，與 `engine/clearance.py:32` 宣告的方向相反 | `engine/layout_bridge.py:13` |
+| 違規影響半徑 | 目前為零：`rg "layout_bridge"` 在整個 repo（排除 `.venv`）無任何 import 者，該模組不在 live 路徑上 | 2026-08-12 實搜 |
+
+## 4. 關鍵資料結構
+
+只列「看不懂就無法安全改動」的核心型別。單位一律公分（[`ADR-007`](../03_architecture/adr/ADR-007-centimeter-unit-contract.md)）。
+
+| 型別 | 位置 | 關鍵欄位／不變量 |
+| :--- | :--- | :--- |
+| `Room`／`Wall`／`PlacedFurniture`／`ClearanceZone`／`FurnitureCatalogItem` | `engine/models.py:18-71` | 公分、X 右 Y 上、原點平面圖左下、position 為中心點；`models.py:38-40` 宣告 `front = +y` |
+| `Grid` | `engine/raster.py:28-56` | `occ[iy, ix]` 列優先布林格；`world()` 取格心；格徑見 §5.3 |
+| `Obb` | `engine/obb.py:45-52` | 有向包圍盒；`obb.py:3-5` 宣告**正面 f = 本地 −y**（與 `models.py:38-40` 相反，見 OPEN-21） |
+| `BlockedMasks` | `engine/constraints.py:28-37` | `low`／`band` 兩層遮罩；`for_height()` 以 `WINDOW_SILL_CM` 90 cm 決定用哪層 |
+| `Template`／`Placement`／`Edge`／`RoomContext` | `engine/layout_model.py:20-106` | 柵格擺位脈絡；`RoomContext` 同時持有 `grid`、`masks`、`edges`、已擺 `placed` 畫布 |
+| `SelectedItem` | `agent/select.py`（`parse_selections` 回 `{room_id: [SelectedItem]}`） | `item` ＋ `count`；`count` 於 `_clamp_count` 夾 1..6 |
+| `LockManifestDoc` | `agent/documents.py:376-392`（建構處 `agent/tools/genpic_info.py:239-246`） | 鎖定房、色卡、視角、家具短標籤與材質，供改圖指令引用 |
+| scene 物件 payload | `scene_service.py:2660-2689` | `position_cm{x,z}`（房間中心原點）、`rotation_y_deg`（`% 360`，與引擎旋轉反號）、`placement_failed`／`placement_reason`／`placement_engine` |
+
+## 5. 關鍵演算法
+
+### 5.1 影像辨識 11 步管線與比例尺三來源
+
+| 面向 | 內容 |
 | :--- | :--- |
-| server → engine/catalog/agent | scene_service.py:15-37（`..agent.knowledge`、`..catalog.style_db`、`..engine.*`）、agent_pipeline_service.py:19 |
-| agent → engine | agent/adjust.py:18-21、agent/clearance.py:15-17、agent/tools/engine_validate.py:9-10 |
-| catalog → engine | catalog/style_db.py:10（`engine.models` 的 `ClearanceZone`/`FurnitureCatalogItem`） |
-| **engine → agent（違規）** | engine/layout_bridge.py:13（`from ..agent.knowledge import family_of`） |
+| 入口 | `analyze_floorplan_image(image_bytes, filename, calibration_hint, ocr_observations, ocr_provider, geometry_observations)`（`vision/analysis.py:438-677`） |
+| 11 步 | ①解碼與影像側寫 `:449-451` → ②OCR 觀測取得（呼叫端 > 黃金圖 `match_builder_plan_630` > provider，`:452-467`）→ ③尺寸證據與手動標定覆寫 `:469-486` → ④比例尺與幾何分支 `:493-544` → ⑤缺牆檢查 `:545-549` → ⑥OCR 標籤房 `:551-561` → ⑦`infer_rooms_from_walls` 合併去重 `:562-590` → ⑧黃金圖多邊形覆寫 `:591-605` → ⑨圖示證據 `:607-621` → ⑩語意層覆蓋 `:624-632` → ⑪`spatial_report`＋開口關係＋**公分正規化** `:662-677` |
+| 關鍵決策點 | 公分轉換是**最後一步**（`units.py:30-52` 的 `canonicalize_analysis_cm`，內部一律公尺）；`MIN_AUTOMATIC_SCALE_CONFIDENCE = 0.8`（`analysis.py:36`）決定是否要求人工標定 |
+| 比例尺三來源 | `manual_confirmation` = 1.0（`cody_adapter.py:769-770`）／`dimension_ocr` = OCR 自身分數（`analysis.py:498-499,541-542`）／`cody_config`\|`cody_wall_min` = 0.9（門寬 70–110 cm）\|0.7（`cody_adapter.py:775-776`；門寬僅作交叉檢核，`floorplan2dxf.py:1057-1078`） |
+| 輸出 | `layout_json`：`schema_version "1.0"`、`coordinate_system` 公分／左下原點／y 向上、`walls/doors/windows/rooms/scale/issues/spatial_report`（`analysis.py:634-661`） |
+| 失敗行為 | OCR provider 例外被吞掉不中斷主流程（`:463-467`）；無牆 → `geometry_missing`；無錨點 → `scale = None` ＋ `scale_anchor_missing`（`:545-549`）；自動信心 <0.8 → `scale_confirmation_required` 並 `requires_scale_confirmation=true`（`:501-502,543-544,655`）；`review_items` 非空 → 追加 `targeted_room_review_required` 並強制人工複核（`:664-670`） |
 
-## 4. 關鍵類別關係
+**OPEN-28（兩套比例邏輯並存）**：`derive_door_scale`（外牆 15 cm 下限 `floorplan2dxf.py:1031,1068-1071`；門寬只回寫 info 作檢核 `:1073-1077`）與 `refine_scale`（單門 85 cm／雙門 175 cm／牆厚 17.5 cm 三段錨，外牆換算落在 10–25 cm 外即回退 `floorplan2room.py:139-141,156-167`）推導方式不同。兩者**都在同一次請求裡跑**：前者供主線 `scale`（`cody_adapter.py:756`），後者只在房型語意管線內生效（`cody_adapter.py:1007`），其結果不回流 `layout_json.scale`。哪一套是規格權威待確認。
 
-只畫「看不懂就無法安全改動」的核心（保存層＋管線層）；引擎資料類（`Room`/`PlacedFurniture`/`Obb`/柵格 `Grid`）詳見 `backend/engine/` 各檔 docstring。
+### 5.2 房型判定四層證據覆蓋序
 
-```mermaid
-classDiagram
-    class ProjectStore {
-        +MAX_WORKFLOW_BYTES = 2MB
-        +update_workflow(expected_revision) dict
-        +save_upload() / save_render()
-        -_merge_dict() 深合併
-        -_compact_workflow_value() 顯示字串壓縮
-    }
-    class ProjectVersionConflict {
-        +project: dict  %% 附最新快照
-    }
-    class WorkflowTooLargeError
-    class MasterAgent {
-        +state: MasterState
-        +start(layout_json) PauseInfo
-        +submit(payload) PauseInfo
-        +undo() PauseInfo
-    }
-    class PauseInfo {
-        +state / message / expects / payload
-    }
-    class DocStore {
-        +set()/get()/require()/undo()
-    }
-    ProjectStore ..> ProjectVersionConflict : raise（樂觀鎖落後）
-    ProjectStore ..> WorkflowTooLargeError : raise（>2MB）
-    MasterAgent --> PauseInfo : 每步回傳
-    MasterAgent --> DocStore : 文件狀態＋checkpoint
-```
+| 面向 | 內容 |
+| :--- | :--- |
+| 入口 | `apply_floorplan2room_labels(rooms, semantics, image_width, image_height, plan_bbox_px, m_per_px, cm_per_px)`（`analysis.py:146-219`） |
+| 輸入 | 已帶 `type`／`source` 的 `rooms[]`；`cody_room_semantics`（`recognize_cody_rooms` 產出，`cody_adapter.py:955-1035`） |
+| 覆蓋優先序 | 印刷房名（`ocr_room_label`）與七格局啟發式（`layout_heuristic`）**不可被覆蓋** > DINOv2 語意（`dinov2_semantic`）> 圖示待確認（`furniture_icon_inference`）> 面積規則（`area_rules`）。實作是三分支守衛：空位／`default` 一律可填、圖示猜測僅在 `room_label_source == "dinov2_semantic"` 時可更新、其餘 `continue`（`analysis.py:176-194`） |
+| 詞彙對照 | `CODY_ROOM_TYPE_MAP`（`analysis.py:65-85`）把 cody 的 `living/bed/bath/entry/storage/outdoor/garage/stair` 映射到主線契約詞彙；`"room"` 映射為 `None` 代表證據太弱、不採用；別名表 `ROOM_LABELS`（`analysis.py:42-58`）比對前去空白並 casefold |
+| 空間配對 | 像素空間包含判定：房間中心（`bbox_px` 或多邊形反算，`analysis.py:105-143`）落在哪個語意方塊內就採用；語意層自報的 image 尺寸與原圖不同時以 `scale_x/scale_y` 換算（`:172-174`） |
+| 輸出／失敗 | 回傳實際套用筆數，寫入 `cody_room_semantic_labels_applied`（`analysis.py:650`）。語意管線整體失敗回 `None` 並記 warning，行為向下相容退回圖示與面積規則（`cody_adapter.py:1030-1032`）；缺 torch／骨幹時 `room_label_source` 誠實標 `area_rules`（`cody_adapter.py:1022-1026`） |
 
-證據：project_store.py:11、18-25、28-37、51-74、190-248；master.py:47-108、123-156。
+### 5.3 引擎合法性：七段 Shapely 檢查與柵格遮罩雙路徑
 
-## 5. 狀態機（設計契約）
+| 面向 | 內容 |
+| :--- | :--- |
+| 路徑 A（Shapely） | `check_placement_with_clearance(item, room, others)`（`engine/clearance.py:118-142`）＝ `check_placement` 三段（出界→穿牆→本體重疊，`engine/geometry.py:67-76`）＋ `clearance_conflict` 三段（淨空撞牆→淨空撞他人本體→淨空互撞，`clearance.py:85-115`）＋反向一段（本體壓到他人淨空，`:134-141`）。**只回最先命中者**，理由為繁體中文字串 |
+| 路徑 B（柵格） | `blocked_masks` 疊 `occ ∪ ¬room_mask ∪ stroke(doors,75) ∪ stroke(passages,75)` 得 `low`，再疊 `stroke(windows,40)` 得 `band`（`engine/constraints.py:54-72`）；`obb_blocked` 在布林網格上一次判定 |
+| 兩路徑接線 | live 第 6 步是「**Shapely 提議、柵格裁決**」：引擎回的候選仍須通過 `_raster_accepts` 的網格檢查才算合法（`scene_service.py:2269-2286`），原本分散的三段檢查在此收斂成一次 `obb_blocked`（`scene_service.py:1366-1370`）；取不到房間環時才退回純 Shapely 路徑（`scene_service.py:1373-1382`） |
+| 淨空常數 | 門前／通行縫 75 cm、窗前 40 cm、窗台 90 cm（`engine/constraints.py:21-23`）；有櫃家具正面 50 cm（`engine/clearance.py:24`，記號表 `:33-37`）；背牆 5 cm、沙發到茶几 45 cm、椅桌 3 cm（`engine/rules.py:15-19`） |
+| 解析度 | 格徑 5 cm、單軸上限 1200 格（超過自動放大格徑）、線段描粗 12 cm（`engine/raster.py:18-21`）；房間環用掃描線半開區間填充保證每列恰交一次（`raster.py:70-96`） |
+| 決定性 | `candidate_edges` 以 `(-length, mid.y, mid.x)` 完整 tie-break、取最長 10 邊（`engine/rules.py:49-53,21`）；`anchor_ts` 先試五定點再由中心向外步進 15 cm（`rules.py:23,30-46`）；`facing_deg` 以 `+0.0` 消 IEEE754 負零，避免 −180° 外流（`engine/obb.py:20-27`） |
+| 移動與旋轉 | X／Y 軸分離，單軸受阻仍 `success=true` 且該軸不動；兩軸皆阻才回 `success=false` 並重算合併位移的原因（`engine/adjustment.py:11-51`）。旋轉 `% 360` 正規化、不合法即還原（`:54-69`） |
+| 失敗行為 | 一律回繁中原因字串而非例外；貪婪不回溯，放不下不是錯誤（`engine/rules.py:63-65`），由呼叫端標 `placement_failed` |
 
-本節是**人工核准的設計契約**：enum 合法值與轉移規則在此定義，[api_spec.md](./api_spec.md) §3 錯誤碼與 [db_design.md](./db_design.md) 引用，不重複定義。每個 Aggregate 一小節。
+**OPEN-21**：正面朝向慣例相反——`engine/models.py:38-40` 寫 `front = +y`（`clearance.py:46-52` 的 `_SIDE_OFFSETS["front"] = (0, 1)` 依此實作），`engine/obb.py:3-5` 寫正面是本地 **−y**。本體 OBB 對稱故不影響碰撞，只在淨空往哪一側外推時有意義。
+**OPEN-22**：兩張淨空表鍵值與數值都不同——`catalog/style_db.py:185-190` 的 `CLEARANCE_BY_TYPE`（`bookcase/sideboard` 40、`wardrobe/desk` 50）以 `normalized_type` 為鍵；`agent/clearance.py:20-25` 的 `CLEARANCE_OF`（`wardrobe` 60、`cabinet_low/dressing_table` 45、`nightstand` 35）以柵格引擎的 `kind` 為鍵。鍵 miss 時該件即完全跳過淨空檢查。
 
-### 5.1 Project 工作流（Aggregate: Project）
+### 5.4 逐房擺位與 A／B variant
 
-`current_step` 合法值＝`WORKFLOW_STEPS` 11 值（main.py:164-176）：`project → upload → recognition → calibration → space_confirmation → requirements → layout_2d → white_model_3d → realistic_3d → proposal_review → ai_render`，對應 UI 八步（部分步驟含多個內部狀態）。
+| 面向 | 內容 |
+| :--- | :--- |
+| 入口 | `generate_layout_by_room(...)`（`scene_service.py:1981-2052`）→ 每組呼叫 `generate_layout(...)`（`:2158-2200` 起） |
+| 分組鍵 | `placement_room_id` → `auto_decor_room_id` → 由 `knowledge.ROOM_AFFINITY` 路由（`:2016-2023`）；路由結果回寫 `placement_room_id`，否則前端會歸進「未指定空間」（`:2047-2050`） |
+| 邊界 | 每組取 `_region_boundary_by_id`，取不到才回退 `_largest_region_boundary`（`:2025,2028`）。全屋共用最大房邊界是舊缺陷：遮罩把其餘房視為房外，13 件全被擠進同一間（`:1995-1999`） |
+| 擺放順序 | 鎖定／保留件 → 基礎家具（`ESSENTIAL_FAMILIES`）→ 泛用件 → 副件貼主件 → 自由座椅撿剩餘（`scene_service.py:2175-2186`，順序由 `agent.place.placement_hints` 提供） |
+| A／B variant | `placement_variant == "B"` **只反轉類型錨點的嘗試順序**：候選數 >9 時反轉前段、保留末 9 個 3×3 網格散點在最後（整串反轉會讓靠牆件從房間中央開始試而永遠貼不了牆）；否則整串反轉（`scene_service.py:2539-2545`）。B 走完全相同的碰撞與淨空驗證。白模生成必須把 `placement_variant` 一路帶進 `generate_layout_by_room`，漏帶即整場被重排成 A（`scene_service.py:2943-2944`） |
+| 輸出 | 順序與輸入 `items` 相同的物件陣列（`:2052`）；每件帶 `placement_failed`／`placement_reason`／`placement_engine`（`:2679-2685`）；彙總為 `placement.failed[]` 與 `unavailable_types[]`（`:3078-3087`） |
+| 失敗修復 | 有任何 `placement_failed` 才進第二輪 `resolve_placements`（`scene_service.py:2951-2983`）：`agent/place.py:155-308` 迴圈「換更小同型 → 移除」直到無動作為止；`user_specified`／`user_required`／`position_locked` 只升級回報不動（`place.py:216-228`）；`COMPANION_OF` 副件寧缺勿亂、放不下直接退場不換小（`:231-235`）；`ROOM_ESSENTIALS` 基礎家具無可換時只 escalate 不靜默移除（`:243-255`）；主件已不在清單的副件一併退場（`:270-301`） |
+| 收斂性 | 替補 footprint 嚴格遞減、池有限、移除嚴格減件，故必然收斂；`max_rounds` 預設 `None`（`place.py:168-172`） |
+| `validate_only` | 進第 7 步前的最終確認：座標一律照舊、**絕不重排**，只回報合法性（`scene_service.py:2188-2191`） |
+
+### 5.5 選件潛規則兩套並存
+
+| 規則 | 多房路徑（`agent/select.py`） | 單房路徑（`server/scene_service.py`） |
+| :--- | :--- | :--- |
+| 房型基礎家具 | `_add_missing_essentials` 從候選補第一件有模型者（`select.py:271-299`） | `normalized.insert(0, essential)`，沙發床視同床（`scene_service.py:165-174`） |
+| 客廳三件 | 由 `ROOM_COMPANION_ESSENTIALS`（`knowledge.py:65-67`）進 required | 同表，缺則 append（`scene_service.py:175-179`） |
+| 同房同族一款 | `families_used` 每房每族限一款、先到先贏（`select.py:245-248`） | **無此檢查**；改由 `_merge_exact_and_chosen` 以 `family_of` 折疊防「臥室兩張床」（`scene_service.py:204-222`） |
+| 成組副件需主件 | `_apply_conventions` 依存活族系過濾 `COMPANION_OF`（`select.py:165-180`） | 由擺位層的 `resolve_placements` 收尾 |
+| 房型白／黑名單 | `affinity_permits`（`knowledge.py:162-173`）＝`ROOM_FAMILY_DENYLIST`（陽台不收收納櫃，`:156-159`）先判，再判 `ROOM_AFFINITY`（`:133-152`） | 同一函式（`scene_service.py:600-604`），單一判準 |
+| 戶外品排除 | `is_outdoor_item` 以名稱／分類字串記號判（`knowledge.py:181-199`） | 同（`scene_service.py:616`） |
+| 每房上限 | `MAX_ITEMS_PER_ROOM` 8 件（`select.py:38,234`） | 無明文上限 |
+| 餐椅張數 | `dining_chair_target`：桌寬 ≥140 cm → 4 張，否則 2 張（`knowledge.py:98-112`）；`_ensure_dining_chair_sets` 補足（`select.py:303-349`） | `_expand_dining_seats`：`min(max(2, 入住人數), 桌子可坐數)`，逐張給 `instance_id#seatN`（`scene_service.py:225-260,243-244`） |
+| 隨機性 | 無（LLM 選、本地白名單驗證） | 唯一隨機來源：`random.Random(f"{seed}:{style}:{type}:{index}")` 對 top-14 抽樣（`scene_service.py:623-629`） |
+| 使用者精選豁免 | `protected_ids` 一律保留並佔族系名額（`select.py:148-153`） | `exact` 優先入座（`scene_service.py:204-213`） |
+
+**OPEN-39**：兩套規則不對等（同族去重、每房上限、餐椅公式都只在單邊成立），是刻意分工還是歷史殘留待確認。失敗行為：`parse_selections` 驗證後無任何有效項目即 `raise SelectionParseError`（`select.py:267`），呼叫端整批降級 `local_rules`。
+
+### 5.6 檢索排序公式
+
+| 面向 | 內容 |
+| :--- | :--- |
+| 硬篩 | `roompilot.search_furniture_embeddings_filtered(vector, model, match_count, room_type, categories[], price_min, price_max, max_width_cm, max_height_cm, role, size_class)`，`match_count` 預設 50（`catalog/rag_repository.py:133-164`） |
+| 排序 | `final = 0.60*rerank + 0.20*style + 0.10*mood + 0.10*confidence`（`spatial_data/rag/ranking.py:16,114-154`）；rerank 原始分不在 [0,1] 時走 sigmoid 正規化（`ranking.py:105-111`）；mood 為交集比例（`:98-102`）；同分依原順序穩定排序（`:154`） |
+| 去重 | 跨 item 以 `item_id` 與 `duplicate_group` 兩層 set 去重，取滿 `top_k` 即停（`spatial_data/rag/service.py:408-426`） |
+| 輸出 | 每筆附 `scores{final, rerank, style, mood, confidence, vector_similarity}`，四捨五入位數固定（`ranking.py:138-152`）——決定性可重播 |
+| 邊界 | 只排序既有候選，**不新增、不替換、不決定放哪**；第 5 步只把命中 id 排前面（見 [`ADR-008`](../03_architecture/adr/ADR-008-rag-retrieval-only-offline-models.md)） |
+| 失敗行為 | catalog hydration 例外一律轉 `RagDatabaseError`（`service.py:431-433`）；模型未快取直接 `RagDependencyError` → 503；不在請求路徑下載權重 |
+
+### 5.7 生圖提示詞 deterministic 組裝
+
+| 面向 | 內容 |
+| :--- | :--- |
+| 入口 | `GenPicInfoTool.run(requirements, scene, room, stage, palette, viewpoint, lighting)`（`agent/tools/genpic_info.py:177-249`） |
+| 組裝順序 | 角色宣告 → 風格配色 → `房間：{name}` → `整體色調比例採(60%, 30%, 10%)：{最多 3 色}` → 地板／牆壁材質 → `家具配置：` 逐行 → `家電：` → 視角備註；最後固定補三行（可加元素／格局不可變動／光影提示）（`:194-248`） |
+| 決定性 | 全程字串拼接，無 LLM、無隨機；同輸入必得同輸出。缺資料的段落整段省略（`:193`） |
+| 尺寸清洗 | `strip_measurements` 三組正則（帶單位串／數字接單位／無單位乘號串）＋空括號＋孤立分隔符清理（`genpic_info.py:46-93`）；提示詞**不含任何尺寸數字**，理由是比例由 img2img 視角截圖鎖定（`:44-45`）。鎖定清單與設計手冊仍保留規格 |
+| 家電 | 只由 `requirements.appliances` 進入畫面描述（`:231-235`），不進 `scene_objects`（[`ADR-006`](../03_architecture/adr/ADR-006-appliances-render-context-only.md)） |
+| 光影 | `_LIGHTING_HINTS` 兩鍵：`day`（預設）與 `night`（客廳夜景專用），未知鍵回退 `day`（`:37-42,247-248`） |
+| 輸出 | `{prompt, lock_manifest, stage}`；`LockManifestDoc` 存短標籤版家具清單供改圖引用（`:239-249`） |
+| 失敗行為 | 本函式不做網路 I／O 也不拋業務例外；上游生圖失敗政策（主模型 3 次 → fallback 3 次 → `GenPicFailure`）在 `genpic_agent.py`，見 NFR-012 |
+| 已知殘留 | `:198-201`、`:218-224` 有兩段被三引號註解掉的舊版風格註記與家具配置寫法，`:249` 有一行 `print(prompt)` 直寫 stdout——非結構化輸出，維運時會混進日誌 |
+
+## 6. 狀態機（設計契約）
+
+本節是**人工核准的設計契約**，`db_design`／`api_spec`／`openapi-*` 引用不重複定義。RoomPilot 只有一個 Aggregate：**專案（Project）**，其生命週期即工作流步驟。
 
 ```mermaid
 stateDiagram-v2
-    [*] --> project: POST /api/projects (201)
+    [*] --> project
     project --> upload
     upload --> recognition
     recognition --> calibration
@@ -130,225 +215,47 @@ stateDiagram-v2
     realistic_3d --> proposal_review
     proposal_review --> ai_render
     ai_render --> [*]
-    note right of space_confirmation
-        伺服器只驗 membership 不驗順序
-        (main.py:1810-1811)；
-        前後步進由前端 PUT workflow 決定
-    end note
 ```
 
-| 觸發 API／函式 | 行為 | 證據 |
-| :--- | :--- | :--- |
-| `POST /api/projects` | 建案，`current_step="project"`、`workflow={}`、`revision=0` | main.py:1784-1797、project_store.py:165-178 |
-| `PUT /api/projects/{id}/workflow` | `_merge_dict` 深合併＋`current_step` 更新，`revision+1` | main.py:1806-1867、project_store.py:190-248 |
-| `GET /api/projects/{id}` | 恢復快照（`Cache-Control: no-store`） | main.py:1800-1803 |
-| `ProjectStore.update_workflow` | `BEGIN IMMEDIATE` 使版本比對＋更新為原子操作 | project_store.py:200-228 |
+| 內部步驟（11） | 對外折疊（8） | 進入條件 | 完成判定 | 副作用 |
+| :--- | :--- | :--- | :--- | :--- |
+| `project` | 步驟 1 | — | `data.confirmed` | 建立 `project_id`／`revision` |
+| `upload` | 步驟 2 | `project` 完成 | `data.confirmed` | 寫 `uploads/<id>/floorplan<ext>` |
+| `recognition` | 步驟 3 | 前 2 步完成 | `data.confirmed` | 成功後七個下游節點寫 `null` |
+| `calibration` | 併入步驟 3 | 前 3 步完成 | `data.confirmed` | — |
+| `space_confirmation` | 步驟 4 | 前 4 步完成 | `data.confirmed` ＋ 伺服器端 `review_items` 全清 | 422 `recognition_review_unresolved` 擋關 |
+| `requirements` | 步驟 5 | 前 5 步完成 | `data.confirmed` | 寫 `room_requirements` 與 `render_context` |
+| `layout_2d` | 步驟 6 | 前 6 步完成 | `data.confirmed === true` | 產出 `scene_json` |
+| `white_model_3d` | 併入步驟 6 | 前 7 步完成 | `confirmed` ＋（`expectedFurnitureCount === 0` 或 `visibleFurnitureCount > 0`） | 3D viewer 診斷硬閘 |
+| `realistic_3d` | 併入步驟 6 | 前 8 步完成 | `data.confirmed` | 套材質 |
+| `proposal_review` | 步驟 7 | 前 9 步完成 | `confirmed` ＋ `masterView.camera` 三元組齊備且 `fov_deg > 0` | 鎖視角、色卡每案一次 |
+| `ai_render` | 步驟 8 | 前 10 步完成 | `data.confirmed` | 逐房生圖、成果包 |
 
-**不變量**
+- 合法步驟集合兩端同源：`main.py:164-176` 與 `scene_workflow.js:4-16`（兩份各自維護，未由測試強制一致）。
+- 折疊規則：`calibration → recognition`、`white_model_3d`\|`realistic_3d → layout_2d`（`scene_v2.js:311-325`）。
+- 前進閘門：`REQUIRED_COMPLETIONS` 逐步累積前置（`scene_workflow.js:43-70`）、`canEnter` 全數滿足才可進（`:163-168`）。
+- **回退副作用**：`markDownstreamStale(step)` 把索引大於該步的已完成項全部移出 `completed`、寫 `staleFrom`、並 `delete state.data[item]`（`scene_workflow.js:174-187`）——資料真的被刪除，非只標記。
+- 完成判定細則見 `scene_workflow.js:140-160`。
 
-- workflow 是單一 JSON 快照，序列化後 ≤2MB，超過即整筆拒絕（NFR-002；project_store.py:11、224-225）。
-- 每次寫入 `revision` 嚴格 +1；帶 `expected_revision` 落後即拒，**絕不深合併衝突雙方**（project_store.py:209-218、228）。
-- 深合併只對 dict 遞迴，list 與純量整值覆蓋（project_store.py:18-25）——呼叫端不得依賴 list 內合併。
-- 超長顯示字串（name/label/title 等 >512 字元）落庫前壓縮為 fallback 標籤（project_store.py:40-74）。
+## 7. 假設與待確認
 
-**失敗路徑**
+| ID | 待確認內容 | 影響 | 目前可驗證事實 |
+| :--- | :--- | :--- | :--- |
+| OPEN-21 | 引擎正面朝向慣例相反（+y vs −y） | §4、§5.3；FR-034 | `engine/models.py:38-40` vs `engine/obb.py:3-5` |
+| OPEN-22 | `CLEARANCE_BY_TYPE` 與 `CLEARANCE_OF` 鍵值與數值皆不同，鍵 miss 即跳過淨空 | §5.3；FR-035 | `catalog/style_db.py:185-190`；`agent/clearance.py:20-25` |
+| OPEN-28 | 兩套比例尺邏輯並存，哪套是規格權威 | §5.1；FR-013 | `floorplan2dxf.py:1057-1078` vs `floorplan2room.py:144-175`；消費端只讀前者（`analysis.py:493-544`） |
+| OPEN-39 | 選件潛規則兩套不對等 | §5.5；FR-051、FR-052 | `select.py:139-349` vs `scene_service.py:165-260` |
+| 本文件新增 | `engine/layout_bridge.py:13` 反向 import `agent.knowledge`，違反 `engine/clearance.py:32` 宣告的依賴方向；該模組目前無 import 者，屬待決定「修正或刪除」 | §3 | `rg "layout_bridge"` 零命中（2026-08-12） |
+| 本文件新增 | `genpic_info.py:248` 的 `print(prompt)` 與兩段三引號註解掉的舊版寫法是否刻意保留 | §5.7 | `genpic_info.py:198-201,218-224,249` |
+| 本文件新增 | `main.py:164-176` 與 `scene_workflow.js:4-16` 兩份步驟白名單各自維護，無測試強制一致 | §6 | 兩檔皆列 11 步、目前內容相同 |
 
-| 條件 | 結果 | 證據 |
-| :--- | :--- | :--- |
-| `current_step` 不在 `WORKFLOW_STEPS` | 422 `invalid_workflow_step` | main.py:1810-1811 |
-| revision 落後（帶 `expected_revision`） | 409 `project_revision_conflict`，detail 附最新 `project`（ACPT-014） | main.py:1848-1857 |
-| 快照 >2MB | 413 `workflow_too_large` | main.py:1859-1866 |
-| 辨識複核未解決就標完成 | 422 `recognition_review_unresolved`（見 §5.2） | main.py:1815-1827 |
-| `replay_pending` 未帶 `base_updated_at` | 422 `pending_save_base_version_required` | main.py:1836-1839 |
+## 8. 追溯
 
-### 5.2 平面圖辨識（Aggregate: FloorplanRecognition）
-
-流程：上傳 → 使用者確認圖檔 → analyze → 人工複核 → confirm 產出鎖定 `layout_json`（ADR-001）；改結構強制回第 4 步重新複核。
-
-```mermaid
-stateDiagram-v2
-    [*] --> awaiting_upload
-    awaiting_upload --> uploaded: POST floorplan (201)
-    uploaded --> uploaded: 重新上傳（revision+1）
-    uploaded --> analyzed: POST floorplan/analyze
-    analyzed --> review_pending: analysis 標記需人工複核房間
-    review_pending --> structure_confirmed: 逐房複核＋POST /api/floorplan/confirm
-    analyzed --> structure_confirmed: POST /api/floorplan/confirm
-    structure_confirmed --> analyzed: 改結構重辨識（下游 calibration 起全部作廢）
-```
-
-| 觸發 API／函式 | 行為 | 證據 |
-| :--- | :--- | :--- |
-| `POST /api/projects/{id}/floorplan` | 存原圖（DXF/PNG/JPG/JPEG，樂觀鎖） | main.py:1870-1916 |
-| `POST /api/projects/{id}/floorplan/analyze` | DXF 走 `parse_floorplan_with_engine`、影像走 `analyze_floorplan_image`；回 `analysis`＋`layout_json` | main.py:2981-3069 |
-| `POST /api/floorplan/analyze`（無專案版） | multipart＋calibration/OCR/幾何 JSON → `analysis`＋`layout_json` | main.py:4106-4146 |
-| `POST /api/floorplan/confirm` | `confirm_floorplan_analysis(analysis, corrections)` 套用人工修正，回鎖定契約 | main.py:4149-4159 |
-
-**不變量**
-
-- 辨識止於 `layout_json`：只含牆/門/窗/樑/柱/房間/scale，**不含**家具、材質、風格（ADR-001；[api_spec.md](./api_spec.md) §6）。
-- analyze 成功即把 `calibration` 起的所有下游狀態清空（`staleFrom: "calibration"`），確認/需求/配置/白模/寫實全部作廢重走（main.py:3036-3062）。
-- 未經使用者確認圖檔內容（`floorplan_confirmation.confirmed`，含舊 privacy 契約相容）不得 analyze（main.py:2967-2978）。
-- 需人工複核的房間未逐一解決，第 4 步空間確認不得標完成——由 §5.1 的 workflow 保存 422 強制（main.py:1815-1827，訊息即「請回到第 4 步處理」）。
-
-**失敗路徑**
-
-| 條件 | 結果 | 證據 |
-| :--- | :--- | :--- |
-| 副檔名不支援 | 415 `unsupported_floorplan_type`／`floorplan_image_required` | main.py:1879-1887、4116-4118 |
-| 圖檔未確認就 analyze | 409 `floorplan_confirmation_required` | main.py:2985-2993 |
-| DXF 無牆體幾何 | 422 `dxf_parse_failed` | main.py:2996-3011 |
-| 影像辨識失敗 | 422 `cody_recognition_failed` | main.py:3019-3033 |
-| confirm 缺 `analysis` | 422 `analysis_required` | main.py:4152-4155 |
-
-### 5.3 場景／擺設（Aggregate: Scene）
-
-第 5–6 步：generate 產 A/B 白模方案 → 2D/3D 編輯逐次呼叫 layout/decorate → `confirmWhiteModel` 以 `validate_only` 最終確認。
-
-```mermaid
-stateDiagram-v2
-    [*] --> no_scene
-    no_scene --> generated: POST /api/scene/generate（placement_variant A/B）
-    generated --> generated: POST /api/scene/layout（重排；單房或整屋）
-    generated --> generated: POST /api/scene/decorate（風格軟裝重算）
-    generated --> validating: confirmWhiteModel → layout(validate_only=true)
-    validating --> white_confirmed: 全數合法
-    validating --> generated: 不合法清單交回 2D 待處理
-    white_confirmed --> [*]: 進第 7 步
-```
-
-| 觸發 API／函式 | 行為 | 證據 |
-| :--- | :--- | :--- |
-| `POST /api/scene/generate` | `build_scene_payload(...)`；`placement_variant` 非 A/B 一律正規化為 A | main.py:3591-3644（variant：3630-3639） |
-| `POST /api/scene/layout` | `generate_layout` 重算全場座標；`placement_room_id` 單房、`validate_only` 只驗不排 | main.py:3647-3709 |
-| `POST /api/scene/decorate` | 依風格重算軟裝（先移除舊軟裝再重算，非累加） | main.py:3799-3838 |
-| `confirmWhiteModel()`（前端） | 擋 A/B 未選、不合法家具、GLB 載入失敗；後送 `validate_only: true`＋全件 `position_locked` | scene_v2.js:13924-13981（旗標：13966） |
-
-**不變量**
-
-- 幾何合法性唯一權威是引擎柵格：Shapely 只提議候選，布林網格裁決（NFR-004／ADR-002／ADR-008；scene_service.py:2228-2230、2269-2286）。
-- `validate_only=true` 時每件座標**絕不重排**，只回報合法與否（ACPT-008；scene_service.py:2188-2191、main.py:3706-3707）。
-- 方案 B 與 A 走完全相同的碰撞/淨空驗證，只反轉「類型錨點」候選嘗試順序（3×3 網格散點保持在最後）（scene_service.py:2539-2545）。
-- 單房呼叫不得動別房家具：標了別房 id 的物件原樣 passthrough，不進重排（main.py:3673-3688）。
-- 座標契約：`position_cm` 房間中心原點、公分；`rotation_y_deg` 與引擎旋轉互為負號（NFR-001；scene_service.py:2193-2194）。
-- `scene_json.render_context.appliance_requirements` 是家電唯一去處，`scene_objects` 不含家電（ADR-004／ACPT-013；scene_service.py:3058-3062）。
-
-**失敗路徑**
-
-| 條件 | 結果 | 證據 |
-| :--- | :--- | :--- |
-| 成組件貼不上主件 | 標 `placement_failed` 交 `resolve_placements`「寧缺勿亂」，不退泛用亂放 | scene_service.py:2183-2186 |
-| 泛用件全候選不合法 | 標 `placement_failed`，彙整進 `placement.failed` 與 `placement_resolution_report` | scene_service.py:2185-2186、3073-3087 |
-| 最終確認有不合法件 | 前端列出未通過清單、留在第 6 步（不搬走家具） | scene_v2.js:13974-13981 |
-| A/B 未全房選定／GLB 載入失敗 | `confirmWhiteModel` 前端擋下不送 API | scene_v2.js:13926-13954 |
-
-### 5.4 渲染管線（Aggregate: RenderPipeline）
-
-第 7 步：鎖視角 → 3D 截圖入庫 → 色卡比較圖（全專案一次）；第 8 步：逐房 ai-render（每房一次改圖）→ 交付 PDF。
-
-```mermaid
-stateDiagram-v2
-    state "第 7 步（專案級）" as s7 {
-        [*] --> viewpoint_locked: 前端 lock-master-view
-        viewpoint_locked --> render_saved: POST renders (201)
-        render_saved --> palette_generated: POST palette-renders（≥1 張成功才鎖定）
-        palette_generated --> palette_generated: 再次請求 → 409
-    }
-    state "第 8 步（每房各自）" as s8 {
-        [*] --> room_not_generated
-        room_not_generated --> room_generated: POST ai-renders（edit_used=0）
-        room_generated --> room_edited: POST ai-renders/{room_id}/edit（edit_used=1）
-        room_edited --> room_edited: 再改 → 409
-    }
-    s7 --> s8
-    s8 --> delivered: POST delivery-proposal (201, PDF)
-```
-
-| 觸發 API／函式 | 行為 | 證據 |
-| :--- | :--- | :--- |
-| `POST /api/projects/{id}/renders` | 存 3D 截圖 PNG（版本欄位 white_model/viewpoint/style_version；樂觀鎖必帶） | main.py:1937-1997、project_store.py:337-403 |
-| `POST /api/projects/{id}/palette-renders` | 代表房 × 多色卡併發生圖；成功即寫 `palette_render.generated=true`（base64 不入 workflow） | main.py:2135-2221 |
-| `POST /api/projects/{id}/ai-renders` | 逐房寫實生圖（第 7 步截圖為 img2img 參考）；寫入每房 `edit_used: 0`＋`lock_manifest` | main.py:2070-2132 |
-| `POST /api/projects/{id}/ai-renders/{room_id}/edit` | 整批一次改圖（鎖定清單外不動）；成功把該房 `edit_used` 設 1 | main.py:2224-2287 |
-| `POST /api/projects/{id}/delivery-proposal` | Playwright 排版正式交付 PDF；`design-manual`（八章）保留但 UI 不觸發 | main.py:2384-2418、2300-2331 |
-
-**不變量**
-
-- 色卡比較圖**每專案只能成功一次**；全部失敗不鎖定、允許重試（ACPT-009；main.py:2147-2155、2191-2214）。
-- 每房改圖額度一次，由伺服器強制；房間之間額度互不影響（ACPT-010；main.py:2242-2248）。
-- 生圖 base64 一律不進 workflow 快照（2MB 上限），只存旗標與各卡/房狀態（main.py:2138-2139、2117-2126）。
-- render PNG 上傳必為有效 PNG 且 ≤20MB；DB 寫入失敗即刪已落地檔案，不留孤兒（main.py:1958-1976、project_store.py:400-402）。
-
-**失敗路徑**
-
-| 條件 | 結果 | 證據 |
-| :--- | :--- | :--- |
-| palette 已生成 | 409 `palette_already_generated` | main.py:2148-2155 |
-| 房間未生圖就改圖／無 `lock_manifest` | 409 `room_not_generated` | main.py:2237-2241 |
-| 該房額度用完 | 409 `ai_edit_budget_exhausted` | main.py:2244-2248 |
-| 未設 `OPENROUTER_API_KEY` | 503（ai-renders／palette／edit 同碼路徑） | main.py:2109-2116、2183-2190、2262-2269 |
-| 改圖模型失敗 | 502 `ai_edit_failed`（附 notices） | main.py:2270-2274 |
-| 缺 Playwright Chromium | 503 `delivery_engine_not_configured`（ACPT-011） | main.py:2399-2402 |
-| revision 落後（renders） | 409 `project_revision_conflict` | main.py:1988-1996 |
-
-### 5.5 Agent 併存管線（Aggregate: AgentPipeline）
-
-`ROOMPILOT_AGENT_PIPELINE` flag 保護的 HITL state machine（ADR-005）；MasterAgent 是程式固定流程、不呼叫 LLM，計數政策（修復 ≤3、改圖 ≤1）全在本層（master.py:1-13、56-62）。
-
-```mermaid
-stateDiagram-v2
-    [*] --> await_questionnaire: start(layout_json)
-    await_questionnaire --> await_plan_choice: submit(questionnaire)→S1需求→S2 RAG→S3 A/B擺放→S4驗證(修復≤3)
-    await_questionnaire --> await_questionnaire: RAG 檢索失敗→retry
-    await_plan_choice --> await_palette_choice: submit(variant+viewpoints)→S5a 色卡生圖
-    await_palette_choice --> await_feedback: submit(palette_id)→S5b 全房生圖(客廳加夜間)
-    await_feedback --> done: submit(skip 或空 feedback)→S7 設計手冊
-    await_feedback --> done: submit(feedback)→S6 改圖(≤1)→手冊
-    await_questionnaire --> await_render_retry: 生圖失敗
-    await_palette_choice --> await_render_retry: 生圖失敗
-    await_feedback --> await_render_retry: 生圖失敗
-    await_render_retry --> await_render_retry: submit(retry)重跑該階段
-    done --> [*]
-    note right of await_plan_choice
-        任一狀態 undo() 回上一次
-        submit 前的完整狀態
-    end note
-```
-
-| 觸發 API／函式 | 行為 | 證據 |
-| :--- | :--- | :--- |
-| `GET /api/agent/pipeline/status` | 開關與 gateway 狀態，**未啟用也永遠可查**（ACPT-015） | main.py:3504-3507、agent_pipeline_service.py:46-51 |
-| `POST /api/agent/pipeline/{id}/start` | `MasterAgent.start(layout_json, rules_json)` → `await_questionnaire` | main.py:3518-3534、master.py:110-121 |
-| `POST /api/agent/pipeline/{id}/submit` | 目前 HITL 決策點提交並推進；提交前自動 checkpoint | main.py:3537-3546、master.py:123-143 |
-| `POST /api/agent/pipeline/{id}/undo` | 回復上一次 submit 前的完整狀態（含 DocStore） | main.py:3549-3556、master.py:145-156 |
-| `GET /api/agent/pipeline/{id}` | 查目前 `PauseInfo`（state/message/expects/payload） | main.py:3559-3566 |
-| `POST /api/agent/pipeline/reconcile` | step6 擺放 vs 管線擺放 覆蓋率＋合法性對帳（SCN-010） | main.py:3569-3583 |
-
-**不變量**
-
-- 不影響正式 step 6：與 `scene_service` 並存、可隨時回退（ADR-005；agent_pipeline_service.py:1-11）。
-- 管線狀態序列化到 `runtime_dir/agent_pipeline/<project_id>.json`，**刻意不入** workflow 快照（含生圖 base64 會爆 2MB、會被顯示字串壓縮改壞）（agent_pipeline_service.py:8-10）。
-- 全域單一 `Lock` 序列化所有專案管線操作（驗證入口足夠，agent_pipeline_service.py:28-30）。
-- 輸入不合法「不算一動」：handler 丟 `ValueError` 即回復 checkpoint，使用者原地重交（master.py:140-143）。
-- sub-agent 無狀態，每次請求重建，狀態一律靠 `restore()`（agent_pipeline_service.py:63-66）。
-
-**失敗路徑**
-
-| 條件 | 結果 | 證據 |
-| :--- | :--- | :--- |
-| flag 未啟用（status 除外） | 404「設定 `ROOMPILOT_AGENT_PIPELINE=1` 後重啟」 | main.py:3510-3515 |
-| 未 start 就 submit/undo | 409 `PipelineNotStarted` 訊息 | main.py:3545-3546、3555-3556 |
-| 未 start 就 GET | 404 | main.py:3564-3566 |
-| `layout_json` 缺/不合法（如缺 rooms） | 422（`ToolError` 轉可讀訊息） | main.py:3522-3534、agent_pipeline_service.py:87-89 |
-| RAG 檢索失敗 | 停在 `await_questionnaire`，expects 帶 `retry` | master.py:172-179 |
-| 生圖失敗（主模型＋備援皆重試盡） | 轉 `await_render_retry`，可 retry 或 skip 該階段 | master.py:249-263、452-462 |
-| reconcile 缺 `width_cm`/`depth_cm`/`items` | 422 | main.py:3573-3583 |
-
-## 6. 追溯
-
-| 項目 | ID／連結 |
+| 項目 | ID／文件 |
 | :--- | :--- |
-| 上游 | REQ-001/002/004/006/007/009~012、FR-001/002/004/006/007/009/010/011/012/015、NFR-001/002/004（[../00-registry.md](../00-registry.md) §2）；ADR-001/002/004/005/006/007/008（登錄簿 §3） |
-| 對應 ACPT | ACPT-004/006/007/008/009/010/013/014/015（§5 各不變量） |
-| 下游 | [api_spec.md](./api_spec.md) §3 錯誤碼、[db_design.md](./db_design.md) 的 `current_step`/`revision` 欄位語意、[../05_qa/test_plan.md](../05_qa/test_plan.md) 狀態轉移案例 |
-| 已知分層違規 | `backend/engine/layout_bridge.py:13` import `..agent.knowledge`（engine → agent 反向依賴，違反「engine 為最底層」設計；修復任務待 owner Ancai／Yen 認領） |
+| 上游 | [`srs.md`](../01_requirements/srs.md) 的 FR-010、FR-012–014、FR-029–038、FR-047、FR-049、FR-051、FR-052、FR-059、NFR-015–017；[`sad.md`](../03_architecture/sad.md) 的 MOD-ENG、MOD-FP、MOD-AGT、MOD-RAG、MOD-SRV-SCENE、MOD-SRV-RENDER |
+| 決策依據 | [`ADR-001`](../03_architecture/adr/ADR-001-layout-json-scene-json-boundary.md)、[`ADR-002`](../03_architecture/adr/ADR-002-engine-sole-geometry-authority.md)、[`ADR-003`](../03_architecture/adr/ADR-003-dual-path-shapely-raster-engine.md)、[`ADR-006`](../03_architecture/adr/ADR-006-appliances-render-context-only.md)、[`ADR-007`](../03_architecture/adr/ADR-007-centimeter-unit-contract.md)、[`ADR-008`](../03_architecture/adr/ADR-008-rag-retrieval-only-offline-models.md)、[`ADR-010`](../03_architecture/adr/ADR-010-static-frontend-and-eight-step-collapse.md) |
+| 下游 | [`api_spec.md`](./api_spec.md)（§6 狀態值）、[`db_design.md`](./db_design.md)（`workflow_json` 節點）、[`openapi-scene-v1.yaml`](./openapi-scene-v1.yaml)、[`test_plan.md`](../05_qa/test_plan.md) 的 TC-010–014、TC-027–035、TC-042、TC-045、TC-051；[`engineering_tracker.xlsx`](../03_architecture/engineering_tracker.xlsx) ②模組BOM |
+| 失效模式承接 | [`runbook-recognition-failed-or-review-blocked.md`](../06_ops/runbook-recognition-failed-or-review-blocked.md)（RB-006，§5.1／§5.2）、[`runbook-placement-blocked.md`](../06_ops/runbook-placement-blocked.md)（RB-007，§5.3／§5.4）、[`runbook-rag-model-cache-missing.md`](../06_ops/runbook-rag-model-cache-missing.md)（RB-004，§5.6）、[`runbook-genpic-provider-failure.md`](../06_ops/runbook-genpic-provider-failure.md)（RB-002，§5.7）、[`runbook-workflow-save-conflict-or-oversize.md`](../06_ops/runbook-workflow-save-conflict-or-oversize.md)（RB-003，§6） |
+| 已知分層違規 | `engine/layout_bridge.py:13`（見 §3、§7），修復任務尚未建立 |
+| 待確認 | OPEN-21、OPEN-22、OPEN-28、OPEN-39 ＋ §7 三項本文件新增（登記於 [`requirements_tracker.xlsx`](../../VibeCoding_Workflow_Templates/01_requirements/requirements_tracker.xlsx) ②決策沿革） |

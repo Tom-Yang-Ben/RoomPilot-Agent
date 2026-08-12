@@ -1,0 +1,604 @@
+openapi: 3.1.0
+info:
+  title: RoomPilot 專案與工作流 API
+  version: 1.0.0
+  description: |
+    本檔是 `/api/projects` 家族的欄位級契約：專案建立與讀取、單一 `workflow` 快照的深合併寫入
+    （`expected_revision` 樂觀鎖、2 MB 上限）、平面圖上傳與原檔下載、瀏覽器輸出 PNG 的上傳／列表／下載，
+    以及第 4 步辨識複核閘門的 422 形狀。
+
+    **本檔由程式碼反推，非手寫契約先行。** 所有 schema 與錯誤碼皆逐一比對 `backend/server/main.py`
+    與 `backend/server/project_store.py` 的實際行為；程式碼與本檔衝突時以原始碼為準。
+
+    **佐證基準**：分支 `yen`、HEAD `8f378b24`、2026-08-12 工作樹。
+
+    **涵蓋的路由**（`backend/server/main.py:1784-2025`，共 8 條）：
+    `POST /api/projects`、`GET /api/projects/{project_id}`、`PUT /api/projects/{project_id}/workflow`、
+    `POST|GET /api/projects/{project_id}/floorplan[/source]`、
+    `POST|GET /api/projects/{project_id}/renders`、`GET /api/projects/{project_id}/renders/{render_id}/png`。
+
+    **不在本檔**：`/api/projects/{id}/floorplan/analyze`（辨識管線，`main.py:2981`）與
+    `/api/scene/*` 見 `openapi-scene-v1.yaml`；`/api/projects/{id}/{render-jobs,ai-renders,palette-renders,
+    design-manual,delivery-proposal,design-delivery}`（`main.py:2033-2964`）見 `openapi-render-delivery-v1.yaml`；
+    `/api/agent/*` 與 `/api/rag/*` 見 `openapi-agent-rag-v1.yaml`。設計約定與錯誤語意分群見 `api_spec.md`；
+    資料表設計見 `db_design.md`；架構取捨見 `../03_architecture/adr/ADR-004-single-workflow-snapshot-sqlite.md`。
+
+    **無專案列表端點**：`main.py` 全檔沒有 `GET /api/projects`（不帶 id）的路由；前端由 `localStorage`
+    自行保留專案 id 進入。
+
+    **錯誤封裝**：全部走 FastAPI `HTTPException`，回應恆為 `{"detail": ...}`。`detail` 有兩種形狀——
+    物件（`{code, message, ...}`）與**裸字串**（例：`invalid_workflow_step`）。兩種形狀在同一支端點內並存，
+    呼叫端必須同時處理（`main.py:1811,1820`）。
+
+    **認證**：Pilot 現況全 app 無認證、無 CORS、無 rate limit，唯一邊界是 `--host 127.0.0.1`
+    （`main.py:195-197`）。是否為既定範圍待 DEC-014 核准（NFR-019、OPEN-02），本檔不宣告 securitySchemes。
+  x-evidence-baseline:
+    branch: yen
+    head: 8f378b24
+    worktree_date: "2026-08-12"
+    sources:
+      - backend/server/main.py:1665-2025
+      - backend/server/project_store.py:1-431
+  x-owner: Bella（MOD-SRV-API／MOD-SRV-STORE，見 ../03_architecture/sad.md）
+  x-open-questions:
+    - OPEN-03：`POST|GET /api/projects/{id}/renders` 家族在正式前端無任何呼叫點（`rg "expected_revision" backend/server/static/` 零命中、`rg "/renders" backend/server/static/*.js` 僅命中生圖 UI 字串），是否退役待核准。
+    - OPEN-14：正式前端一般存檔不送 `expected_revision`，僅重播時送 `replay_pending`＋`base_updated_at`（`scene_v2.js:1294-1300`、`19271-19276`），等同 last-write-wins。
+    - 待確認：平面圖上傳無位元組上限（`main.py:1888` 直接 `await file.read()`），與 PNG 的 20 MB 上限不對稱；上限值需 owner 定義。
+servers:
+  - url: http://127.0.0.1:8002
+    description: Pilot 唯一部署形態（`install.ps1:41-79`；`README.md:49`）
+tags:
+  - name: projects
+    description: 專案身分與 workflow 單一快照（FR-001–004）
+  - name: floorplan
+    description: 原始平面圖上傳與回取（FR-005、FR-006）
+  - name: renders
+    description: 瀏覽器輸出 PNG 的保存與下載（FR-009）
+paths:
+  /api/projects:
+    post:
+      tags: [projects]
+      operationId: createProject
+      summary: 建立專案並取得初始 workflow 快照
+      description: |
+        `main.py:1784-1797`。名稱與備註皆 `strip()` 後寫入；建立後 `current_step` 固定為 `project`、
+        `workflow` 為 `{}`、`revision` 為 0（`project_store.py:166-179`）。
+      x-requirement: [FR-001, ACPT-001, DEC-002]
+      x-evidence: ["main.py:1784-1797", "project_store.py:165-179"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectCreateRequest" }
+      responses:
+        "201":
+          description: 已建立
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectEnvelope" }
+        "422":
+          description: 名稱缺漏，或請求本體不是 JSON 物件（後者由 FastAPI 產生標準驗證錯誤）
+          x-detail-codes: [project_name_required]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /api/projects/{project_id}:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      tags: [projects]
+      operationId: getProject
+      summary: 讀取專案與完整 workflow 快照
+      description: "`main.py:1800-1803`。回應強制 `Cache-Control: no-store`，避免瀏覽器回上一頁時取到過期進度。"
+      x-requirement: [FR-002, ACPT-001, DEC-002]
+      x-evidence: ["main.py:1800-1803", "project_store.py:180-188"]
+      responses:
+        "200":
+          description: 成功
+          headers:
+            Cache-Control:
+              description: 恆為 `no-store`
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectEnvelope" }
+        "404":
+          $ref: "#/components/responses/ProjectNotFound"
+  /api/projects/{project_id}/workflow:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    put:
+      tags: [projects]
+      operationId: saveProjectWorkflow
+      summary: 深合併寫入 workflow 單一快照（含樂觀鎖與 2 MB 上限）
+      description: |
+        `main.py:1806-1867`。伺服器端順序固定：步驟白名單 → `workflow` 型別 → **第 4 步複核閘門** →
+        `expected_revision` 型別 → `replay_pending` 前置 → 交易內合併與寫入。
+
+        合併語意是**遞迴深合併**（`project_store.py:18-25`）：只有 dict 對 dict 才往下合併，其餘型別（含
+        list）整個覆蓋；因此欄位無法透過本端點刪除，只能顯式寫入 `null`（第 3 步重跑即用此手法，
+        `main.py:3036-3063`）。合併後先跑 `_compact_workflow_value`：`name/name_en/name_zh/name_zh_raw/
+        label/title` 超過 512 字元時，以 `normalized_type` → `furniture_id` → `id` → `未命名項目` 取代
+        （`project_store.py:40-74`，NFR-005）。序列化後 >2 MB 在交易內拋出、整筆不落地
+        （`project_store.py:11,220-225`，NFR-001）。
+
+        寫入成功則 `revision` +1、`updated_at` 換新。交易以 `BEGIN IMMEDIATE` 先取寫鎖，
+        `UPDATE … AND revision = ?` 為二次防護（`project_store.py:201-242`，NFR-004）。
+      x-requirement: [FR-003, FR-004, FR-007, ACPT-002, ACPT-003, ACPT-006, NFR-001, NFR-004, NFR-005]
+      x-evidence: ["main.py:1806-1867", "main.py:1737-1781", "project_store.py:11,18-25,40-74,190-247"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkflowSaveRequest" }
+      responses:
+        "200":
+          description: 已寫入，回傳合併後的完整專案
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectEnvelope" }
+        "404":
+          $ref: "#/components/responses/ProjectNotFound"
+        "409":
+          description: |
+            版本衝突，兩種形狀擇一（`main.py:1848-1858`）：帶 `expected_revision` 時 `detail` 為物件並附
+            伺服器最新 `project`；只帶 `replay_pending`＋`base_updated_at` 時 `detail` 為裸字串
+            `project_version_conflict`（不附 project）。
+          x-detail-codes: [project_revision_conflict, project_version_conflict]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "413":
+          description: 合併後的快照序列化超過 2 MB，整筆拒絕、伺服器上一版完好
+          x-detail-codes: [workflow_too_large]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "422":
+          description: |
+            四種裸字串 detail 與一種物件 detail 並存。物件形式為 `recognition_review_unresolved`
+            （第 4 步複核閘門，附 `rooms[]`；**不含 `focus` 欄位**，`main.py:1817-1827`）。
+          x-detail-codes:
+            - invalid_workflow_step
+            - workflow_must_be_an_object
+            - expected_revision_must_be_a_non_negative_integer
+            - pending_save_base_version_required
+            - recognition_review_unresolved
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErrorEnvelope"
+                  - $ref: "#/components/schemas/RecognitionReviewUnresolvedEnvelope"
+  /api/projects/{project_id}/floorplan:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    post:
+      tags: [floorplan]
+      operationId: saveProjectFloorplan
+      summary: 上傳原始平面圖（DXF／PNG／JPG／JPEG）
+      description: |
+        `main.py:1870-1916`。副檔名白名單 `(.dxf, .png, .jpg, .jpeg)`（`main.py:153`）；非 DXF 一律以
+        Pillow `Image.verify()` 驗內容（`main.py:1710-1735`）。落地路徑固定為
+        `.runtime/uploads/<project_id>/floorplan<ext>`——**同一專案重傳直接覆蓋、無歷史**
+        （`project_store.py:275-278`）。成功即 `revision` +1。**無位元組上限**（`main.py:1888`），見 info 的待確認。
+      x-requirement: [FR-005, ACPT-004, DEC-003]
+      x-evidence: ["main.py:153,1870-1916", "project_store.py:250-298"]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/FloorplanUploadForm" }
+      responses:
+        "201":
+          description: 已保存
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FloorplanUploadResponse" }
+        "404":
+          $ref: "#/components/responses/ProjectNotFound"
+        "409":
+          description: 帶了 `expected_revision` 且與伺服器不符；`detail.project` 為最新專案
+          x-detail-codes: [project_revision_conflict]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "415":
+          description: 副檔名不在白名單；`detail.allowed_extensions` 回傳白名單本身
+          x-detail-codes: [unsupported_floorplan_type]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "422":
+          description: 零位元組檔案，或副檔名正確但內容不是可讀影像；兩者 `detail.focus` 皆為 `floorplan-file`
+          x-detail-codes: [empty_floorplan, invalid_floorplan_image]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /api/projects/{project_id}/floorplan/source:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      tags: [floorplan]
+      operationId: getProjectFloorplanSource
+      summary: 下載使用者上傳的原始平面圖
+      description: |
+        `main.py:1919-1926`，前置檢查在 `_stored_floorplan`（`main.py:1685-1708`）。以
+        `FileResponse` 回傳，`Content-Type` 取上傳當時判定的 `application/dxf`／`image/png`／`image/jpeg`，
+        檔名為使用者原始檔名。此 URL 由上傳回應的 `upload.source_url` 給出。
+      x-requirement: [FR-006, ACPT-005, DEC-003]
+      x-evidence: ["main.py:1685-1708,1919-1926", "project_store.py:300-318"]
+      responses:
+        "200":
+          description: 原始檔位元組流
+          content:
+            application/dxf:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+            image/jpeg:
+              schema: { type: string, format: binary }
+        "404":
+          $ref: "#/components/responses/ProjectNotFound"
+        "409":
+          description: 專案存在但從未上傳平面圖（DB 內 `upload_path` 為空）；`detail.focus` 為 `floorplan-file`
+          x-detail-codes: [floorplan_missing]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "410":
+          description: DB 有紀錄但實體檔已不在磁碟；`detail.focus` 為 `floorplan-file`
+          x-detail-codes: [floorplan_source_missing]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /api/projects/{project_id}/renders:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    post:
+      tags: [renders]
+      operationId: createProjectRender
+      summary: 上傳瀏覽器場景輸出的 PNG（僅追加，不覆蓋歷史）
+      description: |
+        `main.py:1937-1997`。檢查順序：`expected_revision ≥ 0` → 三個 version ≥ 0 → `provider` 僅接受
+        `browser_capture` → 20 MB（`main.py:163`；以 `await file.read(MAX_RENDER_BYTES + 1)` 截讀後比長度）
+        → PNG magic `\x89PNG\r\n\x1a\n` → Pillow `verify()`。落地為
+        `.runtime/renders/<project_id>/roompilot-<pid8>-<rid8>.png`，寫 `render_outputs` 表並使 `revision` +1；
+        任一步失敗會 `unlink` 已寫入的檔（`project_store.py:337-403`）。
+        **`expected_revision` 在本端點是必填 Form 欄位**（與 floorplan 上傳的選填不同）。
+      x-requirement: [FR-009, ACPT-008, NFR-002, DEC-001, OPEN-03]
+      x-evidence: ["main.py:163,1937-1997", "project_store.py:337-403"]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/RenderUploadForm" }
+      responses:
+        "201":
+          description: 已保存
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RenderCreateResponse" }
+        "404":
+          $ref: "#/components/responses/ProjectNotFound"
+        "409":
+          description: "`expected_revision` 與伺服器不符；`detail.project` 為最新專案"
+          x-detail-codes: [project_revision_conflict]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "413":
+          description: PNG 超過 20 MB
+          x-detail-codes: [render_too_large]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "415":
+          description: 檔頭不是 PNG magic
+          x-detail-codes: [invalid_render_png]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "422":
+          description: |
+            四種情況。注意 `invalid_render_png` **同時出現在 415 與 422**（415＝magic 不符，
+            422＝magic 相符但 Pillow 解不開），呼叫端不可只靠 code 分流。
+          x-detail-codes:
+            - expected_revision_must_be_a_non_negative_integer
+            - render_versions_must_be_non_negative
+            - unsupported_render_provider
+            - invalid_render_png
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+    get:
+      tags: [renders]
+      operationId: listProjectRenders
+      summary: 列出專案所有 PNG 輸出紀錄
+      description: "`main.py:2000-2008`。依 `created_at DESC, render_id DESC` 排序（`project_store.py:405-416`）；不分頁。回傳不含伺服器檔案路徑（`_public_render_record` 移除 `path`，`main.py:1929-1935`）。"
+      x-requirement: [FR-009, ACPT-008, NFR-020]
+      x-evidence: ["main.py:1929-1935,2000-2008", "project_store.py:405-416"]
+      responses:
+        "200":
+          description: 成功（無紀錄時 `renders` 為空陣列）
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RenderListResponse" }
+        "404":
+          $ref: "#/components/responses/ProjectNotFound"
+  /api/projects/{project_id}/renders/{render_id}/png:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+      - name: render_id
+        in: path
+        required: true
+        description: "`render_outputs.render_id`（32 字元 hex，`uuid4().hex`）"
+        schema: { type: string }
+    get:
+      tags: [renders]
+      operationId: downloadProjectRender
+      summary: 下載單張 PNG 輸出
+      description: |
+        `main.py:2011-2025`。**本端點不驗證專案是否存在**——查詢直接以
+        `(project_id, render_id)` 打 `render_outputs`（`project_store.py:418-431`），
+        因此不存在的專案與不存在的 render 都回同一個 `render_not_found`。
+      x-requirement: [FR-009, ACPT-008]
+      x-evidence: ["main.py:2011-2025", "project_store.py:418-431"]
+      responses:
+        "200":
+          description: PNG 位元組流
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        "404":
+          description: 查無 `(project_id, render_id)` 組合
+          x-detail-codes: [render_not_found]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "410":
+          description: DB 有紀錄但實體 PNG 已不在磁碟
+          x-detail-codes: [render_file_missing]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+components:
+  parameters:
+    ProjectId:
+      name: project_id
+      in: path
+      required: true
+      description: "`projects.project_id`（32 字元 hex，`uuid4().hex`，`project_store.py:166`）"
+      schema: { type: string }
+  schemas:
+    WorkflowStep:
+      type: string
+      description: 內部 11 步狀態機的合法值（`main.py:164-176`）；對外導覽折疊為 8 步（FR-020）。
+      enum:
+        - project
+        - upload
+        - recognition
+        - calibration
+        - space_confirmation
+        - requirements
+        - layout_2d
+        - white_model_3d
+        - realistic_3d
+        - proposal_review
+        - ai_render
+    Project:
+      type: object
+      description: "`ProjectStore._project()` 的完整投影（`project_store.py:145-156`）；`upload_*` 欄位刻意不外露。"
+      required: [project_id, name, notes, current_step, workflow, revision, created_at, updated_at]
+      properties:
+        project_id: { type: string }
+        name: { type: string }
+        notes: { type: string, description: 可為空字串，不為 null }
+        current_step: { $ref: "#/components/schemas/WorkflowStep" }
+        workflow:
+          $ref: "#/components/schemas/WorkflowSnapshot"
+        revision:
+          type: integer
+          minimum: 0
+          description: 每次成功寫入（workflow、floorplan、render）皆 +1
+        created_at: { type: string, format: date-time, description: UTC ISO-8601（`datetime.now(timezone.utc).isoformat()`） }
+        updated_at: { type: string, format: date-time, description: 同上；`replay_pending` 的比對基準即為此值 }
+    WorkflowSnapshot:
+      type: object
+      additionalProperties: true
+      description: |
+        八步進度的**單一 JSON 快照**，無版本歷史表、無事件流（ADR-004）。JSON 解析失敗時
+        `ProjectStore._workflow()` 靜默退回 `{}`（`project_store.py:158-163`）。
+        節點鍵名與內容由前端 `scene_workflow.js` 定義（`_flow`、`recognition`、`space_confirmation`、
+        `requirements`、`layout_2d`、`proposal_review`、`ai_render` …）；**欄位級 schema 待確認**，
+        本檔不逐一列舉，逐步內容見 `../02_ux_ui/ui_spec-step1-project.md`–`ui_spec-step8-ai-render.md`。
+    ProjectEnvelope:
+      type: object
+      required: [project]
+      properties:
+        project: { $ref: "#/components/schemas/Project" }
+    ProjectCreateRequest:
+      type: object
+      description: "FastAPI 宣告為裸 `dict`（`main.py:1785`），未列欄位不會被拒絕但也不會保存。"
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: "`strip()` 後不可為空，否則 422 `project_name_required`"
+        notes:
+          type: string
+          default: ""
+          description: "`strip()` 後保存；缺省即空字串"
+    WorkflowSaveRequest:
+      type: object
+      description: "FastAPI 宣告為裸 `dict`（`main.py:1807`）；未列欄位（例如前端送的 `save_id`，`scene_v2.js:1295`）被忽略。"
+      properties:
+        current_step:
+          description: 省略或空字串代表沿用伺服器現值（`project_store.py:226`）
+          oneOf:
+            - $ref: "#/components/schemas/WorkflowStep"
+            - type: "null"
+        workflow:
+          description: 要深合併進現有快照的片段；`null` 等同 `{}`；非物件（含陣列）即 422
+          oneOf:
+            - $ref: "#/components/schemas/WorkflowSnapshot"
+            - type: "null"
+        expected_revision:
+          type: integer
+          minimum: 0
+          description: |
+            樂觀鎖。省略＝不比對（last-write-wins）。布林值一律視為非法（`main.py:1830`）。
+            正式前端目前不送此欄位，見 OPEN-14。
+        replay_pending:
+          type: boolean
+          description: 僅 `true` 生效——啟用 `base_updated_at` 比對；用於前端離線 pending 存檔重播（`scene_v2.js:19271-19276`）
+        base_updated_at:
+          type: string
+          format: date-time
+          description: "`replay_pending: true` 時必填且非空，須等於伺服器 `updated_at`；不符回 409 裸字串 `project_version_conflict`"
+    RecognitionReviewRoom:
+      type: object
+      description: 第 4 步複核閘門回報的單一未確認房間（`main.py:1774-1780`）
+      required: [room_id, label, reason]
+      properties:
+        room_id:
+          type: string
+          description: "`spatial_report.review_items[].room_id`，已 `str()` 正規化"
+        label:
+          type: [string, "null"]
+          description: 原樣取自 `space_confirmation.rooms[].label`；房間物件缺此鍵時為 null
+        reason:
+          type: string
+          description: 原樣取自 `review_items[].reason`
+          enum:
+            - room_label_icon_evidence_conflict
+            - irregular_room_detailed_geometry_required
+            - room_boundary_unresolved
+            - room_geometry_low_confidence
+    RecognitionReviewUnresolvedEnvelope:
+      type: object
+      description: |
+        第 4 步複核閘門的 422 專屬形狀（`main.py:1817-1827`）。觸發條件三者同時成立：
+        `workflow._flow.completed` 含 `space_confirmation`、`recognition.spatial_report.review_items` 非空、
+        且該房在 `space_confirmation.rooms[]` 中存在但 `confirmed !== true`。房間 id 已不存在視為已處理
+        （刪除／合併／切割都是人工介入，`main.py:1737-1748`）。
+      required: [detail]
+      properties:
+        detail:
+          type: object
+          required: [code, message, rooms]
+          properties:
+            code: { type: string, const: recognition_review_unresolved }
+            message: { type: string, description: 繁體中文，指引回到第 4 步 }
+            rooms:
+              type: array
+              minItems: 1
+              items: { $ref: "#/components/schemas/RecognitionReviewRoom" }
+    FloorplanUploadForm:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary
+          description: 副檔名須為 `.dxf`／`.png`／`.jpg`／`.jpeg`（大小寫不拘，`suffix.lower()`）
+        expected_revision:
+          type: integer
+          minimum: 0
+          description: 選填樂觀鎖；省略即不比對
+    UploadDescriptor:
+      type: object
+      required: [filename, extension, mime_type, source_url]
+      properties:
+        filename: { type: string, description: 使用者原始檔名（已去除路徑，`Path(...).name`） }
+        extension: { type: string, enum: [".dxf", ".png", ".jpg", ".jpeg"] }
+        mime_type: { type: string, enum: ["application/dxf", "image/png", "image/jpeg"] }
+        source_url: { type: string, description: "恆為 `/api/projects/{project_id}/floorplan/source`" }
+    FloorplanUploadResponse:
+      type: object
+      required: [project, upload]
+      properties:
+        project: { $ref: "#/components/schemas/Project" }
+        upload: { $ref: "#/components/schemas/UploadDescriptor" }
+    RenderUploadForm:
+      type: object
+      required: [file, expected_revision]
+      properties:
+        file: { type: string, format: binary, description: PNG，≤ 20 MB }
+        expected_revision: { type: integer, minimum: 0, description: 必填；缺漏由 FastAPI 產生標準 422 }
+        white_model_version: { type: integer, minimum: 0, default: 0 }
+        viewpoint_version: { type: integer, minimum: 0, default: 0 }
+        style_version: { type: integer, minimum: 0, default: 0 }
+        style_card_id: { type: string, default: unassigned, description: 未經白名單驗證，原樣入庫 }
+        provider: { type: string, const: browser_capture, default: browser_capture, description: 其他值一律 422 }
+    RenderRecord:
+      type: object
+      description: "`ProjectStore._render()` 加上 `download_url`、移除 `path`（`main.py:1929-1935`；`project_store.py:321-334`）"
+      required:
+        [render_id, project_id, white_model_version, viewpoint_version, style_version,
+         style_card_id, provider, mime_type, filename, byte_size, created_at, download_url]
+      properties:
+        render_id: { type: string }
+        project_id: { type: string }
+        white_model_version: { type: integer }
+        viewpoint_version: { type: integer }
+        style_version: { type: integer }
+        style_card_id: { type: string }
+        provider: { type: string }
+        mime_type: { type: string, const: image/png }
+        filename: { type: string, description: "`roompilot-<project_id[:8]>-<render_id[:8]>.png`" }
+        byte_size: { type: integer, minimum: 0 }
+        created_at: { type: string, format: date-time }
+        download_url: { type: string, description: "恆為 `/api/projects/{project_id}/renders/{render_id}/png`" }
+    RenderCreateResponse:
+      type: object
+      required: [project, render]
+      properties:
+        project: { $ref: "#/components/schemas/Project" }
+        render: { $ref: "#/components/schemas/RenderRecord" }
+    RenderListResponse:
+      type: object
+      required: [renders]
+      properties:
+        renders:
+          type: array
+          items: { $ref: "#/components/schemas/RenderRecord" }
+    ErrorDetail:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, description: 機器可判讀錯誤碼；各端點的實際值列於該回應的 `x-detail-codes` }
+        message: { type: string, description: 繁體中文，可直接顯示給使用者 }
+        focus:
+          type: string
+          description: 前端聚焦目標的 DOM 語意鍵；本家族實際出現值為 `project-name`、`floorplan-file`
+        allowed_extensions:
+          type: array
+          items: { type: string }
+          description: 僅 `unsupported_floorplan_type` 附帶
+        project:
+          $ref: "#/components/schemas/Project"
+        rooms:
+          type: array
+          items: { $ref: "#/components/schemas/RecognitionReviewRoom" }
+    ErrorEnvelope:
+      type: object
+      description: |
+        FastAPI 的 `HTTPException` 封裝。`detail` 兩種形狀並存：物件（多數端點）與裸字串
+        （`invalid_workflow_step`、`workflow_must_be_an_object`、
+        `expected_revision_must_be_a_non_negative_integer`、`pending_save_base_version_required`、
+        `render_versions_must_be_non_negative`、`project_version_conflict`）。
+      required: [detail]
+      properties:
+        detail:
+          oneOf:
+            - $ref: "#/components/schemas/ErrorDetail"
+            - type: string
+  responses:
+    ProjectNotFound:
+      description: 專案不存在（`_stored_project`，`main.py:1672-1682`）
+      x-detail-codes: [project_not_found]
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorEnvelope" }
