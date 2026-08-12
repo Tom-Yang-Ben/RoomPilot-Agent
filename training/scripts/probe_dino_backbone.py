@@ -357,7 +357,8 @@ def main():
         print(f"    {lab:<12} {r:.3f}  (n={n})")
 
     os.makedirs(os.path.join(_ROOT, "temp", "json"), exist_ok=True)
-    out = os.path.join(_ROOT, "temp", "json", f"dino_probe_{name}.json")
+    safe = name.replace("/", "_")                # HF 庫 id 含 '/'，避免被當子目錄
+    out = os.path.join(_ROOT, "temp", "json", f"dino_probe_{safe}.json")
     with open(out, "w", encoding="utf-8") as f:
         json.dump({"backbone": name, "split": split, "n": len(crops),
                    "tta": tta, "max_per_class": max_pc,
