@@ -29,42 +29,13 @@
 
 ## 2. 部署拓撲圖
 
-```mermaid
-graph LR
-    subgraph HOST["開發者工作站（單機；app 未容器化、無反向代理、無 TLS）"]
-        WEB["瀏覽器：靜態單頁前端<br/>scene.html + scene_v2.js"]
-        subgraph PROC["uvicorn 單一 Python 行程 127.0.0.1:8002 --reload"]
-            API["FastAPI app：REST 路由 + 靜態檔掛載"]
-            ENG["幾何引擎（同行程函式呼叫）"]
-            CONC["行程內併發：生圖執行緒池 + 檢索單一 worker"]
-        end
-        RT[("本機 .runtime/：projects.sqlite3｜uploads｜renders<br/>manuals｜indexes｜agent_pipeline")]
-        PDF["Chromium 子行程：交付提案 PDF 排版"]
-        CACHE[("檢索模型權重快取（offline-only）")]
-    end
-    subgraph DB["Docker 容器（本機或遠端主機，由 DB_HOST 決定）"]
-        PG[("PostgreSQL 17 + pgvector：型錄 view + 向量")]
-    end
-    subgraph EXT["外部 HTTPS 出向"]
-        OR["OpenRouter：LLM 與生圖唯一閘道"]
-        CF["CloudFront：GLB 與型錄圖片"]
-        RP["遠端算圖 provider（未設 URL 即停用）"]
-    end
+> 下圖是正典載體 [`deployment_topology.drawio`](./deployment_topology.drawio) 的 SVG 匯出（draw.io Desktop 於 2026-08-12 產出），**不是另一套手繪圖**。
 
-    WEB -->|"HTTP 127.0.0.1:8002（明文）"| API
-    WEB -.->|"HTTPS 直載，經 307 導向"| CF
-    API --> ENG & CONC
-    API -->|"本機檔案 I/O"| RT
-    API -->|"子行程，逾時 180 秒"| PDF
-    API -->|"TCP 5432，sslmode 預設 disable"| PG
-    CONC -->|"HTTPS，逾時 120 秒"| OR
-    CONC -->|"本機檔案，不在請求路徑下載"| CACHE
-    API -.->|"HTTPS，可選；未設定即停用"| RP
-```
+![RoomPilot Pilot 部署拓撲：單機單行程與外部相依](./deployment_topology.svg)
 
-**圖例**：實線＝現況必經路徑；虛線＝可選或由瀏覽器直連（不經本機行程）；圓柱＝資料存放；外框＝實體邊界（工作站／容器／外網）。全圖無 `🔜` 節點——未落地的元件一律不畫，改列於 §4。
+**圖例**（圖左下角同步標示）：粗實線＝現況必經主鏈；細實線＝同行程或同機呼叫；虛線＝瀏覽器直連或可選（未啟用）；圓柱＝資料存放；外框＝實體邊界（工作站／Docker 容器／外網）。全圖無 `🔜` 節點——未落地的元件一律不畫，改列於 §4。
 
-**對外溝通級正典載體**：[`deployment_topology.drawio`](./deployment_topology.drawio)（由宣告式 spec [`deployment_topology.py`](./deployment_topology.py) 生成，`analyze_layout.py` 量測 cross=0／pierce=0；**絕不手改生成物**）｜最後校驗 2026-08-12。
+**正典載體與重生成**：`.drawio` 由宣告式 spec [`deployment_topology.py`](./deployment_topology.py) 生成（`analyze_layout.py` 量測 cross=0／pierce=0；**絕不手改生成物**）；匯出指令 `"C:\Program Files\draw.io\draw.io.exe" --export --format svg --embed-svg-fonts=false --output deployment_topology.svg deployment_topology.drawio`。改圖一律改 `.py`——`.drawio` 與 `.svg` 皆為生成物，本檔無第二套圖形載體（README §1 不得雙軌維護，已收斂）｜最後校驗 2026-08-12。
 
 ## 3. 元素對照表
 

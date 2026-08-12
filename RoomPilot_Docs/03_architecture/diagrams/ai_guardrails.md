@@ -154,7 +154,7 @@ flowchart TB
 - [x] 門檻數字全部來自程式碼（3 次重試、6 次上限、1–6 件、每房 8 件、每案一次、逐房一次、8 秒／120 秒逾時），非本圖自訂；耗時與成本上限無實測數據，沿用 NFR-025「目標值未定義」，不編造。
 - [x] metadata banner 已附（本圖對外溝通，過期比沒有更糟）；§2 附圖例，僅列本圖實際用到的兩種線型語意。
 - [x] 未虛構護欄：`store=False`（`openai_parser.py:94`）、`local_files_only=True`（`model_runtime.py:120,127`）、`boundary` 自報欄位（`rag/service.py:129`）皆為實讀；靜態前端無金鑰是 `grep` 命中數 0 的實跑結果，非推論。
-- [ ] 模板 [`README.md`](../../../VibeCoding_Workflow_Templates/03_architecture/diagrams/README.md) §1–§2 規定本視圖企業級才畫、且以 drawio 為正典；本圖只以 mermaid 承載。**偏離理由是「選擇不畫 drawio」，不是「沒有管線」**——管線存在且同批已用於 `solution_overview.drawio`、`deployment_topology.drawio`（見 §1 載體欄）；本圖的內容是逐行程式碼強制點、隨 HEAD 變動，雙載體會 drift，故只留可 diff 的 mermaid。**此偏離待文件 owner 追認**。註：[`solution_overview.md`](./solution_overview.md) §5 已於 2026-08-12 自行更正（「無 drawio 管線」一句已刪除、行號漂移已收斂），該檔的偏離是「SVG 匯出未完成故 mermaid 暫存」，與本圖「選擇不產 drawio」不是同一項，不再互為引用。
+- [ ] 模板 [`README.md`](../../../VibeCoding_Workflow_Templates/03_architecture/diagrams/README.md) §1–§2 規定本視圖企業級才畫、且以 drawio 為正典；本圖只以 mermaid 承載。**偏離理由是「選擇不畫 drawio」，不是「沒有管線」**——管線存在且同批已用於 `solution_overview.drawio`、`deployment_topology.drawio`（見 §1 載體欄）；本圖的內容是逐行程式碼強制點、隨 HEAD 變動，雙載體會 drift，故只留可 diff 的 mermaid。**此偏離待文件 owner 追認**。註：[`solution_overview.md`](./solution_overview.md) 與 [`deployment_topology.md`](./deployment_topology.md) 已於 2026-08-12 完成收斂（修行號 → 重生成 drawio → draw.io Desktop 匯出 SVG → 刪 mermaid），**該兩檔已無偏離**；本圖的偏離性質不同（選擇不產 drawio），不再互為引用。
 
 ## 9. 追溯
 

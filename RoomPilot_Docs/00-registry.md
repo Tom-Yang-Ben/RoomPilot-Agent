@@ -64,7 +64,7 @@
 | **SCN-018／019／020／041 無內文** | 這四個編號在全批文件中**只出現在範圍寫法內**（`SCN-017–025`、`SCN-040–042`），沒有任何一處給出情境敘述 | S6 的 UAT 對位不完整；[`UAT 計畫`](05_qa/UAT_RoomPilot_Pilot_內部_2026-08-12.md) UAT-012 已自標「SCN-017–025 內（待對位）」 | 由 `prd.md` owner 補內文或明文註銷；在補齊前不得宣稱 SCN-001..042 全數可驗 |
 | **ACPT 跨步段（SX）內文不在 prd** | ACPT-007、018–023、046、056–059 只在 [`srs.md`](01_requirements/srs.md) §7 與 [`test_plan.md`](05_qa/test_plan.md) §3 以對照列存在，`prd.md` §3 只覆蓋 S1–S8 | 這 12 條沒有 L1 允收敘述，僅有 L3 測試佐證 | srs §7 已註明其屬「非使用者可觀察面」，由 TC-\* 承接；是否補 L1 敘述待 owner 決定 |
 | **OPEN-\* 編號不連續且無主檔** | 22 個實際使用的編號散落 02–50，缺號 28 個；無任一文件持有完整 OPEN 清單 | 無法從單點得知「還有幾件待核准」；新增待確認項時有撞號風險 | 本節即為現行唯一清單；新增 OPEN 前先比對本表，**不自創新號**由 owner 統一發號 |
-| **三份 `*_tracker.xlsx` 的 owner 欄位未填** | 三簿已於 2026-08-12 實例化（骨架列齊備：①需求決策 19 列 DEC-001..019、②決策沿革 18 列 OPEN-\*、③Gate 9 列；①規格追溯 92 列 FR＋NFR、②模組BOM 14 列、③切片看板 17 列；①測試設計＋②執行證據各 60 列 TC-\*）。**但 owner 決策欄一律留白**：①需求決策的優先序／範圍／里程碑／核准／Owner 五欄、③Gate 的里程碑／決策／決策者／日期四欄 | `workflow_manual.md` §8 的 `/specify` 硬閘要求「核准 = 已核准」且優先序、範圍、里程碑非空——**目前逐項不成立，硬閘無法放行** | 五欄由產品 owner 於 Excel 直接填寫（分頁名與欄序不得更動，稽核腳本靠其對位）；AI 不得代填（`workflow_manual.md` §8「需求決策不可由規則或 AI 自動衍生」）。填妥前所有引用該簿的文件維持「待 owner 核准」表述 |
+| **③Gate 未簽核，①核准值未正規化** | 三簿已於 2026-08-12 實例化並由產品 owner（林柏彥）填寫 ①需求決策：19 列的優先序、範圍、里程碑、核准、Owner、更新日期皆非空（P0×15／P1×1／P2×2；納入 17／排除 2＝DEC-002、DEC-015；里程碑 1／2／3）。**仍缺兩處**：③Gate 九列的里程碑／決策／決策者／日期全空；①核准欄填「核准」而非硬閘規定的字面值「已核准」，且狀態欄 19 列仍寫「待 owner 核准」，與核准欄自相矛盾 | `workflow_manual.md` §8 的 `/specify` 硬閘：第 1 項（`核准 = 已核准`）因字面值不符不成立；第 4 項（跨里程碑須 ③Gate 決策為`核准`）因 ① 橫跨 M1／M2／M3 而觸發，九列皆空故不成立。第 2、3 項（Owner＋更新日期、優先序／範圍／里程碑非空）**已成立**。**硬閘目前仍為 FAIL** | 兩項皆屬 owner 動作：③Gate 逐列填決策（分頁名與欄序不得更動，稽核腳本靠其對位）；①核准欄與狀態欄的字面值正規化為「已核准」——AI 可代為機械改寫，但須 owner 明示授權，不得自行推定（`workflow_manual.md` §8「需求決策不可由規則或 AI 自動衍生」） |
 | **`room_requirements` 版本號不一致** | 程式碼為 `ROOM_REQUIREMENTS_SCHEMA_VERSION = 2`（`scene_room_requirements.js:1,214`），[`srs.md`](01_requirements/srs.md) FR-027 記為 `schema_version 1.0` | 第 5 步問卷產物的版本契約敘述與實作對不上 | 由 MOD-WEB owner（Bella）裁定；修正前以原始碼為準（srs 已聲明此原則） |
 
 ---
@@ -136,7 +136,7 @@
 
 實際存在 **54 份**（本檔在內）＝ 47 `.md` ＋ 4 `.yaml` ＋ 3 `.xlsx`。ADR 12 份的定位見 §3、runbook 9 份見 §4，此處不重複列。
 
-另有 4 個**非文件**產物不列入計數：`03_architecture/diagrams/` 下的 `solution_overview.py`／`deployment_topology.py`（宣告式 spec）與其生成物 `solution_overview.drawio`／`deployment_topology.drawio`（**勿手改**，改 spec 重生；驗收 `analyze_layout.py` 目標 score=0）。
+另有 6 個**非文件**產物不列入計數：`03_architecture/diagrams/` 下的 `solution_overview.py`／`deployment_topology.py`（宣告式 spec，**唯一手改點**）與其生成物 `*.drawio`（`analyze_layout.py` 驗收 score=0）與 `*.svg`（draw.io Desktop 匯出，帶 `--embed-svg-fonts=false`，即兩份 `.md` §2 嵌入的圖）。**勿手改任一生成物**：改 spec → 重生 drawio → 重匯 SVG。
 
 | 路徑 | 定位一句話 | Owner |
 | :--- | :--- | :--- |
@@ -144,7 +144,7 @@
 | [`01_requirements/brd.md`](01_requirements/brd.md) | 為誰解決什麼、Pilot 要達成什麼商業結果、DEC-\* 的業務論述 | 產品 owner |
 | [`01_requirements/prd.md`](01_requirements/prd.md) | 八步旅程每步要達成什麼、系統承諾什麼、什麼算完成（ACPT／SCN） | 產品 owner |
 | [`01_requirements/srs.md`](01_requirements/srs.md) | DEC-\* 翻成 FR-\*／NFR-\*，每條附 `file:line`；§9.2 為全域追溯矩陣 | 系統分析（架構師合成） |
-| [`01_requirements/requirements_tracker.xlsx`](01_requirements/requirements_tracker.xlsx) | ①需求決策 DEC-001..019／②決策沿革 OPEN-\*／③Gate；**優先序、範圍、里程碑、核准、Owner 五欄留白待填**（見 §2.2） | 產品 owner |
+| [`01_requirements/requirements_tracker.xlsx`](01_requirements/requirements_tracker.xlsx) | ①需求決策 DEC-001..019（優先序／範圍／里程碑／核准／Owner **已由 owner 於 2026-08-12 填妥**）／②決策沿革 18 列 OPEN-\* 全為待決／③Gate 9 列**未簽核**；核准欄字面值待正規化（見 §2.2） | 產品 owner |
 | [`02_ux_ui/ux_research_and_journey.md`](02_ux_ui/ux_research_and_journey.md) | 八步旅程、六個關鍵卡點與復原路徑、可用性測試現況 | 產品 owner／Bella |
 | [`02_ux_ui/information_architecture.md`](02_ux_ui/information_architecture.md) | 頁面組成、URL、11 步→8 步折疊、步驟間的資料載體 | 產品＋設計；Bella 審 DOM 契約 |
 | [`02_ux_ui/ui_spec-step1-project.md`](02_ux_ui/ui_spec-step1-project.md) | 第 1 步建立專案的畫面元素、狀態與 DOM 契約 | MOD-WEB（Bella）＋ PM |
@@ -184,6 +184,6 @@
 | :--- | :--- |
 | **上游** | 現行程式碼（分支 `yen`、HEAD `8f378b24`）、[`AGENTS.md`](../AGENTS.md) §不可違反的契約（`AGENTS.md:48-59`）、`docs/contracts/`、[`docs/TEAM_AI_OWNERSHIP.md`](../docs/TEAM_AI_OWNERSHIP.md)；ID 家族的內文權威見 §2.1「定義在哪」欄 |
 | **本文件產出** | ID 家族的數量、範圍與消費者對照（§2.1）；五項 ID 缺口登記（§2.2）；ADR-001..012 清單（§3）；RB-001..009 症狀對照（§4）；L1↔L3 術語對照（§5）；54 份檔案索引與 owner（§6） |
-| **下游** | 全批文件的交叉引用皆以本檔的檔名與 ID 為準；`requirements_tracker.xlsx` ①需求決策（DEC-\*）、`engineering_tracker.xlsx` ①規格追溯（FR／NFR／MOD）、`qa_tracker.xlsx` ②執行證據（TC-\*）——三簿已實例化，owner 決策欄待填（見 §2.2） |
+| **下游** | 全批文件的交叉引用皆以本檔的檔名與 ID 為準；`requirements_tracker.xlsx` ①需求決策（DEC-\*）、`engineering_tracker.xlsx` ①規格追溯（FR／NFR／MOD）、`qa_tracker.xlsx` ②執行證據（TC-\*）——三簿已實例化；①需求決策已由 owner 填妥，③Gate 待簽核（見 §2.2） |
 | **本檔不決定** | 任何 ID 的內文與狀態：DEC-\* 核准屬產品 owner；FR／NFR 佐證屬 [`srs.md`](01_requirements/srs.md)；ACPT／SCN 內文屬 [`prd.md`](01_requirements/prd.md)；TC 狀態屬 [`test_plan.md`](05_qa/test_plan.md)；ADR 決策屬各 MOD owner |
 | **待確認** | OPEN-48（本批是重建先前那套文件或另立新版，影響 ID 連續性與舊 REQ-\* 註銷處理）；§2.2 的五項缺口在 owner 裁定前一律視為未收斂，不得在下游文件寫成既成事實 |

@@ -25,46 +25,20 @@
 | :--- | :--- |
 | 受眾／回答的問題 | 新人 onboarding、跨 owner 對接；八步端到端流動哪些資料、每步產物與放行條件是什麼 |
 | 正典來源 | [`../sad.md`](../sad.md)、[`../../01_requirements/srs.md`](../../01_requirements/srs.md) §9.2 |
-| 抽象層級／載體 | L2 模組＋步驟產物，不畫 class、function、DOM id、資料表欄位；**正典載體為 drawio**（[README](../../../VibeCoding_Workflow_Templates/03_architecture/diagrams/README.md) §1），§2 mermaid 是 SVG 匯出完成前的過渡副本，非第二套正典 |
+| 抽象層級／載體 | L2 模組＋步驟產物，不畫 class、function、DOM id、資料表欄位；**正典載體為 drawio**（[README](../../../VibeCoding_Workflow_Templates/03_architecture/diagrams/README.md) §1），§2 嵌入其 SVG 匯出，**無第二套圖形載體** |
 | 最後校驗 | 2026-08-12（逐節點回查原始碼行號） |
 
 > **正典載體**：[`solution_overview.drawio`](./solution_overview.drawio)，由宣告式 spec [`solution_overview.py`](./solution_overview.py) 生成（**勿手改生成物**）；`_tools/drawio_kit.py`＋`analyze_layout.py` 管線於 2026-08-12 實跑，量測 edges=33／cross=0／pierce=0。
 >
-> ⚠️ **該 drawio 有兩處標籤行號已過期**，以本文件 §4 為準：邊 `e_fp` 寫 `main.py:2980`（實際 decorator 在 `:2981`）、邊 `o_fp` 寫 `main.py:3034-3060`（`:3034` 是 `geometry_engine = "cody"`，`update_workflow` 實際起於 `:3036`）。修正須回改 `solution_overview.py:134,161` 後重新生成，跨檔案，本輪未執行。
+> **重生成與匯出**：`python solution_overview.py` 產生 `.drawio`，再 `"C:\Program Files\draw.io\draw.io.exe" --export --format svg --embed-svg-fonts=false --output solution_overview.svg solution_overview.drawio` 產生 §2 的 SVG。改圖一律改 `.py`，`.drawio` 與 `.svg` 都是生成物。
 
 ## 2. 端到端資料流
 
-> 下圖為**過渡副本**，正典是 §1 的 `.drawio`；SVG 匯出完成後本區塊即刪除（收斂步驟見 §5）。兩份載體衝突時以 `.drawio` 的圖形結構、本文件 §4 的行號為準。
+> 下圖是 §1 `.drawio` 的 SVG 匯出（draw.io Desktop 於 2026-08-12 產出），**不是另一套手繪圖**。圖例、節點樣式與連線語意由 `.drawio` 承載；圖上標註的行號以本文件 §4 為準。
 
-```mermaid
-flowchart LR
-  A(["操作者<br/>屋主或設計顧問"]) --> S1
-  subgraph WEB["MOD-WEB 八步單頁前端"]
-    S1["S1 建立專案"] -->|G1| S2["S2 上傳平面圖"] -->|G2| S3["S3 確定尺寸"] -->|G3| S4["S4 空間與結構"]
-    S4 -->|G4| S5["S5 需求問卷"] -->|G5| S6["S6 配置與預覽"] -->|G6| S7["S7 鎖定方案與視角"] -->|G7| S8["S8 生圖與成果包"]
-  end
-  subgraph SRV["MOD-SRV-API 單一 FastAPI app"]
-    FP["MOD-FP 辨識"]; SCN["MOD-SRV-SCENE 場景組裝"]; ENG["MOD-ENG 幾何引擎"]
-    AGT["MOD-AGT 選件閘門"]; RAGS["MOD-RAG 檢索"]; RND["MOD-SRV-RENDER 生圖與交付"]
-  end
-  S2 -.->|原始圖檔| UP[("uploads/")]
-  S3 --> FP -.->|layout_json| SNAP[("MOD-SRV-STORE<br/>projects.sqlite3 workflow_json 單一快照")]
-  S4 -.->|floorplan_editor| SNAP
-  S5 --> RAGS --> PG[("PostgreSQL roompilot")]
-  S5 -.->|room_requirements| SNAP
-  RAGS --> MDL[("本機模型權重快取")]
-  S6 --> AGT --> SCN -->|落點送審| ENG -.->|合法座標| SCN
-  S6 --> CAT["MOD-CAT 型錄"] --> PG
-  CAT --> CF[["CloudFront GLB 與型錄圖"]]
-  SCN -.->|scene_json| SNAP
-  S7 -.->|master_view 相機鎖| SNAP
-  S7 --> RND --> OR[["OpenRouter"]]
-  S8 --> RND --> PDFE[["Chromium PDF 子行程"]]
-  RND -.->|PDF| MAN[("manuals/")]
-  S8 --> OUT(["成果包 JSON ＋ 交付提案 PDF"])
-```
+![RoomPilot 解決方案總覽：八步端到端資料流](./solution_overview.svg)
 
-實線＝同步呼叫，虛線＝產物落地。**圖上沒有的東西在本 repo 就不存在**：無訊息佇列、無快取層、無反向代理、無 CI、無 WebSocket、無第二個服務行程——六個伺服器端模組全掛在同一個 FastAPI app 上（`main.py:195-197`），只另外 `include_router(rag_router)`。
+圖例在圖左下角（藍實線＝同步呼叫與步驟放行、綠虛線＝回傳產物、橘虛線＝落地寫入）。**圖上沒有的東西在本 repo 就不存在**：無訊息佇列、無快取層、無反向代理、無 CI、無 WebSocket、無第二個服務行程——六個伺服器端模組全掛在同一個 FastAPI app 上（`main.py:195-197`），只另外 `include_router(rag_router)`。
 
 ## 3. 元素對照表
 
@@ -101,8 +75,8 @@ flowchart LR
 - [x] 邊界鐵律標於圖上：辨識止於 `layout_json`（[ADR-001](../adr/ADR-001-layout-json-scene-json-boundary.md)）、家具合法性只由 `backend/engine/` 裁決（[ADR-002](../adr/ADR-002-engine-sole-geometry-authority.md)）、家電只進 `render_context`（[ADR-006](../adr/ADR-006-appliances-render-context-only.md)）、單一快照（[ADR-004](../adr/ADR-004-single-workflow-snapshot-sqlite.md)）；外部整合皆經明確 adapter，無元件直連他人資料儲存。
 - [x] 未虛構不存在的能力；圖上每個節點在 §3 對到實際檔案；無 `🔜` 節點——本圖只畫已落地路徑。`frontend3d/` 為次要原型，未入主鏈（[ADR-010](../adr/ADR-010-static-frontend-and-eight-step-collapse.md)）。
 - [ ] 模板 [`README.md`](../../../VibeCoding_Workflow_Templates/03_architecture/diagrams/README.md) §2 規定本視圖企業級才畫，本專案處 Pilot 已提前繪製——**待文件 owner 追認**。
-- [ ] README §1 規定本視圖以 drawio 為正典且**不得雙軌維護**，本檔目前 `.drawio` 與 §2 mermaid 並存。偏離原因**不是「本 repo 無 drawio 管線」**（該說法已刪除：`_tools/drawio_kit.py`＋`analyze_layout.py` 實跑通過），而是 SVG 匯出未完成。收斂步驟：① **已完成 2026-08-12**——`solution_overview.py` 兩處行號修正為 `main.py:2981`、`main.py:3036-3060`（實讀確認 `:2980` 為空行、`:3034` 為 `geometry_engine = "cody"`），drawio 重新生成，`analyze_layout.py` 覆測 edges=33／cross=0／pierce=0；兩份載體漂移已消除。② 匯出 `solution_overview.svg`——**受阻**：本機無 draw.io Desktop 或 drawio CLI（`which drawio`／`npx @hediet/drawio-cli` 皆未命中），需先安裝渲染器，屬 owner 決定。③ ② 完成後刪除 §2 mermaid 改嵌 SVG（§3 元素對照表為文字表，保留）。
-- [ ] [`deployment_topology.md`](./deployment_topology.md) 同屬 README §1 的 drawio 正典視圖，亦有 mermaid／drawio 雙軌並存，收斂步驟同上（其 spec 首次生成即 cross=0／pierce=0，無行號漂移待修）。
+- [x] README §1 的**不得雙軌維護**已收斂（2026-08-12 三步全數完成）：① `solution_overview.py` 兩處行號修正為 `main.py:2981`、`main.py:3036-3060`（實讀確認 `:2980` 為空行、`:3034` 為 `geometry_engine = "cody"`），drawio 重新生成，`analyze_layout.py` 覆測 edges=33／cross=0／pierce=0；② draw.io Desktop（`C:\Program Files\draw.io\draw.io.exe`）匯出 `solution_overview.svg`，帶 `--embed-svg-fonts=false`（內嵌字型會使檔案由 1.79 MB 膨脹為不必要體積，關閉後 111 KB）；③ §2 mermaid 區塊刪除、改嵌該 SVG。**本檔現只有一套圖形載體**：`.py` 是唯一手改點，`.drawio` 與 `.svg` 皆為生成物；§3 元素對照表為文字表，不受此規則管轄。
+- [x] [`deployment_topology.md`](./deployment_topology.md) 同屬 README §1 的 drawio 正典視圖，已於同日以同一管線收斂（其 spec 首次生成即 cross=0／pierce=0，無行號漂移待修）。
 
 ## 6. 待確認
 
