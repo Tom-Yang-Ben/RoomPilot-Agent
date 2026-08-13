@@ -204,13 +204,16 @@ scene_json 與逐房生圖成果組成 Yen Report Agent 的 Docs 層文件，輸
 既有事實的 deterministic 底稿。組稿與排版都在 `backend/agent/`，adapter
 不重做。
 
-2026-08-06 兩版比較後定案採本版；先前的八章設計手冊（Pillow 排版）**未採用
+2026-08-06 兩版比較後定案採本版；先前的九章設計手冊（Pillow 排版）**未採用
 為正式版**，其端點保留供獨立呼叫，第 8 步 UI 不再觸發。
 
 ### `POST /api/projects/{project_id}/delivery-proposal`
 
 Request：`scene`（state.sceneData）＋逐房 `rooms`（`room_id`、`room_label`、
-`width_cm`、`depth_cm`、目前最新生圖 `image_data_url`（可為 null）、`model`）。
+`width_cm`、`depth_cm`、目前最新生圖 `image_data_url`（可為 null）、`model`、
+客廳才有的 `night_image_data_url` 與 `night_model`）。夜間圖給值時後端圖庫多建
+一筆 `stage="full_render_night"`：設計手冊第七章日光／夜間並列，交付提案放進
+該空間的 `extra_images`（封面與主視覺仍是日光那張）。不送就兩份報告都只有日光。
 
 Response（201）：`proposal.download_url`、`proposal.warnings`（排版腳本的
 殘頁／空圖提醒）、`proposal.rendered_rooms`、專案 `revision` 與
@@ -229,7 +232,7 @@ PDF 內容）。文案規則：只寫資料裡有的數字與規格、無圖房�
 ### 設計手冊端點（保留，UI 不觸發）
 
 `POST /api/projects/{project_id}/design-manual` 與
-`GET …/design-manual/pdf`：八章設計手冊 PDF，payload 與錯誤碼語意同上
+`GET …/design-manual/pdf`：九章設計手冊 PDF，payload 與錯誤碼語意同上
 （workflow 鍵為 `design_manual`）。行為由 `tests/test_design_manual_api.py`
 維持驗證。
 

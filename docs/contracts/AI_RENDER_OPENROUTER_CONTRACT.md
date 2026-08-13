@@ -22,6 +22,7 @@
     - `reference_png_data_url` 為該房鎖定視角的 Three.js 截圖（`data:image/png;base64,...`）。
   - 回應：`{results:[{room_id, room_label, status, image_id?, image_data_url?, model?, notices, night_image_data_url?, night_image_id?, night_model?}], edit_remaining, revision, updated_at}`
   - 客廳（`room_type=living_room` 或房名含「客廳」）額外回一張夜間燈光圖 `night_image_data_url`（同鎖定視角/同色卡 img2img，只換光影提示）；夜間失敗不影響日光初稿，附 `night_notices`。
+  - 房間可帶 `night_only: true`：只生夜間那張、不重生日光初稿，結果標 `night_only: true` 且不含 `image_data_url`，該房也不進回應的 `rooms`（沒有伺服器端日光圖就沒有 lock_manifest，仍不可改圖）。用於第 7 步代表房沿用色卡圖當日光初稿的情形，以及夜景單獨失敗後的補生。
   - 單房失敗只標記該房 `status:"failed"`，其餘照常回傳。
 - `POST /api/projects/{id}/ai-renders/{room_id}/edit`
   - 請求：`{feedback, image_data_url}`（`image_data_url` 為要修改的當前圖）。

@@ -271,6 +271,9 @@ let pendingRenderBriefAction = "initial";
 let latestDesignDelivery = null;
 // 第 8 步生圖放大疊層目前內容:{ mode:'single'|'gallery', src, label } 或 null=回退到目前房間。
 let renderStageView = null;
+// 疊層是否正在蓋住左側 3D。scene_v2.js 以 type="module" 載入(嚴格模式),少了這行
+// 宣告時 updateAiRenderImageStage() 一讀就 ReferenceError,整條看圖路徑會全掛。
+let aiRenderImageVisible = false;
 let roomSchemeAlternativeInFlight = null;
 let stepSixMaterialCatalogKind = null;
 let visualCustomSaveTimer = null;
@@ -16562,6 +16565,9 @@ function renderFinalRoomWorkflow() {
   const allInitialComplete = state.rooms.length > 0
     && state.rooms.every((item) => state.proposalReview.finalRooms?.[item.id]?.submitted_at);
   const anyPending = state.rooms.some((item) => !state.proposalReview.finalRooms?.[item.id]?.submitted_at);
+  // 全部初稿都完成、但客廳還缺夜間圖時,一鍵按鈕仍要留著——否則代表房那張夜間圖
+  // 永遠沒有觸發點(它不算「未完成房間」)。
+  const nightPendingCount = roomsMissingNightRender().length;
   host.hidden = false;
   host.innerHTML = `<section class="rp-final-render-flow">
     <span class="eyebrow">第 8 步：逐房生圖</span>
@@ -16572,7 +16578,7 @@ function renderFinalRoomWorkflow() {
       const status = itemState.revision_submitted_at ? "已修改一次" : (itemState.submitted_at ? "初稿完成" : "待初稿");
       return `<button type="button" data-final-render-room="${escapeHtml(item.id)}" class="${String(item.id) === String(room.id) ? "is-active" : ""}">${escapeHtml(item.label)}<small>${status}</small></button>`;
     }).join("")}</div>
-    ${anyPending ? `<button id="submit-all-room-renders" type="button" class="secondary-action rp-final-render-bulk">一鍵生成全部未完成房間</button>` : ""}
+    ${anyPending || nightPendingCount ? `<button id="submit-all-room-renders" type="button" class="secondary-action rp-final-render-bulk">${anyPending ? "一鍵生成全部未完成房間" : `補生客廳夜間燈光圖（${nightPendingCount} 張）`}</button>` : ""}
     <div class="rp-final-render-summary">
       <strong>${escapeHtml(questionnaireContextLabel(context))}與生圖詞彙</strong><p>${escapeHtml(renderPromptKeywords("room_final", initialComplete ? "revision" : "initial").join(" / ") || "使用已鎖定配置")}</p>
       ${context.fallbackUsed ? `<p class="rp-context-fallback">${escapeHtml(context.fallbackNotice)}</p>` : ""}
@@ -17058,6 +17064,7 @@ async function submitRoomRenders(renderBrief = null) {
         notices: renderResult.notices || [],
         night_image_id: renderResult.night_image_id || null,
         night_image_data_url: renderResult.night_image_data_url || null,
+        night_model: renderResult.night_model || null,
         brief_version: renderBrief?.version || null,
       };
     }
@@ -17077,15 +17084,42 @@ async function submitRoomRenders(renderBrief = null) {
 
 // 一鍵全部生圖:對所有已鎖視角但還沒生的房(代表房若已沿用色卡圖則跳過)一次併發送出。
 // 一次全生才顯示全螢幕等待動畫(單張生圖不顯示,使用者定案)。客廳會多回一張夜間圖。
+//
+// 判客廳的規則要跟後端 ai_render_service._is_living_room 一致:room_type 權威、
+// 中文房名「客廳」後援。兩邊不一致會出現「後端生了夜間圖但前端不去拿」之類的落差。
+function isLivingRoomForRender(room = {}) {
+  const type = String(room.type || room.room_type || room.visual_space_type || "").toLowerCase();
+  return type === "living_room" || /客廳/.test(String(room.label || room.name || ""));
+}
+
+// 有日光初稿、卻還沒有夜間圖的客廳。兩種來源:(a) 代表房沿用第 7 步色卡圖當初稿,
+// 從沒進過全房生圖;(b) 先前整房生過但夜景那次失敗(只回 night_notices)。
+function roomsMissingNightRender() {
+  return state.rooms.filter((room) => {
+    const final = state.proposalReview.finalRooms?.[room.id];
+    if (!final?.submitted_at || final.night_image_data_url) return false;
+    return isLivingRoomForRender(room) && Boolean(validProposalRoomView(room));
+  });
+}
+
 async function submitAllRoomRenders() {
   const pending = state.rooms.filter(
     (item) => validProposalRoomView(item) && !state.proposalReview.finalRooms?.[item.id]?.submitted_at,
   );
-  if (!pending.length) {
+  const nightPending = roomsMissingNightRender();
+  if (!pending.length && !nightPending.length) {
     if (element.aiRenderStatus) element.aiRenderStatus.textContent = "所有已鎖視角的房間都已生圖。";
     return;
   }
-  const rooms = pending.map((item) => aiRenderRoomPayload(item, state.proposalReview.roomViews[item.id]));
+  const rooms = [
+    ...pending.map((item) => aiRenderRoomPayload(item, state.proposalReview.roomViews[item.id])),
+    // 代表房的日光初稿沿用第 7 步色卡圖,不會再進上面的 pending;夜間圖沒人生過,
+    // 用 night_only 只補那一張(省一次生成)。夜景先前失敗的房也走同一條補生路徑。
+    ...nightPending.map((item) => ({
+      ...aiRenderRoomPayload(item, state.proposalReview.roomViews[item.id]),
+      night_only: true,
+    })),
+  ];
   beginPlacementBusy(`正在一次生成 ${rooms.length} 個房間的寫實圖，請稍候…（依房間數與模型速度可能需一至數分鐘）`);
   if (element.aiRenderStatus) element.aiRenderStatus.textContent = `一鍵生圖中（${rooms.length} 房），請稍候…`;
   try {
@@ -17102,8 +17136,24 @@ async function submitAllRoomRenders() {
     syncProjectRevision(result);
     state.proposalReview.finalRooms ||= {};
     let done = 0;
+    let nightDone = 0;
     for (const row of result.results || []) {
-      if (row.status !== "completed" || !row.image_data_url) continue;
+      if (row.status !== "completed") continue;
+      if (row.night_only) {
+        // 只補夜間圖:保留既有日光初稿(代表房那張色卡圖)，不覆蓋 submitted_at。
+        if (!row.night_image_data_url) continue;
+        const current = state.proposalReview.finalRooms[row.room_id];
+        if (!current) continue;
+        nightDone += 1;
+        state.proposalReview.finalRooms[row.room_id] = {
+          ...current,
+          night_image_id: row.night_image_id || null,
+          night_image_data_url: row.night_image_data_url,
+          night_model: row.night_model || null,
+        };
+        continue;
+      }
+      if (!row.image_data_url) continue;
       done += 1;
       state.proposalReview.finalRooms[row.room_id] = {
         ...(state.proposalReview.finalRooms[row.room_id] || {}),
@@ -17114,17 +17164,19 @@ async function submitAllRoomRenders() {
         notices: row.notices || [],
         night_image_id: row.night_image_id || null,
         night_image_data_url: row.night_image_data_url || null,
+        night_model: row.night_model || null,
       };
     }
-    const failed = (result.results || []).length - done;
+    const failed = (result.results || []).length - done - nightDone;
     const nextRoom = state.rooms.find((item) => !state.proposalReview.finalRooms?.[item.id]?.submitted_at);
     if (nextRoom) state.selectedRenderRoomId = nextRoom.id;
     else state.workflow.complete("ai_render", { confirmed: true, initial_room_renders: true });
     renderFinalRoomWorkflow();
     if (element.aiRenderStatus) {
+      const nightNote = nightDone ? `，並補上 ${nightDone} 張客廳夜間圖` : "";
       element.aiRenderStatus.textContent = failed
-        ? `一鍵生圖完成 ${done} 房、失敗 ${failed} 房；失敗的可單獨重試。`
-        : `已一次完成 ${done} 個房間的生圖；點縮圖可放大到左側 3D 區。`;
+        ? `一鍵生圖完成 ${done} 房、失敗 ${failed} 房${nightNote}；失敗的可單獨重試。`
+        : `已一次完成 ${done} 個房間的生圖${nightNote}；點縮圖可放大到左側 3D 區。`;
     }
     scheduleSave("ai_render");
   } catch (error) {
@@ -17521,6 +17573,10 @@ function deliveryRoomsPayload() {
       ...roomBoundsCm(room),
       image_data_url: finalRoom?.revision_image_data_url || finalRoom?.image_data_url || null,
       model: finalRoom?.model || "",
+      // 客廳夜間燈光圖(只有客廳有);沒帶出去的話後端圖庫建不出 full_render_night,
+      // 設計手冊的「日光/夜間並列」與交付提案的夜間附圖都會靜默少一張。
+      night_image_data_url: finalRoom?.night_image_data_url || null,
+      night_model: finalRoom?.night_model || "",
     };
   });
 }

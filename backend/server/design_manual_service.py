@@ -1,10 +1,10 @@
 """第 8 步收尾設計手冊 adapter：把專案 scene_json 與 AI 生圖成果對應成
-Report Agent 文件，輸出八章設計手冊 PDF（正式流程的「成果包」文件）。
+Report Agent 文件，輸出九章設計手冊 PDF（正式流程的「成果包」文件）。
 
 邊界（見 AGENTS.md / docs/owners/BELLA.md）：
 
 - 本模組是 Bella（`backend/server/`）對 Yen（`backend/agent/` Report Agent）的
-  adapter：只做「scene_json＋生圖成果 → agent 文件」的組裝與保存編排，八章
+  adapter：只做「scene_json＋生圖成果 → agent 文件」的組裝與保存編排，九章
   組稿、LLM 前言/設計理念與 PDF 排版都在 ReportSkill / RenderPdfTool，不在此
   重做。
 - 需求/材質/家電/色卡資訊沿用 `ai_render_service._requirement_doc`，讓手冊描述
@@ -163,6 +163,20 @@ def _image_library(rooms: list[dict]) -> ImageLibraryDoc:
                 seq=images.next_seq(),
             )
         )
+        # 客廳夜間燈光圖：只有客廳會有。缺這筆時報告端的 latest(room_id,
+        # "full_render_night") 永遠回 None，日光／夜間並列那段會變成死碼。
+        night = _strip_data_url(room.get("night_image_data_url"))
+        if night:
+            images.records.append(
+                ImageRecord(
+                    image_id=f"img_{room_id}_night",
+                    room_id=room_id,
+                    stage="full_render_night",
+                    model=str(room.get("night_model") or ""),
+                    image_ref=night,
+                    seq=images.next_seq(),
+                )
+            )
     return images
 
 

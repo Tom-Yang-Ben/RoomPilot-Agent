@@ -23,12 +23,14 @@ from ...documents import (
     DocKey,
     DocStore,
     ImageLibraryDoc,
+    ImageRecord,
     LayoutDoc,
     RequirementDoc,
     SceneDoc,
 )
 from ...knowledge import FAMILY_ZH
 from ...llm import DEFAULT_REPORT_MODEL, LLMGateway
+from ...quote import PENDING_TEXT, build_quote, merge_rows
 from ...tools.base import ToolError
 from ...tools.read_docs import ReadDocsTool
 from ..base import ask_llm_json, load_skill_doc
@@ -88,13 +90,16 @@ class DeliverySkill:
         out.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix="rp-delivery-") as tmp:
             workdir = Path(tmp)
-            image_files = self._write_room_images(images, layout, workdir)
+            image_files, night_image_files = self._write_room_images(
+                images, layout, workdir
+            )
             content = build_content(
                 project_name,
                 requirements,
                 layout,
                 scene,
                 image_files,
+                night_image_files=night_image_files,
                 design_revision=design_revision,
             )
             merged = self._merge_llm_copy(content, requirements, layout, scene)
@@ -129,25 +134,48 @@ class DeliverySkill:
 
     def _write_room_images(
         self, images: ImageLibraryDoc, layout: LayoutDoc, workdir: Path
-    ) -> dict[str, str]:
-        """把逐房最新生圖（base64）落成檔案，回傳 room_id -> 相對路徑。"""
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        """把逐房最新生圖（base64）落成檔案。
+
+        回傳 ``(主視覺, 夜間)`` 兩份 room_id -> 相對路徑。夜間燈光圖只有客廳
+        會有，走該章的 ``extra_images``（一房一頁的節奏下多佔半頁），不取代
+        主視覺——屋主要先看到日光那張。
+        """
         rooms_dir = workdir / "rooms"
         files: dict[str, str] = {}
+        night_files: dict[str, str] = {}
         for room in layout.rooms:
-            record = images.latest(room.room_id, "edit") or images.latest(
-                room.room_id, "full_render"
+            hero = self._write_image(
+                images.latest(room.room_id, "edit")
+                or images.latest(room.room_id, "full_render"),
+                rooms_dir,
+                f"{room.room_id}.png",
             )
-            if record is None or not _looks_like_b64(record.image_ref):
-                continue
-            try:
-                payload = base64.b64decode(record.image_ref)
-            except ValueError:  # 含 binascii.Error（其子類）
-                continue
-            rooms_dir.mkdir(parents=True, exist_ok=True)
-            target = rooms_dir / f"{room.room_id}.png"
-            target.write_bytes(payload)
-            files[room.room_id] = f"rooms/{room.room_id}.png"
-        return files
+            if hero:
+                files[room.room_id] = hero
+            night = self._write_image(
+                images.latest(room.room_id, "full_render_night"),
+                rooms_dir,
+                f"{room.room_id}_night.png",
+            )
+            if night:
+                night_files[room.room_id] = night
+        return files, night_files
+
+    @staticmethod
+    def _write_image(
+        record: ImageRecord | None, rooms_dir: Path, filename: str
+    ) -> str:
+        """單筆生圖落檔；無圖或 base64 壞掉回空字串（該章由排版改用佔位框）。"""
+        if record is None or not _looks_like_b64(record.image_ref):
+            return ""
+        try:
+            payload = base64.b64decode(record.image_ref)
+        except ValueError:  # 含 binascii.Error（其子類）
+            return ""
+        rooms_dir.mkdir(parents=True, exist_ok=True)
+        (rooms_dir / filename).write_bytes(payload)
+        return f"rooms/{filename}"
 
     # -- LLM 改寫（離線沿用 deterministic 底稿） --
 
@@ -424,20 +452,12 @@ def _material_zh(text) -> str:
 
 
 def _dedupe_rows(rows: list[dict]) -> list[tuple[dict, int]]:
-    """同款同尺寸的家具（例如四張一樣的餐椅）合併成一列＋數量。"""
-    merged: dict[tuple, list] = {}
-    for row in rows:
-        key = (
-            str(row.get("name") or ""),
-            str(row.get("type") or ""),
-            round(float(row.get("width") or 0)),
-            round(float(row.get("depth") or 0)),
-        )
-        if key in merged:
-            merged[key][1] += 1
-        else:
-            merged[key] = [row, 1]
-    return [(row, count) for row, count in merged.values()]
+    """同款同尺寸的家具（例如四張一樣的餐椅）合併成一列＋數量。
+
+    與報價單共用同一套併列規則（``backend/agent/quote``），否則規格表寫「共 4
+    件」而報價單算 3 件，屋主一對就發現對不起來。
+    """
+    return merge_rows(rows)
 
 
 def _hex_to_hls(code: str) -> tuple[float, float, float] | None:
@@ -512,6 +532,7 @@ def build_content(
     scene: SceneDoc,
     image_files: dict[str, str],
     *,
+    night_image_files: dict[str, str] | None = None,
     design_revision=None,
     today: datetime | None = None,
 ) -> dict:
@@ -571,6 +592,10 @@ def build_content(
             files.append({"name": image, "desc": f"{room.name}最終渲染圖"})
         else:
             no_image.append(room.name)
+        # 夜間燈光圖只有客廳會有；封面仍用日光那張。
+        night_image = (night_image_files or {}).get(room.room_id, "")
+        if night_image:
+            files.append({"name": night_image, "desc": f"{room.name}夜間燈光渲染圖"})
         room_materials: list[str] = []
         for row, _count in pairs:
             for material in _material_zh(row.get("material")).split("、"):
@@ -630,9 +655,8 @@ def build_content(
                 value += f"，{material}"
             if count > 1:
                 value += f"，共 {count} 件"
-            price = row.get("price")
-            if price:
-                value += f"，參考價 {float(price):,.0f} 元"
+            # 規格表不帶價格：金額集中在報價單章節（quote），避免屋主邊看設計
+            # 邊算錢，也避免價格混進 LLM 潤稿的敘述。
             specs.append(
                 {"label": str(row.get("name") or _type_zh(row)), "value": value}
             )
@@ -658,6 +682,18 @@ def build_content(
                 "look": look,
                 "rationale": rationale,
                 "specs": specs,
+                **(
+                    {
+                        "extra_images": [
+                            {
+                                "src": night_image,
+                                "caption": f"{room.name}夜間燈光。同一視角、同一色卡，只換光影。",
+                            }
+                        ]
+                    }
+                    if night_image
+                    else {}
+                ),
             }
         )
 
@@ -679,7 +715,7 @@ def build_content(
     limits: list[str] = []
     if no_image:
         limits.append(f"{'、'.join(no_image)}尚無渲染圖，圖面待補。")
-    limits.append("未標價品項不列參考價，依正式報價為準。")
+    limits.append("報價單標「待報價」的品項型錄尚未給價，依正式報價為準。")
 
     facts = [
         {"label": "空間數", "value": f"{len(rooms)} 間"},
@@ -747,6 +783,9 @@ def build_content(
             "version_line": f"design {version_text} · 產出於 {now.date().isoformat()}",
         },
     }
+    quote_block = _quote_block(in_scope, scene, requirements)
+    if quote_block:
+        content["quote"] = quote_block
     if swatches:
         content["palette"] = {
             "title": "色彩與材質",
@@ -775,6 +814,64 @@ def build_content(
     if materials:
         content["materials"] = materials
     return content
+
+
+def _quote_block(rooms, scene: SceneDoc, requirements: RequirementDoc) -> dict | None:
+    """報價單章節：整份提案唯一出現金額的地方（彙整規則見 ``backend/agent/quote``）。"""
+    quote = build_quote(
+        [(room.name, scene.placed_in(room.room_id)) for room in rooms],
+        budget_total=requirements.budget_total,
+    )
+    if quote.is_empty:
+        return None
+    table_rows = [
+        [
+            room.room_name,
+            line.name,
+            line.spec,
+            f"{line.count}",
+            f"{line.unit_price:,.0f} 元" if line.unit_price is not None else PENDING_TEXT,
+            f"{line.subtotal:,.0f} 元" if line.subtotal is not None else "—",
+        ]
+        for room in quote.rooms
+        for line in room.lines
+    ]
+    summary = []
+    if quote.priced_count:
+        summary.append(
+            {
+                "label": "已標價合計",
+                "value": f"約 {quote.total:,.0f} 元（{quote.priced_count} 件）",
+            }
+        )
+    if quote.pending_count:
+        summary.append(
+            {"label": "待報價品項", "value": f"{quote.pending_count} 件"}
+        )
+    if quote.budget_total:
+        summary.append(
+            {"label": "你的預算", "value": f"{quote.budget_total:,} 元"}
+        )
+    notes = ["本表是型錄參考價，不含工程、運送與安裝費用。"]
+    if quote.pending_count:
+        notes.append(
+            "標「待報價」的品項型錄尚未給價，等正式報價出來才算得出來，"
+            "這裡不先估一個數字給你。"
+        )
+    return {
+        "title": "報價單",
+        "title_en": "Quotation",
+        "intro": (
+            "前面談的是設計，這一頁談錢。同款同尺寸的併成一列，"
+            "數量與規格跟各空間的規格表對得起來。"
+        ),
+        "table": {
+            "columns": ["空間", "品項", "規格", "數量", "單價", "小計"],
+            "rows": table_rows,
+        },
+        "summary": summary,
+        "notes": notes,
+    }
 
 
 def _statement_hook(

@@ -1,6 +1,6 @@
 """第 8 步收尾設計手冊（Report Agent）adapter 與 FastAPI 端到端測試。
 
-不碰網路：離線（無 OPENROUTER_API_KEY）必須照樣輸出八章 PDF（deterministic
+不碰網路：離線（無 OPENROUTER_API_KEY）必須照樣輸出九章 PDF（deterministic
 底稿）；LLM 可用時只潤飾前言。驗證 scene_json＋生圖成果 → agent 文件的組裝、
 workflow 保存與 PDF 下載。
 """
@@ -21,11 +21,12 @@ EXPECTED_HEADINGS = [
     "一、專案與需求摘要",
     "二、設計理念與亮點",
     "三、空間與平面配置",
-    "四、家具清單與預算參考",
+    "四、家具清單",
     "五、材質與色卡",
     "六、驗證與調整紀錄",
     "七、渲染成果",
     "八、工程與預算章節",
+    "九、報價單",
 ]
 
 
@@ -90,25 +91,28 @@ def _scene() -> dict:
     }
 
 
-def _rooms(with_image: bool = True) -> list[dict]:
-    return [
-        {
-            "room_id": "living-1",
-            "room_label": "客廳",
-            "width_cm": 400,
-            "depth_cm": 360,
-            "image_data_url": (
-                f"data:image/png;base64,{_png_b64()}" if with_image else None
-            ),
-            "model": "google/gemini-3.1-flash-image",
-        }
-    ]
+def _rooms(with_image: bool = True, with_night: bool = False) -> list[dict]:
+    room = {
+        "room_id": "living-1",
+        "room_label": "客廳",
+        "width_cm": 400,
+        "depth_cm": 360,
+        "image_data_url": (
+            f"data:image/png;base64,{_png_b64()}" if with_image else None
+        ),
+        "model": "google/gemini-3.1-flash-image",
+    }
+    if with_night:
+        # 客廳才有的夜間燈光圖（stage=full_render_night），由第 8 步一併回傳。
+        room["night_image_data_url"] = f"data:image/png;base64,{_png_b64((20, 24, 40))}"
+        room["night_model"] = "google/gemini-3.1-flash-image"
+    return [room]
 
 
 # ------------------------------------------------------------ adapter 單元測試
 
 
-def test_offline_manual_has_eight_sections_and_scene_facts(tmp_path) -> None:
+def test_offline_manual_has_nine_sections_and_scene_facts(tmp_path) -> None:
     manual, record = create_design_manual(
         "proj12345678", _scene(), _rooms(), tmp_path, gateway=object()
     )
@@ -120,8 +124,11 @@ def test_offline_manual_has_eight_sections_and_scene_facts(tmp_path) -> None:
 
     furniture = next(s for s in manual.sections if s.heading.startswith("四、"))
     assert "北歐布沙發" in furniture.body
-    assert "18,800" in furniture.body
+    assert "18,800" not in furniture.body  # 金額只在第九章報價單
     assert "無法擺放的櫃" not in furniture.body  # placement_failed 不進手冊
+
+    quote = next(s for s in manual.sections if s.heading.startswith("九、"))
+    assert "北歐布沙發 ×1" in quote.body and "18,800 元" in quote.body
 
     render = next(s for s in manual.sections if s.heading.startswith("七、"))
     assert "客廳" in render.body
@@ -135,6 +142,34 @@ def test_offline_manual_has_eight_sections_and_scene_facts(tmp_path) -> None:
 
     pdf = (tmp_path / record["filename"]).read_bytes()
     assert pdf[:4] == b"%PDF"
+
+
+def test_living_room_night_image_reaches_the_render_chapter(tmp_path) -> None:
+    """客廳夜間圖要在「七、渲染成果」與日光並列。
+
+    先前 `_image_library()` 只讀 `image_data_url`，圖庫裡永遠沒有
+    `full_render_night`，report skill 那段日光／夜間並列因此是死碼——夜間圖
+    生出來了卻不會出現在任何一份報告裡。
+    """
+    manual, record = create_design_manual(
+        "proj12345678", _scene(), _rooms(with_night=True), tmp_path, gateway=object()
+    )
+
+    render = next(s for s in manual.sections if s.heading.startswith("七、"))
+    assert "客廳（日光）" in render.body
+    assert "客廳（夜間）" in render.body
+    assert render.image_ids == ["img_living-1_final", "img_living-1_night"]
+    assert record["rendered_rooms"] == ["living-1", "living-1"]
+
+
+def test_manual_render_chapter_stays_single_image_without_night(tmp_path) -> None:
+    """沒有夜間圖的房間維持單圖原樣，不會多出空的「（日光）」標記。"""
+    manual, _ = create_design_manual(
+        "proj12345678", _scene(), _rooms(), tmp_path, gateway=object()
+    )
+    render = next(s for s in manual.sections if s.heading.startswith("七、"))
+    assert "客廳（日光）" not in render.body and "（夜間）" not in render.body
+    assert "客廳：" in render.body
 
 
 def test_manual_without_images_marks_render_section_pending(tmp_path) -> None:

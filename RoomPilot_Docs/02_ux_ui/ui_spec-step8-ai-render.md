@@ -104,7 +104,7 @@ dialog#design-delivery-dialog（scene.html:1014） #design-delivery-content
 | 產出成果包 | `#design-delivery-generate` 或 `#download-engineering-delivery` | POST `/api/projects/{id}/design-delivery`，成功後 `showModal()`（`scene_v2.js:17287`–`17337`、`:17604`–`17681`） | 同上 |
 | 產出交付提案 PDF | `#delivery-proposal-generate`（成果包視窗內） | POST `/api/projects/{id}/delivery-proposal`，成功後顯示下載連結（`scene_v2.js:17566`–`17600`） | 同上 |
 | 下載成果包 JSON | `#download-design-delivery-json` | 以 Blob 下載 `roompilot-design-delivery-<project_id>.json`（`scene_v2.js:17278`–`17285`） | 同上 |
-| 產出八章設計手冊 PDF | **本 repo 前端無此入口** | 端點存在（`main.py:2300`–`2350`）但 `backend/server/static/` 全目錄查無 `design-manual` 呼叫點 | — |
+| 產出九章設計手冊 PDF | **本 repo 前端無此入口** | 端點存在（`main.py:2300`–`2350`）但 `backend/server/static/` 全目錄查無 `design-manual` 呼叫點 | — |
 
 ## 5. UI 狀態 (States)
 
@@ -150,9 +150,13 @@ dialog#design-delivery-dialog（scene.html:1014） #design-delivery-content
 | 提示詞 | deterministic 組裝；`strip_measurements()` 清掉所有尺寸串，提示詞**不含任何尺寸數字**；家電只在此以 `render_context.appliance_requirements` 進入畫面描述 | `tools/genpic_info.py:80`–`94`、`:177`–`248`；`ai_render_service.py:200`–`214` |
 | 房間尺寸 | 提示詞用**整體平面圖** `floorplan.width_cm/depth_cm` 當房間長寬（多房為近似值），實際構圖由 img2img 參考截圖鎖定 | `ai_render_service.py:118`–`127` |
 | 改圖額度 | 伺服器強制**逐房各一次**：`ai_render.rooms[].edit_used >= 1` → 409 `ai_edit_budget_exhausted`；未生圖 → 409 `room_not_generated`；上游拒絕 → 502 `ai_edit_failed`；未設金鑰 → 503 | `main.py:2240`–`2274` |
-| 疊層兩模式 | `renderStageView = {mode:"single"\|"gallery"}`；`single` 顯示 `#ai-render-image`＋caption，`gallery` 改顯示 `#ai-render-gallery` 圖片牆 | `scene_v2.js:17447`–`17493` |
+| 疊層兩模式 | `renderStageView = {mode:"single"\|"gallery"}`；`single` 顯示 `#ai-render-image`＋caption，`gallery` 改顯示 `#ai-render-gallery` 圖片牆 | `scene_v2.js:17452`–`17498` |
+| 疊層狀態旗標 | `aiRenderImageVisible` 決定疊層開／關。**曾在 `886b7f7f` 帶狀拼接時整行宣告被刪**，留下 5 處使用、0 處宣告；本檔以 `type="module"` 載入（嚴格模式）→ `updateAiRenderImageStage()` 一讀就 `ReferenceError`，連帶 `prepareAiRender` 中斷、一鍵全房生圖走進 catch（`scheduleSave` 沒跑到、生圖結果不落地）、縮圖點了沒反應 | 宣告 `scene_v2.js:276`；使用 `:17446`–`17478`；回歸守門 `tests/test_render_image_stage.py::test_module_state_assignments_are_all_declared` |
+| 代表房不進全房生圖 | 第 7 步色卡比較的代表房（實測專案為 room-6＝客廳）確認色卡後，該張比較圖被 `seedRepresentativeRoomRenderFromPalette()` 直接當日光初稿寫進 `finalRooms` 並設 `submitted_at` → 被一鍵生圖的 pending 過濾排除（實測 `ai_render.rooms` 只有 room-1,2,3,4,5,7）。**代表房是客廳時，`full_render_night` 因此從未被請求** | `scene_v2.js:15816`–`15837`（seed）、`:17106`–`17111`（pending 過濾） |
+| 夜間圖補生（night_only） | 一鍵生圖時把「有日光初稿、卻沒有夜間圖的客廳」以 `night_only: true` 併進同一次請求，只生夜間那張（省一次生成）。同一條路徑也用於夜景先前失敗的補生。初稿全完成但夜間圖仍缺時，一鍵按鈕改標「補生客廳夜間燈光圖」，否則沒有觸發點 | `scene_v2.js:17090`–`17104`（`isLivingRoomForRender`／`roomsMissingNightRender`）、`:17117`–`17121`（併入請求）、`:17142`–`17157`（結果合併不覆蓋 `submitted_at`）；`ai_render_service.py:406`–`437` |
+| 夜間圖進報告 | `deliveryRoomsPayload()` 一併送 `night_image_data_url`／`night_model` → 圖庫多建一筆 `stage="full_render_night"` → 設計手冊第七章日光／夜間並列、交付提案放進該空間的 `extra_images`（封面仍用日光那張） | `scene_v2.js:17519`–`17536`；`design_manual_service.py:166`–`179`；`skills/delivery/__init__.py:135`–`179`（落檔）、`:596`＋`:685`–`696`（進 content.json） |
 | **gallery 模式現況** | 分支存在但**無任何寫入點**：全 repo 僅 `mode:"single"` 被賦值，`showRenderGallery()`／`#ai-openrouter-gallery`／`element.aiOpenrouterResults` 皆不存在 → `#ai-render-gallery` 永不渲染 | `scene_v2.js:17436`（唯一賦值）；`tests/test_render_image_stage.py:38`–`73` 有 3 筆紅燈斷言（2026-08-12 實跑 `pytest -q tests/test_render_image_stage.py` = 3 failed／2 passed） |
-| 三份交付物 | ①設計手冊 PDF（八章，LLM 不可用走 deterministic 底稿）②交付提案 PDF（品牌排版）③成果包 JSON（`schema_version 1.1`、`artifact_type roompilot.web_design_delivery.v1`、六章 `web_report.sections`） | `main.py:2300`–`2350`、`:2384`–`2437`、`:2921`–`2944`；`design_manual_service.py:210`–`239`、`:241`–`262` |
+| 三份交付物 | ①設計手冊 PDF（九章，末章報價單；LLM 不可用走 deterministic 底稿）②交付提案 PDF（品牌排版）③成果包 JSON（`schema_version 1.1`、`artifact_type roompilot.web_design_delivery.v1`、六章 `web_report.sections`） | `main.py:2300`–`2350`、`:2384`–`2437`、`:2921`–`2944`；`design_manual_service.py:210`–`239`、`:241`–`262` |
 | 成果包脫敏 | `_delivery_security_review()` 掃出 `DELIVERY_SENSITIVE_KEYS` 命中路徑並列入 `redacted_paths`，`_delivery_sanitized_copy()` 移除該些鍵 | `main.py:2475`–`2491`、`:2715`–`2768` |
 | 工程概算 `needs_quote` | 查無費率或單位不符 → 進 `needs_quote`，前端呈現 `status_label:"待報價"`、金額為 `null`；總計只加已估項 | `cost_estimation.py:57`–`68`、`:96`–`107`；`main.py:2701`–`2713`、`:2868`–`2886`；前端 `scene_v2.js:17210`–`17216` |
 | 免責 | `DISCLAIMER_ZH`「網路公開行情概算；施工前須現場丈量並取得正式報價。」；成果包另用 `budget_report.disclaimer` | `cost_estimation.py:11`；`main.py:2885` |
@@ -206,7 +210,7 @@ dialog#design-delivery-dialog（scene.html:1014） #design-delivery-content
 
 ### 待確認事項
 
-1. **三份交付物誰是正式主件（OPEN-10）**：成果包 JSON 與交付提案 PDF 有前端入口；**八章設計手冊 PDF 端點存在卻無任何前端呼叫點**（`backend/server/static/` 全目錄查無 `design-manual`）。畫面上「4. 成果包與設計提案」的標題已把交付提案定位為附屬產物；主件歸屬待產品 owner 拍板，UAT 腳本才有可驗對象。
+1. **三份交付物誰是正式主件（OPEN-10）**：成果包 JSON 與交付提案 PDF 有前端入口；**九章設計手冊 PDF 端點存在卻無任何前端呼叫點**（`backend/server/static/` 全目錄查無 `design-manual`）。畫面上「4. 成果包與設計提案」的標題已把交付提案定位為附屬產物；主件歸屬待產品 owner 拍板，UAT 腳本才有可驗對象。
 2. **生圖成果不隨專案保存**：`workflowPayload()` 未輸出 `ai_render` 節點，`finalRooms` 的 base64 圖只存在記憶體（`scene_v2.js:1273`–`1281`、`:19460`–`19470`）。重整後畫面全部退回「待初稿」，但伺服器端 `ai_render.rooms[].edit_used` 仍記得已用額度 → 使用者可能看不到圖卻無法再改圖。與第 7 步 OPEN-18（色卡圖重整消失）同一類問題，是否為預期行為待 owner 確認。
 3. **改圖額度口徑（OPEN-16）**：程式為逐房各一次（`main.py:2240`–`2250`、workflow `rooms[].edit_used`），`docs/contracts/AI_RENDER_OPENROUTER_CONTRACT.md:32`–`33` 寫「整批共用一次」。畫面文案（「本房已使用一次修改額度。」）跟隨程式；契約與 ACPT-052 何者權威待核准。
 4. **單房生圖會清掉其他房的 `lock_manifest`**：`/ai-renders` 一律以 `"rooms": [...]` 覆寫整個清單（`main.py:2123`），而 `_merge_dict` 對 list 是整體取代（`project_store.py:18`–`25`）。逐房一張張生完後，只有最後一次呼叫涵蓋的房留有 `lock_manifest`，其餘房改圖會得到 409 `room_not_generated`。是刻意的「每次生圖視為新一批」還是缺陷，待 MOD-SRV-RENDER owner 裁定。

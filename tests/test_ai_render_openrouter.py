@@ -129,7 +129,8 @@ def test_prompt_supplements_all_collected_info() -> None:
     assert "210x90cm" not in prompt
     assert "房間中央" not in prompt and "面向" not in prompt
     assert "無法擺放的櫃" not in prompt
-    assert "物件位置不可變動" in prompt  # 鎖定擺設位置（yen genpic 更新措辭）
+    # 鎖定擺設位置與視角（yen genpic 更新措辭；視角一併鎖住是 2026-08-13 的加強）。
+    assert "草圖中的格局、物件、視角位置不可變動" in prompt
     # 家電只作為畫面 context。
     assert "家電：" in prompt and "雙門冰箱" in prompt
     # 地板材質、60-30-10 色調。
@@ -156,6 +157,39 @@ def test_living_room_gets_extra_night_image() -> None:
     assert len(gateway.prompts) == 2
     assert "夜" in gateway.prompts[1]
     assert gateway.image_inputs[1] == gateway.image_inputs[0]
+
+
+def test_night_only_renders_just_the_night_image() -> None:
+    """`night_only` 只生夜間那張：代表房的日光初稿沿用第 7 步色卡圖，不重生。
+
+    沒有這條路徑時，客廳（＝色卡比較的代表房）因為已被色卡圖 seed 成「初稿完成」
+    而整個跳過全房生圖，`full_render_night` 從來不會被請求——前端與報告都沒有
+    夜間圖。夜景單獨失敗後的補生也走這裡。
+    """
+    gateway = CapturingGateway()
+    rooms = [{**_rooms()[0], "night_only": True}]
+    outcome = generate_room_images(_scene(), rooms, gateway=gateway)
+
+    row = outcome["results"][0]
+    assert row["status"] == "completed" and row["night_only"] is True
+    assert row["night_image_data_url"].startswith("data:image/png;base64,")
+    assert "image_data_url" not in row          # 不回日光圖，前端才不會覆蓋色卡圖
+    assert len(gateway.prompts) == 1 and "夜" in gateway.prompts[0]
+    # 沒有伺服器端日光圖就沒有 lock_manifest：這條路徑不讓該房變成可改圖。
+    assert outcome["rooms"] == []
+
+
+def test_night_only_failure_is_reported_without_touching_the_day_draft() -> None:
+    class FailingGateway(CapturingGateway):
+        def generate_image(self, prompt, *, images=(), model=None):
+            raise LLMError("上游拒絕")
+
+    outcome = generate_room_images(
+        _scene(), [{**_rooms()[0], "night_only": True}], gateway=FailingGateway()
+    )
+    row = outcome["results"][0]
+    assert row["status"] == "failed" and row["night_only"] is True
+    assert row["notices"] and "image_data_url" not in row
 
 
 def test_non_living_room_has_no_night_image() -> None:

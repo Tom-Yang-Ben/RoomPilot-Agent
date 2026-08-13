@@ -363,7 +363,7 @@ paths:
     post:
       tags: [delivery]
       operationId: createProjectDesignManual
-      summary: 產出八章設計手冊 PDF
+      summary: 產出九章設計手冊 PDF
       description: |
         Report Agent 統整需求、配置、家具、色卡與生圖成果輸出 PDF；未設定
         `OPENROUTER_API_KEY` 時走 deterministic 底稿照樣輸出（不假失敗、不假成功）。
@@ -712,6 +712,13 @@ components:
           description: 客廳判定權威值 `living_room`；後援為 room_label 含「客廳」（ai_render_service.py:319-325）。
         reference_png_data_url: { $ref: '#/components/schemas/PngDataUrl' }
         note: { type: string, description: 逐房補充需求，原文併入提示詞（ai_render_service.py:299-307）。 }
+        night_only:
+          type: boolean
+          description: >-
+            只生夜間燈光圖（`stage = full_render_night`），日光初稿不重生。用於
+            第 7 步代表房已沿用色卡圖當日光初稿的情形，以及夜景單獨失敗後的補生。
+            該房結果只帶 `night_*` 欄位並標 `night_only: true`，且**不會**出現在
+            回應的 `rooms`（沒有伺服器端日光圖就沒有 lock_manifest，仍不可改圖）。
     AiRenderRequest:
       type: object
       required: [scene, rooms]
@@ -730,7 +737,8 @@ components:
         room_label: { type: string }
         status: { type: string, enum: [completed, failed] }
         image_id: { type: string, description: status = completed 才有。 }
-        image_data_url: { type: string, description: 日光圖 data URL；status = completed 才有。 }
+        image_data_url: { type: string, description: 日光圖 data URL；status = completed 才有。night_only 的結果沒有這一欄，前端才不會覆蓋既有初稿。 }
+        night_only: { type: boolean, description: 該列是 night_only 請求的結果；只帶 night_* 欄位。 }
         model: { type: string }
         notices:
           type: array
@@ -850,8 +858,15 @@ components:
         depth_cm: { type: number }
         image_data_url:
           type: string
-          description: 該房最新生圖（改圖後前端已就地更新）；缺此欄該房不入圖庫（design_manual_service.py:148-165）。
+          description: 該房最新生圖（改圖後前端已就地更新）；缺此欄該房不入圖庫（design_manual_service.py:148-178）。
         model: { type: string }
+        night_image_data_url:
+          type: string
+          description: >-
+            僅客廳會有的夜間燈光圖（`ai-renders` 回應的 `night_image_data_url`）。
+            給值時圖庫多建一筆 `stage = full_render_night`：設計手冊第七章日光／夜間
+            並列，交付提案放進該空間的 `extra_images`。缺此欄兩份報告都只有日光那張。
+        night_model: { type: string, description: 夜間圖的模型名；僅隨 night_image_data_url 出現。 }
     ReportPayload:
       type: object
       description: 設計手冊與交付提案共用（main.py:2353-2376）。

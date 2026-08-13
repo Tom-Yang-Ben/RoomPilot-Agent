@@ -361,7 +361,10 @@ def generate_room_images(
 ) -> dict:
     """逐房視角送 Gen_Pic Agent（OpenRouter nano banana）生圖。
 
-    ``rooms`` 每項：``{room_id, room_label, reference_png_data_url, note?}``。
+    ``rooms`` 每項：``{room_id, room_label, reference_png_data_url, note?,
+    night_only?}``。``night_only`` 為真時只生夜間燈光圖（日光初稿已存在），
+    結果只帶 ``night_*`` 欄位、不回房間狀態；用於代表房沿用色卡圖當日光初稿、
+    以及夜景單獨失敗後的補生。
     回傳 ``{"results": [...], "rooms": [{room_id, room_label, lock_manifest}...]}``；
     ``rooms`` 供整批一次改圖時鎖定「只改指定內容、其餘不動」。單一房間失敗
     （主模型與 fallback 皆失敗）只標記該房 failed，其餘房間照常回傳。
@@ -387,16 +390,52 @@ def generate_room_images(
         scene_doc = SceneDoc(rooms={room_id: {"placed": rows, "failed": []}})
         layout_room = _layout_room(room, room_id, width_cm, depth_cm)
         viewpoint = _viewpoint(room, reference_b64, requirements)
-        try:
-            record = agent.render_room(
+
+        def _render(stage: str, lighting: str = "day"):
+            return agent.render_room(
                 requirements,
                 scene_doc,
                 layout_room,
                 images,
-                stage="full_render",
+                stage=stage,
                 palette=palette,
                 viewpoint=viewpoint,
+                lighting=lighting,
             )
+
+        # night_only：日光初稿已存在（第 7 步代表房沿用色卡圖，或先前已生過），
+        # 只補夜間那張，省一次生成。沒有伺服器端日光圖就沒有 lock_manifest，
+        # 故不回房間狀態——這條路徑不會讓該房變成可改圖。
+        if room.get("night_only"):
+            try:
+                night = _render("full_render_night", "night")
+            except GenPicFailure as exc:
+                return (
+                    {
+                        "room_id": room_id,
+                        "room_label": layout_room.name,
+                        "status": "failed",
+                        "night_only": True,
+                        "notices": exc.notices,
+                    },
+                    None,
+                )
+            return (
+                {
+                    "room_id": room_id,
+                    "room_label": layout_room.name,
+                    "status": "completed",
+                    "night_only": True,
+                    "night_image_id": night.image_id,
+                    "night_image_data_url": _as_data_url(night.image_ref),
+                    "night_model": night.model,
+                    "notices": night.notices,
+                },
+                None,
+            )
+
+        try:
+            record = _render("full_render")
             manifest = agent.lock_manifest_for(
                 requirements,
                 scene_doc,
@@ -425,18 +464,9 @@ def generate_room_images(
         }
         if _is_living_room(room):
             # 客廳額外出一張夜間燈光圖（同鎖定視角/同色卡 img2img，只換光影提示）。
-            # 夜間失敗不影響日光初稿，只附提示原因，不擋整批。
+            # 夜間失敗不影響日光初稿，只附提示原因，不擋整批；之後可用 night_only 補。
             try:
-                night = agent.render_room(
-                    requirements,
-                    scene_doc,
-                    layout_room,
-                    images,
-                    stage="full_render_night",
-                    palette=palette,
-                    viewpoint=viewpoint,
-                    lighting="night",
-                )
+                night = _render("full_render_night", "night")
                 result["night_image_id"] = night.image_id
                 result["night_image_data_url"] = _as_data_url(night.image_ref)
                 result["night_model"] = night.model

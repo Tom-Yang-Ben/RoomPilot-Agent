@@ -9,6 +9,7 @@ import base64
 import importlib.util
 import io
 import json
+import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -125,7 +126,7 @@ def test_offline_content_is_factual_and_clean() -> None:
     )
     spec_text = json.dumps(living["specs"], ensure_ascii=False)
     assert "北歐布沙發" in spec_text and "210×90 cm" in spec_text
-    assert "18,800" in spec_text
+    assert "18,800" not in spec_text, "金額只出現在報價單章節，規格表不帶價"
     # 型號留在規格表，敘述只用通用中文名。
     assert "北歐布沙發" in living["look"] and "sofa" not in living["look"]
 
@@ -153,6 +154,101 @@ def test_offline_content_is_factual_and_clean() -> None:
     serialized = json.dumps(content, ensure_ascii=False)
     for banned in ("打造", "極致", "匠心", "營造出", "坐落於", "此外", "藉由", "不只是"):
         assert banned not in serialized, banned
+
+
+def test_living_room_night_image_becomes_an_extra_image() -> None:
+    """客廳夜間圖走 `extra_images`，不搶主視覺、不進封面。
+
+    schema 早就支援 `rooms[].extra_images`（content-schema.md 也寫明只給客廳、
+    主臥這種重點空間），先前只是 `_write_room_images()` 一房只落一張圖，
+    夜間圖根本沒有被寫進 content.json。
+    """
+    requirements, layout, scene = _docs()
+    content = build_content(
+        "林宅", requirements, layout, scene,
+        {"living-1": "rooms/living-1.png"},
+        night_image_files={"living-1": "rooms/living-1_night.png"},
+        design_revision=3,
+    )
+
+    rooms = {room["name"]: room for room in content["rooms"]}
+    living = rooms["客廳"]
+    assert living["hero_image"] == "rooms/living-1.png"     # 主視覺仍是日光
+    assert living["extra_images"] == [
+        {
+            "src": "rooms/living-1_night.png",
+            "caption": "客廳夜間燈光。同一視角、同一色卡，只換光影。",
+        }
+    ]
+    # 封面用日光那張；夜間圖仍要進檔案清單，屋主才知道收到幾張圖。
+    assert content["meta"]["cover_image"] == "rooms/living-1.png"
+    names = {row["name"] for row in content["appendix"]["files"]}
+    assert {"rooms/living-1.png", "rooms/living-1_night.png"} <= names
+    # 沒有夜間圖的空間不長出空的 extra_images。
+    assert "extra_images" not in rooms["書房"]
+
+
+def test_write_room_images_lands_day_and_night_as_separate_files(tmp_path) -> None:
+    """夜間圖要另外落一個檔名；同名會直接蓋掉日光那張。"""
+    from backend.agent.documents import (
+        ImageLibraryDoc,
+        ImageRecord,
+        LayoutDoc,
+        LayoutRoom,
+    )
+
+    images = ImageLibraryDoc()
+    for image_id, room_id, stage, color in (
+        ("img_day", "living-1", "full_render", (200, 180, 150)),
+        ("img_night", "living-1", "full_render_night", (20, 24, 40)),
+        ("img_study", "study-1", "full_render", (200, 180, 150)),
+    ):
+        images.records.append(
+            ImageRecord(
+                image_id=image_id,
+                room_id=room_id,
+                stage=stage,
+                model="google/gemini-3.1-flash-image",
+                image_ref=_png_b64(color),
+                seq=images.next_seq(),
+            )
+        )
+    layout = LayoutDoc(
+        rooms=[
+            LayoutRoom(room_id="living-1", name="客廳", width_cm=400, depth_cm=360),
+            LayoutRoom(room_id="study-1", name="書房", width_cm=300, depth_cm=260),
+        ],
+        source="scene_json",
+    )
+
+    day, night = DeliverySkill(None)._write_room_images(images, layout, tmp_path)
+
+    assert day == {"living-1": "rooms/living-1.png", "study-1": "rooms/study-1.png"}
+    assert night == {"living-1": "rooms/living-1_night.png"}   # 只有客廳有夜間圖
+    rooms_dir = tmp_path / "rooms"
+    assert (rooms_dir / "living-1_night.png").read_bytes() != (
+        rooms_dir / "living-1.png"
+    ).read_bytes()
+
+
+def test_money_lives_only_in_the_quote_chapter() -> None:
+    """設計章節不談錢：金額集中在報價單，缺價的品項標「待報價」不補猜。"""
+    requirements, layout, scene = _docs()
+    content = build_content(
+        "林宅", requirements, layout, scene, {}, design_revision=3,
+    )
+
+    quote = content["quote"]
+    assert quote["table"]["columns"] == ["空間", "品項", "規格", "數量", "單價", "小計"]
+    sofa = next(row for row in quote["table"]["rows"] if "沙發" in row[1])
+    assert sofa[0] == "客廳" and sofa[4] == "18,800 元" and sofa[5] == "18,800 元"
+    assert any(fact["label"] == "已標價合計" for fact in quote["summary"])
+
+    # 除了報價單，其他區塊一毛錢都不能出現。
+    without_quote = {k: v for k, v in content.items() if k != "quote"}
+    assert not re.search(
+        r"\d[\d,]*\s*元", json.dumps(without_quote, ensure_ascii=False)
+    )
 
 
 def test_identical_furniture_collapses_into_one_spec_row() -> None:
