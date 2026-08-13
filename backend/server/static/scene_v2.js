@@ -16738,6 +16738,7 @@ async function requestPaletteRenders(renderBrief = null) {
         room: {
           room_id: roomId,
           room_label: room.label,
+          room_type: room.type || room.room_type || null,   // 後端據此補浴室/廚房/陽台的固定設備提示
           reference_png_data_url: referencePng,
           note: String(renderBrief?.user_notes || "").trim(),
         },
@@ -17118,6 +17119,9 @@ async function submitAllRoomRenders() {
     ...nightPending.map((item) => ({
       ...aiRenderRoomPayload(item, state.proposalReview.roomViews[item.id]),
       night_only: true,
+      // 夜景是日光成圖的重打光,不是重畫:這條路徑的日光圖只在前端(代表房沿用的
+      // 色卡圖),要一起送後端才有圖可打光;缺圖時後端退回 3D 截圖。
+      day_image_data_url: state.proposalReview.finalRooms?.[item.id]?.image_data_url || null,
     })),
   ];
   beginPlacementBusy(`正在一次生成 ${rooms.length} 個房間的寫實圖，請稍候…（依房間數與模型速度可能需一至數分鐘）`);

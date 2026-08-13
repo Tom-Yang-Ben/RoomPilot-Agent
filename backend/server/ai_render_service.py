@@ -148,9 +148,19 @@ def _placed_objects(scene: dict, room_id: str) -> list[dict]:
     return [obj for obj in objects if str(obj.get("placement_room_id")) == room_id]
 
 
-def _room_dims(scene: dict) -> tuple[float, float]:
-    # ponytail: 用整體平面圖尺寸當房間長寬。單房為精確值；多房為近似值，
-    # 僅影響提示詞的相對位置措辭（真正鎖定擺設的是逐房 3D 截圖 img2img）。
+def _room_dims(scene: dict, room_id: str = "") -> tuple[float, float]:
+    """該房長寬（公分）：優先取 ``floorplan.room_regions`` 的外接矩形。
+
+    第 4 步確認過的房間輪廓會以同一組 room_id 寫進 room_regions，逐房生圖因此
+    拿得到真正屬於這個房間的尺寸（廚房提示詞要報面積與長寬）。
+    ponytail: 查不到（舊 DXF 直讀、單房手動模式）才退回整體平面圖尺寸——單房
+    為精確值，多房為近似值。
+    """
+    ring = _room_ring(scene, room_id)
+    if ring:
+        xs = [point[0] for point in ring]
+        ys = [point[1] for point in ring]
+        return max(xs) - min(xs), max(ys) - min(ys)
     floor = scene.get("floorplan") or {}
     try:
         width = float(floor.get("width_cm") or 0) or _DEFAULT_ROOM_SIDE_CM
@@ -158,6 +168,25 @@ def _room_dims(scene: dict) -> tuple[float, float]:
     except (TypeError, ValueError):
         width, depth = _DEFAULT_ROOM_SIDE_CM, _DEFAULT_ROOM_SIDE_CM
     return width, depth
+
+
+def _room_ring(scene: dict, room_id: str) -> list[tuple[float, float]]:
+    """此房間輪廓的 (x, z) 點列；沒有標 room_id 的 region（DXF 直讀）不採用。"""
+    if not room_id:
+        return []
+    for region in (scene.get("floorplan") or {}).get("room_regions") or []:
+        if not isinstance(region, dict) or str(region.get("room_id") or "") != room_id:
+            continue
+        try:
+            ring = [
+                (float(point[0]), float(point[1]))
+                for point in region.get("exterior") or []
+                if len(point) >= 2
+            ]
+        except (TypeError, ValueError):
+            return []
+        return ring if len(ring) >= 3 else []
+    return []
 
 
 def _placed_rows(objects: list[dict]) -> list[dict]:
@@ -341,6 +370,8 @@ def _layout_room(room: dict, room_id: str, width_cm: float, depth_cm: float) -> 
         name=str(room.get("room_label") or room_id),
         width_cm=width_cm,
         depth_cm=depth_cm,
+        # 房型是浴室／廚房／陽台專屬提示詞的權威訊號（genpic_info.room_kind）。
+        room_type=str(room.get("room_type") or ""),
     )
 
 
@@ -375,7 +406,6 @@ def generate_room_images(
 
     requirements = _requirement_doc(scene)
     palette = _palette_dict(requirements)
-    width_cm, depth_cm = _room_dims(scene)
     # 先一次驗完所有房間的參考截圖：與其讓某一房靜默降級成純文字生圖，不如整批
     # 拒絕、由路由回 422。（生圖本身失敗仍照原政策只標記該房，見下方 GenPicFailure。）
     references = [_reference_b64(room) for room in rooms]
@@ -388,7 +418,7 @@ def generate_room_images(
         room_id = str(room.get("room_id") or "").strip()
         rows = _placed_rows(_placed_objects(scene, room_id))
         scene_doc = SceneDoc(rooms={room_id: {"placed": rows, "failed": []}})
-        layout_room = _layout_room(room, room_id, width_cm, depth_cm)
+        layout_room = _layout_room(room, room_id, *_room_dims(scene, room_id))
         viewpoint = _viewpoint(room, reference_b64, requirements)
 
         def _render(stage: str, lighting: str = "day"):
@@ -407,6 +437,19 @@ def generate_room_images(
         # 只補夜間那張，省一次生成。沒有伺服器端日光圖就沒有 lock_manifest，
         # 故不回房間狀態——這條路徑不會讓該房變成可改圖。
         if room.get("night_only"):
+            day_b64 = _strip_data_url(room.get("day_image_data_url"))
+            if day_b64:
+                # 這條路徑的日光圖只在前端（代表房沿用的色卡圖）：先塞進圖庫，
+                # GenPicAgent 才抓得到它來重打光，而不是拿白模截圖畫夜景。
+                images.records.append(
+                    ImageRecord(
+                        image_id=f"img_{room_id}_day",
+                        room_id=room_id,
+                        stage="full_render",
+                        image_ref=day_b64,
+                        seq=1,
+                    )
+                )
             try:
                 night = _render("full_render_night", "night")
             except GenPicFailure as exc:
@@ -504,11 +547,10 @@ def generate_palette_images(
 
     base_requirements = _requirement_doc(scene)
     base_palette = _palette_dict(base_requirements)
-    width_cm, depth_cm = _room_dims(scene)
     room_id = str(room.get("room_id") or "").strip()
     reference_b64 = _reference_b64(room)
     rows = _placed_rows(_placed_objects(scene, room_id))
-    layout_room = _layout_room(room, room_id, width_cm, depth_cm)
+    layout_room = _layout_room(room, room_id, *_room_dims(scene, room_id))
     viewpoint = _viewpoint(room, reference_b64, base_requirements)
     ids = [str(card_id).strip() for card_id in style_card_ids if str(card_id).strip()]
 

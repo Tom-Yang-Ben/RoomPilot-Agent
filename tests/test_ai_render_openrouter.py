@@ -16,6 +16,7 @@ from backend.server import ai_render_service, main
 from backend.server.ai_render_service import generate_room_images
 from backend.server.project_store import ProjectStore
 from backend.agent.llm import ImageResult, LLMError
+from backend.agent.tools.genpic_info import _LIGHTING_HINTS
 
 
 def _png_b64(color=(200, 180, 150)) -> str:
@@ -130,7 +131,7 @@ def test_prompt_supplements_all_collected_info() -> None:
     assert "房間中央" not in prompt and "面向" not in prompt
     assert "無法擺放的櫃" not in prompt
     # 鎖定擺設位置與視角（yen genpic 更新措辭；視角一併鎖住是 2026-08-13 的加強）。
-    assert "草圖中的格局、物件、視角位置不可變動" in prompt
+    assert "草圖中的格局位置不可變動、視角位置不可變動" in prompt
     # 家電只作為畫面 context。
     assert "家電：" in prompt and "雙門冰箱" in prompt
     # 地板材質、60-30-10 色調。
@@ -145,38 +146,62 @@ def test_prompt_supplements_all_collected_info() -> None:
     assert _png_b64((10, 20, 30)) in gateway.image_inputs[0][0]
 
 
-def test_living_room_gets_extra_night_image() -> None:
-    """客廳額外出一張夜間燈光圖：同鎖定視角/同色卡的第二次 img2img，只換夜間光影提示。
-    夜間圖是額外欄位，不影響日光初稿。"""
+def test_living_room_night_image_relights_the_day_render() -> None:
+    """客廳夜間圖＝日光成圖重打光（2026-08-14 定案），不是拿白模截圖重畫一次：
+
+    img2img 附的是剛生出來的那張日光圖，提示詞也只留夜間光影一句——家具、色卡、
+    材質敘述再送一次只會讓模型整張重畫，畫面就跟日光那張對不起來。
+    """
     gateway = CapturingGateway()
     outcome = generate_room_images(_scene(), _rooms(), gateway=gateway)
     row = outcome["results"][0]
     assert row["room_id"] == "living-1" and row["status"] == "completed"
     assert row["night_image_data_url"].startswith("data:image/png;base64,")
-    # 兩次呼叫：日光 + 夜間；夜間那張帶夜晚光影提示、且同一張視角截圖當 img2img。
+    # 兩次呼叫：日光用 3D 視角截圖，夜間改用日光成圖。
     assert len(gateway.prompts) == 2
-    assert "夜" in gateway.prompts[1]
-    assert gateway.image_inputs[1] == gateway.image_inputs[0]
+    assert gateway.image_inputs[0] == (_png_b64((10, 20, 30)),)
+    assert gateway.image_inputs[1] == (_png_b64(),)
+    assert gateway.prompts[1] == _LIGHTING_HINTS["night"]
 
 
-def test_night_only_renders_just_the_night_image() -> None:
+def test_night_only_relights_the_day_image_sent_by_the_client() -> None:
     """`night_only` 只生夜間那張：代表房的日光初稿沿用第 7 步色卡圖，不重生。
 
     沒有這條路徑時，客廳（＝色卡比較的代表房）因為已被色卡圖 seed 成「初稿完成」
     而整個跳過全房生圖，`full_render_night` 從來不會被請求——前端與報告都沒有
-    夜間圖。夜景單獨失敗後的補生也走這裡。
+    夜間圖。夜景單獨失敗後的補生也走這裡。這條路徑的日光圖只在前端，前端要一起
+    送回來當 img2img 底圖。
     """
     gateway = CapturingGateway()
-    rooms = [{**_rooms()[0], "night_only": True}]
+    day_b64 = _png_b64((90, 90, 90))
+    rooms = [
+        {
+            **_rooms()[0],
+            "night_only": True,
+            "day_image_data_url": f"data:image/png;base64,{day_b64}",
+        }
+    ]
     outcome = generate_room_images(_scene(), rooms, gateway=gateway)
 
     row = outcome["results"][0]
     assert row["status"] == "completed" and row["night_only"] is True
     assert row["night_image_data_url"].startswith("data:image/png;base64,")
     assert "image_data_url" not in row          # 不回日光圖，前端才不會覆蓋色卡圖
-    assert len(gateway.prompts) == 1 and "夜" in gateway.prompts[0]
+    assert len(gateway.prompts) == 1 and gateway.prompts[0] == _LIGHTING_HINTS["night"]
+    assert gateway.image_inputs[0] == (day_b64,)
     # 沒有伺服器端日光圖就沒有 lock_manifest：這條路徑不讓該房變成可改圖。
     assert outcome["rooms"] == []
+
+
+def test_night_only_without_a_day_image_falls_back_to_the_viewpoint_capture() -> None:
+    """舊前端（或日光圖遺失）沒送 day_image_data_url 時退回 3D 視角截圖：
+    夜景品質會打折，但不能整批失敗。"""
+    gateway = CapturingGateway()
+    outcome = generate_room_images(
+        _scene(), [{**_rooms()[0], "night_only": True}], gateway=gateway
+    )
+    assert outcome["results"][0]["status"] == "completed"
+    assert gateway.image_inputs[0] == (_png_b64((10, 20, 30)),)
 
 
 def test_night_only_failure_is_reported_without_touching_the_day_draft() -> None:
@@ -190,6 +215,56 @@ def test_night_only_failure_is_reported_without_touching_the_day_draft() -> None
     row = outcome["results"][0]
     assert row["status"] == "failed" and row["night_only"] is True
     assert row["notices"] and "image_data_url" not in row
+
+
+def test_fixed_equipment_and_kitchen_size_enter_the_prompt_by_room_type() -> None:
+    """白模與家具清單都沒有的固定設備，必須用文字補回來（2026-08-14 使用者定案）：
+    浴室要有衛浴設備、廚房要有系統廚具並報自己的面積長寬、陽台要講明白色部分是室外。
+
+    廚房尺寸取 ``floorplan.room_regions`` 裡該房自己的輪廓；用整體平面圖尺寸等於
+    把整層樓的長寬報成廚房的。其他房型維持「數值不進提示詞」的定案。
+    """
+    scene = _scene()
+    scene["floorplan"]["room_regions"] = [
+        {
+            "room_id": "kitchen-1",
+            "label": "廚房",
+            "room_type": "kitchen",
+            "exterior": [[-150, -125], [150, -125], [150, 125], [-150, 125]],
+        }
+    ]
+    rooms = [
+        {
+            "room_id": room_id,
+            "room_label": label,
+            "room_type": room_type,
+            "reference_png_data_url": REFERENCE_PNG,
+        }
+        for room_id, label, room_type in (
+            ("bath-1", "浴室①", "bathroom"),
+            ("kitchen-1", "廚房", "kitchen"),
+            ("balcony-1", "陽台", "balcony"),
+            ("bed-1", "臥室①", "bedroom"),
+        )
+    ]
+    gateway = CapturingGateway()
+    generate_room_images(scene, rooms, gateway=gateway)
+    # 四房併發送出，prompts 順序不保證，用房名對回來。
+    prompt = {
+        label: next(text for text in gateway.prompts if f"房間：{label}" in text)
+        for label in ("浴室①", "廚房", "陽台", "臥室①")
+    }
+
+    assert "必須包含衛浴設備" in prompt["浴室①"]
+    assert "必須包含系統廚具" in prompt["廚房"]
+    assert "白色部分為「室外」空間" in prompt["陽台"]
+    # 廚房面積長寬取自己的輪廓（300x250 公分），不是整體平面圖（400x360 公分）。
+    assert "約 300 公分 × 250 公分" in prompt["廚房"]
+    assert "面積約 7.5 平方公尺" in prompt["廚房"]
+    # 尺寸只給廚房；其他房型沒有專屬補述也沒有數值。
+    for label in ("浴室①", "陽台", "臥室①"):
+        assert "平方公尺" not in prompt[label]
+    assert "必須包含" not in prompt["臥室①"]
 
 
 def test_non_living_room_has_no_night_image() -> None:

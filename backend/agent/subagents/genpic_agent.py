@@ -79,9 +79,17 @@ class GenPicAgent:
             viewpoint=viewpoint,
             lighting=lighting,
         )
+        input_images = request["images"]
+        if lighting == "night":
+            # 夜景＝日光成圖重打光（2026-08-14 定案）：img2img 附該房日光圖，不是白模
+            # 視角截圖，否則只給一句夜間光影的提示詞畫不出寫實房間。圖庫沒有日光圖
+            # （只補夜景那條路徑未先塞圖）才退回視角截圖。
+            day = images.latest(room.room_id, "full_render")
+            if day and day.image_ref:
+                input_images = (day.image_ref,)
         record = self._generate_with_policy(
             prompt=request["prompt"],
-            input_images=request["images"],
+            input_images=input_images,
             images=images,
             room_id=room.room_id,
             stage=stage,

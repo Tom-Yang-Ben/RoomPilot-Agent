@@ -39,7 +39,24 @@ _LIGHTING_HINTS = {
     "night": "光影以夜晚室內燈光為主，窗外為入夜暗景，呈現溫暖靜謐的夜間氛圍",
 }
 
-# 尺寸不進生圖提示詞（定案）：畫面比例由 img2img 視角截圖鎖定，文字給了數字
+# 房型專屬補述（2026-08-14 使用者定案）：固定設備不在白模也不在家具清單裡，
+# 模型照著截圖畫就會生出沒有馬桶的浴室、沒有廚具的廚房；陽台的白色地面則常
+# 被當成室內地板。這三類空間必須用文字把它補回來。
+_ROOM_TYPE_HINTS = {
+    "bathroom": "必須包含衛浴設備（馬桶、洗手台、淋浴設備）",
+    "kitchen": "必須包含系統廚具（整排廚櫃、檯面、水槽與爐具）以及冰箱",
+    "balcony": "白色部分為「室外」空間",
+}
+# room_type 是權威訊號，中文房名為容錯後援（對齊 master._is_living_room 的判法）。
+_ROOM_TYPE_ALIASES = {"bath": "bathroom"}
+_ROOM_NAME_TOKENS = (
+    ("bathroom", ("衛浴", "浴室", "廁所")),
+    ("kitchen", ("廚房",)),
+    ("balcony", ("陽台", "露台")),
+)
+
+# 尺寸不進生圖提示詞（定案；2026-08-14 起廚房例外，見 kitchen_size_note）：
+# 畫面比例由 img2img 視角截圖鎖定，文字給了數字
 # 只會讓模型照數字重新推比例。型錄名稱有一半帶規格（8076 件中 4130 件，如
 # 「206x46x54 公分」「88"W」「5' 3"」），描述偶爾也帶（201 件）。
 # 鎖定清單與設計手冊要保留規格，所以只在提示詞這條路上清掉。
@@ -130,6 +147,37 @@ def visual_description(text: object) -> str:
     return "。".join(kept) + "。" if kept else ""
 
 
+def room_kind(room: LayoutRoom) -> str:
+    """有專屬提示的房型鍵（bathroom / kitchen / balcony）；其餘回空字串。"""
+    room_type = str(getattr(room, "room_type", "") or "")
+    room_type = _ROOM_TYPE_ALIASES.get(room_type, room_type)
+    if room_type in _ROOM_TYPE_HINTS:
+        return room_type
+    if room_type:
+        # 房型已明確標成別的空間，就不再用房名猜（「主臥（含衛浴）」不是浴室）。
+        return ""
+    name = str(room.name or "")
+    for kind, tokens in _ROOM_NAME_TOKENS:
+        if any(token in name for token in tokens):
+            return kind
+    return ""
+
+
+def kitchen_size_note(room: LayoutRoom) -> str:
+    """廚房才給的尺寸敘述（2026-08-14 使用者定案）：其他房型仍一律不給數值。
+
+    面積取長寬外接矩形，L 型廚房會略為高估；要精確得改帶多邊形進來。
+    """
+    width = float(room.width_cm or 0)
+    depth = float(room.depth_cm or 0)
+    if width <= 0 or depth <= 0:
+        return ""
+    return (
+        f"空間尺寸：約 {width:.0f} 公分 × {depth:.0f} 公分，"
+        f"面積約 {width * depth / 10000:.1f} 平方公尺"
+    )
+
+
 def furniture_lines(scene: SceneDoc, room: LayoutRoom) -> list[str]:
     """短標籤：名稱（類型，材質）。給鎖定清單與設計手冊用，規格原樣保留。"""
     return [_label(row) for row in scene.placed_in(room.room_id)]
@@ -203,6 +251,11 @@ class GenPicInfoTool:
             '''
 
         segments.append(f'房間：{room.name}')
+        kind = room_kind(room)
+        if kind == "kitchen":
+            size_note = kitchen_size_note(room)
+            if size_note:
+                segments.append(size_note)
 
         if palette:
             colors = "、".join(str(c) for c in (palette.get("colors") or [])[:3])
@@ -246,8 +299,18 @@ class GenPicInfoTool:
             locked_materials={**materials, "palette": (palette or {}).get("name", "")},
             allowed_change="",
         )
-        hint = _LIGHTING_HINTS.get(lighting, _LIGHTING_HINTS["day"])
-        prompt += f'\n可以加上任何需要元素\n草圖中的格局位置不可變動、視角位置不可變動、牆壁地板材質家具位置門窗皆不可變動\n{hint}'
+        if lighting == "night":
+            # 夜景是日光成圖的「重打光」，附圖就是那張日光圖（GenPicAgent.render_room
+            # 會換圖）：整套家具／材質／色卡敘述再送一次只會讓模型重畫一個房間。
+            # 只留夜間光影一句（2026-08-14 使用者定案）。
+            prompt = _LIGHTING_HINTS["night"]
+        else:
+            tail = ["可以加上任何需要元素"]
+            if _ROOM_TYPE_HINTS.get(kind):
+                tail.append(_ROOM_TYPE_HINTS[kind])
+            tail.append("草圖中的格局位置不可變動、視角位置不可變動、牆壁地板材質家具位置門窗皆不可變動")
+            tail.append(_LIGHTING_HINTS.get(lighting, _LIGHTING_HINTS["day"]))
+            prompt += "\n" + "\n".join(tail)
         return {"prompt": prompt, "lock_manifest": manifest.to_dict(), "stage": stage}
 
     @staticmethod

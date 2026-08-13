@@ -13,16 +13,22 @@
   adapter 只把中心原點翻成提示詞的角落原點措辭，不產生新座標。
 - 逐房把第 7 步鎖定視角的 3D 截圖當 img2img 參考，模型不得增減或移動任何擺設。
 - 家電只作為畫面 context（`render_context.appliance_requirements`）。
+- 固定設備不在白模也不在家具清單，靠房型補述進提示詞（`genpic_info._ROOM_TYPE_HINTS`）：
+  浴室必須有衛浴設備、廚房必須有系統廚具、陽台白色部分為室外。房型以 `room_type`
+  為準，中文房名為後援。
+- 尺寸不進提示詞的定案只對廚房例外：廚房報自己的長寬與面積，取
+  `floorplan.room_regions` 中同 `room_id` 的輪廓外接矩形（查不到才退回整體平面圖尺寸）。
 
 ## 端點
 
 - `GET /api/ai-render/status` → `{configured, provider, model, fallback_model}`；不外洩 token。
 - `POST /api/projects/{id}/ai-renders`
-  - 請求：`{project_id, scene, rooms:[{room_id, room_label, reference_png_data_url, note?}]}`
+  - 請求：`{project_id, scene, rooms:[{room_id, room_label, room_type?, reference_png_data_url, note?, night_only?, day_image_data_url?}]}`
     - `reference_png_data_url` 為該房鎖定視角的 Three.js 截圖（`data:image/png;base64,...`）。
+    - `room_type` 決定客廳夜間圖與浴室／廚房／陽台的房型補述。
   - 回應：`{results:[{room_id, room_label, status, image_id?, image_data_url?, model?, notices, night_image_data_url?, night_image_id?, night_model?}], edit_remaining, revision, updated_at}`
-  - 客廳（`room_type=living_room` 或房名含「客廳」）額外回一張夜間燈光圖 `night_image_data_url`（同鎖定視角/同色卡 img2img，只換光影提示）；夜間失敗不影響日光初稿，附 `night_notices`。
-  - 房間可帶 `night_only: true`：只生夜間那張、不重生日光初稿，結果標 `night_only: true` 且不含 `image_data_url`，該房也不進回應的 `rooms`（沒有伺服器端日光圖就沒有 lock_manifest，仍不可改圖）。用於第 7 步代表房沿用色卡圖當日光初稿的情形，以及夜景單獨失敗後的補生。
+  - 客廳（`room_type=living_room` 或房名含「客廳」）額外回一張夜間燈光圖 `night_image_data_url`：**以剛生出來的日光圖重打光**（img2img 附日光圖，不是白模截圖），提示詞只給夜間光影一句，避免模型整張重畫；夜間失敗不影響日光初稿，附 `night_notices`。
+  - 房間可帶 `night_only: true`：只生夜間那張、不重生日光初稿，結果標 `night_only: true` 且不含 `image_data_url`，該房也不進回應的 `rooms`（沒有伺服器端日光圖就沒有 lock_manifest，仍不可改圖）。用於第 7 步代表房沿用色卡圖當日光初稿的情形，以及夜景單獨失敗後的補生。這條路徑的日光圖只在前端，須以 `day_image_data_url` 一併送回當底圖；沒送則退回 3D 截圖。
   - 單房失敗只標記該房 `status:"failed"`，其餘照常回傳。
 - `POST /api/projects/{id}/ai-renders/{room_id}/edit`
   - 請求：`{feedback, image_data_url}`（`image_data_url` 為要修改的當前圖）。
