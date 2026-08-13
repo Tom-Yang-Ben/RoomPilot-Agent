@@ -2325,7 +2325,7 @@ def _public_design_manual(project_id: str, record: dict) -> dict:
 @app.post("/api/projects/{project_id}/design-manual", status_code=201)
 def create_project_design_manual(project_id: str, payload: dict) -> dict:
     """第 8 步收尾：由 Report Agent 統整需求、配置、家具、色卡與生圖成果，
-    輸出八章設計手冊 PDF。
+    輸出九章設計手冊 PDF。
 
     前端送 ``scene``（state.sceneData）＋逐房 ``rooms``（含房間尺寸與目前最新
     的生圖 data URL；改圖後前端已就地更新）。LLM 只潤飾前言與設計理念，未設定
@@ -2409,7 +2409,7 @@ def get_delivery_proposal_status() -> dict:
 @app.post("/api/projects/{project_id}/delivery-proposal", status_code=201)
 def create_project_delivery_proposal(project_id: str, payload: dict) -> dict:
     """第 8 步收尾第二版報告：roompilot-delivery-pdf 打包 skill 排版的品牌
-    交付提案 PDF，與八章設計手冊吃同一份 payload，供兩版比較。"""
+    交付提案 PDF，與九章設計手冊吃同一份 payload，供兩版比較。"""
     project = _stored_project(project_id)
     scene, rooms = _validated_report_payload(project_id, payload)
     try:

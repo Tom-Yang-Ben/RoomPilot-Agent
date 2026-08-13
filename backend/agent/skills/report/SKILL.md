@@ -1,6 +1,6 @@
 ---
 name: 報告整理輸出
-description: 統整 Docs 層全部文件，組稿八章設計手冊並輸出 PDF；含每房設計理念與選件理由，工程預算沿用工程文件 MVP 併章。
+description: 統整 Docs 層全部文件，組稿九章設計手冊並輸出 PDF；含每房設計理念與選件理由，金額只出現在末章報價單，工程預算沿用工程文件 MVP 併章。
 agent: Report Agent
 tools: read_docs, render_pdf
 ---
@@ -55,18 +55,21 @@ tools: read_docs, render_pdf
 
 1. `read_docs` tool 取 DocStore 快照（需求、清單、場景、驗證、生圖、
    使用者決策歷程）。
-2. 八章 deterministic 組稿：
-   一、專案與需求摘要（LLM 前言可選，離線用模板）
+2. 九章 deterministic 組稿。**金額只准出現在第九章**：其餘章節（含餵給
+   LLM 的 payload）不帶單價、小計與預算，避免潤稿把價格寫進敘述。
+   一、專案與需求摘要（LLM 前言可選，離線用模板；不含預算金額）
    二、設計理念與亮點（每房選件理由＋擺放通則 → LLM 敘事；離線用理由
    直接組稿。理由來源＝家具文件 reason／hint.note，經 place_furniture
    附進 placed row）
    三、空間與平面配置（engine 座標翻成位置措辭）
-   四、家具清單與預算參考（每件附選件理由；未標價品項不猜價）
+   四、家具清單（品名、尺寸與選件理由；不帶金額）
    五、材質與色卡（標記使用者選定色卡）
    六、驗證與調整紀錄（含修復輪次與未解決裁決、改圖紀錄）
    七、渲染成果（每房最新 edit／full_render 圖）
    八、工程與預算章節（併工程文件 MVP ReportPayload 輸出；缺價保留
    pending_quote，不自行補猜）
+   九、報價單（`backend/agent/quote` 彙整：同款同尺寸併列＋數量、單價、
+   小計；缺價標「待報價」且不計入合計，不用中位數或預算回推補猜）
 3. `render_pdf` tool 以 Pillow 排版輸出多頁 PDF（A4；中文字型自動尋找，
    `ROOMPILOT_PDF_FONT` 可覆蓋）。
 4. 輸出 `DesignManualDoc`（含 pdf_path），寫入 DocStore `manual` 鍵。

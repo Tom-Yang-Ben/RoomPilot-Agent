@@ -1,6 +1,6 @@
 ---
 name: 交付提案輸出
-description: 統整 Docs 層文件寫出交付提案文案（content.json），交由 roompilot-delivery-pdf 打包 skill 的 build_pdf.py 排版成品牌版交付 PDF；與八章設計手冊並行，供比較。
+description: 統整 Docs 層文件寫出交付提案文案（content.json），交由 roompilot-delivery-pdf 打包 skill 的 build_pdf.py 排版成品牌版交付 PDF；與九章設計手冊並行，供比較。
 agent: Report Agent
 tools: read_docs, roompilot-delivery-pdf/scripts/build_pdf.py
 ---
@@ -109,9 +109,12 @@ tools: read_docs, roompilot-delivery-pdf/scripts/build_pdf.py
 
 1. `read_docs` tool 取 DocStore 快照（需求、場景、生圖、決策歷程）。
 2. deterministic 組 `content.json` 底稿：meta／overview（含空間一覽表）／
-   逐房 specs（名稱、類型、尺寸、材質、參考價，皆取自場景資料，同款同尺寸
+   逐房 specs（名稱、類型、尺寸、材質，皆取自場景資料，同款同尺寸
    合併計數）／色卡 swatches（60/30/10，色名由色碼推出）／materials／
-   next_steps／appendix（無圖房間寫進 limits；未標價不猜價）。
+   quote 報價單／next_steps／appendix（無圖房間寫進 limits）。
+   **金額只准出現在 `quote`**：specs 與所有敘述不帶價格，`quote` 由
+   `backend/agent/quote` 彙整（同款同尺寸併列，缺價標「待報價」、不計入
+   合計也不補猜）。
    **浴室與陽台不在軟裝提案範圍**，整章不排，改在 `appendix.limits` 交代。
 3. LLM 可用時以本提示詞改寫 statement、overview_intro、palette_intro 與逐房
    scene_line／look／rationale；離線沿用底稿的事實句（不虛構、無禁詞），

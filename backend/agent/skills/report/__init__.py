@@ -17,6 +17,7 @@ from ...documents import (
     ValidationReportDoc,
 )
 from ...llm import DEFAULT_REPORT_MODEL, LLMGateway
+from ...quote import build_quote
 from ...tools.design_knowledge import selection_digest
 from ...tools.genpic_info import furniture_lines
 from ...tools.read_docs import ReadDocsTool
@@ -71,6 +72,7 @@ class ReportSkill:
         render_section, images_b64 = self._render_section(layout, images)
         manual.sections.append(render_section)
         manual.sections.append(self._engineering_section(choices))
+        manual.sections.append(self._quote_section(layout, scene, requirements))
 
         result = self._pdf.run(manual, out_path, images_b64)
         manual.pdf_path = result["pdf_path"]
@@ -109,7 +111,6 @@ class ReportSkill:
                 {
                     "styles": requirements.styles,
                     "rooms": [room.name for room in layout.rooms],
-                    "budget_total": requirements.budget_total,
                     "placed_total": placed_total,
                 },
                 ensure_ascii=False,
@@ -130,8 +131,8 @@ class ReportSkill:
                 "家電情境（僅入渲染畫面，不列入家具配置）："
                 + "、".join(i.text for i in requirements.appliances[:10])
             )
-        if requirements.budget_total:
-            body_lines.append(f"家具總預算參考：{requirements.budget_total:,} 元")
+        # 預算金額移到第九章報價單；這裡連 LLM 的輸入都不給，免得潤稿把數字
+        # 寫進導言。
         return ManualSection(heading="一、專案與需求摘要", body="\n".join(body_lines))
 
     def _rationale_section(
@@ -208,38 +209,30 @@ class ReportSkill:
         return ManualSection(heading="三、空間與平面配置", body="\n".join(lines))
 
     def _furniture_section(self, layout: LayoutDoc, scene: SceneDoc) -> ManualSection:
+        # 設計內文不帶價格：金額一律留到最後一章報價單，避免屋主邊讀設計邊算錢，
+        # 也避免價格被寫進 LLM 潤稿的敘述裡。
         lines: list[str] = []
-        total_price = 0.0
-        priced_items = 0
         for room in layout.rooms:
             rows = scene.placed_in(room.room_id)
             if not rows:
                 continue
             lines.append(f"{room.name}：")
             for row in rows:
-                price = row.get("price")
-                price_text = f"，參考價 {price:,.0f} 元" if price else ""
-                if price:
-                    total_price += float(price)
-                    priced_items += 1
                 lines.append(
-                    "  - {name}（{type}，{w:.0f}x{d:.0f}cm{style}{price}）".format(
+                    "  - {name}（{type}，{w:.0f}x{d:.0f}cm{style}）".format(
                         name=row.get("name", row.get("id")),
                         type=row.get("type", ""),
                         w=float(row.get("width", 0)),
                         d=float(row.get("depth", 0)),
                         style=f"，{row['style']}" if row.get("style") else "",
-                        price=price_text,
                     )
                 )
                 reason = str(row.get("reason") or "").strip()
                 if reason:
                     lines.append(f"    選件理由：{reason}")
             lines.append("")
-        if priced_items:
-            lines.append(f"已標價家具合計：約 {total_price:,.0f} 元（{priced_items} 件）")
-        lines.append("未標價品項依正式報價為準，不予估算。")
-        return ManualSection(heading="四、家具清單與預算參考", body="\n".join(lines))
+        lines.append("金額見「九、報價單」。")
+        return ManualSection(heading="四、家具清單", body="\n".join(lines))
 
     def _material_section(self, requirements: RequirementDoc, choices: dict) -> ManualSection:
         lines = []
@@ -314,3 +307,34 @@ class ReportSkill:
             f"對應設計 revision：{choices.get('design_revision', '（保存時寫入）')}"
         )
         return ManualSection(heading="八、工程與預算章節", body=body)
+
+    def _quote_section(
+        self, layout: LayoutDoc, scene: SceneDoc, requirements: RequirementDoc
+    ) -> ManualSection:
+        """報價單：全手冊唯一出現金額的地方（彙整規則見 ``backend/agent/quote``）。"""
+        quote = build_quote(
+            [(room.name, scene.placed_in(room.room_id)) for room in layout.rooms],
+            budget_total=requirements.budget_total,
+        )
+        lines: list[str] = []
+        for room in quote.rooms:
+            lines.append(f"{room.room_name}：")
+            for line in room.lines:
+                lines.append(
+                    f"  - {line.name} ×{line.count}｜{line.spec}｜{line.amount_text}"
+                )
+            lines.append("")
+        if quote.is_empty:
+            lines.append("（本方案未配置家具，無報價品項）")
+        if quote.priced_count:
+            lines.append(
+                f"已標價合計：約 {quote.total:,.0f} 元（{quote.priced_count} 件）"
+            )
+        if quote.pending_count:
+            lines.append(
+                f"待報價品項：{quote.pending_count} 件，依正式報價為準，本手冊不估算。"
+            )
+        if quote.budget_total:
+            lines.append(f"屋主家具預算參考：{quote.budget_total:,} 元")
+        lines.append("＊本表為型錄參考價，不含工程費用（見第八章）與運送安裝。")
+        return ManualSection(heading="九、報價單", body="\n".join(lines))

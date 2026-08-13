@@ -34,10 +34,47 @@ def _first(row: dict, keys: tuple[str, ...], default: Any = None) -> Any:
     return default
 
 
+def _as_price(row: dict) -> float | None:
+    value = _first(row, ("price", "price_twd", "price_ntd"))
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def flatten_rag_payload(payload: dict) -> list[dict]:
+    """把 ``roompilot.rag.search.v1`` 的分組結果攤平成候選列。
+
+    service 回傳的頂層鍵是 ``blocks``（每個需求品項一組），價格與尺寸在
+    ``block["hits"][n]["furniture"]``、分數在 ``hit["scores"]``。這裡只做形狀
+    轉換：把 furniture 欄位攤到同一層，並把 ``scores.final`` 提到 ``score``，
+    欄位名的對應交給 :func:`_as_candidate`。
+
+    其他形狀（已攤平的 ``items``／``results``，或測試注入的假件）原樣回傳。
+    """
+    blocks = payload.get("blocks")
+    if not isinstance(blocks, list):
+        rows = payload.get("items") or payload.get("results") or []
+        return [row for row in rows if isinstance(row, dict)]
+    flat: list[dict] = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        for hit in block.get("hits") or []:
+            furniture = hit.get("furniture") if isinstance(hit, dict) else None
+            if not isinstance(furniture, dict):
+                continue
+            scores = hit.get("scores") if isinstance(hit.get("scores"), dict) else {}
+            flat.append({**furniture, "score": scores.get("final", 0.0)})
+    return flat
+
+
 def _as_candidate(row: dict) -> CandidateItem | None:
     catalog_id = _first(row, ("catalog_id", "item_id", "id", "uid"))
     name = _first(row, ("name", "name_zh", "title"))
-    category = _first(row, ("category", "category_group", "type"))
+    category = _first(row, ("category", "category_group", "normalized_type", "type"))
     width = _first(row, ("width_cm", "width"))
     depth = _first(row, ("depth_cm", "depth"))
     if not catalog_id or not name or not category or width is None or depth is None:
@@ -50,8 +87,9 @@ def _as_candidate(row: dict) -> CandidateItem | None:
         width_cm=float(width),
         depth_cm=float(depth),
         height_cm=float(_first(row, ("height_cm", "height"), 80.0)),
-        style=_first(row, ("style", "style_id")),
-        price=(float(row["price"]) if row.get("price") is not None else None),
+        style=_first(row, ("style", "style_primary", "style_id")),
+        # 正式型錄的價格欄是 price_twd（見 furniture_catalog_current view）。
+        price=_as_price(row),
         score=float(_first(row, ("score", "rerank_score", "similarity"), 0.0)),
         reason=str(_first(row, ("reason", "match_reason"), "")),
         clearance=clearance if isinstance(clearance, dict) else None,
@@ -84,8 +122,7 @@ class SpatialRagRetriever:
             )
         except Exception as exc:  # RagError 家族統一轉成可讀 ToolError
             raise ToolError(f"RAG 檢索失敗：{exc}", tool="rag_furniture") from exc
-        rows = result.get("items") or result.get("results") or []
-        return [row for row in rows if isinstance(row, dict)]
+        return flatten_rag_payload(result if isinstance(result, dict) else {})
 
 
 def build_room_query(

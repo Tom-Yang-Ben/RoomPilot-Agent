@@ -6,7 +6,7 @@ from backend.agent.skills.furniture import STRATEGIES, FurnitureSkill
 from backend.agent.skills.requirements import RequirementSkill
 from backend.agent.tools.base import ToolError
 from backend.agent.tools.pick_furniture import PickFurnitureTool
-from backend.agent.tools.rag_furniture import RagFurnitureTool
+from backend.agent.tools.rag_furniture import RagFurnitureTool, flatten_rag_payload
 from backend.agent.tools.read_layout import ReadLayoutTool
 
 from .conftest import FakeRetriever
@@ -38,6 +38,95 @@ def test_rag_tool_without_retriever_raises_readable_error(pipeline, layout):
     with pytest.raises(ToolError) as excinfo:
         RagFurnitureTool(None).run(requirements, layout)
     assert "檢索器未接上" in excinfo.value.reason
+
+
+def _search_v1_payload() -> dict:
+    """FurnitureRagService.search 的回傳形狀（roompilot.rag.search.v1 摘要）。"""
+    return {
+        "schema_version": "roompilot.rag.search.v1",
+        "budget_total": 120000,
+        "estimated_total": 34800,
+        "blocks": [
+            {
+                "item_id": "sofa",
+                "label_zh": "沙發",
+                "quantity": 1,
+                "price_cap": 30000,
+                "hits": [
+                    {
+                        "rank": 1,
+                        "furniture": {
+                            "item_id": "sofa-l",
+                            "name_zh": "三人布沙發",
+                            "category": "sofa",
+                            "normalized_type": "sofa_3seat",
+                            "price_twd": 18900,
+                            "price_is_estimated": False,
+                            "style_primary": "japanese",
+                            "width_cm": 180,
+                            "depth_cm": 90,
+                            "height_cm": 85,
+                            "image_url": "https://cdn.example/sofa-l.jpg",
+                        },
+                        "scores": {"final": 0.91, "rerank": 0.88},
+                    }
+                ],
+            },
+            {
+                "item_id": "coffee_table",
+                "label_zh": "茶几",
+                "quantity": 1,
+                "hits": [
+                    {
+                        "rank": 1,
+                        "furniture": {
+                            "item_id": "ct-1",
+                            "name_zh": "橡木茶几",
+                            "category": None,
+                            "normalized_type": "coffee_table",
+                            "price_twd": None,
+                            "width_cm": 90,
+                            "depth_cm": 50,
+                            "height_cm": 45,
+                        },
+                        "scores": {"final": 0.77},
+                    }
+                ],
+            },
+        ],
+    }
+
+
+class _PayloadRetriever:
+    """回傳未攤平的 v1 payload，模擬 SpatialRagRetriever 之前的資料來源。"""
+
+    def search(self, query: str, *, top_k: int = 8) -> list[dict]:
+        return flatten_rag_payload(_search_v1_payload())
+
+
+def test_flatten_rag_payload_reads_blocks_not_items():
+    rows = flatten_rag_payload(_search_v1_payload())
+    assert [row["item_id"] for row in rows] == ["sofa-l", "ct-1"]
+    assert rows[0]["score"] == 0.91, "scores.final 要提到頂層供排序使用"
+
+
+def test_flatten_rag_payload_passes_through_flat_shapes():
+    flat = [{"catalog_id": "sofa-l", "name": "三人布沙發"}]
+    assert flatten_rag_payload({"items": flat}) == flat
+    assert flatten_rag_payload({}) == []
+
+
+def test_rag_tool_maps_official_catalog_price_and_style(layout, questionnaire):
+    requirements = RequirementSkill(None).run(questionnaire, layout)
+    candidates = RagFurnitureTool(_PayloadRetriever()).run(requirements, layout)
+
+    rows = {item.catalog_id: item for item in candidates.by_room["living"]}
+    assert rows["sofa-l"].price == 18900, "price_twd 要對應到 CandidateItem.price"
+    assert rows["sofa-l"].style == "japanese"
+    assert rows["sofa-l"].score == 0.91
+    # category 為 None 時退回 normalized_type，不讓候選被整筆丟掉。
+    assert rows["ct-1"].category == "coffee_table"
+    assert rows["ct-1"].price is None, "缺價不補猜"
 
 
 def test_fallback_pick_covers_musts_and_assigns_hints(pipeline):

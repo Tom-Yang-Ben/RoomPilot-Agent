@@ -133,6 +133,24 @@ def check_process_talk(content):
           "把它換成空間本身的事實或屋主的需求：" + "; ".join(hits[:8]))
 
 
+MONEY = re.compile(r"\d[\d,]*\s*元")
+
+
+def check_money_placement(content):
+    """金額只准出現在報價單那一章。
+
+    價格混進規格表或敘述，屋主會停下來算錢，設計還沒讀完；而且他之後回頭找
+    某個數字時，得整份翻。集中在 quote 一頁，兩邊都好過。
+    """
+    hits = [
+        f"{path}: 「{MONEY.search(text).group(0)}」"
+        for path, text in walk_strings(content)
+        if not path.startswith("quote") and MONEY.search(text)
+    ]
+    check("金額只寫在報價單章節", not hits,
+          "把價格搬到 quote，敘述與 specs 只留品名、尺寸與材質：" + "; ".join(hits[:8]))
+
+
 def check_repetition(content):
     """同一句話在八個空間各寫一次，屋主翻到第三頁就開始跳著看。"""
     sentences = {}
@@ -318,6 +336,7 @@ def main():
     check_placeholders(content)
     check_ai_tells(content)
     check_process_talk(content)
+    check_money_placement(content)
     check_repetition(content)
     check_rhythm(content)
     check_numbers(content, args.data)

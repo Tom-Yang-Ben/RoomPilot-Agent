@@ -179,7 +179,7 @@
 | FR-058 | `POST /api/projects/{id}/ai-renders` 逐房生圖（執行緒池併發、順序對齊輸入），客廳額外一張 `full_render_night`；單房失敗只標 `status:"failed"`，夜景失敗只附 `night_notices` | DEC-011 | `main.py:2070-2132`；`ai_render_service.py:319-429` | ACPT-050 |
 | FR-059 | 生圖提示詞由 `GenPicInfoTool` deterministic 組裝，不含任何尺寸數字；家電只在此進入畫面描述 | DEC-006, DEC-011 | `tools/genpic_info.py:42-93,194-248` | ACPT-051 |
 | FR-060 | `POST /api/projects/{id}/ai-renders/{room_id}/edit` 逐房各一次改圖；額度用罄 409 `ai_edit_budget_exhausted`、未生成 409 `room_not_generated`、上游拒絕 502 `ai_edit_failed` | DEC-011 | `main.py:2224-2287`（與契約「整批一次」有落差，見 OPEN-16） | ACPT-052 |
-| FR-061 | `POST /api/projects/{id}/design-manual` 產出八章設計手冊 PDF（LLM 不可用走 deterministic 底稿），`GET .../pdf` 下載；紀錄在但檔不在回 410 | DEC-012 | `main.py:2300-2350`；`design_manual_service.py:211-239` | ACPT-053 |
+| FR-061 | `POST /api/projects/{id}/design-manual` 產出九章設計手冊 PDF（LLM 不可用走 deterministic 底稿），`GET .../pdf` 下載；紀錄在但檔不在回 410 | DEC-012 | `main.py:2300-2350`；`design_manual_service.py:211-239` | ACPT-053 |
 | FR-062 | `POST /api/projects/{id}/delivery-proposal` 產出品牌交付提案 PDF；排版引擎未安裝回 503 `delivery_engine_not_configured`（附安裝指引），失敗 502 | DEC-012, DEC-017 | `main.py:2378-2437`；`agent/skills/delivery/__init__.py:43-120` | ACPT-053 |
 | FR-063 | `POST /api/projects/{id}/design-delivery` 產出成果包 JSON（`schema_version 1.1`、`artifact_type roompilot.web_design_delivery.v1`、六章），並依 `DELIVERY_SENSITIVE_KEYS` 脫敏 | DEC-012 | `main.py:2475-2491,2919-2964` | ACPT-054 |
 | FR-064 | 工程概算：費率目錄每個 source 需 `url`＋`retrieved_on`、輸入需 `quantity_evidence`；查無費率或單位不符列入 `needs_quote` 且不猜價 | DEC-013 | `cost_estimation.py:20-107` | ACPT-055 |

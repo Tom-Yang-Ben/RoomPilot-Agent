@@ -1,7 +1,9 @@
-"""設計手冊組稿：八章、設計理念章引用選件理由、家具章印理由、輸出 PDF。
+"""設計手冊組稿：九章、設計理念章引用選件理由、家具章印理由、輸出 PDF。
 
-離線（gateway=None）走 deterministic 底稿，理由來源為 place_furniture 附進
-placed row 的 reason／hint_note。"""
+金額只在第九章報價單出現，其餘章節不帶價格。離線（gateway=None）走
+deterministic 底稿，理由來源為 place_furniture 附進 placed row 的
+reason／hint_note。"""
+import re
 from pathlib import Path
 
 from backend.agent.documents import (
@@ -51,11 +53,12 @@ def test_manual_has_rationale_chapter_and_furniture_reasons(
         "一、專案與需求摘要",
         "二、設計理念與亮點",
         "三、空間與平面配置",
-        "四、家具清單與預算參考",
+        "四、家具清單",
         "五、材質與色卡",
         "六、驗證與調整紀錄",
         "七、渲染成果",
         "八、工程與預算章節",
+        "九、報價單",
     ]
 
     rationale = next(s for s in manual.sections if s.heading == "二、設計理念與亮點")
@@ -68,6 +71,51 @@ def test_manual_has_rationale_chapter_and_furniture_reasons(
 
     assert Path(manual.pdf_path).exists()
     assert Path(manual.pdf_path).read_bytes()[:4] == b"%PDF"
+
+
+def test_money_only_appears_in_the_quote_chapter(tmp_path, layout_json, questionnaire):
+    """金額（含屋主預算）只准出現在末章報價單，內文不被價格汙染。"""
+    store, _ = _store_with_scene(layout_json, questionnaire)
+    manual = ReportSkill(None).run(store, str(tmp_path / "manual.pdf"))
+
+    amount = re.compile(r"\d[\d,]*\s*元")
+    for section in manual.sections:
+        if section.heading.startswith("九、"):
+            continue
+        assert not amount.search(section.body), f"{section.heading} 出現金額"
+
+
+def test_quote_chapter_lists_units_subtotals_and_pending(
+    tmp_path, layout_json, questionnaire
+):
+    store, _ = _store_with_scene(layout_json, questionnaire)
+    manual = ReportSkill(None).run(store, str(tmp_path / "manual.pdf"))
+    quote = next(s for s in manual.sections if s.heading == "九、報價單")
+
+    assert "單價 18,900 元｜小計 18,900 元" in quote.body
+    assert "已標價合計：" in quote.body
+    assert f"屋主家具預算參考：{questionnaire['budget_total']:,} 元" in quote.body
+
+
+def test_quote_marks_unpriced_items_as_pending_without_guessing():
+    layout = LayoutDoc(
+        rooms=[LayoutRoom(room_id="living", name="客廳", width_cm=420, depth_cm=360)]
+    )
+    scene = SceneDoc(variant="A")
+    scene.rooms["living"] = {
+        "placed": [
+            {"id": "sofa_1", "name": "三人布沙發", "type": "sofa",
+             "width": 180, "depth": 90, "price": 18900},
+            {"id": "ct_1", "name": "訂製茶几", "type": "coffee_table",
+             "width": 90, "depth": 50, "price": None},
+        ],
+        "failed": [],
+    }
+    section = ReportSkill(None)._quote_section(layout, scene, RequirementDoc())
+
+    assert "訂製茶几 ×1｜90x50cm｜待報價" in section.body
+    assert "已標價合計：約 18,900 元（1 件）" in section.body, "待報價品項不進合計"
+    assert "待報價品項：1 件" in section.body
 
 
 def test_render_section_shows_living_day_and_night_others_single():

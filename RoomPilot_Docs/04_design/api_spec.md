@@ -181,7 +181,7 @@
 | POST | `/api/projects/{id}/ai-renders` | 逐房生圖（執行緒池），客廳額外 `full_render_night`（201） | 422 `scene_required`／`room_views_required`／`room_id_required`／`reference_png_required`、503 `openrouter_api_key_not_configured` | FR-058, FR-059, NFR-012 | `main.py:2070-2132` |
 | POST | `/api/projects/{id}/palette-renders` | 代表房色卡比較圖，**每案僅能成功一次**；全失敗不鎖定（201） | 409 `palette_already_generated`、422 `room_required`／`style_card_ids_required`、503 | FR-056 | `main.py:2135-2221` |
 | POST | `/api/projects/{id}/ai-renders/{room_id}/edit` | 改圖（現行程式為逐房各一次，見 OPEN-16）（201） | 409 `room_not_generated`／`ai_edit_budget_exhausted`、422 `feedback_required`／`base_image_required`、503、502 `ai_edit_failed` | FR-060 | `main.py:2224-2287` |
-| POST | `/api/projects/{id}/design-manual` | 八章設計手冊 PDF（LLM 不可用走 deterministic 底稿）（201） | 422 `manual_project_mismatch`／`scene_required`／`rooms_required`、502 `design_manual_failed` | FR-061 | `main.py:2300-2332` |
+| POST | `/api/projects/{id}/design-manual` | 九章設計手冊 PDF（LLM 不可用走 deterministic 底稿）（201） | 422 `manual_project_mismatch`／`scene_required`／`rooms_required`、502 `design_manual_failed` | FR-061 | `main.py:2300-2332` |
 | GET | `/api/projects/{id}/design-manual/pdf` | 下載設計手冊 | 404 `design_manual_not_found`、410 `design_manual_file_missing` | FR-061 | `main.py:2334-2351` |
 | POST | `/api/projects/{id}/delivery-proposal` | 品牌交付提案 PDF（Chromium 子行程排版）（201） | 503 `delivery_engine_not_configured`（附安裝指引）、502 `delivery_proposal_failed`、422 | FR-062, NFR-013 | `main.py:2384-2418` |
 | GET | `/api/projects/{id}/delivery-proposal/pdf` | 下載交付提案 | 404 `delivery_proposal_not_found`、410 `delivery_proposal_file_missing` | FR-062 | `main.py:2421-2437` |

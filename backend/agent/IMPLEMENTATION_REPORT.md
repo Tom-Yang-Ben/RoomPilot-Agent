@@ -59,10 +59,13 @@ room_pilot2 re-export 與新架構 API（見檔內註記）。
 - layout 欄位以 `backend/server/services/scene_service.room_from_payload`
   對齊（`ReadLayoutTool` 目前接受容錯的簡化房間清單；注意 payload 的
   牆/窗段為公尺、`position_cm` 為房間中心原點——轉換集中在 scene_service）。
-- RAG 檢索器：`SpatialRagRetriever` 包 `backend/spatial_data/rag`，其在本
-  分支的可用性與回傳欄位需實測校準；不可用時 `RagFurnitureTool` 回報
-  可讀錯誤，選件可由呼叫端注入其他候選來源（如 `backend/catalog/style_db`
-  轉接的候選白名單）。
+- RAG 檢索器：`SpatialRagRetriever` 包 `backend/spatial_data/rag`。回傳形狀
+  已依 `roompilot.rag.search.v1` 對齊（`flatten_rag_payload` 讀 `blocks`／
+  `hits.furniture`，價格取 `price_twd`、風格取 `style_primary`），但仍未對
+  真實 DB 實測；不可用時 `RagFurnitureTool` 回報可讀錯誤，選件可由呼叫端
+  注入其他候選來源（如 `backend/catalog/style_db` 轉接的候選白名單）。
+  `price_is_estimated`（估價旗標）目前未帶進 `CandidateItem`，報告無法區分
+  估價與實際牌價。
 - 設計手冊第七章為工程/預算章節的預留掛點（本分支尚無工程文件模組，
   缺價一律保留待確認、不補猜）。
 

@@ -259,6 +259,29 @@ def render_lighting(lt, no='L'):
 </section>"""
 
 
+def render_quote(q, no='Q'):
+    """報價單：全份文件唯一出現金額的地方。
+
+    前面的章節只講設計，價格集中在這一頁，屋主才不會邊讀設計邊算錢。缺價的
+    品項照樣列出並標「待報價」——把它藏起來，屋主核對件數時會以為漏了。
+    """
+    facts = "".join(
+        f'<div><span class="k">{esc(f.get("label"))}</span>'
+        f'<span class="v">{esc(f.get("value"))}</span></div>'
+        for f in (q.get("summary") or [])
+    )
+    facts_html = f'<div class="facts">{facts}</div>' if facts else ""
+    notes = "".join(f"<li>{esc(n)}</li>" for n in (q.get("notes") or []))
+    notes_html = f'<ul class="notes">{notes}</ul>' if notes else ""
+    return f"""<section class="page">
+  {section_head(no, q.get('title', '報價單'), q.get('title_en', 'Quotation'))}
+  {para(q.get('intro'))}
+  {render_table(q.get('table'))}
+  {facts_html}
+  {notes_html}
+</section>"""
+
+
 def render_closing(nx, ap, no='N'):
     notes = "".join(f"<li>{esc(n)}</li>" for n in (nx.get("notes") or []))
     notes_html = f'<ul class="notes">{notes}</ul>' if notes else ""
@@ -319,6 +342,10 @@ def build_html(content, base_dir):
         parts.append(render_lighting(content["lighting"], nxt()))
     if content.get("next_steps") or content.get("appendix"):
         parts.append(render_closing(content.get("next_steps", {}), content.get("appendix", {}), nxt()))
+    # 報價單固定收在最後一頁：屋主讀完設計、看完後續與限制才翻到金額，
+    # 而且下次要找價格時直接翻到最後就有。
+    if content.get("quote"):
+        parts.append(render_quote(content["quote"], nxt()))
 
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant"><head><meta charset="utf-8">

@@ -60,7 +60,7 @@
 | GET | `/api/ai-render/status` | main.py:2052 | 查詢第 8 步 AI 生圖服務（OpenRouter nano banana）是否可用；不外洩 token |
 | POST | `/api/projects/{project_id}/ai-renders`（201） | main.py:2058 | 逐房視角經 nano banana 生成寫實室內圖（不移動擺設）。前端送 `scene` ＋逐房第 7 步鎖定視角截圖；伺服器補需求／材質／家電／色卡後逐房呼叫 Gen_Pic Agent。未設金鑰回 503 |
 | POST | `/api/projects/{project_id}/ai-renders/{room_id}/edit`（201） | main.py:2117 | 整批一次改圖：只改指定內容、其餘鎖定不動。額度用完回 409 `ai_edit_budget_exhausted` |
-| POST | `/api/projects/{project_id}/design-manual`（201） | main.py:2188 | 八章設計手冊 PDF（比較後未採用為正式版；端點保留供獨立呼叫，第 8 步 UI 不再觸發）。未設 `OPENROUTER_API_KEY` 時走 deterministic 底稿照樣輸出 |
+| POST | `/api/projects/{project_id}/design-manual`（201） | main.py:2188 | 九章設計手冊 PDF（比較後未採用為正式版；端點保留供獨立呼叫，第 8 步 UI 不再觸發）。未設 `OPENROUTER_API_KEY` 時走 deterministic 底稿照樣輸出 |
 | GET | `/api/projects/{project_id}/design-manual/pdf` | main.py:2222 | 下載已產出的設計手冊 PDF；未產出回 404、檔案遺失回 410 |
 | GET | `/api/delivery-proposal/status` | main.py:2266 | 設計提案排版引擎（playwright Chromium）是否可用；未安裝時回報安裝指引 |
 | POST | `/api/projects/{project_id}/delivery-proposal`（201） | main.py:2272 | 正式成果報告：roompilot-delivery-pdf skill 排版的設計提案 PDF（第 8 步「產出設計提案」按鈕唯一觸發的報告） |
