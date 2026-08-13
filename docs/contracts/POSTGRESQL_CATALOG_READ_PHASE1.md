@@ -60,15 +60,27 @@ flowchart LR
   - 只接收 HTTP query、呼叫 repository、組回既有 API response。
   - 不在 FastAPI 內複製 SQL 或 catalog 演算法。
 - `backend/server/postgres_catalog.py`
-  - 舊 import path 的相容 shim；新程式應直接引用 `backend.catalog.postgres_repository`。
-  - `_payload_from_row()` 是型錄列 → scene contract 的欄位對應。**單價走這裡**：
-    `price_twd` 與 `price_is_estimated` 必須輸出，否則
-    `scene_objects[].price_twd` 永遠是 None，第 8 步報價單每一列都印「待報價」
-    （2026-08-13 修復；回歸測試 `tests/test_postgres_catalog_contract.py::
-    test_catalog_row_carries_the_price_into_the_quote` 把型錄列一路走到 QuoteLine）。
-  - 已知現況：`furniture_catalog_current` 的 8,076 筆 active 家具**全部**
-    `price_is_estimated = true`（價格區間 400–43,800 元），型錄目前沒有任何實價。
-    依 2026-08-13 使用者定案，報價單將其當一般單價呈現、不另標估算。
+  - 舊 import path 的複本，**production 沒有任何地方 import 它**（只有
+    `tests/test_postgres_catalog_contract.py`）。新程式一律引用
+    `backend.catalog.postgres_repository`。改這裡不會影響線上行為。
+
+### 單價（第 8 步報價專用）
+
+單價**不進** `_payload_from_row()`，因此不出現在 `site_payload`、`scene_objects`
+或生圖 context——選件、擺位與生圖都不該看到價格。報價金額由報告階段回查：
+
+- `postgres_repository.load_price_index()`：`item_id → price_twd`，只在第 8 步呼叫。
+- `main._catalog_price_index()` / `_with_catalog_prices()`：在
+  `_validated_report_payload()`（設計手冊、交付提案）與 `_design_delivery_package()`
+  （成果包預算章）兩個入口，用家具 id 補上 `price_twd`。查不到的列保留「待報價」。
+- 前端 `configuration_snapshot.furniture` 是 furniture2d 形狀（只有 `id`，沒有價格），
+  回查因此以 `furniture_id` / `catalog_furniture_id` / `id` 為鍵。
+- 回歸測試：`tests/test_delivery_proposal_api.py::
+  test_design_delivery_prices_frontend_furniture_shape`。
+
+已知現況：`furniture_catalog_current` 的 8,076 筆 active 家具**全部**
+`price_is_estimated = true`（價格區間 400–43,800 元），型錄目前沒有任何實價。
+依 2026-08-13 使用者定案，報價單將其當一般單價呈現、不另標估算。
 
 ## Provider 模式
 

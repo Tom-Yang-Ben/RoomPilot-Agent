@@ -110,6 +110,7 @@ from ..catalog.postgres_repository import (
     catalog_provider_mode,
     catalog_provider_status,
     load_catalog as load_postgres_catalog,
+    load_price_index as load_postgres_price_index,
 )
 
 
@@ -2397,6 +2398,7 @@ def _validated_report_payload(project_id: str, payload: dict) -> tuple[dict, lis
             422,
             {"code": "rooms_required", "message": "缺少房間資料，無法組成果報告。"},
         )
+    scene = {**scene, "scene_objects": _with_catalog_prices(scene["scene_objects"])}
     return scene, rooms
 
 
@@ -2539,6 +2541,60 @@ def _delivery_room_type(room: dict) -> str:
 def _delivery_text(value: object, fallback: str = "") -> str:
     text = str(value or "").strip()
     return text or fallback
+
+
+@lru_cache(maxsize=1)
+def _catalog_price_index() -> dict[str, int]:
+    """型錄單價表（家具 id → 元），只在第 8 步報價階段建立。
+
+    單價刻意不進 site_payload、scene_objects 與生圖 context——選件與擺位不該
+    看到價格；報告要出報價單時才用 furniture_id 回查這張表。PostgreSQL 是定
+    價權威，連不上就退回已驗證 JSON 型錄（缺價的列照樣印「待報價」，不推估）。
+    """
+    if catalog_provider_mode(PROJECT_DIR) == "postgres":
+        try:
+            index = load_postgres_price_index(PROJECT_DIR)
+        except Exception:  # noqa: BLE001 - 報價缺價可降級，報告不該因 DB 斷線中止
+            index = {}
+        if index:
+            return index
+    return {
+        str(item["furniture_id"]): round(price)
+        for item in _merged_furniture_catalog_cached()
+        if item.get("furniture_id") and (price := _delivery_amount_twd(item))
+    }
+
+
+# 報價回查用的 id 鍵：scene_objects 走 furniture_id；前端 furniture2d 的 id
+# 就是 upsertFurniture2dFromSceneObject() 帶進來的 sceneObject.furniture_id。
+_PRICE_LOOKUP_KEYS = (
+    "furniture_id",
+    "catalog_furniture_id",
+    "catalogFurnitureId",
+    "id",
+)
+
+
+def _with_catalog_prices(items: list) -> list[dict]:
+    """報價入口補上 ``price_twd``；已帶價的列不覆蓋。"""
+    index = _catalog_price_index()
+    priced: list[dict] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if _delivery_amount_twd(item) is not None:
+            priced.append(item)
+            continue
+        price = next(
+            (
+                index[key]
+                for name in _PRICE_LOOKUP_KEYS
+                if (key := str(item.get(name) or "").strip()) in index
+            ),
+            None,
+        )
+        priced.append({**item, "price_twd": price} if price else item)
+    return priced
 
 
 def _delivery_amount_twd(item: dict) -> int | None:
@@ -2800,10 +2856,11 @@ def _design_delivery_package(
 ) -> dict:
     rooms = payload.get("rooms") if isinstance(payload.get("rooms"), list) else []
     snapshot = payload.get("configuration_snapshot") if isinstance(payload.get("configuration_snapshot"), dict) else {}
+    snapshot_furniture = _with_catalog_prices(snapshot.get("furniture") or [])
+    snapshot = {**snapshot, "furniture": snapshot_furniture}
     raw_style_card = payload.get("style_card") if isinstance(payload.get("style_card"), dict) else {}
     style_card = _delivery_sanitized_copy(raw_style_card)
     security_review = _delivery_security_review(payload)
-    snapshot_furniture = [item for item in snapshot.get("furniture") or [] if isinstance(item, dict)]
     presentation_rooms: list[dict] = []
     engineering_rooms: list[dict] = []
     for room in rooms:

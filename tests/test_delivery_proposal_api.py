@@ -558,3 +558,24 @@ def test_design_delivery_rejects_project_mismatch(tmp_path, monkeypatch) -> None
     )
     assert response.status_code == 422
     assert response.json()["detail"]["code"] == "delivery_project_mismatch"
+
+
+def test_design_delivery_prices_frontend_furniture_shape(tmp_path, monkeypatch) -> None:
+    """前端送的 furniture2d 形狀只有 id、沒有 price_twd（scene_v2.js 的
+    composeSelectedRoomFurniture()）。金額必須由報告階段用型錄 id 回查補上，
+    否則報價單每一列都會是「待報價」、小計恆為 0。"""
+    client, project_id = _client(tmp_path, monkeypatch)
+    catalog_id, expected_twd = next(iter(main._catalog_price_index().items()))
+    payload = _design_delivery_payload(project_id)
+    payload["configuration_snapshot"]["furniture"] = [
+        {"id": catalog_id, "room_id": "living", "label": "型錄家具"},
+        {"id": "not-a-catalog-id", "room_id": "living", "label": "自訂家具"},
+    ]
+    response = client.post(
+        f"/api/projects/{project_id}/design-delivery", json=payload
+    )
+    assert response.status_code == 200
+    budget = response.json()["budget_report"]
+    assert budget["known_furniture_reference_subtotal_twd"] == expected_twd
+    # 查不到的 id 保留待報價，不得推估。
+    assert budget["pending_quote_count"] >= 1

@@ -683,6 +683,28 @@ def load_catalog(project_dir: Path) -> tuple[dict[str, Any], ...]:
     return tuple(_payload_from_row(dict(row)) for row in rows)
 
 
+def load_price_index(project_dir: Path) -> dict[str, int]:
+    """型錄單價表（``item_id`` → 元），只給第 8 步報價回查。
+
+    刻意不併進 ``_payload_from_row``：單價不進 site_payload / scene_objects，
+    選件、擺位與生圖都不該看到價格。
+    """
+    with _borrow_connection(project_dir) as connection:
+        with _dict_cursor(connection) as cursor:
+            cursor.execute(
+                f"SELECT item_id, price_twd FROM {_VIEW} "
+                "WHERE kind = 'furniture' AND price_twd > 0"
+            )
+            rows = cursor.fetchall()
+    index: dict[str, int] = {}
+    for row in rows:
+        item_id = str(row.get("item_id") or "").strip()
+        price = _as_number(row.get("price_twd"))
+        if item_id and price:
+            index[item_id] = round(price)
+    return index
+
+
 def catalog_summary(project_dir: Path) -> dict[str, Any]:
     """Build current six-style counts from SQL without a process-lifetime cache."""
     mapping = tuple(_STYLE_ID_MAP.items())
