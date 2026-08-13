@@ -31,12 +31,12 @@ from typing import Any, Protocol
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # nano banana / nano banana 2 在 OpenRouter 的預設型號 id；以 .env 覆蓋為準。
-'''
+
 DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image"
 DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-3.1-flash-image"
-'''
-DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image"
-DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-2.5-flash-image"
+
+# DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image"
+# DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-2.5-flash-image"
 
 # 結案報告（設計手冊／交付提案）固定用這顆，不隨 text_model 環境設定漂移
 # （使用者定案：不管是不是測試都用它）。見 skills/report、skills/delivery。
