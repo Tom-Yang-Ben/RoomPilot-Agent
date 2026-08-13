@@ -183,6 +183,10 @@ def _payload_from_row(row: dict[str, Any]) -> dict[str, Any]:
         "object_type_zh": _repair_text(row.get("object_type_zh")),
         "color": _repair_text(row.get("primary_color")),
         "material": _repair_text(row.get("primary_material")),
+        # 型錄單價（view 的 price_twd）。少了這兩欄，scene_objects 的 price_twd
+        # 永遠是 None，報價單每一列都會變成「待報價」。
+        "price_twd": _as_number(row.get("price_twd")),
+        "price_is_estimated": bool(row.get("price_is_estimated")),
         "size_cm": {"width": width, "depth": depth, "height": height},
         "must_against_wall": False,
         "can_rotate": True,

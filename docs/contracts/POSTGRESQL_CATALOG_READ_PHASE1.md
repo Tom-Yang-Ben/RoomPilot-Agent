@@ -61,6 +61,14 @@ flowchart LR
   - 不在 FastAPI 內複製 SQL 或 catalog 演算法。
 - `backend/server/postgres_catalog.py`
   - 舊 import path 的相容 shim；新程式應直接引用 `backend.catalog.postgres_repository`。
+  - `_payload_from_row()` 是型錄列 → scene contract 的欄位對應。**單價走這裡**：
+    `price_twd` 與 `price_is_estimated` 必須輸出，否則
+    `scene_objects[].price_twd` 永遠是 None，第 8 步報價單每一列都印「待報價」
+    （2026-08-13 修復；回歸測試 `tests/test_postgres_catalog_contract.py::
+    test_catalog_row_carries_the_price_into_the_quote` 把型錄列一路走到 QuoteLine）。
+  - 已知現況：`furniture_catalog_current` 的 8,076 筆 active 家具**全部**
+    `price_is_estimated = true`（價格區間 400–43,800 元），型錄目前沒有任何實價。
+    依 2026-08-13 使用者定案，報價單將其當一般單價呈現、不另標估算。
 
 ## Provider 模式
 
