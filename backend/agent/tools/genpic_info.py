@@ -247,7 +247,7 @@ class GenPicInfoTool:
             allowed_change="",
         )
         hint = _LIGHTING_HINTS.get(lighting, _LIGHTING_HINTS["day"])
-        prompt += f'\n可以加上任何需要元素\n草圖中的格局、物件、視角位置不可變動\n{hint}'
+        prompt += f'\n可以加上任何需要元素\n草圖中的格局位置不可變動、視角位置不可變動、牆壁地板材質家具位置門窗皆不可變動\n{hint}'
         return {"prompt": prompt, "lock_manifest": manifest.to_dict(), "stage": stage}
 
     @staticmethod
