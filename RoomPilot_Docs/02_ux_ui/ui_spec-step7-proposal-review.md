@@ -167,7 +167,9 @@
 | 項目 | 行為 | 證據 |
 | :--- | :--- | :--- |
 | 觸發 | `#open-palette-render-brief` → 確認視窗 → `requestPaletteRenders(brief)`；前置需代表房、該房已鎖視角、3 張色卡皆備 | `scene_v2.js:16700`–`16709` |
-| 參考圖 | 把相機切到該房已鎖 `camera` 後 `proposalViewer.capturePng()`，作為 img2img 參考鎖住家具與格局 | `scene_v2.js:16716`–`16717` |
+| 參考圖 | 把相機切到該房已鎖 `camera` 後 `proposalViewer.capturePng()`，作為 img2img 參考鎖住家具與格局；截圖後立即 `lockRenderCamera(true)` 補回相機鎖（`setCameraState()` 內部經 `setViewMode()` 會清掉 `cameraLocked`） | `scene_v2.js:16716`–`16721` |
+| 參考圖必達模型 | `_reference_b64()` 在送出前確認 base64 解得開且非空；缺漏或解不開丟 `AiRenderReferenceMissing` → 422，**不接受靜默降級成純文字生圖**（空字串會讓 `build_render_request` 不附圖，模型照樣回一張構圖不對的圖） | `ai_render_service.py` `_reference_b64`；`skills/genpic/__init__.py:45`–`47` |
+| 三張色卡的差異 | 每張卡各自呼叫 `_requirement_doc(scene, style_card_id=<該卡>)`，**卡名與 60/30/10 用色一起換**；查無官方定義（自訂卡）才退回場景既有色卡的用色，卡名留空 | `ai_render_service.py` `generate_palette_images` → `_requirement_doc` |
 | 請求 | `POST /api/projects/{id}/palette-renders`，body `{project_id, scene, room:{room_id, room_label, reference_png_data_url, note}, style_card_ids[]}` | `scene_v2.js:16720`–`16734` |
 | 伺服器端併發 | 同一代表房 × N 張色卡，執行緒池 `max_workers=len(ids)` 一次送出；每執行緒各自 agent／`SceneDoc`，僅共用無狀態 gateway | `ai_render_service.py:432`–`488` |
 | 每案一次 | `workflow.palette_render.generated` 為真即 409 `palette_already_generated`，不再呼叫模型 | `main.py:2148`–`2156` |
@@ -190,7 +192,7 @@
 | 前進閘門（可進第 8 步） | `REQUIRED_COMPLETIONS.ai_render` 要求前十個內部步驟全部完成 | 「請先在第 7 步確認完整方案、三種候選色卡與比較視角。」 | `canEnter()`（`scene_workflow.js:93`–`104`；`scene_v2.js:1699`） |
 | 色卡必選 | `input[name="confirmed-render-style"]:checked` 必須有值 | 「請先從 3 張生圖中選擇 1 張色卡。」 | `#proposal-confirm-render-palette`（`scene_v2.js:15770`–`15779`） |
 | 色卡每案一次 | 前端 `paletteGenerated` 先擋，後端 `palette_render.generated` 再擋（409） | 「此專案的代表房色卡比較圖已生成過，每個專案只能生成一次。」 | 送出前與端點（`scene_v2.js:16710`–`16714`；`main.py:2148`–`2156`） |
-| 請求完整性 | 專案不符 422 `render_project_mismatch`；缺場景 422 `scene_required`；缺代表房 422 `room_required`；參考圖非 PNG data URL 422 `reference_png_required`；色卡清單空 422 `style_card_ids_required` | 各附中文 message | 端點入口（`main.py:2143`–`2180`） |
+| 請求完整性 | 專案不符 422 `render_project_mismatch`；缺場景 422 `scene_required`；缺代表房 422 `room_required`；參考圖不是「image data URL＋可解碼且非空的 base64」422 `reference_png_required`（`_looks_like_png_data_url()`；服務層 `AiRenderReferenceMissing` 是同一個 code 的第二道）；色卡清單空 422 `style_card_ids_required` | 各附中文 message | 端點入口（`main.py` `create_project_palette_renders`） |
 | 生圖描述不得改格局 | `renderBriefHasSpatialConflict(notes)` 命中時先出警語，需再按一次才送 | 「偵測到可能改變格局、門窗、家具位置或空間大小的描述。…再次按確認即可送出。」 | `#render-brief-confirm`（`scene_v2.js:15966`–`15971`） |
 | 上游變更作廢本步 | 第 6 步再編輯 → `markRealisticSceneEdited()` 清空 `proposalReview` 並 `invalidateFrom("realistic_3d")` | 「即時寫實方案已修改；請重新保存並鎖定渲染視角。」 | `scene_v2.js:1522`–`1533`, `:1381`–`1392` |
 
@@ -224,7 +226,7 @@
 | 對應情境 | SCN-026（逐房鎖定後才可前進）、SCN-027（選定色卡並被告知每案一次）、SCN-028（全失敗可重試） |
 | 對應架構決策 | [ADR-009](../03_architecture/adr/ADR-009-server-governed-ai-generation.md)、[ADR-010](../03_architecture/adr/ADR-010-static-frontend-and-eight-step-collapse.md)、[ADR-007](../03_architecture/adr/ADR-007-centimeter-unit-contract.md)、[ADR-004](../03_architecture/adr/ADR-004-single-workflow-snapshot-sqlite.md) |
 | 對應模組 | MOD-WEB（`backend/server/static/`）、MOD-SRV-RENDER（`ai_render_service.py`）、MOD-SRV-STORE（`palette_render` 快照） |
-| 對應測試 | TC-047、TC-048、TC-049（實測檔：`tests/test_palette_renders_openrouter.py:112`–`227`、`tests/test_scene_v2_contract.py:94`–`143`, `:825`–`843`, `:886`–`895`） |
+| 對應測試 | TC-047、TC-048、TC-049（實測檔：`tests/test_palette_renders_openrouter.py`、`tests/test_scene_v2_contract.py:94`–`143`, `:825`–`843`, `:886`–`895`）。參考圖是否真的送到模型手上由 `test_every_card_request_carries_the_representative_room_screenshot` 與 `test_reference_screenshot_reaches_the_openrouter_request_body`（攔 `OpenRouterGateway._post`，驗 body 同時有 text 與 image_url）把關；卡名／用色逐張對齊由 `test_each_prompt_names_its_own_style_card` 把關 |
 | 對應 Runbook | RB-002（[runbook-genpic-provider-failure](../06_ops/runbook-genpic-provider-failure.md)） |
 | 相鄰步驟 | [ui-spec-step6](ui_spec-step6-layout-2d.md) → 本步 → [ui-spec-step8](ui_spec-step8-ai-render.md) |
 | 需求規格 | [srs](../01_requirements/srs.md)、[prd](../01_requirements/prd.md)；端點契約 [api-spec](../04_design/api_spec.md)、[openapi-render-delivery](../04_design/openapi-render-delivery-v1.yaml) |

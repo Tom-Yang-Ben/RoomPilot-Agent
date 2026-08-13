@@ -19,6 +19,8 @@
 """
 from __future__ import annotations
 
+import base64
+import binascii
 import concurrent.futures
 import os
 from typing import Any
@@ -43,6 +45,7 @@ from .style_cards import load_taiwan_style_cards
 
 __all__ = [
     "AiRenderNotConfigured",
+    "AiRenderReferenceMissing",
     "GenPicFailure",
     "ai_render_status",
     "generate_room_images",
@@ -60,6 +63,16 @@ DEFAULT_PALETTE_IMAGE_MODEL = "google/gemini-3-pro-image-preview"
 
 class AiRenderNotConfigured(RuntimeError):
     """OpenRouter 生圖金鑰未設定；呼叫端應回 503，不得假成功。"""
+
+
+class AiRenderReferenceMissing(ValueError):
+    """視角參考截圖缺漏或無法解碼；呼叫端應回 422。
+
+    參考截圖是 img2img 鎖住家具與格局的唯一手段。少了它，模型只會照文字重畫
+    一個房間——畫面看起來仍然「成功」，但已經不是使用者鎖定的那個空間。所以
+    這裡寧可整個請求失敗，也不接受靜默降級成純文字生圖（第 8 步契約「不得假
+    成功」的同一條原則）。
+    """
 
 
 def ai_render_status() -> dict[str, Any]:
@@ -90,6 +103,26 @@ def _as_data_url(image_b64: Any) -> str:
     if text.startswith("data:"):
         return text
     return f"data:image/png;base64,{text}"
+
+
+def _reference_b64(room: dict) -> str:
+    """取出該房視角截圖的純 base64，並確認它真的解得開、有內容。
+
+    路由已擋過一次格式，這裡是最後一道：``build_render_request`` 只用真值判斷
+    決定要不要附圖（``skills/genpic/__init__.py``），空字串會靜默變成純文字請求，
+    沒有例外也沒有 notices。與其讓使用者拿到一張構圖不對的圖，不如在這裡失敗。
+    """
+    room_id = str(room.get("room_id") or "").strip() or "(未指定房間)"
+    reference = _strip_data_url(room.get("reference_png_data_url"))
+    if not reference:
+        raise AiRenderReferenceMissing(f"{room_id} 缺少 3D 視角截圖")
+    try:
+        decoded = base64.b64decode(reference, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise AiRenderReferenceMissing(f"{room_id} 的 3D 視角截圖不是有效的 base64") from exc
+    if not decoded:
+        raise AiRenderReferenceMissing(f"{room_id} 的 3D 視角截圖是空的")
+    return reference
 
 
 # ----------------------------------------------------------- scene → agent 文件
@@ -181,8 +214,13 @@ def _official_style_and_card(
     return None
 
 
-def _requirement_doc(scene: dict) -> RequirementDoc:
-    """組出生圖需求文件：風格、地板/牆面材質、家電 context、色卡、補充需求。"""
+def _requirement_doc(scene: dict, *, style_card_id: str | None = None) -> RequirementDoc:
+    """組出生圖需求文件：風格、地板/牆面材質、家電 context、色卡、補充需求。
+
+    ``style_card_id`` 供第 7 步三色卡比較逐張覆寫：不指定時用場景目前選定的色卡
+    （第 6 步寫入的 ``scene.style_card``）；指定時整張卡（名稱與 60/30/10 用色）
+    都改成那一張，否則三張生圖的提示詞會共用同一個色卡名稱，只有色碼不同。
+    """
     requirement = scene.get("requirement") or {}
     style = str(
         requirement.get("style") or (scene.get("style") or {}).get("style_id") or ""
@@ -222,10 +260,15 @@ def _requirement_doc(scene: dict) -> RequirementDoc:
     palette_options: list[PaletteOption] = []
     card = scene.get("style_card") or {}
     card_id = str(
-        card.get("card_id")
+        style_card_id
+        or card.get("card_id")
         or (scene.get("design_choices") or {}).get("style_card_id")
         or ""
     ).strip()
+    if style_card_id and str(style_card_id).strip() != str(card.get("card_id") or "").strip():
+        # 換卡時不可沿用場景那張卡的名稱與 palette_hex；查得到官方定義才有得填，
+        # 查不到（自訂卡）就整張留空，由下面的 official 合併決定最終內容。
+        card = {}
     official = _official_style_and_card(card_id)
     if official:
         group, official_card = official
@@ -268,21 +311,6 @@ def _palette_dict(requirements: RequirementDoc) -> dict | None:
         "palette_id": option.palette_id,
         "name": option.name,
         "colors": list(option.colors),
-    }
-
-
-def _palette_for_card(card_id: str, fallback: dict | None) -> dict | None:
-    """第 7 步三色卡比較:各張色卡自己的 60/30/10 用色(taiwan_style_cards.json 回查),
-    好讓三張生圖確實不同色調。查不到官方定義才沿用場景既有色卡(fallback)。"""
-    official = _official_style_and_card(card_id)
-    card = official[1] if official else {}
-    colors = [str(color) for color in (card.get("palette_hex") or [])]
-    if not colors:
-        return fallback
-    return {
-        "palette_id": card_id or "style_card",
-        "name": str(card.get("name_zh") or card_id or "色卡"),
-        "colors": colors,
     }
 
 
@@ -345,13 +373,16 @@ def generate_room_images(
     requirements = _requirement_doc(scene)
     palette = _palette_dict(requirements)
     width_cm, depth_cm = _room_dims(scene)
+    # 先一次驗完所有房間的參考截圖：與其讓某一房靜默降級成純文字生圖，不如整批
+    # 拒絕、由路由回 422。（生圖本身失敗仍照原政策只標記該房，見下方 GenPicFailure。）
+    references = [_reference_b64(room) for room in rooms]
 
-    def _render_one(room: dict) -> tuple[dict, dict | None]:
+    def _render_one(item: tuple[dict, str]) -> tuple[dict, dict | None]:
         # 每執行緒各自 agent/images/scene_doc,避免共用可變狀態;gateway 無狀態可共用。
+        room, reference_b64 = item
         agent = GenPicAgent(gateway)
         images = ImageLibraryDoc()
         room_id = str(room.get("room_id") or "").strip()
-        reference_b64 = _strip_data_url(room.get("reference_png_data_url"))
         rows = _placed_rows(_placed_objects(scene, room_id))
         scene_doc = SceneDoc(rooms={room_id: {"placed": rows, "failed": []}})
         layout_room = _layout_room(room, room_id, width_cm, depth_cm)
@@ -423,7 +454,7 @@ def generate_room_images(
     # 全房生圖:所有房間視角**一次併發**送出(gateway 為 stdlib urllib 阻塞式,用執行緒
     # 池併發);順序對齊輸入 rooms。單一房間失敗只標記該房,其餘照常回傳。
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(rooms))) as pool:
-        outcomes = list(pool.map(_render_one, rooms))
+        outcomes = list(pool.map(_render_one, zip(rooms, references)))
     results = [result for result, _ in outcomes]
     room_state = [state for _, state in outcomes if state is not None]
     return {"results": results, "rooms": room_state}
@@ -441,14 +472,14 @@ def generate_palette_images(
     if not getattr(gateway, "available", False):
         raise AiRenderNotConfigured("openrouter_api_key_not_configured")
 
-    requirements = _requirement_doc(scene)
-    base_palette = _palette_dict(requirements)
+    base_requirements = _requirement_doc(scene)
+    base_palette = _palette_dict(base_requirements)
     width_cm, depth_cm = _room_dims(scene)
     room_id = str(room.get("room_id") or "").strip()
-    reference_b64 = _strip_data_url(room.get("reference_png_data_url"))
+    reference_b64 = _reference_b64(room)
     rows = _placed_rows(_placed_objects(scene, room_id))
     layout_room = _layout_room(room, room_id, width_cm, depth_cm)
-    viewpoint = _viewpoint(room, reference_b64, requirements)
+    viewpoint = _viewpoint(room, reference_b64, base_requirements)
     ids = [str(card_id).strip() for card_id in style_card_ids if str(card_id).strip()]
 
     def _render_one(card_id: str) -> dict:
@@ -456,7 +487,10 @@ def generate_palette_images(
         agent = GenPicAgent(gateway)
         images = ImageLibraryDoc()
         scene_doc = SceneDoc(rooms={room_id: {"placed": rows, "failed": []}})
-        palette = _palette_for_card(card_id, base_palette)
+        # 三張比較圖的差異全在這一行:色卡名稱與 60/30/10 用色都換成這一張的,
+        # 否則三張提示詞會共用場景現有色卡的名稱,只有色碼不同(自相矛盾)。
+        requirements = _requirement_doc(scene, style_card_id=card_id)
+        palette = _palette_dict(requirements) or base_palette
         try:
             record = agent.render_room(
                 requirements,

@@ -292,6 +292,45 @@ def test_generate_then_single_batch_edit_budget(tmp_path, monkeypatch) -> None:
     assert exhausted.json()["detail"]["code"] == "ai_edit_budget_exhausted"
 
 
+def test_reference_png_validation_rejects_empty_and_undecodable_payloads() -> None:
+    """直接釘住路由的圖片驗證函式本身。
+
+    三個端點（ai-renders／palette-renders／ai-renders/{id}/edit）共用它，而 edit 那條
+    在服務層**沒有**後備檢查——放寬這個述詞會讓空圖一路送到模型，且整套測試照樣全綠。
+    """
+    assert main._looks_like_png_data_url(REFERENCE_PNG)
+    assert main._looks_like_png_data_url(f"data:image/jpeg;base64,{_png_b64()}")
+    for bad in (
+        "",
+        None,
+        "data:image/png",                 # 沒有 ;base64, 段
+        "data:image/png;base64,",         # 有前綴、沒有內容
+        "data:image/png;base64,@@@",      # 不是 base64
+        "https://example.com/a.png",      # 不是 data URL
+    ):
+        assert not main._looks_like_png_data_url(bad), bad
+
+
+def test_edit_rejects_empty_base_image_payload(tmp_path, monkeypatch) -> None:
+    """改圖端點沒有服務層後備：空圖必須在入口就被擋下，不能送進模型。"""
+    gateway = CapturingGateway()
+    monkeypatch.setattr(ai_render_service, "OpenRouterGateway", lambda: gateway)
+    client, project_id = _client(tmp_path, monkeypatch)
+    client.post(
+        f"/api/projects/{project_id}/ai-renders",
+        json={"project_id": project_id, "scene": _scene(), "rooms": _rooms()},
+    )
+    before = len(gateway.prompts)
+
+    rejected = client.post(
+        f"/api/projects/{project_id}/ai-renders/living-1/edit",
+        json={"feedback": "把牆面改成淺灰", "image_data_url": "data:image/png;base64,"},
+    )
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"]["code"] == "base_image_required"
+    assert len(gateway.prompts) == before, "被擋下的改圖不該送出任何模型請求"
+
+
 def test_unconfigured_openrouter_reports_explicit_503(tmp_path, monkeypatch) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     client, project_id = _client(tmp_path, monkeypatch)

@@ -16716,6 +16716,11 @@ async function requestPaletteRenders(renderBrief = null) {
   // 代表房 3D 視角截圖:當 img2img 參考,鎖住家具與格局不動(同第 8 步作法)。
   proposalViewer.setCameraState(view.camera);
   const referencePng = proposalViewer.capturePng();
+  // setCameraState() 內部走 setViewMode(),會把 cameraLocked 歸零(scene_viewer.js:3635)。
+  // 本步的視角已在「完成全部視角」時鎖定(:17200),截個圖不該順手解鎖,截完鎖回來。
+  // 只鎖這裡不改 setCameraState 本身:第 8 步 viewer 沒有解鎖工具列,在那裡收緊會把
+  // 使用者卡在完全不能轉、不能縮放的畫面。
+  proposalViewer.lockRenderCamera(true);
   if (status) status.textContent = `正在為「${room.label || "代表房"}」一次送出 ${cards.length} 張色卡比較圖…`;
   try {
     const result = await api(`/api/projects/${state.projectId}/palette-renders`, {

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import io
 import csv
 import json
@@ -67,6 +69,7 @@ from .render_service import (
 )
 from .ai_render_service import (
     AiRenderNotConfigured,
+    AiRenderReferenceMissing,
     GenPicFailure,
     ai_render_status,
     edit_room_image,
@@ -2058,7 +2061,19 @@ async def create_project_render_jobs(project_id: str, payload: dict) -> dict:
 
 
 def _looks_like_png_data_url(value: object) -> bool:
-    return str(value or "").startswith("data:image/")
+    """image data URL 且 base64 內容解得開、非空。
+
+    只檢查前綴不夠：``data:image/png;base64,``（沒有內容）會一路過關到生圖 adapter，
+    在那裡被真值判斷靜默丟掉，最後送出一個沒有參考圖的純文字請求——模型照樣回一張
+    圖，但已經不是使用者鎖定的那個空間，而且回應裡看不出來。故在入口就擋掉。
+    """
+    text = str(value or "")
+    if not text.startswith("data:image/") or ";base64," not in text:
+        return False
+    try:
+        return bool(base64.b64decode(text.split(",", 1)[1], validate=True))
+    except (binascii.Error, ValueError):
+        return False
 
 
 @app.get("/api/ai-render/status")
@@ -2106,6 +2121,11 @@ def create_project_ai_renders(project_id: str, payload: dict) -> dict:
             )
     try:
         outcome = generate_room_images(scene, rooms)
+    except AiRenderReferenceMissing as exc:
+        raise HTTPException(
+            422,
+            {"code": "reference_png_required", "message": f"每個房間視角都需要 3D 視角截圖（{exc}）。"},
+        ) from exc
     except AiRenderNotConfigured as exc:
         raise HTTPException(
             503,
@@ -2180,6 +2200,11 @@ def create_project_palette_renders(project_id: str, payload: dict) -> dict:
         )
     try:
         outcome = generate_palette_images(scene, room, style_card_ids)
+    except AiRenderReferenceMissing as exc:
+        raise HTTPException(
+            422,
+            {"code": "reference_png_required", "message": f"代表房需要 3D 視角截圖（{exc}）。"},
+        ) from exc
     except AiRenderNotConfigured as exc:
         raise HTTPException(
             503,

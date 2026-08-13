@@ -12,19 +12,22 @@ from __future__ import annotations
 import base64
 import io
 import threading
+from unittest import mock
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from backend.server import ai_render_service, main
 from backend.server.ai_render_service import (
     DEFAULT_PALETTE_IMAGE_MODEL,
+    AiRenderReferenceMissing,
     _palette_gateway,
     generate_palette_images,
 )
 from backend.server.project_store import ProjectStore
 from backend.server.style_cards import load_taiwan_style_cards
-from backend.agent.llm import ImageResult, LLMError
+from backend.agent.llm import ImageResult, LLMError, OpenRouterGateway
 
 
 def _png_b64(color=(200, 180, 150)) -> str:
@@ -44,6 +47,9 @@ class CapturingGateway:
     def __init__(self) -> None:
         self.prompts: list[str] = []
         self.models: list[str] = []
+        # 參考截圖有沒有真的送到模型手上,只有這裡看得到:少了它就退化成純文字生圖,
+        # 回傳的圖依然「成功」,但構圖不再是使用者鎖定的那個空間。
+        self.image_inputs: list[tuple] = []
         self._lock = threading.Lock()
 
     def chat(self, messages, **kwargs) -> str:
@@ -53,6 +59,7 @@ class CapturingGateway:
         with self._lock:
             self.prompts.append(prompt)
             self.models.append(model or self.image_model)
+            self.image_inputs.append(tuple(images))
         return ImageResult(image_b64=_png_b64(), model=model or self.image_model)
 
 
@@ -93,16 +100,19 @@ def _room() -> dict:
 
 
 def _three_distinct_cards() -> list[dict]:
-    """從官方色卡取三張 palette_hex 各不相同的卡,供「各卡各自用色」斷言。"""
-    seen: dict[str, list[str]] = {}
+    """從官方色卡取三張 palette_hex 各不相同的卡,供「各卡各自用色與名稱」斷言。"""
+    seen: dict[str, dict] = {}
     for group in load_taiwan_style_cards():
         for card in group.get("cards") or []:
             colors = [str(c) for c in (card.get("palette_hex") or [])]
             key = "|".join(colors)
-            if colors and key not in {"|".join(v) for v in seen.values()}:
-                seen[str(card.get("card_id"))] = colors
+            if colors and key not in {"|".join(v["colors"]) for v in seen.values()}:
+                seen[str(card.get("card_id"))] = {
+                    "colors": colors,
+                    "name": str(card.get("name_zh") or ""),
+                }
             if len(seen) == 3:
-                return [{"card_id": cid, "colors": cols} for cid, cols in seen.items()]
+                return [{"card_id": cid, **rest} for cid, rest in seen.items()]
     raise AssertionError("需要至少三張 palette 不同的官方色卡")
 
 
@@ -128,6 +138,84 @@ def test_one_request_per_card_with_that_cards_palette() -> None:
         )
     # 三張提示詞互不相同(各卡用色不同)。
     assert len(set(gateway.prompts)) == 3
+
+
+def test_every_card_request_carries_the_representative_room_screenshot() -> None:
+    """三張色卡各自的請求都要帶同一張代表房截圖(img2img 鎖住家具與格局)。
+
+    少了它模型會照文字重畫一個房間,回傳的圖仍是 completed,錯誤只有使用者看得出來,
+    所以這條斷言是這條路徑唯一的守門員。
+    """
+    cards = _three_distinct_cards()
+    gateway = CapturingGateway()
+    generate_palette_images(_scene(), _room(), [c["card_id"] for c in cards], gateway=gateway)
+
+    assert len(gateway.image_inputs) == 3
+    expected = REFERENCE_PNG.split(",", 1)[1]
+    for index, images in enumerate(gateway.image_inputs):
+        assert images, f"第 {index + 1} 張色卡的請求沒有帶參考截圖"
+        assert images[0] == expected, f"第 {index + 1} 張帶的不是代表房那張截圖"
+
+
+def test_each_prompt_names_its_own_style_card() -> None:
+    """三張提示詞不能共用場景現有色卡的名稱——名稱要跟著色碼一起換。
+
+    回歸自「三張都寫『自然木質』卻配不同色碼」：模型同時收到互相矛盾的色彩指示。
+    """
+    cards = _three_distinct_cards()
+    gateway = CapturingGateway()
+    generate_palette_images(_scene(), _room(), [c["card_id"] for c in cards], gateway=gateway)
+
+    for card in cards:
+        own = [prompt for prompt in gateway.prompts if card["colors"][0] in prompt]
+        assert len(own) == 1, f"{card['card_id']} 的用色應該只出現在一張提示詞"
+        assert card["name"] in own[0], f"{card['card_id']} 的提示詞沒寫自己的色卡名稱"
+        for other in cards:
+            if other["card_id"] != card["card_id"] and other["name"] != card["name"]:
+                assert other["name"] not in own[0], (
+                    f"{card['card_id']} 的提示詞混進了 {other['card_id']} 的色卡名稱"
+                )
+
+
+def test_reference_screenshot_reaches_the_openrouter_request_body() -> None:
+    """最後一哩:攔在 urllib 送出前,確認 body 同時有文字提示詞與截圖。"""
+    captured: list[dict] = []
+
+    def _fake_post(self, payload, *, model):
+        captured.append(payload)
+        return {
+            "choices": [
+                {"message": {"images": [{"image_url": {"url": f"data:image/png;base64,{_png_b64()}"}}]}}
+            ]
+        }
+
+    cards = _three_distinct_cards()
+    gateway = OpenRouterGateway(api_key="test-key", image_model=DEFAULT_PALETTE_IMAGE_MODEL)
+    with mock.patch.object(OpenRouterGateway, "_post", _fake_post):
+        generate_palette_images(_scene(), _room(), [c["card_id"] for c in cards], gateway=gateway)
+
+    assert len(captured) == 3
+    expected_url = REFERENCE_PNG
+    for payload in captured:
+        content = payload["messages"][0]["content"]
+        kinds = [part["type"] for part in content]
+        assert kinds.count("text") == 1 and kinds.count("image_url") == 1, kinds
+        text = next(part["text"] for part in content if part["type"] == "text")
+        image = next(part["image_url"]["url"] for part in content if part["type"] == "image_url")
+        assert text.strip()
+        assert image == expected_url
+        assert payload["modalities"] == ["image", "text"]
+
+
+def test_blank_reference_png_is_rejected_not_silently_dropped() -> None:
+    """空 payload 的 data URL 過去會靜默變成純文字請求;現在必須整批失敗。"""
+    cards = _three_distinct_cards()
+    gateway = CapturingGateway()
+    room = {**_room(), "reference_png_data_url": "data:image/png;base64,"}
+
+    with pytest.raises(AiRenderReferenceMissing):
+        generate_palette_images(_scene(), room, [c["card_id"] for c in cards], gateway=gateway)
+    assert gateway.prompts == [], "參考圖無效時不該送出任何生圖請求"
 
 
 def test_palette_render_uses_nano_banana_pro_model() -> None:
@@ -224,3 +312,22 @@ def test_missing_reference_png_is_422(tmp_path, monkeypatch) -> None:
     resp = _post(client, project_id, room={"room_id": "living-1", "room_label": "客廳"})
     assert resp.status_code == 422
     assert resp.json()["detail"]["code"] == "reference_png_required"
+
+
+def test_empty_or_undecodable_reference_png_is_422(tmp_path, monkeypatch) -> None:
+    """端點層：這幾種值都不得換到 201。
+
+    註：路由驗證與服務層 ``_reference_b64`` 都會回同一個 422／同一個 code，本測試無法
+    分辨是哪一層擋的。路由那顆述詞本身釘在
+    ``test_ai_render_openrouter.py::test_reference_png_validation_rejects_empty_and_undecodable_payloads``。
+    """
+    monkeypatch.setattr(ai_render_service, "OpenRouterGateway", lambda *a, **k: CapturingGateway())
+    client, project_id = _client(tmp_path, monkeypatch)
+    for bad in ("data:image/png;base64,", "data:image/png", "data:image/png;base64,@@@"):
+        resp = _post(
+            client,
+            project_id,
+            room={"room_id": "living-1", "room_label": "客廳", "reference_png_data_url": bad},
+        )
+        assert resp.status_code == 422, bad
+        assert resp.json()["detail"]["code"] == "reference_png_required", bad

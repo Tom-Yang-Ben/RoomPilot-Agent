@@ -191,9 +191,11 @@ class GenPicInfoTool:
         #   家具配置(位置與數量必須與下列完全一致，不可增減或移動)：{}、
         #   家電：{}、{額外補充需求}」
         # 有數值資訊（尺寸/公分）不提供；沒有資料的段落整段省略。
-        segments = [f"你是室內軟裝設計師，風格要「極致寫實」。"]
+        # 開場白自帶句號，不參與 "、" 串接：一起串會產生「。、，將此草圖…」的贅字。
+        header = "你是室內軟裝設計師，風格要「極致寫實」。"
+        segments: list[str] = []
         if requirements.styles:
-            segments.append(f"，將此草圖渲染成{'、'.join(requirements.styles[:2])}風的配色")
+            segments.append(f"將此草圖渲染成{'、'.join(requirements.styles[:2])}風的配色")
             note = style_note(requirements.styles)
             '''
             if note:
@@ -235,7 +237,7 @@ class GenPicInfoTool:
             segments.append("家電：" + "、".join(appliances))
         if viewpoint and viewpoint.get("note"):
             segments.append(str(viewpoint["note"]))
-        prompt = "、".join(segments)
+        prompt = header + "、".join(segments)
         manifest = LockManifestDoc(
             room_id=room.room_id,
             palette_id=(palette or {}).get("palette_id"),
@@ -246,7 +248,6 @@ class GenPicInfoTool:
         )
         hint = _LIGHTING_HINTS.get(lighting, _LIGHTING_HINTS["day"])
         prompt += f'\n可以加上任何需要元素\n草圖中的格局、物件位置不可變動\n{hint}'
-        print(prompt)
         return {"prompt": prompt, "lock_manifest": manifest.to_dict(), "stage": stage}
 
     @staticmethod
