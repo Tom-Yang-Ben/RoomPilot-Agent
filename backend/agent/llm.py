@@ -134,7 +134,7 @@ class OpenRouterGateway:
     text_model: str = field(default_factory=default_text_model)
     image_model: str = field(
         default_factory=lambda: os.getenv("ROOMPILOT_GENPIC_MODEL", "").strip()
-        or DEFAULT_IMAGE_MODEL
+        or "x-ai/grok-imagine-image-2.0"
     )
     image_fallback_model: str = field(
         default_factory=lambda: os.getenv("ROOMPILOT_GENPIC_FALLBACK_MODEL", "").strip()
