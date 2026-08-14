@@ -630,3 +630,37 @@ def test_design_delivery_prices_frontend_furniture_shape(tmp_path, monkeypatch) 
     assert budget["known_furniture_reference_subtotal_twd"] == expected_twd
     # 查不到的 id 保留待報價，不得推估。
     assert budget["pending_quote_count"] >= 1
+
+
+def test_design_delivery_prices_by_glb_filename_when_ids_are_placement_ids(
+    tmp_path, monkeypatch
+) -> None:
+    """實際存檔的家具兩個 id 欄位都不是型錄 id：``furniture_id`` 是引擎擺位 id
+    （engine/rules.py 的 room-1-bed-1），``catalog_furniture_id`` 是前端候選槽 id
+    （scene_v2.js 的 room-1-bed-double-candidate-1）。此時只剩 model_url 的 GLB
+    檔名認得出屋主選了哪一款。
+
+    這是「報價單全是待報價、家具小計 0 元」的真正成因——型錄有價、回查邏輯也對，
+    斷的是 join key。
+    """
+    client, project_id = _client(tmp_path, monkeypatch)
+    catalog_id, expected_twd = next(iter(main._catalog_price_index().items()))
+    payload = _design_delivery_payload(project_id)
+    payload["configuration_snapshot"]["furniture"] = [
+        {
+            "furniture_id": "room-1-bed-1",
+            "catalog_furniture_id": "room-1-bed-double-candidate-1",
+            "room_id": "living",
+            "name_zh": "床架",
+            "model_url": f"https://cdn.example/models/ikea/{catalog_id}.glb",
+        },
+        # 連 GLB 都沒有就真的無從查起，維持待報價、不推估。
+        {"furniture_id": "room-1-chair-2", "room_id": "living", "name_zh": "單椅"},
+    ]
+    response = client.post(
+        f"/api/projects/{project_id}/design-delivery", json=payload
+    )
+    assert response.status_code == 200
+    budget = response.json()["budget_report"]
+    assert budget["known_furniture_reference_subtotal_twd"] == expected_twd
+    assert budget["pending_quote_count"] >= 1

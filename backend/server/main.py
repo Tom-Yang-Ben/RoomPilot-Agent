@@ -2565,14 +2565,29 @@ def _catalog_price_index() -> dict[str, int]:
     }
 
 
-# 報價回查用的 id 鍵：scene_objects 走 furniture_id；前端 furniture2d 的 id
-# 就是 upsertFurniture2dFromSceneObject() 帶進來的 sceneObject.furniture_id。
+# 報價回查用的 id 鍵。這幾把常常全部落空：``furniture_id`` 是引擎擺位 id
+# （engine/rules.py 產的 ``room-1-bed-1``），``catalog_furniture_id`` 可能是前端
+# 候選槽 id（scene_v2.js 的 ``room-1-bed-double-candidate-1``），兩者都不是型錄
+# id。真正的型錄 id 只剩 GLB 檔名認得，見 _price_lookup_keys()。
 _PRICE_LOOKUP_KEYS = (
     "furniture_id",
     "catalog_furniture_id",
     "catalogFurnitureId",
     "id",
 )
+
+
+def _price_lookup_keys(item: dict):
+    """該件家具所有可能的型錄 id，依可信度排序。
+
+    最後一把是 ``model_url`` 的 GLB 檔名。型錄每一筆的 model_url 檔名都等於自己
+    的 furniture_id，所以擺位 id 蓋掉型錄 id 之後，它是唯一還認得出「屋主選的是
+    哪一款」的線索；少了它，報價單每一列都會是「待報價」、小計恆為 0。
+    """
+    for name in _PRICE_LOOKUP_KEYS:
+        yield str(item.get(name) or "").strip()
+    url = str(item.get("model_url") or "").strip()
+    yield url.rsplit("/", 1)[-1].rsplit(".", 1)[0] if url else ""
 
 
 def _with_catalog_prices(items: list) -> list[dict]:
@@ -2586,11 +2601,7 @@ def _with_catalog_prices(items: list) -> list[dict]:
             priced.append(item)
             continue
         price = next(
-            (
-                index[key]
-                for name in _PRICE_LOOKUP_KEYS
-                if (key := str(item.get(name) or "").strip()) in index
-            ),
+            (index[key] for key in _price_lookup_keys(item) if key in index),
             None,
         )
         priced.append({**item, "price_twd": price} if price else item)

@@ -4125,3 +4125,49 @@ def test_step_seven_accepts_confirmed_room_requirements_after_default_fill() -> 
     )[0]
     assert "state.proposalReview.roomViews = {};" not in palette_handler
     assert "將沿用第 7 步鎖定的逐房視角" in palette_handler
+
+
+def _scene_v2_source() -> str:
+    return (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+
+
+def test_catalog_id_from_model_url_parses_the_glb_stem() -> None:
+    """GLB 檔名是「這是哪一款」的唯一可靠線索（型錄每筆 model_url 檔名 == 自己的
+    furniture_id）。擺位 id／候選槽 id 蓋掉型錄 id 之後，壞模型排除與更換清單都靠它。
+    """
+    source = _scene_v2_source()
+    helper = re.search(
+        r"function catalogIdFromModelUrl\(modelUrl\) \{.*?\n\}", source, re.S
+    )
+    assert helper, "catalogIdFromModelUrl 不見了，兩處排除比對會退回不同命名空間互比"
+    cases = [
+        ("https://cdn.example/models/ikea/fi-beds-01-neiden-bed-frame.glb",
+         "fi-beds-01-neiden-bed-frame"),
+        ("https://cdn.example/a/b.glb?v=3#frag", "b"),          # 查詢字串不能吃進 id
+        ("https://cdn.example/a/c.GLTF", "c"),                  # 副檔名大小寫
+        ("", ""),
+        (None, ""),
+    ]
+    script = f"""
+    {helper.group(0)}
+    console.log(JSON.stringify({json.dumps([c[0] for c in cases])}
+      .map((url) => catalogIdFromModelUrl(url))));
+    """
+    completed = subprocess.run(
+        ["node", "--input-type=module", "--eval", script],
+        cwd=ROOT, check=True, capture_output=True, text=True, encoding="utf-8",
+    )
+    assert json.loads(completed.stdout) == [c[1] for c in cases]
+
+
+def test_unavailable_and_current_catalog_ids_compare_on_the_glb_stem() -> None:
+    """回歸：兩處原本拿候選槽 id 去比真型錄 id，永遠不相等——載入失敗的 GLB 排不掉、
+    正在用的那件會出現在自己的更換清單裡。"""
+    source = _scene_v2_source()
+    unavailable = source.split("function knownUnavailableCatalogFurnitureIds()", 1)[1].split(
+        "\n}", 1
+    )[0]
+    assert "catalogIdFromModelUrl(item.model_url)" in unavailable
+
+    assert "catalogIdFromModelUrl(current.model_url)" in source
+    assert "candidate.furniture_id !== current.catalogFurnitureId" not in source

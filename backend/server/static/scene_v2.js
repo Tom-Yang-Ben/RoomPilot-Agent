@@ -3709,6 +3709,10 @@ function snapshotFurniture(item) {
   return {
     instance_id: item.id || item.instance_id || item.furniture_id || null,
     furniture_id: item.furniture_id || item.catalog_furniture_id || item.id || null,
+    // furniture_id 這時多半已是引擎擺位 id（room-1-bed-1），對不到型錄。GLB 檔名
+    // 是第 8 步唯一還查得到單價的線索（main._price_lookup_keys），拿掉這行，走
+    // downloadEngineeringDelivery() 的報價單會整份變「待報價」。
+    model_url: item.model_url || null,
     room_id: item.room_id || item.roomId || null,
     normalized_type: item.normalized_type || item.type || null,
     name_zh: item.name_zh_raw || item.name_zh || item.name || item.name_en || "",
@@ -10059,6 +10063,14 @@ function questionnaireFurnitureGroups(room, offers) {
   }).sort((left, right) => left.role.rank - right.role.rank || left.type.localeCompare(right.type));
 }
 
+// 型錄每一筆的 model_url 檔名都等於自己的 furniture_id，所以擺位 id／候選槽 id
+// 蓋掉型錄 id 之後，GLB 檔名是唯一還認得出「這是哪一款」的線索。與後端
+// main._price_lookup_keys() 同一套約定。
+function catalogIdFromModelUrl(modelUrl) {
+  const file = String(modelUrl || "").split(/[?#]/)[0].split("/").pop() || "";
+  return file.replace(/\.(glb|gltf)$/i, "");
+}
+
 function knownUnavailableCatalogFurnitureIds() {
   const failedInstanceIds = new Set(
     (whiteViewer.getDiagnostics()?.failedFurniture || [])
@@ -10067,7 +10079,14 @@ function knownUnavailableCatalogFurnitureIds() {
   return new Set(
     (state.sceneData?.scene_objects || [])
       .filter((item) => failedInstanceIds.has(String(item.furniture_id)))
-      .map((item) => String(item.catalog_furniture_id || ""))
+      // 只收 catalog_furniture_id 會整組空轉：它常是候選槽 id
+      // （room-1-bed-double-candidate-1），與候選清單的真型錄 id 不同命名空間，
+      // 載入失敗的 GLB 因此永遠排不掉、換幾次都被選回來。兩種都收才擋得住。
+      .flatMap((item) => [
+        item.catalog_furniture_id,
+        catalogIdFromModelUrl(item.model_url),
+      ])
+      .map((value) => String(value || ""))
       .filter(Boolean),
   );
 }
@@ -12295,13 +12314,14 @@ async function loadReplacementCandidates() {
   // A user may switch modes before a slower catalog request returns. Do not
   // let that older response overwrite the results for the newly selected mode.
   if (requestVersion !== replacementSearchRequestVersion) return;
+  const unavailableCatalogIds = knownUnavailableCatalogFurnitureIds();
+  // current.catalogFurnitureId 多半是候選槽 id，比不到真型錄 id，會讓「正在用的
+  // 這一件」出現在自己的更換清單裡。GLB 檔名優先。
+  const currentCatalogId = catalogIdFromModelUrl(current.model_url)
+    || String(current.catalogFurnitureId || "");
   const allCandidates = rankCatalogFurniture(catalogCandidates, rankingRequest)
-    .filter(
-      (candidate) => !knownUnavailableCatalogFurnitureIds().has(
-        String(candidate.furniture_id),
-      ),
-    )
-    .filter((candidate) => candidate.furniture_id !== current.catalogFurnitureId)
+    .filter((candidate) => !unavailableCatalogIds.has(String(candidate.furniture_id)))
+    .filter((candidate) => candidate.furniture_id !== currentCatalogId)
     .filter((candidate) => replacementCandidateFitsRoom(candidate, room));
   const smallerCandidates = allCandidates.filter((candidate) =>
     replacementCandidateIsSmaller(candidate, current),

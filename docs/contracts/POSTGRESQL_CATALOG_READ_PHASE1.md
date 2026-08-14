@@ -75,8 +75,17 @@ flowchart LR
   （成果包預算章）兩個入口，用家具 id 補上 `price_twd`。查不到的列保留「待報價」。
 - 前端 `configuration_snapshot.furniture` 是 furniture2d 形狀（只有 `id`，沒有價格），
   回查因此以 `furniture_id` / `catalog_furniture_id` / `id` 為鍵。
+- **但這三把鍵常常全部落空**：實際存檔的 `furniture_id` 是引擎擺位 id
+  （`engine/rules.py` 產的 `room-1-bed-1`），`catalog_furniture_id` 則可能是前端候選
+  槽 id（`scene_v2.js` 的 `room-1-bed-double-candidate-1`），兩者都不是型錄 id。此時
+  只剩 `model_url` 的 GLB 檔名認得出屋主選了哪一款——型錄每筆的 model_url 檔名都
+  等於自己的 `furniture_id`，所以 `main._price_lookup_keys()` 以它收尾。少了這把，
+  報價單每一列都是「待報價」、家具小計恆為 0。
+- 因此 `snapshotFurniture()`（`scene_v2.js`）必須保留 `model_url`；它是白名單映射，
+  漏掉就等於把報價金鑰丟掉。
 - 回歸測試：`tests/test_delivery_proposal_api.py::
-  test_design_delivery_prices_frontend_furniture_shape`。
+  test_design_delivery_prices_frontend_furniture_shape` 與
+  `::test_design_delivery_prices_by_glb_filename_when_ids_are_placement_ids`。
 
 已知現況：`furniture_catalog_current` 的 8,076 筆 active 家具**全部**
 `price_is_estimated = true`（價格區間 400–43,800 元），型錄目前沒有任何實價。
