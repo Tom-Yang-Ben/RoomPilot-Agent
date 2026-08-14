@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import colorsys
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 import numpy as np
 from PIL import Image, ImageFilter
@@ -73,7 +73,7 @@ def _texture_label(gray: np.ndarray) -> str:
     return "強烈紋理"
 
 
-def image_visual_profile(image_path: Path) -> dict[str, Any]:
+def image_visual_profile(image_path: Path | BinaryIO) -> dict[str, Any]:
     with Image.open(image_path) as image:
         pixels = _trimmed_pixels(image)
     median = np.median(pixels.reshape(-1, 3), axis=0)
