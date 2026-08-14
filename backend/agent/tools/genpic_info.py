@@ -45,7 +45,7 @@ _LIGHTING_HINTS = {
 _ROOM_TYPE_HINTS = {
     "bathroom": "必須包含衛浴設備（馬桶、洗手台、淋浴設備）",
     "kitchen": "必須包含系統廚具（整排廚櫃、檯面、水槽與爐具）以及冰箱",
-    "balcony": "白色部分為「室外」空間",
+    "balcony": "白色部分為「室外」空間，室外空間風景以高樓眺望出去的風景為主",
 }
 # room_type 是權威訊號，中文房名為容錯後援（對齊 master._is_living_room 的判法）。
 _ROOM_TYPE_ALIASES = {"bath": "bathroom"}
@@ -55,7 +55,7 @@ _ROOM_NAME_TOKENS = (
     ("balcony", ("陽台", "露台")),
 )
 
-# 尺寸不進生圖提示詞（定案；2026-08-14 起廚房例外，見 kitchen_size_note）：
+# 尺寸不進生圖提示詞（定案；2026-08-14 起浴室／廚房／陽台例外，見 room_size_note）：
 # 畫面比例由 img2img 視角截圖鎖定，文字給了數字
 # 只會讓模型照數字重新推比例。型錄名稱有一半帶規格（8076 件中 4130 件，如
 # 「206x46x54 公分」「88"W」「5' 3"」），描述偶爾也帶（201 件）。
@@ -163,10 +163,12 @@ def room_kind(room: LayoutRoom) -> str:
     return ""
 
 
-def kitchen_size_note(room: LayoutRoom) -> str:
-    """廚房才給的尺寸敘述（2026-08-14 使用者定案）：其他房型仍一律不給數值。
+def room_size_note(room: LayoutRoom) -> str:
+    """浴室／廚房／陽台才給的尺寸敘述（2026-08-14 使用者定案）：其他房型仍不給數值。
 
-    面積取長寬外接矩形，L 型廚房會略為高估；要精確得改帶多邊形進來。
+    這三類空間的畫面由固定設備決定，模型要靠尺寸才知道擺不擺得下一字型廚具、
+    淋浴間或洗衣機。面積取長寬外接矩形，L 型或狹長空間會略為高估；要精確得改
+    帶多邊形進來。
     """
     width = float(room.width_cm or 0)
     depth = float(room.depth_cm or 0)
@@ -252,8 +254,8 @@ class GenPicInfoTool:
 
         segments.append(f'房間：{room.name}')
         kind = room_kind(room)
-        if kind == "kitchen":
-            size_note = kitchen_size_note(room)
+        if kind:  # 有專屬提示的三類（bathroom/kitchen/balcony）才報尺寸
+            size_note = room_size_note(room)
             if size_note:
                 segments.append(size_note)
 

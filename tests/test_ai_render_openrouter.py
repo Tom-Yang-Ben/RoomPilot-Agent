@@ -217,21 +217,29 @@ def test_night_only_failure_is_reported_without_touching_the_day_draft() -> None
     assert row["notices"] and "image_data_url" not in row
 
 
-def test_fixed_equipment_and_kitchen_size_enter_the_prompt_by_room_type() -> None:
+def test_fixed_equipment_and_room_size_enter_the_prompt_by_room_type() -> None:
     """白模與家具清單都沒有的固定設備，必須用文字補回來（2026-08-14 使用者定案）：
-    浴室要有衛浴設備、廚房要有系統廚具並報自己的面積長寬、陽台要講明白色部分是室外。
+    浴室要有衛浴設備、廚房要有系統廚具、陽台要講明白色部分是室外，三者都報自己的
+    面積長寬（擺不擺得下淋浴間／一字型廚具／洗衣機由尺寸決定）。
 
-    廚房尺寸取 ``floorplan.room_regions`` 裡該房自己的輪廓；用整體平面圖尺寸等於
+    尺寸取 ``floorplan.room_regions`` 裡該房自己的輪廓；用整體平面圖尺寸等於
     把整層樓的長寬報成廚房的。其他房型維持「數值不進提示詞」的定案。
     """
     scene = _scene()
     scene["floorplan"]["room_regions"] = [
         {
-            "room_id": "kitchen-1",
-            "label": "廚房",
-            "room_type": "kitchen",
-            "exterior": [[-150, -125], [150, -125], [150, 125], [-150, 125]],
+            "room_id": room_id,
+            "label": label,
+            "room_type": room_type,
+            "exterior": [
+                [-half_w, -half_d], [half_w, -half_d], [half_w, half_d], [-half_w, half_d]
+            ],
         }
+        for room_id, label, room_type, half_w, half_d in (
+            ("bath-1", "浴室①", "bathroom", 100, 90),      # 200 × 180
+            ("kitchen-1", "廚房", "kitchen", 150, 125),     # 300 × 250
+            ("balcony-1", "陽台", "balcony", 160, 60),      # 320 × 120
+        )
     ]
     rooms = [
         {
@@ -258,12 +266,15 @@ def test_fixed_equipment_and_kitchen_size_enter_the_prompt_by_room_type() -> Non
     assert "必須包含衛浴設備" in prompt["浴室①"]
     assert "必須包含系統廚具" in prompt["廚房"]
     assert "白色部分為「室外」空間" in prompt["陽台"]
-    # 廚房面積長寬取自己的輪廓（300x250 公分），不是整體平面圖（400x360 公分）。
-    assert "約 300 公分 × 250 公分" in prompt["廚房"]
-    assert "面積約 7.5 平方公尺" in prompt["廚房"]
-    # 尺寸只給廚房；其他房型沒有專屬補述也沒有數值。
-    for label in ("浴室①", "陽台", "臥室①"):
-        assert "平方公尺" not in prompt[label]
+    # 面積長寬取各房自己的輪廓，不是整體平面圖（400x360 公分）。
+    for label, size, area in (
+        ("浴室①", "約 200 公分 × 180 公分", "面積約 3.6 平方公尺"),
+        ("廚房", "約 300 公分 × 250 公分", "面積約 7.5 平方公尺"),
+        ("陽台", "約 320 公分 × 120 公分", "面積約 3.8 平方公尺"),
+    ):
+        assert size in prompt[label] and area in prompt[label]
+    # 尺寸只給這三類；其他房型沒有專屬補述也沒有數值。
+    assert "平方公尺" not in prompt["臥室①"]
     assert "必須包含" not in prompt["臥室①"]
 
 
