@@ -28,6 +28,26 @@ def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
 
 
+def test_room_usage_card_classes_are_styled() -> None:
+    """第 5 步用途卡的每個結構 class 都必須在 site.css 有規則。
+
+    回歸來源：`renderQuestionnaireRoomUsage()` 的卡片 markup 進了 repo，對應樣式
+    卻沒有，卡片整組退回瀏覽器預設 inline 排版——標題與說明黏成一行、視覺符號
+    變成孤字、原生 checkbox 露出成大方框。JS 與 CSS 是兩個檔，沒有東西把它們綁在
+    一起，所以這裡明確斷言。
+    """
+    bundle = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    css = (STATIC / "site.css").read_text(encoding="utf-8")
+
+    emitted = set(re.findall(r"rp-room-usage-card[\w-]*", bundle))
+    assert emitted, "renderQuestionnaireRoomUsage() 不再輸出 rp-room-usage-card,請同步本測試"
+
+    # -schematic 是與 -media 同元素的修飾 class,樣式掛在 -media 上,不需自己的規則。
+    needs_rule = emitted - {"rp-room-usage-card-schematic"}
+    unstyled = sorted(name for name in needs_rule if f".{name}" not in css)
+    assert not unstyled, f"scene_v2.js 產生了這些 class 但 site.css 沒有樣式：{unstyled}"
+
+
 def test_space_editor_room_taxonomy_desync_is_recorded() -> None:
     """第 4 步採 backup/yen-2026-08-06 版：房名 <option> 寫死在 scene.html。
 

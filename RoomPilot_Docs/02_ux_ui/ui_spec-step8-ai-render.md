@@ -189,7 +189,7 @@ dialog#design-delivery-dialog（scene.html:1014） #design-delivery-content
 | Figma | 無（repo 內查無 Figma 連結或設計稿）——**待確認** |
 | Design Tokens | 無獨立 token 檔；樣式集中於 `backend/server/static/site.css`（單檔），本步用 `.rp-render-image-stage`／`.rp-render-gallery`／`.rp-final-render-*`／`.rp-delivery-*` 類名 |
 | 元件對照 | 無元件庫；DOM id 與 `[data-*]` 選擇器即介面契約，斷言於 `tests/test_scene_v2_contract.py:872`–`955` 與 `tests/test_render_image_stage.py` |
-| 快取鍵 | `scene.html` 對 `scene_v2.js`／`site.css` 的 `?v=sha256-<前 12 碼>` 必須等於實檔雜湊，由 `tests/test_scene_v2_contract.py:20`–`28` 強制；`site.css` 現值 `sha256-6cc7e25c8e7e`（`scene.html:7`） |
+| 快取鍵 | `scene.html` 對 `scene_v2.js`／`site.css` 的 `?v=sha256-<前 12 碼>` 必須等於實檔雜湊，由 `tests/test_scene_v2_contract.py:20`–`28` 強制；`site.css` 現值 `sha256-e76c2d47ab75`（`scene.html:7`） |
 | 已知限制 | ①`#ai-render-gallery` 圖片牆無實作（§7）；②側欄靜態「1. 色卡比較」「2. 逐房間視角」為第 7 步遺留骨架，執行期被隱藏或整段取代；③設計手冊 PDF 無前端入口（§4） |
 
 ## 11. 追溯

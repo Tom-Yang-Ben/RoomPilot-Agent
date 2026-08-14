@@ -185,7 +185,7 @@ RAG 只做檢索與排序，不新增候選、不決定幾何、不取代選件�
 | 項目 | 連結／位置 |
 | :--- | :--- |
 | Figma | 無（repo 內查無 Figma 連結或設計稿）——**待確認** |
-| Design Tokens | 無獨立 token 檔；樣式集中於 `backend/server/static/site.css`（單檔） |
+| Design Tokens | 無獨立 token 檔；樣式集中於 `backend/server/static/site.css`（單檔）。用途卡 `.rp-room-usage-card` 以 `data-usage-tone` 帶 `--usage-tint`／`--usage-ink` 兩個區域變數染圖示磚，tone 值來自 `scene_v2.js` 的 `ROOM_USAGE_VISUALS` |
 | 元件對照 | 無元件庫；DOM id 與 `[data-*]` 選擇器即介面契約，斷言於 `tests/test_scene_v2_contract.py` |
 | 快取鍵 | `scene.html` 對 `scene_v2.js`／`site.css` 的 `?v=sha256-<前 12 碼>` 必須等於實檔雜湊，由 `tests/test_scene_v2_contract.py:20`–`28` 強制 |
 | 已知限制 | 逐題視覺問卷 UI 保留但不渲染（§3.3）；`#randomize-requirements` 為測試輔助按鈕仍對使用者可見 |
