@@ -3539,7 +3539,7 @@ def test_ceiling_conflicts_use_real_obstruction_geometry_and_installation_depth(
     assert result["conflicts"][1]["overlapCm"] == 3
 
 
-def test_ceiling_and_light_choices_create_distinct_three_geometry() -> None:
+def test_ceiling_choices_create_distinct_geometry_without_light_fixtures() -> None:
     viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
 
     assert "function createCeilingGeometry(" in viewer
@@ -3548,10 +3548,10 @@ def test_ceiling_and_light_choices_create_distinct_three_geometry() -> None:
     assert 'ceilingStyle === "feature-pendant"' in viewer
     assert 'ceilingStyle === "linear"' in viewer
     assert 'ceilingStyle === "wood-grid"' in viewer
-    assert "function createStyleLights(" in viewer
-    assert 'lightStyle === "track"' in viewer
-    assert 'lightStyle === "downlight"' in viewer
-    assert 'lightStyle === "paper"' in viewer
+    # 天花板燈具不放進 3D 場景:吊燈畫在整層平面中心而非各房中心,會穿牆懸空,
+    # 且 orbit 視角天花隱藏,燈等於吊在半空。light_style 仍供天花衝突檢查與生圖。
+    assert "createStyleLights" not in viewer
+    assert "hangingLightGroup" not in viewer
     assert "keyLight.shadow.mapSize.set(shadowMapSize, shadowMapSize)" in viewer
 
 

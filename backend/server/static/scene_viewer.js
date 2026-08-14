@@ -681,9 +681,6 @@ export function createSceneViewer(
   const ceilingGroup = new THREE.Group();
   scene.add(ceilingGroup);
 
-  const hangingLightGroup = new THREE.Group();
-  scene.add(hangingLightGroup);
-
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath("/static/vendor/draco/");
 
@@ -2961,7 +2958,6 @@ export function createSceneViewer(
   function createRoom(sceneData) {
     clearGroup(roomGroup);
     clearGroup(ceilingGroup);
-    clearGroup(hangingLightGroup);
     wallMeshes.length = 0;
     const catalogThumbnailMode = sceneData.design_choices?.catalog_thumbnail_mode === true;
 
@@ -3266,13 +3262,10 @@ export function createSceneViewer(
       }], 0x7b56b3, 0.96, 5.2);
     }
 
-    if (!catalogThumbnailMode && sceneData.design_choices?.light_style) {
-      createStyleLights(
-        { widthCm, depthCm, wallHeight: ceilingHeight },
-        sceneData.style_card || sceneData.style || {},
-        sceneData.design_choices.light_style,
-      );
-    }
+    // design_choices.light_style 只餵天花衝突檢查與第 8 步生圖提示詞;3D 場景
+    // 不放天花板燈具——它畫在整層平面的中心而非各房中心,會穿牆懸空,而且
+    // orbit 視角天花是隱藏的,燈就吊在空中。照明由環境光組(ambient/hemi/key/
+    // fill)負責,拿掉燈具不會讓場景變暗。
 
     if (!cameraLocked) {
       controls.target.set(0, 90, 0);
@@ -3362,107 +3355,6 @@ export function createSceneViewer(
       return;
     }
     addPanel(room.widthCm, room.depthCm, room.ceilingHeight);
-  }
-
-  function createStyleLights(room, style = {}, lightStyle = "pendant") {
-    const palette = style.palette_hex || ["#F3EBDD", "#D3B48A", "#8B684B"];
-    const lightColor = new THREE.Color(palette[1] || "#D3B48A");
-    const positions = room.widthCm >= 480 ? [-90, 0, 90] : [-62, 62];
-
-    if (lightStyle === "track") {
-      const rail = new THREE.Mesh(
-        new THREE.BoxGeometry(Math.min(room.widthCm * 0.58, 340), 4.5, 5.5),
-        new THREE.MeshStandardMaterial({ color: 0x292724, roughness: 0.34, metalness: 0.7 }),
-      );
-      rail.position.y = room.wallHeight - 8;
-      hangingLightGroup.add(rail);
-      positions.forEach((x, index) => {
-        const spot = new THREE.Mesh(
-          new THREE.CylinderGeometry(6.5, 9, 16, 18),
-          new THREE.MeshStandardMaterial({ color: 0x34312e, roughness: 0.3, metalness: 0.65 }),
-        );
-        spot.position.set(x, room.wallHeight - 19, 0);
-        spot.rotation.z = index % 2 ? -0.28 : 0.28;
-        hangingLightGroup.add(spot);
-        const light = new THREE.SpotLight(0xffdfb0, 2.2, 550, Math.PI / 5.5, 0.45, 1.7);
-        light.position.copy(spot.position);
-        light.target.position.set(x + (index % 2 ? 70 : -70), 0, 50);
-        hangingLightGroup.add(light, light.target);
-      });
-      return;
-    }
-    if (lightStyle === "downlight") {
-      const zPositions = room.depthCm > 420 ? [-80, 80] : [0];
-      positions.forEach((x) => zPositions.forEach((z) => {
-        const trim = new THREE.Mesh(
-          new THREE.CylinderGeometry(9.5, 9.5, 3.5, 24),
-          new THREE.MeshStandardMaterial({ color: 0xf8f5ee, roughness: 0.42, metalness: 0.12 }),
-        );
-        trim.position.set(x, room.wallHeight - 2.5, z);
-        hangingLightGroup.add(trim);
-        const light = new THREE.PointLight(0xffe4bd, 0.78, 350, 2);
-        light.position.set(x, room.wallHeight - 12, z);
-        hangingLightGroup.add(light);
-      }));
-      return;
-    }
-    if (lightStyle === "paper") {
-      const paper = new THREE.Mesh(
-        new THREE.SphereGeometry(34, 32, 20),
-        new THREE.MeshStandardMaterial({
-          color: 0xfff0cf,
-          emissive: 0xffc36f,
-          emissiveIntensity: 0.35,
-          roughness: 0.94,
-          transparent: true,
-          opacity: 0.88,
-        }),
-      );
-      paper.scale.y = 1.18;
-      paper.position.set(0, room.wallHeight - 65, 0);
-      hangingLightGroup.add(paper);
-      const light = new THREE.PointLight(0xffd9a0, 1.8, 520, 2);
-      light.position.copy(paper.position);
-      hangingLightGroup.add(light);
-      return;
-    }
-    positions.forEach((x, index) => {
-      const pendant = new THREE.Group();
-      pendant.position.set(x, room.wallHeight - 8, 0);
-
-      const cord = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.2, 1.2, 72, 8),
-        new THREE.MeshStandardMaterial({ color: 0x332b25, roughness: 0.7 })
-      );
-      cord.position.y = -36;
-      pendant.add(cord);
-
-      const shade = new THREE.Mesh(
-        new THREE.ConeGeometry(19, 18, 32, 1, true),
-        new THREE.MeshStandardMaterial({
-          color: lightColor,
-          roughness: 0.36,
-          metalness: 0.2,
-          side: THREE.DoubleSide,
-        })
-      );
-      shade.position.y = -78;
-      shade.rotation.y = index % 2 ? Math.PI : 0;
-      pendant.add(shade);
-
-      const bulb = new THREE.Mesh(
-        new THREE.SphereGeometry(5.5, 16, 10),
-        new THREE.MeshStandardMaterial({ color: 0xfff1ce, emissive: 0xffb45c, emissiveIntensity: 1.8 })
-      );
-      bulb.position.y = -82;
-      pendant.add(bulb);
-
-      const pointLight = new THREE.PointLight(0xffd6a0, 1.15, 480, 2);
-      pointLight.position.y = -86;
-      pointLight.castShadow = true;
-      pendant.add(pointLight);
-      hangingLightGroup.add(pendant);
-    });
   }
 
   function physicalMaterialFrom(sourceMaterial) {
@@ -4401,7 +4293,6 @@ export function createSceneViewer(
     clearGroup(furnitureGroup);
     clearGroup(roomGroup);
     clearGroup(ceilingGroup);
-    clearGroup(hangingLightGroup);
     wallMeshes.length = 0;
     lastSceneData = null;
     lastWorldSceneData = null;
