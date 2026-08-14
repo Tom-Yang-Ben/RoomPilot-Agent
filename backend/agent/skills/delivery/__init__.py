@@ -138,8 +138,8 @@ class DeliverySkill:
         """把逐房最新生圖（base64）落成檔案。
 
         回傳 ``(主視覺, 夜間)`` 兩份 room_id -> 相對路徑。夜間燈光圖只有客廳
-        會有，走該章的 ``extra_images``（一房一頁的節奏下多佔半頁），不取代
-        主視覺——屋主要先看到日光那張。
+        會有，走該章的 ``extra_images``：排版會把它與主視覺並列（左日光、右
+        夜間），封面與主視覺仍是日光那張。
         """
         rooms_dir = workdir / "rooms"
         files: dict[str, str] = {}
@@ -678,7 +678,13 @@ def build_content(
                 "width_cm": room.width_cm,
                 "depth_cm": room.depth_cm,
                 "hero_image": image,
-                "hero_caption": f"{room.name}最終渲染。" if image else "",
+                # 有夜間圖時兩張並列，標題就要講光線（左日光、右夜間），
+                # 只寫「最終渲染」屋主分不出左邊那張是什麼。
+                "hero_caption": (
+                    (f"{room.name}日光。" if night_image else f"{room.name}最終渲染。")
+                    if image
+                    else ""
+                ),
                 "look": look,
                 "rationale": rationale,
                 "specs": specs,

@@ -207,18 +207,20 @@ def render_room(no, room, base_dir):
     extra = "".join(
         figure(i.get("src"), i.get("caption"), base_dir) for i in room.get("extra_images", [])
     )
-    extra_html = f'<div class="img-grid">{extra}</div>' if extra else ""
+    hero = figure(room.get("hero_image"), room.get("hero_caption"), base_dir, cls="hero")
+    # 有附圖時（客廳的日光／夜間）與主視覺並列：左邊主視覺、右邊附圖，同一眼就能
+    # 對照。附圖排到頁尾要翻著比，而且會把這個空間推到第二頁。
+    images_html = f'<div class="img-grid hero">{hero}{extra}</div>' if extra else hero
     scene = (
         f'<div class="scene-line">{esc(room.get("scene_line"))}</div>'
         if room.get("scene_line") else ""
     )
     return f"""<section class="page">
   {section_head(no, room.get('name', '空間'), room.get('name_en', ''))}
-  {figure(room.get('hero_image'), room.get('hero_caption'), base_dir, cls='hero')}
+  {images_html}
   {scene}
   <div class="two-col">{look_html}{why_html}</div>
   {specs_html}
-  {extra_html}
 </section>"""
 
 
@@ -573,7 +575,9 @@ def main():
                 print(f"   - 第 {r['page']} 頁：內容只到版心 {r['fill']:.0%}，前一頁已滿")
             print("   一個空間一頁是這份文件的節奏。修前一頁的內容（由輕到重）："
                   "精簡 look 一兩句、rationale 減到 2 條、specs 減到 4 列、"
-                  "移除 extra_images。不要靠加字把殘頁填滿，加出來的一定是廢話。")
+                  "extra_images 減到一張（第三張起才會換行往下疊；只留一張是與主視覺"
+                  "並列，砍掉反而讓主視覺變回滿版、更高）。"
+                  "不要靠加字把殘頁填滿，加出來的一定是廢話。")
         elif total:
             print(f"   版面檢查：{total} 頁，無孤行殘頁")
 

@@ -10,6 +10,7 @@ import importlib.util
 import io
 import json
 import re
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -174,6 +175,8 @@ def test_living_room_night_image_becomes_an_extra_image() -> None:
     rooms = {room["name"]: room for room in content["rooms"]}
     living = rooms["客廳"]
     assert living["hero_image"] == "rooms/living-1.png"     # 主視覺仍是日光
+    # 兩張並列時左邊那張要講清楚是日光，只寫「最終渲染」屋主分不出差別。
+    assert living["hero_caption"] == "客廳日光。"
     assert living["extra_images"] == [
         {
             "src": "rooms/living-1_night.png",
@@ -184,8 +187,56 @@ def test_living_room_night_image_becomes_an_extra_image() -> None:
     assert content["meta"]["cover_image"] == "rooms/living-1.png"
     names = {row["name"] for row in content["appendix"]["files"]}
     assert {"rooms/living-1.png", "rooms/living-1_night.png"} <= names
-    # 沒有夜間圖的空間不長出空的 extra_images。
+    # 沒有夜間圖的空間不長出空的 extra_images，標題也維持原樣。
     assert "extra_images" not in rooms["書房"]
+    assert rooms["浴室"]["hero_caption"] == ""      # 無圖就沒有圖說
+
+
+def _load_build_pdf():
+    """打包 skill 的資料夾名有連字號，不能 import，只能按路徑載入。"""
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "backend/agent/skills/roompilot-delivery-pdf/scripts/build_pdf.py"
+    )
+    spec = importlib.util.spec_from_file_location("rp_build_pdf", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_room_hero_and_extra_images_render_side_by_side(tmp_path) -> None:
+    """客廳篇章的兩張圖並列：左邊日光（hero）、右邊夜間，同一個容器內。
+
+    夜間圖排在頁尾要翻著比，而且會把客廳推到第二頁。
+    """
+    build_pdf = _load_build_pdf()
+    rooms_dir = tmp_path / "rooms"
+    rooms_dir.mkdir()
+    for name, color in (("day.png", (200, 180, 150)), ("night.png", (20, 24, 40))):
+        (rooms_dir / name).write_bytes(base64.b64decode(_png_b64(color)))
+
+    html = build_pdf.render_room(
+        "03",
+        {
+            "name": "客廳",
+            "hero_image": "rooms/day.png",
+            "hero_caption": "客廳日光。",
+            "extra_images": [{"src": "rooms/night.png", "caption": "客廳夜間燈光。"}],
+        },
+        tmp_path,
+    )
+
+    grid = re.search(r'<div class="img-grid hero">(.*?)</div>', html, re.S)
+    assert grid, "有附圖時主視覺要進並列容器"
+    pair = grid.group(1)
+    assert pair.count("<img") == 2 and html.count("<img") == 2
+    assert pair.index("客廳日光。") < pair.index("客廳夜間燈光。"), "日光在左、夜間在右"
+
+    # 只有一張圖的空間維持滿版主視覺，不要為了一張圖開兩欄。
+    solo = build_pdf.render_room(
+        "04", {"name": "書房", "hero_image": "rooms/day.png"}, tmp_path
+    )
+    assert "img-grid" not in solo and '<figure class="hero">' in solo
 
 
 def test_write_room_images_lands_day_and_night_as_separate_files(tmp_path) -> None:

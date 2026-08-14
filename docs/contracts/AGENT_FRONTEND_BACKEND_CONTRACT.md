@@ -213,7 +213,8 @@ Request：`scene`（state.sceneData）＋逐房 `rooms`（`room_id`、`room_labe
 `width_cm`、`depth_cm`、目前最新生圖 `image_data_url`（可為 null）、`model`、
 客廳才有的 `night_image_data_url` 與 `night_model`）。夜間圖給值時後端圖庫多建
 一筆 `stage="full_render_night"`：設計手冊第七章日光／夜間並列，交付提案放進
-該空間的 `extra_images`（封面與主視覺仍是日光那張）。不送就兩份報告都只有日光。
+該空間的 `extra_images`，該章開頭兩張並列（左日光、右夜間，各半版寬；封面仍是
+日光那張）。不送就兩份報告都只有日光。
 
 Response（201）：`proposal.download_url`、`proposal.warnings`（排版腳本的
 殘頁／空圖提醒）、`proposal.rendered_rooms`、專案 `revision` 與

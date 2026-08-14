@@ -91,6 +91,9 @@ figcaption { font-size: var(--fs-caption); line-height: var(--lh-caption);
 .hero img { max-height: 76mm; object-fit: cover; }
 .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
 .img-grid img { max-height: 42mm; object-fit: cover; }
+/* 主視覺與附圖並列（客廳的日光／夜間）：半版寬本身就限住高度，
+   再套附圖的 42mm 會把兩張都裁成細條。 */
+.img-grid.hero img { max-height: none; }
 .img-missing { width: 100%; aspect-ratio: 16/9; background: var(--paper-alt);
   border: 0.5pt dashed var(--ink-300); border-radius: var(--r-md);
   display: flex; align-items: center; justify-content: center;
