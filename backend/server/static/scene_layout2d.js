@@ -239,7 +239,9 @@ export function recommendedFurnitureForRoom(room = {}) {
     bedroom: [["bed", "double"], ["wardrobe", "two-door"]],
     kitchen: [["dining-table", "round-4"], ["dining-chair", "standard"], ["appliance-cabinet", "standard"]],
     storage: [["storage-cabinet", "tall"]],
-    bathroom: [["bathroom-vanity", "standard"], ["mirror-cabinet", "standard"]],
+    // 浴室不自動配置家具:浴櫃、鏡櫃屬固定衛浴設備(工程與生圖負責),不走
+    // 家具型錄與擺位引擎。第 6 步沒有問卷勾選時會退回這張表,留著就等於自動擺。
+    bathroom: [],
     balcony: [["flower-pots-planter", "floor"]],
     entryway: [],
     hallway: [],

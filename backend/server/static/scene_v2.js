@@ -39,7 +39,7 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-2cadf10ca9fd";
+} from "./scene_layout2d.js?v=sha256-48fba906f9d9";
 import {
   reconcileFurniture2dAfterGeneration,
   removeFurniture2dBySceneObject,
@@ -9792,6 +9792,10 @@ const ROOM_TYPE_EXCLUDED_FURNITURE_TYPES = Object.freeze({
 });
 
 function questionnaireFurnitureSpecsForRoom(room) {
+  // 浴室一律不推薦家具:房型推薦表已清空,但用途「衛浴收納」仍會經 store →
+  // 收納櫃、偏好打「收納」也會再補一次,勾了就會在第 6 步擺進浴室。
+  // 這裡只擋自動推薦;使用者仍可從家具資料庫手動加入。
+  if ((room?.type || room?.room_type) === "bathroom") return [];
   const recommended = applyVisualPreferencesToSpecs(
     recommendedFurnitureForRoom(room),
     visualPreferencesForRoom(room),

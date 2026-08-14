@@ -2255,10 +2255,45 @@ def test_room_name_drives_default_furniture_when_the_type_is_not_available() -> 
     assert {item[0] for item in result["bedroom"]} >= {"bed", "wardrobe"}
     assert {item[0] for item in result["kitchen"]} == {"dining-table", "dining-chair", "appliance-cabinet"}
     assert {item[0] for item in result["storage"]} == {"storage-cabinet"}
-    assert {item[0] for item in result["bathroom"]} >= {"bathroom-vanity", "mirror-cabinet"}
+    assert result["bathroom"] == []
     assert {item[0] for item in result["living"]} >= {"sofa", "coffee-table", "tv-bench"}
     assert {item[0] for item in result["balcony"]} == {"flower-pots-planter"}
     assert result["circulation"] == []
+
+
+def test_bathroom_never_gets_automatically_placed_furniture() -> None:
+    """浴室不自動擺家具。
+
+    兩條自動路徑都要斷:第 6 步 autoLayoutFurniture 在問卷沒勾選時退回
+    recommendedFurnitureForRoom(原本給浴櫃+鏡櫃);第 5 步用途「衛浴收納」
+    經 store → storage-cabinet 產生推薦,勾了就會被擺進浴室。
+    """
+    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    layout_uri = (STATIC / "scene_layout2d.js").as_uri()
+
+    result = run_workflow_script(
+        f"""
+        import {{ recommendedFurnitureForRoom }} from {json.dumps(layout_uri)};
+        console.log(JSON.stringify({{
+          byType: recommendedFurnitureForRoom({{ id: "b1", type: "bathroom" }}),
+          byLabel: recommendedFurnitureForRoom({{ id: "b2", type: "default", label: "浴室" }}),
+        }}));
+        """
+    )
+    assert result["byType"] == []
+    assert result["byLabel"] == []
+
+    # 第 6 步的退路就是這張表;退路換掉了,這個測試就不再保護任何東西
+    auto_layout = source.split("async function autoLayoutFurniture", 1)[1].split(
+        "\nasync function ", 1
+    )[0]
+    assert "recommendedFurnitureForRoom(room)" in auto_layout
+
+    specs = source.split("function questionnaireFurnitureSpecsForRoom", 1)[1].split(
+        "\nconst ", 1
+    )[0]
+    assert '(room?.type || room?.room_type) === "bathroom"' in specs
+    assert "return [];" in specs
 
 
 def test_balcony_never_gets_cabinets_from_usage_or_preference_defaults() -> None:
