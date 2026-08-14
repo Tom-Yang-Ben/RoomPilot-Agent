@@ -6,6 +6,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from ...model_config import model_default
+
 
 def _read_env_file(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
@@ -59,16 +61,26 @@ def load_rag_settings(project_dir: Path) -> RagSettings:
     default_cache = Path(os.getenv("HF_HOME") or (Path.home() / ".cache" / "huggingface"))
     cache_setting = _setting(project_dir, "ROOMPILOT_RAG_MODEL_CACHE")
     provider = _setting(project_dir, "ROOMPILOT_RAG_PARSER_PROVIDER", "openai").casefold()
+    # 內建預設集中在 backend/model_config.py（哪個功能用哪顆模型的那張表）；
+    # 這裡的 _setting 仍是 .env 檔優先（見上方註解），不改既有優先序。
     if provider == "anthropic":
-        default_model = _setting(project_dir, "ROOMPILOT_RAG_ANTHROPIC_MODEL", "claude-sonnet-4-6")
+        default_model = _setting(
+            project_dir, "ROOMPILOT_RAG_ANTHROPIC_MODEL", model_default("rag_parser_anthropic")
+        )
     elif provider == "openrouter":
         configured_models = _setting(project_dir, "OPENROUTER_MODELS")
         default_model = (
             _setting(project_dir, "OPENROUTER_MODEL")
-            or (configured_models.split(",", 1)[0].strip() if configured_models else "qwen/qwen3-32b:free")
+            or (
+                configured_models.split(",", 1)[0].strip()
+                if configured_models
+                else model_default("rag_parser_openrouter")
+            )
         )
     else:
-        default_model = _setting(project_dir, "ROOMPILOT_RAG_OPENAI_MODEL", "gpt-5.6-sol")
+        default_model = _setting(
+            project_dir, "ROOMPILOT_RAG_OPENAI_MODEL", model_default("rag_parser_openai")
+        )
     timeout_default = _setting(
         project_dir, "ROOMPILOT_RAG_OPENAI_TIMEOUT_SECONDS", "30"
     )

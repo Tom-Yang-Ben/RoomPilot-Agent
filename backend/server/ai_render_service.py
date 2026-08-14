@@ -35,11 +35,8 @@ from ..agent.documents import (
     RequirementItem,
     SceneDoc,
 )
-from ..agent.llm import (
-    DEFAULT_IMAGE_FALLBACK_MODEL,
-    DEFAULT_IMAGE_MODEL,
-    OpenRouterGateway,
-)
+from ..agent.llm import OpenRouterGateway
+from ..model_config import model_default, model_id
 from ..agent.subagents import GenPicAgent, GenPicFailure
 from .style_cards import load_taiwan_style_cards
 
@@ -56,9 +53,9 @@ __all__ = [
 _DEFAULT_ROOM_SIDE_CM = 400.0
 
 # Nano Banana Pro（Gemini 3 Pro Image）：第 7 步代表房「三色卡比較」用較高階模型
-# (使用者指定)。可用 ROOMPILOT_GENPIC_PALETTE_MODEL 覆蓋;pro 失敗時 fallback
-# 回一般 nano banana(DEFAULT_IMAGE_MODEL)。
-DEFAULT_PALETTE_IMAGE_MODEL = "google/gemini-3-pro-image-preview"
+# (使用者指定)。設定入口是 .env 的 ROOMPILOT_GENPIC_PALETTE_MODEL,這裡只是
+# 沒設時的內建預設;pro 失敗時 fallback 回第 8 步的生圖主模型。
+DEFAULT_PALETTE_IMAGE_MODEL = model_default("palette")
 
 
 class AiRenderNotConfigured(RuntimeError):
@@ -81,9 +78,8 @@ def ai_render_status() -> dict[str, Any]:
     return {
         "configured": bool(key),
         "provider": "openrouter",
-        "model": os.getenv("ROOMPILOT_GENPIC_MODEL", "").strip() or DEFAULT_IMAGE_MODEL,
-        "fallback_model": os.getenv("ROOMPILOT_GENPIC_FALLBACK_MODEL", "").strip()
-        or DEFAULT_IMAGE_FALLBACK_MODEL,
+        "model": model_id("genpic"),
+        "fallback_model": model_id("genpic_fallback"),
     }
 
 
@@ -98,11 +94,17 @@ def _strip_data_url(value: Any) -> str:
     return text
 
 
+# base64 開頭即可辨識容器格式；生圖模型回什麼格式由 provider 決定
+# （seedream-5-0-pro 實測回 image/jpeg），寫死 image/png 是對前端與 PDF 謊報 mime。
+_B64_MIME_PREFIXES = (("/9j/", "image/jpeg"), ("iVBOR", "image/png"), ("UklGR", "image/webp"))
+
+
 def _as_data_url(image_b64: Any) -> str:
     text = str(image_b64 or "")
     if text.startswith("data:"):
         return text
-    return f"data:image/png;base64,{text}"
+    mime = next((m for prefix, m in _B64_MIME_PREFIXES if text.startswith(prefix)), "image/png")
+    return f"data:{mime};base64,{text}"
 
 
 def _reference_b64(room: dict) -> str:
@@ -344,13 +346,11 @@ def _palette_dict(requirements: RequirementDoc) -> dict | None:
 
 
 def _palette_gateway() -> OpenRouterGateway:
-    """代表房色卡比較用 Nano Banana Pro;env 可覆蓋,fallback 回一般 nano banana。"""
-    model = os.getenv("ROOMPILOT_GENPIC_PALETTE_MODEL", "").strip() or DEFAULT_PALETTE_IMAGE_MODEL
-    fallback = (
-        os.getenv("ROOMPILOT_GENPIC_PALETTE_FALLBACK_MODEL", "").strip()
-        or DEFAULT_IMAGE_MODEL
+    """代表房色卡比較用 Nano Banana Pro;.env 可覆蓋,fallback 回第 8 步生圖主模型。"""
+    return OpenRouterGateway(
+        image_model=model_id("palette"),
+        image_fallback_model=model_id("palette_fallback") or model_id("genpic"),
     )
-    return OpenRouterGateway(image_model=model, image_fallback_model=fallback)
 
 
 def _viewpoint(room: dict, reference_b64: str, requirements: RequirementDoc) -> dict:

@@ -43,6 +43,9 @@
 
 ## 設定
 
-沿用 `OPENROUTER_API_KEY`；模型可用 `ROOMPILOT_GENPIC_MODEL`、
-`ROOMPILOT_GENPIC_FALLBACK_MODEL` 覆蓋。未設定金鑰時回 `503`
-`openrouter_api_key_not_configured`，明確顯示「尚未連接」，不得回假圖或假成功。
+沿用 `OPENROUTER_API_KEY`；模型 id 一律從 `.env` 讀，不寫死在程式碼：第 8 步逐房生圖
+與改圖用 `ROOMPILOT_GENPIC_MODEL`／`ROOMPILOT_GENPIC_FALLBACK_MODEL`，第 7 步色卡用
+`ROOMPILOT_GENPIC_PALETTE_MODEL`／`..._PALETTE_FALLBACK_MODEL`，第 8 步文案用
+`ROOMPILOT_REPORT_MODEL`。功能 ↔ 變數 ↔ 內建預設的對照表在 `backend/model_config.py`
+的 `REGISTRY`。未設定金鑰時回 `503` `openrouter_api_key_not_configured`，明確顯示
+「尚未連接」，不得回假圖或假成功。

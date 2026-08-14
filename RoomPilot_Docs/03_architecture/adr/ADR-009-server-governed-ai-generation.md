@@ -23,10 +23,13 @@
 
 | 生成點 | 端點 | 伺服器側入口 | 模型決定處 |
 | :--- | :--- | :--- | :--- |
-| S7 代表房色卡比較 | `POST /api/projects/{id}/palette-renders` | `generate_palette_images` | `_palette_gateway()`（Nano Banana Pro，env 可覆蓋）`ai_render_service.py:289-296` |
-| S8 逐房生圖＋客廳夜景 | `POST /api/projects/{id}/ai-renders` | `generate_room_images` | `OpenRouterGateway.image_model`／`image_fallback_model`，`agent/llm.py:135-142` |
+| S7 代表房色卡比較 | `POST /api/projects/{id}/palette-renders` | `generate_palette_images` | `_palette_gateway()` → `ROOMPILOT_GENPIC_PALETTE_MODEL`（預設 Nano Banana Pro） |
+| S8 逐房生圖＋客廳夜景 | `POST /api/projects/{id}/ai-renders` | `generate_room_images` | `OpenRouterGateway.image_model`／`image_fallback_model` → `ROOMPILOT_GENPIC_MODEL`／`..._FALLBACK_MODEL` |
 | S8 改圖 | `POST /api/projects/{id}/ai-renders/{room_id}/edit` | `edit_room_image` | 同上 |
-| S8 文案 LLM（設計手冊／交付提案） | `POST .../design-manual`、`.../delivery-proposal` | `ReportAgent`／`DeliverySkill` | `DEFAULT_REPORT_MODEL` 硬編 `openai/gpt-5.6-luna`，`agent/llm.py:43` |
+| S8 文案 LLM（設計手冊／交付提案） | `POST .../design-manual`、`.../delivery-proposal` | `ReportAgent`／`DeliverySkill` | `report_model()` → `ROOMPILOT_REPORT_MODEL`（預設 `openai/gpt-5.6-luna`） |
+
+四個生成點的模型 id 都不在程式碼裡決定：對照表（功能 ↔ `.env` 變數 ↔ 內建預設）在
+[`backend/model_config.py`](../../../backend/model_config.py) 的 `REGISTRY`，程式碼只留「沒設定時仍能跑」的預設值。
 
 - **問題**：影像由使用者的瀏覽器截圖起頭（第 7 步鎖定視角 PNG），最自然的作法是讓瀏覽器直接把截圖送給模型供應商——但那需要把 `OPENROUTER_API_KEY` 交到瀏覽器，且重試次數、一次性額度與「失敗要不要講實話」全部變成前端自律。此外 DEC-017 要求外部服務壞掉必須誠實中止（`brd.md`），而生圖是最容易以占位圖假裝成功的環節。
 - **驅動因素／約束**：

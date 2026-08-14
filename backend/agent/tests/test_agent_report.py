@@ -16,7 +16,7 @@ from backend.agent.documents import (
     RequirementDoc,
     SceneDoc,
 )
-from backend.agent.llm import DEFAULT_REPORT_MODEL
+from backend.agent.llm import DEFAULT_REPORT_MODEL, report_model
 from backend.agent.skills.furniture import STRATEGIES, FurnitureSkill
 from backend.agent.skills.report import ReportSkill, _looks_like_b64
 from backend.agent.skills.requirements import RequirementSkill
@@ -151,7 +151,8 @@ def test_render_section_shows_living_day_and_night_others_single():
 
 
 def test_report_agent_pins_gpt56_luna_model_with_reasoning():
-    """結案報告的 LLM 呼叫一律用 openai/gpt-5.6-luna 並開 reasoning（不管測不測試）。"""
+    """結案報告的 LLM 呼叫一律走 report_model() 並開 reasoning（不管測不測試）；
+    模型 id 從 .env 的 ROOMPILOT_REPORT_MODEL 讀，沒設時是 openai/gpt-5.6-luna。"""
 
     class SpyGateway:
         available = True
@@ -168,7 +169,8 @@ def test_report_agent_pins_gpt56_luna_model_with_reasoning():
     section = ReportSkill(spy)._intro_section(RequirementDoc(styles=["日式"]), layout, SceneDoc())
 
     assert spy.calls, "報告前言應呼叫 LLM"
-    assert spy.calls[0]["model"] == DEFAULT_REPORT_MODEL == "openai/gpt-5.6-luna"
+    assert spy.calls[0]["model"] == report_model()
+    assert DEFAULT_REPORT_MODEL == "openai/gpt-5.6-luna"
     assert spy.calls[0]["reasoning"] == {"enabled": True}
     assert "測試前言" in section.body
 

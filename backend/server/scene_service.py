@@ -39,6 +39,7 @@ from ..engine.placement import (
     place_furniture,
     place_overlay_on_furniture,
 )
+from ..model_config import model_list
 from ..upgrade3d.dxf_parser import parse_dxf_bytes
 from .style_cards import find_taiwan_style_card
 
@@ -46,10 +47,6 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 DOTENV_CANDIDATES = [
     PROJECT_DIR / ".env",
     PROJECT_DIR / "backend" / "server" / ".env",
-]
-
-DEFAULT_OPENROUTER_MODELS = [
-    "qwen/qwen3-32b:free",
 ]
 
 
@@ -71,19 +68,9 @@ def load_local_env() -> None:
 
 
 def get_openrouter_models() -> list[str]:
+    """第 6 步 LLM 場景規劃的模型清單（設定見 backend/model_config.py 的 `scene_planning`）。"""
     load_local_env()
-
-    raw_models = os.getenv("OPENROUTER_MODELS", "").strip()
-    if raw_models:
-        models = [item.strip() for item in raw_models.split(",") if item.strip()]
-        if models:
-            return models
-
-    single_model = os.getenv("OPENROUTER_MODEL", "").strip()
-    if single_model:
-        return [single_model]
-
-    return DEFAULT_OPENROUTER_MODELS.copy()
+    return model_list("scene_planning")
 
 
 def get_openrouter_status() -> dict[str, Any]:
@@ -245,7 +232,8 @@ def _expand_dining_seats(
     if len(chairs) >= target:
         return items                       # 已足量(例如精選多張)不動
     base = chairs[0]
-    base_fid = str(base.get("furniture_id") or "dining-chair")
+    # 去掉既有的 #seatN:換寬桌後二次展開(2→4 張)不該疊成 c#seat1#seat1。
+    base_fid = str(base.get("furniture_id") or "dining-chair").split("#seat")[0]
     expanded: list[dict[str, Any]] = []
     filled = False
     for it in items:
@@ -254,7 +242,18 @@ def _expand_dining_seats(
                 continue                   # 其餘餐椅併入下面的展開
             filled = True
             for seat in range(target):
-                expanded.append({**base, "instance_id": f"{base_fid}#seat{seat + 1}"})
+                seat_id = f"{base_fid}#seat{seat + 1}"
+                # furniture_id 必須逐張唯一:前端 2D 清單(scene_configuration_sync.
+                # upsertFurniture2dFromSceneObject)與後端 exact 去重(selected_furniture_
+                # items_from_questionnaire)都只認 furniture_id,同 id 的多張椅會被壓回
+                # 一張 —— 展開了也只有一張進得了第 6 步。catalog_furniture_id 保留原
+                # 型錄 id,第 8 步報價回查(main._price_lookup_keys)不受影響。
+                expanded.append({
+                    **base,
+                    "furniture_id": seat_id,
+                    "instance_id": seat_id,
+                    "catalog_furniture_id": base.get("catalog_furniture_id") or base_fid,
+                })
         else:
             expanded.append(it)
     return expanded

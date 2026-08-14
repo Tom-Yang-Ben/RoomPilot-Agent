@@ -114,6 +114,32 @@ def test_no_dining_table_no_expansion():
     assert _expand_dining_seats(items, {"occupants": {"adults": 4}}) == items
 
 
+def test_expanded_chairs_have_unique_furniture_ids():
+    """同 furniture_id 的多張椅會被前端 2D 清單與後端 exact 去重壓回一張。"""
+    items = [
+        _item("t", "dining-table", size_cm={"width": 150, "depth": 90}),
+        _item("c", "dining-chair", size_cm={"width": 45, "depth": 45}),
+    ]
+    chairs = [
+        it for it in _expand_dining_seats(items, {"occupants": {"adults": 2}})
+        if it["normalized_type"] == "dining-chair"
+    ]
+    assert len({it["furniture_id"] for it in chairs}) == len(chairs) == 2
+    assert all(it["catalog_furniture_id"] == "c" for it in chairs)   # 報價回查仍認得型錄 id
+
+
+def test_second_expansion_does_not_stack_seat_suffixes():
+    """換成寬桌後再展開一次(2→4):id 不該疊成 c#seat1#seat1。"""
+    items = [
+        _item("t", "dining-table", size_cm={"width": 150, "depth": 90}),
+        _item("c", "dining-chair", size_cm={"width": 45, "depth": 45}),
+    ]
+    once = _expand_dining_seats(items, {"occupants": {"adults": 2}})
+    twice = _expand_dining_seats(once, {"occupants": {"adults": 4}})
+    chairs = [it for it in twice if it["normalized_type"] == "dining-chair"]
+    assert {it["furniture_id"] for it in chairs} == {f"c#seat{n}" for n in range(1, 5)}
+
+
 def test_tv_bench_placement_has_side_wall_fallback():
     """電視櫃對面牆被門/牆縫擋掉時要有側牆退路(有角度也行),不再整組不放。"""
     from backend.server.scene_service import _agent_prepend_candidates

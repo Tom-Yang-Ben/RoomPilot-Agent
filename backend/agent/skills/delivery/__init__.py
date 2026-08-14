@@ -29,7 +29,7 @@ from ...documents import (
     SceneDoc,
 )
 from ...knowledge import FAMILY_ZH
-from ...llm import DEFAULT_REPORT_MODEL, LLMGateway
+from ...llm import LLMGateway, report_model
 from ...quote import PENDING_TEXT, build_quote, merge_rows
 from ...tools.base import ToolError
 from ...tools.read_docs import ReadDocsTool
@@ -243,7 +243,7 @@ class DeliverySkill:
             CONTENT_SPEC,
             json.dumps(facts, ensure_ascii=False),
             required=("rooms",),
-            model=DEFAULT_REPORT_MODEL,
+            model=report_model(),
             reasoning={"enabled": True},
         )
         if llm_out is None:

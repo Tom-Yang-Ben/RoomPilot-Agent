@@ -100,8 +100,8 @@ def topology():
                         "postgres_repository.py:20；docker_postgresql/docker-compose.yml:5-27",
                   24, 45, 500, 90, small(cyl("purple"), 9), parent="db"))
     c.append(node("or", "OpenRouter：LLM 與生圖唯一閘道（MOD-AGT／MOD-SRV-RENDER）\n"
-                        "端點寫死 /api/v1/chat/completions；agent/llm.py:31,147-149；"
-                        "ai_render_service.py:67-74",
+                        "文字 /api/v1/chat/completions、生圖 /api/v1/images；"
+                        "agent/llm.py:32,37；ai_render_service.py:67-74",
                   24, 40, 500, 70, small(rect("gray"), 9), parent="ext"))
     c.append(node("cf", "CloudFront：GLB 與型錄圖片（MOD-CAT）\n"
                         "交付模式預設 cloudfront；services/cloud_models.py:32,45-52；"

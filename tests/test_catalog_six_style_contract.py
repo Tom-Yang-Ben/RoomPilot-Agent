@@ -3,6 +3,7 @@ import re
 
 import pytest
 
+from backend.model_config import model_default
 from backend.server import intake_service
 from backend.server.main import (
     _merged_furniture_catalog_cached,
@@ -111,7 +112,7 @@ def test_remote_glb_is_advertised_when_the_server_proxy_can_load_it(monkeypatch)
 
 
 def test_intake_has_a_single_short_default_llm_attempt():
-    assert len(intake_service.DEFAULT_MODELS) == 1
+    assert len(model_default("intake").split(",")) == 1
 
 
 def test_intake_service_resolves_repository_root():

@@ -66,24 +66,24 @@ flowchart TB
 
 「經手資料」欄只列**實際進入 prompt** 的欄位；`reasoning` 欄空白＝呼叫端未帶該參數。
 
-**欄位 owner（本表持有）**：「AI 觸點 × 模型（預設 id）× 進 prompt 資料」的單一 owner 是本表。模型 id 可被 env 覆蓋，**現行值**一律以 `/api/ai-render/status` 為準（查法見 [`../../06_ops/runbook-genpic-provider-failure.md`](../../06_ops/runbook-genpic-provider-failure.md) §4）。[`ADR-009`](../adr/ADR-009-server-governed-ai-generation.md) §1「模型決定處」欄與該 runbook §3 原因 5 目前仍各留一份 id 複本——與本表不一致時以本表為準，複本收斂屬該兩檔 owner，不由本圖代改。
+**欄位 owner**：「AI 觸點 × 進 prompt 資料」的單一 owner 是本表。「用哪顆模型」已不在文件裡——模型 id 一律從 `.env` 讀，功能 ↔ 變數 ↔ 內建預設的對照表由 [`backend/model_config.py`](../../../backend/model_config.py) 的 `REGISTRY` 持有；下表只記**哪個觸點吃哪個變數**。**現行生效值**一律以 `/api/ai-render/status` 為準（查法見 [`../../06_ops/runbook-genpic-provider-failure.md`](../../06_ops/runbook-genpic-provider-failure.md) §4）。
 
-| # | 用途（步） | 模型（預設） | reasoning | 進 prompt 的資料 | 佐證 |
+| # | 用途（步） | 模型（`.env` 變數） | reasoning | 進 prompt 的資料 | 佐證 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | S7 代表房色卡比較圖 | `google/gemini-3-pro-image-preview`，失敗回 `gemini-3.1-flash-image` | — | 風格標籤、色卡 60/30/10 色、家具名稱／類型／材質、家電 context ＋該房 3D 截圖 ＋**逐房 note（使用者原文）**：生圖 brief 的 `user_notes` 經 `room.note` 送入 | `ai_render_service.py:58,289-294,440-441`；note 路徑 `scene_v2.js:16731` → `ai_render_service.py:299-306` → `genpic_info.py:236-237`；端點 `main.py:2135` |
-| 2 | S8 逐房生圖（客廳另出夜景） | `google/gemini-3.1-flash-image`，fallback `gemini-2.5-flash-image` | — | 同上；**逐房 note（使用者原文）**在此另含逐房補充需求 ＋ `user_notes` ＋ 確認詞彙三段串接；夜景只換光影提示字串 | `llm.py:38-39,135-142`；`ai_render_service.py:331-347,395-413`；note 路徑 `scene_v2.js:16967-16971`（另 `constraints.notes`：`:16932-16935` → `ai_render_service.py:243-247`）；端點 `main.py:2070` |
-| 3 | S8 改圖──意見收斂（文字） | `text_model`，預設 `openrouter/auto` | — | 使用者輸入的修改意見原文 | `llm.py:84-94`；`skills/editpic/__init__.py:28-34` |
+| 1 | S7 代表房色卡比較圖 | `ROOMPILOT_GENPIC_PALETTE_MODEL`，失敗回 `..._PALETTE_FALLBACK_MODEL`（留空＝退回 #2 主模型） | — | 風格標籤、色卡 60/30/10 色、家具名稱／類型／材質、家電 context ＋該房 3D 截圖 ＋**逐房 note（使用者原文）**：生圖 brief 的 `user_notes` 經 `room.note` 送入 | `ai_render_service.py:58,289-294,440-441`；note 路徑 `scene_v2.js:16731` → `ai_render_service.py:299-306` → `genpic_info.py:236-237`；端點 `main.py:2135` |
+| 2 | S8 逐房生圖（客廳另出夜景） | `ROOMPILOT_GENPIC_MODEL`，fallback `ROOMPILOT_GENPIC_FALLBACK_MODEL` | — | 同上；**逐房 note（使用者原文）**在此另含逐房補充需求 ＋ `user_notes` ＋ 確認詞彙三段串接；夜景只換光影提示字串 | `llm.py:38-39,135-142`；`ai_render_service.py:331-347,395-413`；note 路徑 `scene_v2.js:16967-16971`（另 `constraints.notes`：`:16932-16935` → `ai_render_service.py:243-247`）；端點 `main.py:2070` |
+| 3 | S8 改圖──意見收斂（文字） | `ROOMPILOT_AGENT_TEXT_MODEL`（→ `OPENROUTER_MODEL(S)` → `openrouter/auto`） | — | 使用者輸入的修改意見原文 | `llm.py:default_text_model`；`skills/editpic/__init__.py:28-34` |
 | 4 | S8 改圖──影像編輯 | 同 #2 | — | 鎖定清單 ＋ 收斂後指令 ＋ 上一張圖 | `skills/editpic/__init__.py:37-45`；`genpic_agent.py:109-129`；端點 `main.py:2224` |
-| 5 | S8 設計手冊文案 | `openai/gpt-5.6-luna`（硬編，不隨環境漂移） | `{"enabled": True}` | 風格清單、房名、預算總額、擺放件數、每房選件理由 | `llm.py:41-43`；`skills/report/__init__.py:105-120,163-177`；端點 `main.py:2300` |
+| 5 | S8 設計手冊文案 | `ROOMPILOT_REPORT_MODEL`（自己一個變數，刻意不隨 #3 的通用文字模型漂移） | `{"enabled": True}` | 風格清單、房名、預算總額、擺放件數、每房選件理由 | `llm.py:report_model`；`skills/report/__init__.py:105-120,163-177`；端點 `main.py:2300` |
 | 6 | S8 交付提案文案 | 同 #5 | `{"enabled": True}` | 房名、房尺寸、家具名／類型／件數／尺寸／材質（每房最多 8 件） | `skills/delivery/__init__.py:190-219`；端點 `main.py:2384` |
-| 7 | S6 場景規劃（**預設關閉**） | `OPENROUTER_MODELS` 首項，預設 `qwen/qwen3-32b:free`；逾時 8 秒 | — | 問卷 JSON ＋風格摘要 | `scene_service.py:51-53,73-86,351-403`；旗標 `OPENROUTER_SCENE_PLANNING_ENABLED != "1"` 即回 `None`（`:377-378`） |
+| 7 | S6 場景規劃（**預設關閉**） | `ROOMPILOT_SCENE_MODEL`（→ `OPENROUTER_MODELS` 首項）；逾時 8 秒 | — | 問卷 JSON ＋風格摘要 | `scene_service.py:get_openrouter_models,351-403`；旗標 `OPENROUTER_SCENE_PLANNING_ENABLED != "1"` 即回 `None` |
 | 8 | S6 選件閘門 | **伺服器不自行呼叫模型**；LLM 選擇由請求 payload 的 `llm_selection` 帶入 | — | （不適用） | `main.py:3440-3473`；驗證 `select.py:181-268` |
 | 9 | S5 家具檢索（live） | 本機 embedding ＋ reranker，`local_files_only=True` | — | 問卷組出的房層級偏好字串（用途、選件名稱、偏好標籤、風格、面材） | `scene_v2.js:816-833,871-875`（`fast:true`）；`service.py:364-370`；`model_runtime.py:116-128` |
-| 10 | `/rag` 獨立頁的查詢解析 | `gpt-5.6-sol`（provider 預設 `openai`）；`store=False` | `{"effort": "low"}` | 使用者在該頁輸入的自然語言 | `settings.py:61,71,76,86`；`openai_parser.py:86-107`；`rag.js:335-338`（未帶 `fast`） |
+| 10 | `/rag` 獨立頁的查詢解析 | `ROOMPILOT_RAG_PARSER_MODEL`（未設則依 `..._PARSER_PROVIDER` 取 `ROOMPILOT_RAG_OPENAI_MODEL`／`..._ANTHROPIC_MODEL`）；`store=False` | `{"effort": "low"}` | 使用者在該頁輸入的自然語言 | `settings.py:61,71,76,86`；`openai_parser.py:86-107`；`rag.js:335-338`（未帶 `fast`） |
 | 11 | Agent 並存管線（旗標關閉時 404） | 沿用 #2／#5 的 gateway | 同上 | 同上 | `agent_pipeline_service.py:32,42-51`；`main.py:3510-3515` |
-| 12 | 平面圖開口 VLM 仲裁 | `gemma-4-26b:free` 等免費視覺模型 | — | **使用者上傳平面圖的局部裁圖** | `vlm_judge.py:37-41,131-156`；**全樹無任何 import**，見 §7 |
+| 12 | 平面圖開口 VLM 仲裁 | `OPENROUTER_VISION_MODELS`（預設三顆免費視覺模型輪替） | — | **使用者上傳平面圖的局部裁圖** | `vlm_judge.py:get_vision_models,131-156`；**全樹無任何 import**，見 §7 |
 
-`/api/agent/intake/*` 另有一條 OpenRouter 路徑（`intake_service.py:136-138,162`），需 `OPENROUTER_INTAKE_ENABLED=1`；生產頁 `scene.html:1217` 只載入 `scene_v2.js`，該端點僅 `scene.js` 呼叫，故八步流程走不到——但端點本身可直接打，見 §7。
+`/api/agent/intake/*` 另有一條 OpenRouter 路徑（`intake_service.py:136-138,162`），需 `OPENROUTER_INTAKE_ENABLED=1`，模型看 `ROOMPILOT_INTAKE_MODEL`（→ `OPENROUTER_MODELS`）；生產頁 `scene.html:1217` 只載入 `scene_v2.js`，該端點僅 `scene.js` 呼叫，故八步流程走不到——但端點本身可直接打，見 §7。
 
 ## 4. 紅線卡
 

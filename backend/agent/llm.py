@@ -2,9 +2,10 @@
 
 依架構提案定案：
 
-- 文字 LLM 與生圖模型都經 OpenRouter 呼叫（單一金鑰與計費入口）。
-- 生圖主模型為 nano banana，失敗 fallback 為 nano banana 2；重試次數與
-  模型切換不在這裡決定——那是 Master 的職責（見 ``subagents/genpic_agent.py``）。
+- 文字 LLM 與生圖模型都經 OpenRouter 呼叫（單一金鑰與計費入口），但**端點不同**：
+  文字走 ``/api/v1/chat/completions``，生圖走 ``/api/v1/images``。
+- 生圖主模型與 fallback 由 ``.env`` 決定；重試次數與模型切換不在這裡決定——
+  那是 Master 的職責（見 ``subagents/genpic_agent.py``）。
 - 本模組不做任何流程控制，只提供「一次呼叫」的薄封裝與可注入的
   ``LLMGateway`` 介面，測試以假件替換、不碰網路。
 - HTTP 走 stdlib ``urllib``＋``certifi``（若已安裝）：業務碼禁止 import
@@ -13,34 +14,44 @@
 環境變數：
 
 - ``OPENROUTER_API_KEY``（沿用 repo 既有慣例；空值＝離線、走 deterministic fallback）
-- ``ROOMPILOT_AGENT_TEXT_MODEL`` > ``OPENROUTER_MODEL`` > ``OPENROUTER_MODELS`` 第一個
-- ``ROOMPILOT_GENPIC_MODEL``（預設 nano banana）
-- ``ROOMPILOT_GENPIC_FALLBACK_MODEL``（預設 nano banana 2）
 - ``ROOMPILOT_AGENT_LLM_TIMEOUT``（秒，預設 120）
+- ``OPENROUTER_SITE_URL``／``OPENROUTER_APP_NAME``（OpenRouter 歸因標頭）
 
-模型 id 依 OpenRouter 目錄而定，部署時可用環境變數覆蓋。
+模型 id 一律走 ``backend/model_config.py``（哪個功能用哪顆、對應哪個 ``.env``
+變數都寫在那張表），本模組不再自帶模型設定入口。
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from ..model_config import model_default, model_id
+
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+# 生圖走 OpenRouter 專用端點，不走 chat/completions＋modalities：後者只餵得動
+# output_modalities 含 "text" 的模型（如 google/gemini-2.5-flash-image），純生圖模型
+# （x-ai/grok-imagine-image-2.0 等 output_modalities 只有 image）會直接失敗，再被
+# genpic_agent 的失敗政策悄悄換成備援模型——看起來就像「換了模型卻沒生效」。
+OPENROUTER_IMAGE_URL = "https://openrouter.ai/api/v1/images"
 
-# nano banana / nano banana 2 在 OpenRouter 的預設型號 id；以 .env 覆蓋為準。
+# 以下三個常數只是「.env 沒設時的內建預設」，供 genpic_agent／測試對照用；
+# 實際生效值一律呼叫 model_id()／default_text_model()，見 backend/model_config.py。
+DEFAULT_IMAGE_MODEL = model_default("genpic")
+DEFAULT_IMAGE_FALLBACK_MODEL = model_default("genpic_fallback")
+DEFAULT_REPORT_MODEL = model_default("report")
 
-# DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image"
-# DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-3.1-flash-image"
 
-DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image"
-DEFAULT_IMAGE_FALLBACK_MODEL = "google/gemini-2.5-flash-image"
+def report_model() -> str:
+    """第 8 步結案報告（設計手冊／交付提案）用的文字模型。
 
-# 結案報告（設計手冊／交付提案）固定用這顆，不隨 text_model 環境設定漂移
-# （使用者定案：不管是不是測試都用它）。見 skills/report、skills/delivery。
-DEFAULT_REPORT_MODEL = "openai/gpt-5.6-luna"
+    刻意與 ``text_model`` 分開：報告文案品質綁在特定一顆模型上，不隨通用文字
+    模型的環境設定漂移（``ROOMPILOT_REPORT_MODEL`` 可單獨覆蓋）。
+    """
+    return model_id("report")
 
 class LLMError(RuntimeError):
     """LLM 呼叫失敗；``reason`` 是要能拿去「提示使用者失敗原因」的可讀訊息。"""
@@ -82,16 +93,40 @@ class LLMGateway(Protocol):
 
 
 def default_text_model() -> str:
-    explicit = os.getenv("ROOMPILOT_AGENT_TEXT_MODEL", "").strip()
-    if explicit:
-        return explicit
-    single = os.getenv("OPENROUTER_MODEL", "").strip()
-    if single:
-        return single
-    multi = os.getenv("OPENROUTER_MODELS", "").strip()
-    if multi:
-        return multi.split(",")[0].strip()
-    return "openrouter/auto"
+    return model_id("agent_text")
+
+
+# 生圖模型**不會**自己跟著參考圖的比例走：實測 bytedance-seed/seedream-5-0-pro 收到
+# 16:9 的視角截圖、沒帶 aspect_ratio 時回 2048×2048 正方形——img2img 鎖定的構圖被
+# 重新裁框，等於白鎖。這串是 seedream／grok-imagine／gemini image 都支援的交集值，
+# 送交集外的值（例如 "auto"）會讓備援模型直接 400。
+_ASPECT_RATIOS: tuple[tuple[float, str], ...] = (
+    (9 / 16, "9:16"),
+    (2 / 3, "2:3"),
+    (3 / 4, "3:4"),
+    (1.0, "1:1"),
+    (4 / 3, "4:3"),
+    (3 / 2, "3:2"),
+    (16 / 9, "16:9"),
+)
+
+
+def reference_aspect_ratio(image: str) -> str:
+    """量參考圖比例並 snap 到支援的 enum；量不到就回空字串（呼叫端不送這個參數）。"""
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+
+        raw = image.split(",", 1)[1] if image.startswith("data:") else image
+        with Image.open(BytesIO(base64.b64decode(raw))) as probe:
+            width, height = probe.size
+    except Exception:  # 壞 base64／非影像／沒裝 Pillow：維持模型預設，不因此讓生圖失敗
+        return ""
+    if not width or not height:
+        return ""
+    ratio = width / height
+    return min(_ASPECT_RATIOS, key=lambda item: abs(item[0] - ratio))[1]
 
 
 def parse_json_block(text: str) -> dict:
@@ -132,14 +167,8 @@ class OpenRouterGateway:
 
     api_key: str = field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY", "").strip())
     text_model: str = field(default_factory=default_text_model)
-    image_model: str = field(
-        default_factory=lambda: os.getenv("ROOMPILOT_GENPIC_MODEL", "").strip()
-        or "x-ai/grok-imagine-image-2.0"
-    )
-    image_fallback_model: str = field(
-        default_factory=lambda: os.getenv("ROOMPILOT_GENPIC_FALLBACK_MODEL", "").strip()
-        or DEFAULT_IMAGE_FALLBACK_MODEL
-    )
+    image_model: str = field(default_factory=lambda: model_id("genpic"))
+    image_fallback_model: str = field(default_factory=lambda: model_id("genpic_fallback"))
     site_url: str = field(
         default_factory=lambda: os.getenv("OPENROUTER_SITE_URL", "http://127.0.0.1:8002")
     )
@@ -164,14 +193,14 @@ class OpenRouterGateway:
         except ImportError:
             return None  # 系統憑證鏈可用時退回預設
 
-    def _post(self, payload: dict, *, model: str) -> dict:
+    def _post(self, payload: dict, *, model: str, url: str = OPENROUTER_URL) -> dict:
         if not self.api_key:
             raise LLMError("OPENROUTER_API_KEY 未設定", model=model)
         import urllib.error
         import urllib.request
 
         request = urllib.request.Request(
-            OPENROUTER_URL,
+            url,
             data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
             headers={
                 "Authorization": f"Bearer {self.api_key}",
@@ -236,7 +265,7 @@ class OpenRouterGateway:
             raise LLMError("OpenRouter 回覆內容為空", model=used_model)
         return content
 
-    # -- 生圖（nano banana 系列走 chat completions 的 image modality） --
+    # -- 生圖（OpenRouter /api/v1/images；img2img 參考圖走 input_references） --
 
     def generate_image(
         self,
@@ -246,27 +275,28 @@ class OpenRouterGateway:
         model: str | None = None,
     ) -> ImageResult:
         used_model = model or self.image_model
-        content: list[dict] = [{"type": "text", "text": prompt}]
-
-        for image_b64 in images:
-            url = image_b64
-            if not url.startswith("data:"):
-                url = f"data:image/png;base64,{image_b64}"
-            content.append({"type": "image_url", "image_url": {"url": url}})
-        payload = {
-            "model": used_model,
-            "messages": [{"role": "user", "content": content}],
-            "modalities": ["image", "text"],
-        }
-        data = self._post(payload, model=used_model)
-        try:
-            message = data["choices"][0]["message"]
-        except (KeyError, IndexError, TypeError) as exc:
-            raise LLMError(f"OpenRouter 回應缺少 message：{exc}", model=used_model) from exc
-        for row in message.get("images") or []:
-            url = ((row or {}).get("image_url") or {}).get("url", "")
-            if url.startswith("data:"):
-                url = url.split(",", 1)[-1]
-            if url:
-                return ImageResult(image_b64=url, model=used_model, raw=None)
+        payload: dict[str, Any] = {"model": used_model, "prompt": prompt}
+        references = [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": img if img.startswith("data:") else f"data:image/png;base64,{img}"
+                },
+            }
+            for img in images
+        ]
+        if references:
+            payload["input_references"] = references
+            aspect_ratio = reference_aspect_ratio(images[0])
+            if aspect_ratio:
+                payload["aspect_ratio"] = aspect_ratio
+        data = self._post(payload, model=used_model, url=OPENROUTER_IMAGE_URL)
+        for row in data.get("data") or []:
+            image_b64 = (row or {}).get("b64_json") or ""
+            if not image_b64:
+                # 部分 provider 回 url 欄位；只有 data URL 能直接進 image_ref。
+                url = (row or {}).get("url") or ""
+                image_b64 = url.split(",", 1)[-1] if url.startswith("data:") else ""
+            if image_b64:
+                return ImageResult(image_b64=image_b64, model=used_model, raw=None)
         raise LLMError("生圖模型未回傳影像內容", model=used_model)

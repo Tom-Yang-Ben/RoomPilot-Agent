@@ -10,6 +10,8 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
+from ..model_config import model_list
+
 INTAKE_STEPS = (
     ("space_type", "你想規劃哪一個空間？可以直接用一段話描述整體需求。"),
     ("occupants", "為了確認尺度，這個空間會由幾位成人、小孩、長輩或寵物使用？"),
@@ -18,7 +20,6 @@ INTAKE_STEPS = (
     ("materials", "你偏好哪些材質？例如木頭、石材、布料、金屬或玻璃。"),
     ("constraints", "有哪些一定要保留或不能被遮擋的條件？例如門、窗、走道或既有設備。"),
 )
-DEFAULT_MODELS = ["qwen/qwen3-32b:free"]
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ENV_PATHS = (os.path.join(PROJECT_DIR, ".env"), os.path.join(PROJECT_DIR, "backend", "server", ".env"))
 
@@ -40,12 +41,9 @@ def _load_local_env() -> None:
                 os.environ[key] = value
 
 def _models() -> list[str]:
+    """第 1 步問卷需求抽取的模型清單（設定見 backend/model_config.py 的 `intake`）。"""
     _load_local_env()
-    raw = os.getenv("OPENROUTER_MODELS", "").strip()
-    if raw:
-        return [item.strip() for item in raw.split(",") if item.strip()]
-    single = os.getenv("OPENROUTER_MODEL", "").strip()
-    return [single] if single else DEFAULT_MODELS.copy()
+    return model_list("intake")
 
 def _api_key() -> str:
     _load_local_env()

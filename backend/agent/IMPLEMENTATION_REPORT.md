@@ -71,16 +71,15 @@ room_pilot2 re-export 與新架構 API（見檔內註記）。
 
 ## 環境變數
 
+模型 id 全部從 `.env` 讀；哪個功能用哪顆、對應哪個變數、內建預設是什麼，
+以 [`backend/model_config.py`](../model_config.py) 的 `REGISTRY` 為準（本檔不重複那張表）。
+agent 側另有兩個非模型變數：
+
 | 變數 | 用途 | 預設 |
 |---|---|---|
 | `OPENROUTER_API_KEY` | 文字＋生圖統一金鑰（沿用既有慣例） | 空＝離線 fallback |
-| `ROOMPILOT_AGENT_TEXT_MODEL` | 文字模型覆蓋 | `OPENROUTER_MODEL(S)` → `openrouter/auto` |
-| `ROOMPILOT_GENPIC_MODEL` | 生圖主模型（nano banana） | `google/gemini-2.5-flash-image` |
-| `ROOMPILOT_GENPIC_FALLBACK_MODEL` | 生圖備援（nano banana 2） | `google/gemini-3-pro-image-preview` |
 | `ROOMPILOT_AGENT_LLM_TIMEOUT` | 呼叫逾時（秒） | 120 |
 | `ROOMPILOT_PDF_FONT` | 手冊 PDF 中文字型路徑 | 自動找 msjh.ttc 等 |
-
-生圖模型 id 依 OpenRouter 目錄為準，部署時以 `.env` 覆蓋。
 
 ## 2026-08-01 yen 分支遷移適配
 

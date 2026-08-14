@@ -79,7 +79,9 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 
 ## 3. 環境變數總表
 
-全表由 `rg "os.environ|os.getenv"` 於 `backend/` 逐點核對而得。**兩套 `.env` 讀取順序相反**，同名變數在型錄與檢索兩邊行為不同：型錄側 `os.getenv` 優先於 `.env` 檔（`postgres_repository.py:194-196`），檢索側 `.env` 檔優先於 `os.getenv`（`spatial_data/rag/settings.py:23-28`，註解說明是刻意避免父行程環境污染）。另有兩支服務會把 `.env` 內容寫回 `os.environ`（`scene_service.py:56-70`；`intake_service.py:25-40`）。
+全表由 `rg "os.environ|os.getenv"` 於 `backend/` 逐點核對而得。**外接模型 id 一律走
+`backend/model_config.py` 的 `REGISTRY`**——哪個功能用哪顆、對應哪個變數、內建預設是什麼，
+以那張表為準；本表只列變數本身。**兩套 `.env` 讀取順序相反**，同名變數在型錄與檢索兩邊行為不同：型錄側 `os.getenv` 優先於 `.env` 檔（`postgres_repository.py:194-196`），檢索側 `.env` 檔優先於 `os.getenv`（`spatial_data/rag/settings.py:23-28`，註解說明是刻意避免父行程環境污染）。另有兩支服務會把 `.env` 內容寫回 `os.environ`（`scene_service.py:56-70`；`intake_service.py:25-40`）。
 
 | 變數 | 預設 | 作用 | 佐證 |
 | :--- | :--- | :--- | :--- |
@@ -90,12 +92,15 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 | `DB_POOL_MIN`／`DB_POOL_MAX` | `1`／`8` | `ThreadedConnectionPool` 上下界（NFR-007） | `postgres_repository.py:241-242` |
 | `DB_ADMIN_DB` | `postgres` | 容器初始化用資料庫名 | `docker-compose.yml:13` |
 | `OPENROUTER_API_KEY` | 空 | 生圖／色卡／改圖／文案 LLM 唯一金鑰；未設 → 503 | `ai_render_service.py:67`；`agent/llm.py:133`；`main.py:2107-2115` |
-| `OPENROUTER_MODEL`／`OPENROUTER_MODELS` | 空 | 文字模型單選／逗號清單 | `agent/llm.py:88-91`；`scene_service.py:76-82` |
+| `OPENROUTER_MODEL`／`OPENROUTER_MODELS` | 空 | 文字模型單選／逗號清單；**各功能專屬變數優先**，這兩個只是共用回退池 | `model_config.py:REGISTRY` |
 | `OPENROUTER_SITE_URL`／`OPENROUTER_APP_NAME` | `http://127.0.0.1:8002`／`roompilot` | OpenRouter 歸因標頭 | `agent/llm.py:144-146` |
-| `ROOMPILOT_AGENT_TEXT_MODEL` | 空 | 覆寫 agent 文字模型（優先於 `OPENROUTER_MODEL`） | `agent/llm.py:85-88` |
+| `ROOMPILOT_INTAKE_MODEL` | 空（回落 `qwen/qwen3-32b:free`） | 第 1 步問卷需求抽取 | `model_config.py`；`intake_service.py:_models` |
+| `ROOMPILOT_SCENE_MODEL` | 空（回落 `qwen/qwen3-32b:free`） | 第 6 步 LLM 場景規劃 | `model_config.py`；`scene_service.py:get_openrouter_models` |
+| `ROOMPILOT_AGENT_TEXT_MODEL` | 空（回落 `openrouter/auto`） | agent 通用文字（優先於 `OPENROUTER_MODEL`） | `model_config.py`；`agent/llm.py:default_text_model` |
+| `ROOMPILOT_REPORT_MODEL` | 空（回落 `openai/gpt-5.6-luna`） | 第 8 步設計手冊／交付提案文案 | `model_config.py`；`agent/llm.py:report_model` |
 | `ROOMPILOT_AGENT_LLM_TIMEOUT` | `120`（秒） | agent 側 LLM 逾時（NFR-011） | `agent/llm.py:147-148` |
-| `ROOMPILOT_GENPIC_MODEL`／`..._FALLBACK_MODEL` | 空（回落內建常數） | 第 8 步逐房生圖主／備模型 | `ai_render_service.py:71-72` |
-| `ROOMPILOT_GENPIC_PALETTE_MODEL`／`..._PALETTE_FALLBACK_MODEL` | 空（回落 `google/gemini-3-pro-image-preview`） | 第 7 步色卡模型 | `ai_render_service.py:58,291-293` |
+| `ROOMPILOT_GENPIC_MODEL`／`..._FALLBACK_MODEL` | 空（回落 `x-ai/grok-imagine-image-2.0`／`google/gemini-2.5-flash-image`） | 第 8 步逐房生圖主／備模型 | `model_config.py`；`ai_render_service.py:ai_render_status` |
+| `ROOMPILOT_GENPIC_PALETTE_MODEL`／`..._PALETTE_FALLBACK_MODEL` | 空（回落 `google/gemini-3-pro-image-preview`／第 8 步主模型） | 第 7 步色卡模型 | `model_config.py`；`ai_render_service.py:_palette_gateway` |
 | `OPENROUTER_SCENE_PLANNING_ENABLED` | 未設＝關 | `=1` 才啟用第 6 步 LLM 場景規劃 | `scene_service.py:96,103,377` |
 | `OPENROUTER_INTAKE_ENABLED` | 未設＝關 | `=1` 才啟用進件 LLM 解析 | `intake_service.py:138,157` |
 | `ROOMPILOT_AGENT_PIPELINE` | 未設＝關 | 並存 MasterAgent 管線旗標；`""/0/false/no/off` 皆視為關（FR-053） | `agent_pipeline_service.py:31,43` |
@@ -113,7 +118,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 | `ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS` | 空 | 外部 GLB 壓縮檔搜尋根 | `main.py:293` |
 | `ROOMPILOT_PDF_FONT` | 空 | 設計手冊 PDF 字型覆寫 | `agent/tools/render_pdf.py:39` |
 | `ROOMPILOT_OCR_DISABLED` | 未設 | `=1` 關閉印刷房名／尺寸 OCR | `main.py:156-160` |
-| `FP2DXF_VLM`／`FP2DXF_SVM`／`FP2DXF_SEG`／`SYMBOL_KINDS`／`ROOM_HEAD`／`OPENROUTER_VISION_MODELS` | `auto`／未設／未設 `=0` 才關／`kstove,ksink`／內建路徑／空 | 辨識管線旁路開關 | `vlm_judge.py:58,67`；`opening_classifier.py:38`；`seg_infer.py:34`；`symbol_match.py:49`；`room_classifier.py:24` |
+| `FP2DXF_VLM`／`FP2DXF_SVM`／`FP2DXF_SEG`／`SYMBOL_KINDS`／`ROOM_HEAD`／`OPENROUTER_VISION_MODELS` | `auto`／未設／未設 `=0` 才關／`kstove,ksink`／內建路徑／空（回落三顆免費視覺模型） | 辨識管線旁路開關；視覺模型池見 `model_config.py` 的 `floorplan_vision` | `vlm_judge.py:get_vision_models,67`；`opening_classifier.py:38`；`seg_infer.py:34`；`symbol_match.py:49`；`room_classifier.py:24` |
 
 `.env` 位於 repo 根、由 `.gitignore:2` 排除；`.env.example` 為範本，`README.md:48` 要求先複製。
 

@@ -18,6 +18,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from backend.model_config import model_id
 from backend.server import ai_render_service, main
 from backend.server.ai_render_service import (
     DEFAULT_PALETTE_IMAGE_MODEL,
@@ -27,7 +28,12 @@ from backend.server.ai_render_service import (
 )
 from backend.server.project_store import ProjectStore
 from backend.server.style_cards import load_taiwan_style_cards
-from backend.agent.llm import ImageResult, LLMError, OpenRouterGateway
+from backend.agent.llm import (
+    OPENROUTER_IMAGE_URL,
+    ImageResult,
+    LLMError,
+    OpenRouterGateway,
+)
 
 
 def _png_b64(color=(200, 180, 150)) -> str:
@@ -181,13 +187,9 @@ def test_reference_screenshot_reaches_the_openrouter_request_body() -> None:
     """最後一哩:攔在 urllib 送出前,確認 body 同時有文字提示詞與截圖。"""
     captured: list[dict] = []
 
-    def _fake_post(self, payload, *, model):
-        captured.append(payload)
-        return {
-            "choices": [
-                {"message": {"images": [{"image_url": {"url": f"data:image/png;base64,{_png_b64()}"}}]}}
-            ]
-        }
+    def _fake_post(self, payload, *, model, url):
+        captured.append((url, payload))
+        return {"data": [{"b64_json": _png_b64(), "media_type": "image/png"}]}
 
     cards = _three_distinct_cards()
     gateway = OpenRouterGateway(api_key="test-key", image_model=DEFAULT_PALETTE_IMAGE_MODEL)
@@ -195,16 +197,34 @@ def test_reference_screenshot_reaches_the_openrouter_request_body() -> None:
         generate_palette_images(_scene(), _room(), [c["card_id"] for c in cards], gateway=gateway)
 
     assert len(captured) == 3
-    expected_url = REFERENCE_PNG
-    for payload in captured:
-        content = payload["messages"][0]["content"]
-        kinds = [part["type"] for part in content]
-        assert kinds.count("text") == 1 and kinds.count("image_url") == 1, kinds
-        text = next(part["text"] for part in content if part["type"] == "text")
-        image = next(part["image_url"]["url"] for part in content if part["type"] == "image_url")
-        assert text.strip()
-        assert image == expected_url
-        assert payload["modalities"] == ["image", "text"]
+    for url, payload in captured:
+        # 端點必須是專用生圖 API：chat/completions 餵不動 output_modalities 只有
+        # image 的純生圖模型（x-ai/grok-imagine-image-2.0），會靜默退到備援模型。
+        assert url == OPENROUTER_IMAGE_URL
+        assert payload["prompt"].strip()
+        references = payload["input_references"]
+        assert [ref["type"] for ref in references] == ["image_url"]
+        assert references[0]["image_url"]["url"] == REFERENCE_PNG
+
+
+def test_output_aspect_ratio_follows_the_reference_screenshot() -> None:
+    """實測:seedream-5-0-pro 收到 16:9 截圖但沒帶 aspect_ratio 時回 2048×2048 正方形,
+    img2img 鎖定的視角會被重新裁框。比例必須跟著參考圖一起送出去。"""
+    captured: list[dict] = []
+
+    def _fake_post(self, payload, *, model, url):
+        captured.append(payload)
+        return {"data": [{"b64_json": _png_b64()}]}
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (1024, 576), (10, 20, 30)).save(buffer, format="PNG")
+    wide = base64.b64encode(buffer.getvalue()).decode("ascii")
+
+    gateway = OpenRouterGateway(api_key="test-key")
+    with mock.patch.object(OpenRouterGateway, "_post", _fake_post):
+        gateway.generate_image("客廳", images=(wide,))
+
+    assert captured[0]["aspect_ratio"] == "16:9"
 
 
 def test_blank_reference_png_is_rejected_not_silently_dropped() -> None:
@@ -223,8 +243,8 @@ def test_palette_render_uses_nano_banana_pro_model() -> None:
     gateway = CapturingGateway()
     generate_palette_images(_scene(), _room(), [c["card_id"] for c in cards], gateway=gateway)
     assert set(gateway.models) == {DEFAULT_PALETTE_IMAGE_MODEL}
-    # 預設就是 nano banana pro,可用 env 覆蓋。
-    assert _palette_gateway().image_model == DEFAULT_PALETTE_IMAGE_MODEL
+    # 實際生效值來自 .env(ROOMPILOT_GENPIC_PALETTE_MODEL);沒設時就是 nano banana pro。
+    assert _palette_gateway().image_model == model_id("palette")
     assert DEFAULT_PALETTE_IMAGE_MODEL == "google/gemini-3-pro-image-preview"
 
 

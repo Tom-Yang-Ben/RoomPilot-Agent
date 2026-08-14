@@ -27,18 +27,14 @@ import urllib.request
 import cv2
 import numpy as np
 
+from ..model_config import model_list
+
 try:
     import certifi
 
     _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 except ImportError:
     _SSL_CTX = ssl.create_default_context()
-
-DEFAULT_VISION_MODELS = [
-    "google/gemma-4-26b-a4b-it:free",
-    "google/gemma-4-31b-it:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free",
-]
 
 _PROMPT = """這張圖是「建築平面圖」的數個局部裁圖,由左到右、由上到下編號 1、2、3…(每格左上角有藍底白字編號)。每格中央的紅色框標出一段牆上的開口/符號,請判斷紅框內的東西是什麼:
 
@@ -55,12 +51,8 @@ _PROMPT = """這張圖是「建築平面圖」的數個局部裁圖,由左到右
 
 
 def get_vision_models() -> list[str]:
-    raw = os.getenv("OPENROUTER_VISION_MODELS", "").strip()
-    if raw:
-        models = [m.strip() for m in raw.split(",") if m.strip()]
-        if models:
-            return models
-    return DEFAULT_VISION_MODELS.copy()
+    """開口仲裁的視覺模型池（設定見 backend/model_config.py 的 `floorplan_vision`）。"""
+    return model_list("floorplan_vision")
 
 
 def vlm_enabled() -> bool:

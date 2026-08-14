@@ -16,7 +16,7 @@ from ...documents import (
     SceneDoc,
     ValidationReportDoc,
 )
-from ...llm import DEFAULT_REPORT_MODEL, LLMGateway
+from ...llm import LLMGateway, report_model
 from ...quote import build_quote
 from ...tools.design_knowledge import selection_digest
 from ...tools.genpic_info import furniture_lines
@@ -116,7 +116,7 @@ class ReportSkill:
                 ensure_ascii=False,
             ),
             required=("intro",),
-            model=DEFAULT_REPORT_MODEL,
+            model=report_model(),
             reasoning={"enabled": True},
         )
         if llm_out is not None and str(llm_out.get("intro", "")).strip():
@@ -173,7 +173,7 @@ class ReportSkill:
                     ensure_ascii=False,
                 ),
                 required=("rooms",),
-                model=DEFAULT_REPORT_MODEL,
+                model=report_model(),
                 reasoning={"enabled": True},
             )
             for entry in (llm_out or {}).get("rooms", []):
