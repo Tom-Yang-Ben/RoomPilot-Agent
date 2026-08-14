@@ -83,6 +83,7 @@ from .design_manual_service import (
     create_design_manual,
     delivery_proposal_status,
 )
+from .engineering_report import build_engineering_estimate
 from .agent_pipeline_service import (
     PipelineNotStarted,
     get_pipeline,
@@ -2431,6 +2432,17 @@ def create_project_delivery_proposal(project_id: str, payload: dict) -> dict:
         raise HTTPException(
             502, {"code": "delivery_proposal_failed", "message": str(exc)}
         ) from exc
+    # 同一顆按鈕、同一次請求出兩份檔：PDF 之外再落一份工程估價與排程 XLSX。
+    # 放在 PDF 成功之後，PDF 掛了就不做白工。
+    record = {
+        **record,
+        "engineering": build_engineering_estimate(
+            project_id,
+            str(project["revision"]),
+            project.get("workflow") or {},
+            PROJECT_STORE.runtime_dir / "manuals",
+        ),
+    }
     updated = PROJECT_STORE.update_workflow(
         project_id, workflow={"delivery_proposal": record}
     )
@@ -2462,6 +2474,33 @@ def download_project_delivery_proposal(project_id: str) -> FileResponse:
             {"code": "delivery_proposal_file_missing", "message": "交付提案紀錄存在，但檔案已遺失，請重新產出。"},
         )
     return FileResponse(path, media_type="application/pdf", filename=filename)
+
+
+@app.get("/api/projects/{project_id}/delivery-proposal/xlsx")
+def download_project_engineering_estimate(project_id: str) -> FileResponse:
+    """與交付提案 PDF 同一次產出的工程估價與初步排程 XLSX。"""
+    project = _stored_project(project_id)
+    proposal = (project.get("workflow") or {}).get("delivery_proposal") or {}
+    engineering = proposal.get("engineering") or {}
+    relative = str(engineering.get("file") or "")
+    base = (PROJECT_STORE.runtime_dir / "manuals").resolve()
+    # workflow 內容前端可寫，組完路徑一定要確認還在 manuals 目錄內。
+    path = (base / relative).resolve() if relative else base
+    if not relative or not path.is_relative_to(base) or not path.is_file():
+        raise HTTPException(
+            404,
+            {
+                "code": "engineering_estimate_not_found",
+                "message": "尚未產出工程估價，或檔案已遺失，請重新產出設計提案。",
+            },
+        )
+    # 示範單價的警語只寫在儲存格裡，檔案一轉寄出去就看不到了；檔名帶著走。
+    demo = "DEMO-" if engineering.get("demo_mode") else ""
+    return FileResponse(
+        path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=f"roompilot-estimate-{demo}{project_id[:8]}.xlsx",
+    )
 
 
 # ---- 第 8 步成果包（design-delivery）----

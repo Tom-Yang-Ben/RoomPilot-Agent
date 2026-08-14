@@ -1,0 +1,193 @@
+[
+  {
+    "mapping_id": "MAP-MAT-001",
+    "keywords": [
+      "spc",
+      "塑膠地板",
+      "石塑地板"
+    ],
+    "part": "floor",
+    "work_item_codes": [
+      "FLOOR-SUBSTRATE-CHECK",
+      "FLOOR-SPC",
+      "FLOOR-SKIRTING"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-002",
+    "keywords": [
+      "超耐磨",
+      "laminate"
+    ],
+    "part": "floor",
+    "work_item_codes": [
+      "FLOOR-SUBSTRATE-CHECK",
+      "FLOOR-LAMINATE",
+      "FLOOR-SKIRTING"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-003",
+    "keywords": [
+      "海島型",
+      "工程木地板",
+      "engineered wood",
+      "木地板"
+    ],
+    "part": "floor",
+    "work_item_codes": [
+      "FLOOR-SUBSTRATE-CHECK",
+      "FLOOR-ENGINEERED-WOOD",
+      "FLOOR-SKIRTING"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-004",
+    "keywords": [
+      "磁磚",
+      "地磚",
+      "tile"
+    ],
+    "part": "floor",
+    "work_item_codes": [
+      "FLOOR-SUBSTRATE-CHECK",
+      "FLOOR-TILE"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-005",
+    "keywords": [
+      "整平",
+      "自流平"
+    ],
+    "part": "floor",
+    "work_item_codes": [
+      "FLOOR-LEVELING"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-006",
+    "keywords": [
+      "乳膠漆",
+      "牆漆",
+      "油漆",
+      "paint"
+    ],
+    "part": "wall",
+    "work_item_codes": [
+      "WALL-PREP",
+      "PAINT-WALL"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-007",
+    "keywords": [
+      "壁紙",
+      "壁布",
+      "wallpaper"
+    ],
+    "part": "wall",
+    "work_item_codes": [
+      "WALL-PREP",
+      "WALL-WALLPAPER"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-008",
+    "keywords": [
+      "木飾板",
+      "木作飾板",
+      "木格柵",
+      "木質牆板"
+    ],
+    "part": "wall",
+    "work_item_codes": [
+      "WALL-PREP",
+      "WALL-WOOD-PANEL"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-009",
+    "keywords": [
+      "磁磚",
+      "壁磚",
+      "牆磚",
+      "tile"
+    ],
+    "part": "wall",
+    "work_item_codes": [
+      "WALL-TILE"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-010",
+    "keywords": [
+      "乳膠漆",
+      "天花漆",
+      "油漆",
+      "paint"
+    ],
+    "part": "ceiling",
+    "work_item_codes": [
+      "PAINT-CEILING"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-011",
+    "keywords": [
+      "石膏板",
+      "平釘天花",
+      "gypsum"
+    ],
+    "part": "ceiling",
+    "work_item_codes": [
+      "CEILING-GYPSUM",
+      "PAINT-CEILING"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-012",
+    "keywords": [
+      "燈槽",
+      "間接照明"
+    ],
+    "part": "ceiling",
+    "work_item_codes": [
+      "CEILING-LIGHT-TROUGH"
+    ],
+    "confidence": "low"
+  },
+  {
+    "mapping_id": "MAP-MAT-013",
+    "keywords": [
+      "防水"
+    ],
+    "part": "floor",
+    "work_item_codes": [
+      "WATERPROOF-FLOOR"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "mapping_id": "MAP-MAT-014",
+    "keywords": [
+      "防水"
+    ],
+    "part": "wall",
+    "work_item_codes": [
+      "WATERPROOF-WALL"
+    ],
+    "confidence": "medium"
+  }
+]

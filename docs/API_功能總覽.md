@@ -63,8 +63,9 @@
 | POST | `/api/projects/{project_id}/design-manual`（201） | main.py:2188 | 九章設計手冊 PDF（比較後未採用為正式版；端點保留供獨立呼叫，第 8 步 UI 不再觸發）。未設 `OPENROUTER_API_KEY` 時走 deterministic 底稿照樣輸出 |
 | GET | `/api/projects/{project_id}/design-manual/pdf` | main.py:2222 | 下載已產出的設計手冊 PDF；未產出回 404、檔案遺失回 410 |
 | GET | `/api/delivery-proposal/status` | main.py:2266 | 設計提案排版引擎（playwright Chromium）是否可用；未安裝時回報安裝指引 |
-| POST | `/api/projects/{project_id}/delivery-proposal`（201） | main.py:2272 | 正式成果報告：roompilot-delivery-pdf skill 排版的設計提案 PDF（第 8 步「產出設計提案」按鈕唯一觸發的報告） |
-| GET | `/api/projects/{project_id}/delivery-proposal/pdf` | main.py:2309 | 下載已產出的設計提案 PDF；未產出回 404、檔案遺失回 410 |
+| POST | `/api/projects/{project_id}/delivery-proposal`（201） | main.py:2412 | 正式成果報告：roompilot-delivery-pdf skill 排版的設計提案 PDF，同一次請求再產一份工程估價與排程 XLSX（`proposal.engineering`）。第 8 步「產出設計提案 PDF 與工程估價」按鈕唯一觸發的報告 |
+| GET | `/api/projects/{project_id}/delivery-proposal/pdf` | main.py:2460 | 下載已產出的設計提案 PDF；未產出回 404、檔案遺失回 410 |
+| GET | `/api/projects/{project_id}/delivery-proposal/xlsx` | main.py:2479 | 下載與 PDF 同一次產出的工程估價與初步排程 XLSX；未產出或檔案遺失回 404。契約：`docs/contracts/ENGINEERING_ESTIMATE_CONTRACT.md` |
 
 ## 5. Agent 需求訪談與家具選件
 

@@ -25,6 +25,7 @@ from backend.server.design_manual_service import (
 from backend.server.project_store import ProjectStore
 
 PLAYWRIGHT_AVAILABLE = importlib.util.find_spec("playwright") is not None
+OPENPYXL_AVAILABLE = importlib.util.find_spec("openpyxl") is not None
 
 
 def _png_b64(color=(200, 180, 150)) -> str:
@@ -509,6 +510,113 @@ def test_download_before_generation_is_404(tmp_path, monkeypatch) -> None:
     response = client.get(f"/api/projects/{project_id}/delivery-proposal/pdf")
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "delivery_proposal_not_found"
+
+
+# 第 8 步「產出設計提案」同一顆按鈕要吐兩份檔：排版 PDF 與工程估價 XLSX。
+# 排版引擎換成假的，這裡只驗第二份檔的接線（估價 → workflow 紀錄 → 下載）。
+@pytest.mark.skipif(not OPENPYXL_AVAILABLE, reason="openpyxl 未安裝")
+def test_delivery_proposal_also_writes_the_engineering_estimate(
+    tmp_path, monkeypatch
+) -> None:
+    client, project_id = _client(tmp_path, monkeypatch)
+    assert client.get(f"/api/projects/{project_id}/delivery-proposal/xlsx").json()[
+        "detail"
+    ]["code"] == "engineering_estimate_not_found"
+
+    monkeypatch.setattr(
+        main,
+        "create_delivery_proposal",
+        lambda *args, **kwargs: (None, {"filename": "fake.pdf", "warnings": []}),
+    )
+    main.PROJECT_STORE.update_workflow(
+        project_id,
+        workflow={
+            "space_confirmation": {
+                "rooms": [
+                    {
+                        "id": "room-1",
+                        "label": "客廳",
+                        "type": "living_room",
+                        "confirmed": True,
+                        "polygon_cm": [
+                            {"x": 0, "y": 0},
+                            {"x": 400, "y": 0},
+                            {"x": 400, "y": 300},
+                            {"x": 0, "y": 300},
+                        ],
+                    }
+                ],
+                "structures": {"doors": [], "windows": []},
+            },
+            # 問卷存的是型錄 ID，不是「乳膠漆」；牆與天花靠 knowledge 的
+            # "paint" 關鍵字才對得上工項，拿掉就整批漏算。
+            "requirements": {
+                "finishes": {
+                    "floorMaterial": "wood_tile_ccity_wood_look_tiles_cvt212022",
+                    "wallMaterial": "wall_json_ambientcg_wall_paint_concrete036",
+                    "ceilingMaterial": "flat-paint",
+                }
+            },
+        },
+    )
+
+    created = client.post(
+        f"/api/projects/{project_id}/delivery-proposal",
+        json={"project_id": project_id, "scene": _scene(), "rooms": _rooms()},
+    )
+    assert created.status_code == 201
+    estimate = created.json()["proposal"]["engineering"]
+    assert estimate["status"] != "skipped", estimate.get("reason")
+    assert estimate["line_count"] > 0
+    assert {"PAINT-WALL", "PAINT-CEILING"} <= _work_item_codes(
+        main.PROJECT_STORE.runtime_dir / "manuals" / estimate["file"]
+    )
+
+    downloaded = client.get(f"/api/projects/{project_id}/delivery-proposal/xlsx")
+    assert downloaded.status_code == 200
+    assert downloaded.content[:2] == b"PK"
+
+
+# 對不到工項的材料曾經整批從估價單消失，封面還印「待詢價 0」加一個看似完整的總價。
+# 漏算必須看得見：明細有一列、pending_quote 數不為零、總價變成 None。
+@pytest.mark.skipif(not OPENPYXL_AVAILABLE, reason="openpyxl 未安裝")
+def test_material_without_a_work_item_mapping_is_listed_not_dropped(tmp_path) -> None:
+    from backend.server.engineering_report import build_engineering_estimate
+
+    workflow = {
+        "space_confirmation": {
+            "rooms": [
+                {
+                    "id": "room-1",
+                    "label": "客廳",
+                    "type": "living_room",
+                    "confirmed": True,
+                    "polygon_cm": [
+                        {"x": 0, "y": 0},
+                        {"x": 400, "y": 0},
+                        {"x": 400, "y": 300},
+                        {"x": 0, "y": 300},
+                    ],
+                }
+            ],
+            "structures": {"doors": [], "windows": []},
+        },
+        # 天花清水模在 knowledge 裡沒有對照工項，也不在面材型錄內。
+        "requirements": {"finishes": {"ceilingMaterial": "exposed-concrete"}},
+    }
+    record = build_engineering_estimate("proj-unmapped", "1", workflow, tmp_path)
+    assert record["status"] != "skipped", record.get("reason")
+    assert record["estimated_total"] is None
+    assert "UNMAPPED-CEILING" in _work_item_codes(tmp_path / record["file"])
+
+
+def _work_item_codes(xlsx_path: Path) -> set[str]:
+    from openpyxl import load_workbook
+
+    sheet = load_workbook(xlsx_path)["工程估價"]
+    return {
+        str(row[2]) for row in sheet.iter_rows(min_row=8, values_only=True) if row[2]
+    }
 
 
 def _design_delivery_payload(project_id: str) -> dict:

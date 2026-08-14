@@ -580,6 +580,7 @@ const element = {
   deliveryProposalStatus: $("#delivery-proposal-status"),
   deliveryProposalGenerate: $("#delivery-proposal-generate"),
   deliveryProposalDownload: $("#delivery-proposal-download"),
+  deliveryProposalXlsx: $("#delivery-proposal-xlsx"),
 };
 
 const whiteViewer = createSceneViewer($("#white-model-viewer"), element.whiteStatus, {
@@ -17610,6 +17611,12 @@ function deliveryRoomsPayload() {
 }
 
 function showDeliveryProposalDownload(record) {
+  // 工程估價 XLSX 與 PDF 同一次產出；估價失敗時 record.engineering.status 為
+  // skipped、沒有 file，連結就維持隱藏，PDF 照常可下載。
+  if (element.deliveryProposalXlsx) {
+    element.deliveryProposalXlsx.href = `/api/projects/${state.projectId}/delivery-proposal/xlsx`;
+    element.deliveryProposalXlsx.hidden = !record?.engineering?.file;
+  }
   if (!element.deliveryProposalDownload) return;
   if (!record) {
     element.deliveryProposalDownload.hidden = true;
@@ -17673,13 +17680,19 @@ async function generateDeliveryProposal() {
     rememberReportRecord("delivery_proposal", result.proposal);
     showDeliveryProposalDownload(result.proposal);
     const warnings = result.proposal.warnings || [];
+    const estimate = result.proposal.engineering || {};
     // 只報數量的話，「文案走離線底稿」這種會影響交付品質的提醒等於沒說；
     // 第一則直接顯示出來，其餘才用數量帶過。
     setDeliveryProposalStatus(
       (renderedCount ? `設計提案完成（含 ${renderedCount} 房生圖）` : "設計提案完成（未含生圖）")
       + (warnings.length
         ? `。${warnings[0]}${warnings.length > 1 ? `（另有 ${warnings.length - 1} 項提醒）` : ""}`
-        : "。"),
+        : "。")
+      // 估價是 PDF 的附掛品，成敗都要講；demo 單價更不能讓人拿去對客戶報價。
+      // 單價／工率資料不足時工期會是 null，不能就這樣印出「null 天」。
+      + (estimate.file
+        ? `另產出工程估價 ${estimate.line_count} 項、預估工期 ${estimate.estimated_total_days ?? "待確認"} 天${estimate.demo_mode ? "（示範單價，非正式報價）" : ""}。`
+        : `工程估價未產出（${estimate.reason || "資料不足"}）。`),
     );
   } catch (error) {
     setDeliveryProposalStatus(errorMessage(error));

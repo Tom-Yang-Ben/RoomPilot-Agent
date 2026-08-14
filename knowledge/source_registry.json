@@ -1,0 +1,46 @@
+[
+  {
+    "source_id": "SRC-NLMA-INDOOR-DECORATION",
+    "title": "建築物室內裝修管理辦法",
+    "publisher": "內政部國土管理署",
+    "url": "https://www.nlma.gov.tw/ch/legislation/law&regusw/210",
+    "source_type": "official_regulation",
+    "retrieved_date": "2026-07-29",
+    "use": "專業責任、室內裝修範圍、圖說與審查提醒",
+    "price_source": false,
+    "confidence": "high"
+  },
+  {
+    "source_id": "SRC-PCC-PCCES",
+    "title": "行政院公共工程委員會／PCCES 與公共工程價格相關系統",
+    "publisher": "行政院公共工程委員會",
+    "url": "https://www.pcc.gov.tw/",
+    "source_type": "official_public_works_reference",
+    "retrieved_date": "2026-07-29",
+    "use": "工項編碼、工程資料與公開價格基準的後續研究入口；不可直接視為住宅成交價",
+    "price_source": true,
+    "confidence": "medium"
+  },
+  {
+    "source_id": "SRC-DATA-BULK-MATERIALS",
+    "title": "大宗資材價格彙整表",
+    "publisher": "行政院公共工程委員會／政府資料開放平臺",
+    "url": "https://data.gov.tw/dataset/7374",
+    "source_type": "official_open_data",
+    "retrieved_date": "2026-07-29",
+    "use": "砂石、混凝土、鋼筋等大宗材料價格趨勢；不涵蓋多數住宅裝修成品",
+    "price_source": true,
+    "confidence": "medium"
+  },
+  {
+    "source_id": "SRC-MVP-SYNTHETIC",
+    "title": "RoomPilot MVP 合成示範資料",
+    "publisher": "RoomPilot project",
+    "url": null,
+    "source_type": "synthetic_demo",
+    "retrieved_date": "2026-07-29",
+    "use": "只為端到端 Demo、測試公式與文件輸出；禁止當正式報價或施工依據",
+    "price_source": true,
+    "confidence": "low"
+  }
+]

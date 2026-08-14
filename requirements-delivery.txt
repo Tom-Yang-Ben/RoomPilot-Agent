@@ -8,5 +8,8 @@
 # playwright：Chromium print-to-PDF（build_pdf.py 的版面引擎，必要）
 # pikepdf：修正 Chromium 產出 PDF 文字層的康熙部首碼位（中文可搜尋；選配，
 #          缺少時 build_pdf.py 自動略過該步驟）
+# openpyxl：與 PDF 同一次產出的工程估價與初步排程 XLSX（選配，缺少時
+#          engineering_report.py 記 status=skipped，PDF 照常輸出）
 playwright==1.62.0
 pikepdf==10.11.0
+openpyxl==3.1.5

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RoomPilot {{ report.project_id }} {{ report.revision }}</title>
+  <style>
+    :root { color-scheme: light; --navy:#16324f; --blue:#2f6b8a; --line:#cbd5e1; --muted:#475569; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, "Noto Sans TC", sans-serif; margin: 28px; color:#1f2937; line-height:1.55; }
+    h1,h2,h3 { color:var(--navy); }
+    h1 { margin-bottom:8px; }
+    h2 { border-bottom:2px solid #dbe7ef; padding-bottom:6px; margin-top:30px; }
+    .meta,.notice,.demo,.room-card { padding:14px 16px; border:1px solid var(--line); border-radius:10px; margin-bottom:16px; }
+    .notice { background:#fff7d6; }
+    .demo { background:#ffe4e6; border-color:#fb7185; font-weight:700; }
+    .room-card { break-inside:avoid; }
+    .room-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px 16px; }
+    .render-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+    .render-grid img { width:100%; min-height:160px; object-fit:cover; border:1px solid var(--line); border-radius:8px; background:#f8fafc; }
+    table { width:100%; border-collapse:collapse; margin:10px 0 22px; font-size:0.94rem; }
+    th,td { border:1px solid var(--line); padding:8px; text-align:left; vertical-align:top; }
+    th { background:var(--blue); color:#fff; }
+    tr:nth-child(even) td { background:#f8fafc; }
+    .pending { color:#9a3412; font-weight:700; }
+    .risk-high { color:#b91c1c; font-weight:700; }
+    .risk-medium { color:#9a3412; font-weight:700; }
+    .small { font-size:.88rem; color:var(--muted); }
+    @media print { body{margin:12mm;} .room-card{page-break-inside:avoid;} a{color:inherit;text-decoration:none;} }
+  </style>
+</head>
+<body>
+  <h1>RoomPilot 設計與工程提案書</h1>
+  <div class="meta">
+    專案：{{ report.project_id }} ｜ 版本：{{ report.revision }} ｜
+    設計狀態：{{ report.snapshot.approval_status }} ｜
+    鎖定人：{{ report.snapshot.confirmed_by or '-' }} ｜ 產生時間：{{ report.generated_at }}
+  </div>
+
+  {% set ns = namespace(demo=false) %}
+  {% for line in report.estimate.lines %}
+    {% if line.price_region == 'DEMO_ONLY' %}{% set ns.demo = true %}{% endif %}
+  {% endfor %}
+  {% for task in report.schedule.tasks %}
+    {% if task.source and 'synthetic' in task.source|lower %}{% set ns.demo = true %}{% endif %}
+  {% endfor %}
+  {% if ns.demo %}
+  <div class="demo">DEMO_MODE 已啟用：本文金額與工率為合成示範資料，非正式報價；只用於專題展示，不是市場行情。</div>
+  {% endif %}
+
+  <div class="notice">
+    本文件為設計與詢價前的初步工程提案，不是正式施工圖、簽章文件或承攬報價。
+    水電、空調、防水、結構、法規、現場條件與正式價格仍需專業人員及廠商確認。
+  </div>
+
+  <h2>工程摘要</h2>
+  <p>{{ report.narratives.design_summary }}</p>
+  <p>{{ report.narratives.construction_summary }}</p>
+  <p>{{ report.narratives.cost_summary }}</p>
+  <p>{{ report.narratives.schedule_summary }}</p>
+  <p>{{ report.narratives.risk_summary }}</p>
+
+  <h2>每房間設計、尺寸、家具與裝修</h2>
+  {% for room in report.snapshot.rooms %}
+  <section class="room-card">
+    <h3>{{ room.name }}｜{{ room.room_id }}</h3>
+    <div class="room-grid">
+      <div><b>房間類型</b><br>{{ room.room_type }}</div>
+      <div><b>風格</b><br>{{ room.style or '未指定' }}</div>
+      <div><b>長 × 寬 × 高</b><br>{{ room.geometry.length_m }} × {{ room.geometry.width_m }} × {{ room.geometry.height_m }} m</div>
+      {% for q in report.quantities.rooms %}{% if q.room_id == room.room_id %}
+      <div><b>地坪面積</b><br>{{ q.floor_area_m2 }} m²</div>
+      <div><b>天花面積</b><br>{{ q.ceiling_area_m2 }} m²</div>
+      <div><b>牆面毛面積</b><br>{{ q.gross_wall_area_m2 }} m²</div>
+      <div><b>開口面積</b><br>{{ q.opening_area_m2 }} m²</div>
+      <div><b>牆面淨面積</b><br>{{ q.net_wall_area_m2 }} m²</div>
+      {% endif %}{% endfor %}
+    </div>
+
+    {% if room.renders %}
+    <h3>設計生圖</h3>
+    <div class="render-grid">
+      {% for render in room.renders %}
+      <figure>
+        <img src="{{ render.render_url }}" alt="{{ render.view_name }}">
+        <figcaption class="small">{{ render.view_name }}｜{{ render.render_url }}</figcaption>
+      </figure>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <h3>裝修材料</h3>
+    <table>
+      <thead><tr><th>部位</th><th>材料</th><th>說明</th><th>損耗率</th></tr></thead>
+      <tbody>
+      {% for material in room.materials %}
+        <tr><td>{{ material.part }}</td><td>{{ material.name }}</td><td>{{ material.description or '-' }}</td><td>{{ material.waste_rate }}</td></tr>
+      {% else %}<tr><td colspan="4">尚未選擇材料</td></tr>{% endfor %}
+      </tbody>
+    </table>
+
+    <h3>家具與設備</h3>
+    <table>
+      <thead><tr><th>名稱</th><th>類別</th><th>尺寸 cm</th><th>數量</th><th>位置 cm</th><th>資產</th></tr></thead>
+      <tbody>
+      {% for item in room.furniture %}
+        <tr>
+          <td>{{ item.name }}</td><td>{{ item.category }}</td>
+          <td>{{ item.width_cm }} × {{ item.depth_cm }} × {{ item.height_cm }}</td>
+          <td>{{ item.quantity }}</td><td>({{ item.x_cm }}, {{ item.y_cm }})／{{ item.rotation_deg }}°</td>
+          <td>{{ item.asset_url or '-' }}</td>
+        </tr>
+      {% else %}<tr><td colspan="6">尚未配置家具</td></tr>{% endfor %}
+      </tbody>
+    </table>
+
+    <h3>水電／空調需求建議</h3>
+    <table>
+      <thead><tr><th>關聯設備</th><th>系統</th><th>目前是否已有點位</th><th>理由</th><th>信心</th></tr></thead>
+      <tbody>
+      {% set mepns = namespace(count=0) %}
+      {% for rr in report.retrieval.rooms %}{% if rr.room_id == room.room_id %}
+        {% for suggestion in rr.mep_suggestions %}
+          {% set mepns.count = mepns.count + 1 %}
+          <tr><td>{{ suggestion.related_furniture_name }}</td><td>{{ suggestion.system }}</td>
+          <td>{{ '是' if suggestion.covered_by_existing_point else '否／待確認' }}</td>
+          <td>{{ suggestion.reason }}</td><td>{{ suggestion.confidence }}</td></tr>
+        {% endfor %}
+      {% endif %}{% endfor %}
+      {% if mepns.count == 0 %}<tr><td colspan="5">目前沒有設備觸發的水電需求</td></tr>{% endif %}
+      </tbody>
+    </table>
+
+    <h3>本房間風險與待確認</h3>
+    <ul>
+      {% set rns = namespace(count=0) %}
+      {% for risk in report.risks.results %}{% if risk.room_id == room.room_id and not risk.passed %}
+        {% set rns.count = rns.count + 1 %}
+        <li class="risk-{{ risk.severity }}">[{{ risk.severity }}] {{ risk.message }}{% if risk.professional_confirmation_required %}（需專業確認）{% endif %}</li>
+      {% endif %}{% endfor %}
+      {% if rns.count == 0 %}<li>規則檢查沒有未通過項目。</li>{% endif %}
+    </ul>
+  </section>
+  {% endfor %}
+
+  <h2>工程工項與初步估價摘要</h2>
+  <table>
+    <thead><tr><th>房間</th><th>工種</th><th>工項</th><th>計價量</th><th>單位</th><th>小計 TWD</th><th>來源／狀態</th></tr></thead>
+    <tbody>
+    {% for line in report.estimate.lines %}
+      <tr>
+        <td>{{ line.room_id }}</td><td>{{ line.trade }}</td><td>{{ line.name }}</td>
+        <td>{{ line.pricing_quantity }}</td><td>{{ line.unit }}</td>
+        <td>{% if line.subtotal is none %}<span class="pending">待詢價</span>{% else %}{{ line.subtotal }}{% endif %}</td>
+        <td>{{ line.price_source or '待詢價' }}／{{ line.status }}／{{ line.confidence }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="small">{{ report.estimate.disclaimer }}</p>
+
+  <h2>初步工程排程摘要</h2>
+  <table>
+    <thead><tr><th>房間</th><th>工作</th><th>工程量</th><th>總工日</th><th>開始日</th><th>完成日</th><th>信心</th></tr></thead>
+    <tbody>
+    {% for task in report.schedule.tasks %}
+      <tr>
+        <td>{{ task.room_id }}</td><td>{{ task.name }}</td><td>{{ task.quantity }} {{ task.unit }}</td>
+        <td>{{ task.total_days if task.total_days is not none else '資料不足' }}</td>
+        <td>{{ task.start_day if task.start_day is not none else '-' }}</td>
+        <td>{{ task.finish_day if task.finish_day is not none else '-' }}</td><td>{{ task.confidence }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="small">{{ report.schedule.disclaimer }}</p>
+
+  <h2>假設與排除</h2>
+  <ul>{% for item in report.assumptions %}<li>{{ item }}</li>{% endfor %}</ul>
+  <p class="small">Snapshot hash：{{ report.snapshot_hash }}</p>
+</body>
+</html>

@@ -1,0 +1,317 @@
+[
+  {
+    "dependency_id": "DEP-001",
+    "task_code": "ELEC-POWER-POINT",
+    "predecessor_code": "PREP-PROTECTION",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-002",
+    "task_code": "ELEC-LIGHT-POINT",
+    "predecessor_code": "PREP-PROTECTION",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-003",
+    "task_code": "DATA-POINT",
+    "predecessor_code": "PREP-PROTECTION",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-004",
+    "task_code": "PLUMB-COLD-WATER",
+    "predecessor_code": "PREP-PROTECTION",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-005",
+    "task_code": "PLUMB-HOT-WATER",
+    "predecessor_code": "PREP-PROTECTION",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-006",
+    "task_code": "PLUMB-DRAIN",
+    "predecessor_code": "PREP-PROTECTION",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-007",
+    "task_code": "HVAC-CONNECTION",
+    "predecessor_code": "PREP-PROTECTION",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-008",
+    "task_code": "CEILING-GYPSUM",
+    "predecessor_code": "ELEC-LIGHT-POINT",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-009",
+    "task_code": "CEILING-LIGHT-TROUGH",
+    "predecessor_code": "CEILING-GYPSUM",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-010",
+    "task_code": "PAINT-CEILING",
+    "predecessor_code": "CEILING-GYPSUM",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-011",
+    "task_code": "WALL-PREP",
+    "predecessor_code": "ELEC-POWER-POINT",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-012",
+    "task_code": "WALL-PREP",
+    "predecessor_code": "DATA-POINT",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-013",
+    "task_code": "PAINT-WALL",
+    "predecessor_code": "WALL-PREP",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-014",
+    "task_code": "WALL-WALLPAPER",
+    "predecessor_code": "WALL-PREP",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-015",
+    "task_code": "WALL-WOOD-PANEL",
+    "predecessor_code": "WALL-PREP",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-016",
+    "task_code": "WALL-TILE",
+    "predecessor_code": "WATERPROOF-WALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-017",
+    "task_code": "WATERPROOF-FLOOR",
+    "predecessor_code": "PLUMB-DRAIN",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-018",
+    "task_code": "WATERPROOF-WALL",
+    "predecessor_code": "PLUMB-DRAIN",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-019",
+    "task_code": "FLOOR-LEVELING",
+    "predecessor_code": "ELEC-POWER-POINT",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-020",
+    "task_code": "FLOOR-SPC",
+    "predecessor_code": "FLOOR-SUBSTRATE-CHECK",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-021",
+    "task_code": "FLOOR-SPC",
+    "predecessor_code": "PAINT-WALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-022",
+    "task_code": "FLOOR-LAMINATE",
+    "predecessor_code": "FLOOR-SUBSTRATE-CHECK",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-023",
+    "task_code": "FLOOR-LAMINATE",
+    "predecessor_code": "PAINT-WALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-024",
+    "task_code": "FLOOR-ENGINEERED-WOOD",
+    "predecessor_code": "FLOOR-SUBSTRATE-CHECK",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-025",
+    "task_code": "FLOOR-ENGINEERED-WOOD",
+    "predecessor_code": "PAINT-WALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-026",
+    "task_code": "FLOOR-TILE",
+    "predecessor_code": "WATERPROOF-FLOOR",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-027",
+    "task_code": "FLOOR-SKIRTING",
+    "predecessor_code": "FLOOR-SPC",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-028",
+    "task_code": "FLOOR-SKIRTING",
+    "predecessor_code": "FLOOR-LAMINATE",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-029",
+    "task_code": "FLOOR-SKIRTING",
+    "predecessor_code": "FLOOR-ENGINEERED-WOOD",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-030",
+    "task_code": "LIGHT-FIXTURE-INSTALL",
+    "predecessor_code": "PAINT-CEILING",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-031",
+    "task_code": "CURTAIN-TRACK-INSTALL",
+    "predecessor_code": "PAINT-WALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-032",
+    "task_code": "BUILTIN-CABINET-INSTALL",
+    "predecessor_code": "PAINT-WALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-033",
+    "task_code": "BUILTIN-CABINET-INSTALL",
+    "predecessor_code": "FLOOR-SPC",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-034",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "FLOOR-SPC",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-035",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "FLOOR-LAMINATE",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-036",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "FLOOR-ENGINEERED-WOOD",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-037",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "FLOOR-TILE",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-038",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "PAINT-WALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-039",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "WALL-WALLPAPER",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-040",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "WALL-WOOD-PANEL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-041",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "WALL-TILE",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-042",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "PAINT-CEILING",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-043",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "LIGHT-FIXTURE-INSTALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-044",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "CURTAIN-TRACK-INSTALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  },
+  {
+    "dependency_id": "DEP-045",
+    "task_code": "CLEAN-FINAL",
+    "predecessor_code": "BUILTIN-CABINET-INSTALL",
+    "dependency_type": "finish_to_start",
+    "lag_days": 0
+  }
+]
