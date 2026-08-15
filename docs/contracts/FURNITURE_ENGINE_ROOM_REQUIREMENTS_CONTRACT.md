@@ -10,8 +10,14 @@
 
 1. 使用者先選「家具類型與尺寸」，再由 RAG 對應真正的資料庫家具。
 2. `slot_id`、`selected_size`、`catalog_item_id` 分開保存，避免衣櫃被當成床等資料錯配。
-3. RAG 只推薦已驗證且可載入的 GLB；家具引擎只擺放真實 GLB，不產生白模替代品。
+3. full profile 的 RAG 只推薦已驗證且可載入的 GLB；家具引擎不產生未標示的白模替代品。
 4. 家具引擎在放置前檢查牆、門、窗、走道、方向與尺寸，無法安全放置時回傳原因與替代方案。
+
+### 執行環境邊界
+
+- `portable` profile 使用專案隨附、明確標記為 `procedural_fixture` 的家具表現，讓公開倉庫可離線重現流程；它不是 full catalog 的失敗 fallback。
+- `full` profile 只配置開發者提供且已驗證授權的 catalog GLB。資料庫、manifest 或遠端資產未設定時必須明確失敗或回報待處理，不得悄悄改用 procedural 或白模。
+- 兩個 profile 共用相同的公分座標、碰撞、淨空與 `scene_json` 幾何契約。
 
 ## 角色與責任
 

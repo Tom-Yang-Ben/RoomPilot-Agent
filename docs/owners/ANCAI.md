@@ -4,8 +4,8 @@
 
 Own deterministic furniture geometry: placement, movement, collision,
 clearance, wall relationships, and legality. Primary path is `backend/engine/`.
-`origin/ancai-dev` scene-lab work is an interaction prototype that requires
-Bella review before production integration.
+Scene-lab work is an interaction prototype that requires Bella review before
+production integration.
 
 ## Architecture
 

@@ -108,12 +108,12 @@
 
 ### 資產儲存、交付與使用
 
-- 外部 CC0 燈具 GLB 與其純物件 PNG 上傳到 Kai 既有 S3 bucket，並透過 CloudFront URL 交付；大型 GLB 不提交 Git。
-- `backend/catalog/data/manifests/lighting_assets_manifest.csv` 是 Git 內的可審核交付清單，至少包含 `item_id`、`glb_url`、`thumbnail_url`、`checksum`、`license`、`lighting_type`、`verification_status`。
+- 外部 CC0／已授權燈具 GLB 與純物件 PNG 放在 full-profile operator 自行管理的 object store/CDN；大型 GLB 不提交 Git。
+- 公開 repository 不附供應商 manifest。operator 透過 `ROOMPILOT_GLB_MANIFEST_PATH`、`ROOMPILOT_IMAGE_MANIFEST_PATH` 與 `ROOMPILOT_CLOUDFRONT_BASE_URL` 指定外部資料；每列至少包含 `item_id`、delivery URL 或 object key、checksum、license、類型與 verification status。
 - PostgreSQL catalog 儲存可查詢欄位與 URL；`roompilot.furniture_catalog_current` 只公開 `verified` 資產給 API。
 - Bella 前端以 API 回傳的 `thumbnail_url` 顯示純物件圖片，以 `glb_url` 載入模型；不可從前端直接猜測或組合 S3 路徑。
 - PBR 紋理是網站執行期資產，放在 `backend/server/static/pbr_assets/` 並提交 Git；它們不取代 GLB，也不進燈具 manifest。
-- 原始下載、Blender 暫存、批次預覽與失敗模型留在 staging/quarantine，不提交 Git、不由前端使用。
+- 原始下載、Blender 暫存、批次預覽、manifest 與失敗模型留在 operator 的 staging/quarantine，不提交 Git、不由前端使用。
 
 詳細新增作業請依角色閱讀：
 

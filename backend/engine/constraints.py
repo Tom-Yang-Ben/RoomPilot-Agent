@@ -1,4 +1,4 @@
-"""禁放遮罩(True = 禁放)—— 依 `docs/擺位計算邏輯.md` §4(公分版)。
+"""禁放遮罩（True = 禁放）；公開邊界見 `backend/engine/README.md`。
 
 兩層遮罩:
 

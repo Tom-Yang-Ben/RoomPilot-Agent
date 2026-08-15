@@ -1,6 +1,6 @@
 """場景 payload ↔ 柵格擺位引擎的轉接層。
 
-新引擎(`docs/擺位計算邏輯.md`)用自己的 kind 語彙與世界座標;本 repo 的 payload
+確定性 grid planner 使用自己的 kind 語彙與世界座標；本 repo 的 payload
 用 ``normalized_type`` 與「房間中心原點」。轉換全部集中在這裡,兩邊各自不必知道
 對方的慣例。
 

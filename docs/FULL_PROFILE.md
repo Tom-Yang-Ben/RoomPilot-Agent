@@ -23,6 +23,8 @@ uv run python scripts/sql/import_public_catalog_to_postgres.py --catalog path/to
 
 本機 GLB 不會自動掃描 repository、`Downloads` 或其他使用者目錄。需要本機模型時，透過 `ROOMPILOT_LOCAL_GLB_ROOTS` 指定允許的根目錄；需要 zip 時則明確設定 `ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS`。多個路徑使用作業系統的 path separator 分隔。
 
+需要遠端模型交付時，必須同時明確設定 `ROOMPILOT_MODEL_DELIVERY_MODE=cloudfront`、`ROOMPILOT_GLB_MANIFEST_PATH`，以及 manifest 只有 object key 時所需的 `ROOMPILOT_CLOUDFRONT_BASE_URL`。遠端縮圖另設定 `ROOMPILOT_IMAGE_MANIFEST_PATH`。repository 沒有預設 CDN、bucket 或私有 manifest 路徑；缺少任一必要設定時會回報 unavailable，不會猜測舊環境。
+
 `ROOMPILOT_CATALOG_PROVIDER` 留空時由 profile 推導；full 為 strict PostgreSQL。連線或 view 不可用時必須顯示 unavailable／503，不會靜默換成另一批資料。
 
 ## 選配辨識模型

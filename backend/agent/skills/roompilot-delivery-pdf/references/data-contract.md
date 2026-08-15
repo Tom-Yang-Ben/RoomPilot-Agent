@@ -2,7 +2,7 @@
 
 ## 成果包長什麼樣
 
-第 8 步完成後的標準結構（見專案 `docs/ROOMPILOT_6_8_AGENT_RENDER_IMPLEMENTATION_SPEC.md`）：
+第 8 步完成後的標準結構（流程邊界見專案 `docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md`）：
 
 ```
 RoomPilot_成果包_<project>_<version>.zip

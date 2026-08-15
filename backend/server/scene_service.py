@@ -1362,7 +1362,7 @@ def _placement_intersects_zones(
     return any(footprint.intersects(zone) for zone in zones)
 
 
-# ── 柵格擺位引擎接線(docs/擺位計算邏輯.md)──────────────────────────
+# ── 柵格擺位引擎接線（公開邊界見 backend/engine/README.md）──────────
 # 2026-08-02 起碰撞判定的唯一權威是 backend/engine 的布林網格,不再是 Shapely。
 # 邊界(¬room_mask)、門前動線、窗前採光帶全部併進遮罩,因此原本分散在
 # _inside_boundary / _placement_intersects_zones / check_placement_with_clearance
@@ -1514,7 +1514,7 @@ def raster_free(
     *,
     check_placed: bool = True,
 ) -> bool:
-    """柵格版合法性(`docs/擺位計算邏輯.md` §5.3)。
+    """柵格版合法性（公開邊界見 `backend/engine/README.md`）。
 
     一次判完「房外 / 牆體 / 門前動線 / 窗前採光帶 / 已放家具」。
     ``item_type`` 只用來套規格的兩個豁免:``curtain`` 不受窗前帶約束、
@@ -1584,7 +1584,7 @@ def _raster_wall_anchor(
     half_w_cm: float,
     half_d_cm: float,
 ) -> tuple[float, float, float] | None:
-    """靠牆錨定掃描(docs/擺位計算邏輯.md §6 的場景座標版)。
+    """靠牆錨定掃描（場景座標版；見 `backend/engine/README.md`）。
 
     沿房間輪廓邊(長邊優先)跑完整錨點序列,背面貼齊可放邊界、正面朝室內;
     合法性由同一套柵格遮罩(含已放家具)判定。輪廓環已內縮 8cm,故不再疊加
@@ -1994,7 +1994,7 @@ def generate_layout_by_room(
     原本 build_scene_payload 只呼叫一次 generate_layout,且 place_boundary 固定是
     ``_largest_region_boundary`` —— 整層樓共用「最大那一間」的邊界,遮罩把其餘房間
     全部視為房外,於是所有家具不分房型都被擠進最大的房間(floor04 實測:13 件全部
-    落在只比臥室大 0.04 m² 的廚房)。這與 docs/擺位計算邏輯.md §1.2 的「逐房 →
+    落在只比臥室大 0.04 m² 的廚房）。這與 engine 的「逐房 →
     禁放遮罩 → 房型規則」管線相違。
 
     沒有 ``placement_room_id`` 的品項改依 ``knowledge.ROOM_AFFINITY`` 找房型相符的
@@ -2224,7 +2224,7 @@ def generate_layout(
     placed_by_type: dict[str, list[PlacedFurniture]] = {}
     results: dict[int, dict[str, Any]] = {}
 
-    # 碰撞判定的唯一權威(docs/擺位計算邏輯.md §3、§5):房間環、門前動線與
+    # 碰撞判定的唯一權威（backend/engine/README.md）：房間環、門前動線與
     # 窗前採光帶全部烘進布林網格,取代原本 Shapely 的三段分散檢查。
     raster = build_raster_context(room, boundary, floorplan)
 

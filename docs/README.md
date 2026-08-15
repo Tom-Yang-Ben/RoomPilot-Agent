@@ -7,7 +7,9 @@ Start here for the public repository:
 - [Full profile](FULL_PROFILE.md)
 - [Asset policy](ASSET_POLICY.md)
 - [Known limitations](KNOWN_LIMITATIONS.md)
+- [Release checklist](RELEASE_CHECKLIST.md)
 - [Module ownership](TEAM_AI_OWNERSHIP.md)
 - [Contract index](contracts/README.md)
+- [3D scene construction](3D房屋場景建置流程.md)
 
-其他以整合日期、舊分支、舊 React 路徑、私有 catalog 筆數或已移除測資命名的文件是歷史設計紀錄。它們不代表目前公開 repo 的啟動方式、資料可用性或 release claim；若與本索引連結的文件衝突，以本索引為準。
+本索引只連到現行公開文件。分支移植紀錄、過期進度報告、內部 agent harness 與已退出的固定 catalog 文件不隨公開 root 散布；行為細節以契約、程式與測試為準。

@@ -1,6 +1,6 @@
 {
   "schema_version": "2.1-current-metadata-only",
-  "catalog_name": "RoomPilot 六風格中文展示定義（家具以官方 8,557 筆 catalog 為準）",
+  "catalog_name": "RoomPilot 六風格中文展示定義（不含商品 catalog）",
   "styles": [
     {
       "style_id": "scandinavian",

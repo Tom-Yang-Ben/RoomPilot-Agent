@@ -28,6 +28,8 @@ jobs:
           -r requirements-delivery.txt
           -r requirements-rag.txt
           -r requirements-ocr.txt
+      - name: Verify license metadata
+        run: uvx --from reuse==5.1.1 reuse lint
 
   portable:
     name: Portable (${{ matrix.os }})

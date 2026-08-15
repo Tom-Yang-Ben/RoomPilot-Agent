@@ -3639,7 +3639,7 @@ function schemeFurnitureForRoom(schemeId, roomId) {
 
 function roomSchemeSelectionRequired() {
   // 第 6 步的動線是「先逐房選定 A/B，再進工作台微調」
-  // （docs/ROOMPILOT_6_8_AGENT_RENDER_IMPLEMENTATION_SPEC.md §A/B 選擇階段、§驗收條件 3）。
+  // （現行流程與保存邊界見 docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md）。
   // 只有真的存在可比較的方案 B 時才擋；B 整組產不出來時直接走方案 A，
   // 不製造無從通過的關卡。
   if (!state.rooms.length) return false;

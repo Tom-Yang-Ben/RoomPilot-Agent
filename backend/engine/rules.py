@@ -1,4 +1,4 @@
-"""靠牆錨定掃描與房型規則 —— 依 `docs/擺位計算邏輯.md` §6、§7(公分版)。
+"""靠牆錨定掃描與房型規則；公開邊界見 `backend/engine/README.md`。
 
 本層**不認得開合淨空** —— 淨空是 agent 層的知識(`backend/agent/clearance.py`),
 依賴方向上不能反向 import,因此由 agent 層收尾覆核(§9.4 `_resolve_clearance`)。

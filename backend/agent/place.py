@@ -168,8 +168,8 @@ def resolve_placements(
     換小的 footprint 嚴格遞減、池又有限,移除嚴格減件,故必然收斂;整輪無任何
     動作(全為使用者指定升級件)也停。``max_rounds`` 僅供測試/呼叫端顯式設限。
 
-    ``engine_place_fn`` 是 ``place_fn`` 的別名(2026-08-02 合併 bella-test1 時保留
-    ——server 端以該名呼叫)。兩者擇一提供即可,同時給以 ``place_fn`` 為準。
+    ``engine_place_fn`` 是供 server 端呼叫的 ``place_fn`` 別名。兩者擇一提供
+    即可,同時給以 ``place_fn`` 為準。
 
     回傳 (objects, final_items, report):
     - objects:修復後的擺放結果(座標仍 100% 由 place_fn / 引擎算)。

@@ -13984,12 +13984,12 @@ body:has(#requirements-step:not([hidden])) .rp-progress {
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   步驟 1–4 版面：自 origin/ben 移植（ben-step1-4-integration-plan.html）。
+   步驟 1–4 版面。
    選擇器都帶 #project-step／#upload-step／#scale-step／#space-step 前綴，
    附加在檔尾以覆蓋同名舊規則；第 5–8 步樣式不受影響。
    ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Step 4 版面與引導卡（origin/ben 29e0c95a site.css:5-730） ── */
+/* ── Step 4 版面與引導卡 ── */
 /* Step 4 guided review: preserve every editing action while reducing visual competition. */
 body.rp-workflow-page #space-step {
   background: #f2eee7;
@@ -15935,7 +15935,7 @@ body[data-workflow-step="recognition"] .rp-guidance-band h1 {
   color: #185b48;
 }
 
-/* ---- bella-new 第 6 步逐房材質/側欄分頁/方案 3D 預覽移植樣式（feat/step5-8-bella-adopt） ---- */
+/* ---- 第 6 步逐房材質／側欄分頁／方案 3D 預覽樣式 ---- */
 
 
 .rp-scheme-preview {

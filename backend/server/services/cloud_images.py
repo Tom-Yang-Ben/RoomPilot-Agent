@@ -1,4 +1,4 @@
-"""Resolve verified CloudFront PNG previews for furniture assets."""
+"""Resolve verified remote-CDN PNG previews for furniture assets."""
 from __future__ import annotations
 
 import csv
@@ -17,15 +17,8 @@ PROJECT_DIR = Path(__file__).resolve().parents[3]
 if load_dotenv is not None:
     load_dotenv(PROJECT_DIR / ".env", override=False)
 
-DEFAULT_IMAGE_MANIFEST_PATH = (
-    PROJECT_DIR
-    / "backend"
-    / "catalog"
-    / "data"
-    / "manifests"
-    / "image_upload_all_result.csv"
-)
-DEFAULT_CLOUDFRONT_BASE_URL = "https://ddgsm1yg3xikc.cloudfront.net"
+DEFAULT_IMAGE_MANIFEST_PATH: Path | None = None
+DEFAULT_CLOUDFRONT_BASE_URL: str | None = None
 PREFERRED_IMAGE_ROLE = "front"
 
 _REMOTE_READY_STATUSES = {
@@ -50,9 +43,7 @@ def _https_url(value: object) -> str | None:
 
 
 def _cloudfront_base_url() -> str | None:
-    return _https_url(
-        os.getenv("ROOMPILOT_CLOUDFRONT_BASE_URL", DEFAULT_CLOUDFRONT_BASE_URL)
-    )
+    return _https_url(os.getenv("ROOMPILOT_CLOUDFRONT_BASE_URL", ""))
 
 
 def _manifest_path() -> Path | None:

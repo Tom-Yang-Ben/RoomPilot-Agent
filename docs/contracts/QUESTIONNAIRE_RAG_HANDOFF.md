@@ -2,7 +2,7 @@
 
 ## 目的
 
-第 5 步問卷以 Kai PostgreSQL catalog 為唯一家具資料來源。使用者確認一個房間後，前端可非同步送出 RAG 檢索，將該房間的家具候選重新排序；RAG 不可用時，問卷仍可繼續。
+full profile 的第 5 步問卷以 operator 提供的 PostgreSQL catalog 為唯一家具資料來源。使用者確認一個房間後，前端可非同步送出 RAG 檢索，將該房間的家具候選重新排序；RAG 不可用時，問卷仍可繼續。portable profile 使用專案自製 fixture，不宣稱已連上正式商品資料。
 
 ## 資料流
 
@@ -29,10 +29,10 @@ ROOMPILOT_RAG_PARSER_PROVIDER=openai
 OPENAI_API_KEY=...
 ```
 
-並安裝 `requirements.txt` 的 RAG 套件。首次執行會下載 `BAAI/bge-m3` 與 `BAAI/bge-reranker-v2-m3` 到 `ROOMPILOT_RAG_MODEL_CACHE` 或 Hugging Face 預設快取。
+並執行 `uv sync --extra portable --extra postgres --extra rag --group dev`。首次執行會下載設定的 embedding／reranker 模型到 `ROOMPILOT_RAG_MODEL_CACHE` 或模型供應方的預設快取；這不是 portable CI 的一部分。
 
 ## 驗證端點
 
-- `GET /api/catalog/status`：`catalog_provider.ready=true`、`count=7958`。
-- `GET /api/rag/status`：資料庫 `current_embeddings=7958` 且 `search_function_available=true`；所有 blockers 消失後 `ready=true`。
+- `GET /api/catalog/status`：`catalog_provider.ready=true` 且 `count` 等於 operator 實際匯入並啟用的家具數。
+- `GET /api/rag/status`：`current_embeddings` 必須與目前可檢索 catalog 範圍一致，且 `search_function_available=true`；所有 blockers 消失後 `ready=true`。公開契約不固定資料筆數。
 - `POST /api/rag/search/jobs`：可建立工作；問卷即使收到失敗狀態也能前往下一個房間與第 6 步。

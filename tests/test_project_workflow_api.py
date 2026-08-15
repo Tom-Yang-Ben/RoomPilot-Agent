@@ -78,10 +78,10 @@ def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() ->
 
 def test_worktree_uses_the_main_repository_runtime_directory(tmp_path: Path) -> None:
     repository = tmp_path / "RoomPilot-Agent"
-    worktree = repository / ".worktrees" / "bella-test1"
+    worktree = repository / ".worktrees" / "feature-branch"
     worktree.mkdir(parents=True)
     (worktree / ".git").write_text(
-        f"gitdir: {(repository / '.git' / 'worktrees' / 'bella-test1').as_posix()}\n",
+        f"gitdir: {(repository / '.git' / 'worktrees' / 'feature-branch').as_posix()}\n",
         encoding="utf-8",
     )
 

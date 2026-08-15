@@ -6,9 +6,8 @@ Last updated: 2026-08-14
 `estimate_and_schedule.xlsx`，兩張工作表（工程估價、初步排程）。與交付提案 PDF 由
 同一次 POST 產出，不是另一顆按鈕。
 
-來源是 `origin/KAI_WITH_DJANGO` 的 `feat(engineering)` MVP（commit `0004c5ce`），
-只移植計算與文件產出，**不移植**它原本的 `/api/v1` router、SQLite 版本鎖定與
-`/engineering` 獨立前端頁。
+公開實作只保留計算與文件產出，不包含獨立 `/api/v1` router、SQLite 版本鎖定或
+第二套 `/engineering` 前端頁。
 
 ## 路徑
 

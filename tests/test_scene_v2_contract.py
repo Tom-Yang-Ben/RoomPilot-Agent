@@ -3837,13 +3837,7 @@ def test_room_scheme_hides_identical_b_as_no_alternative() -> None:
 
 
 def test_step_six_gates_furniture_tuning_behind_the_room_scheme_choice() -> None:
-    """第 6 步動線:先逐房選定 A/B、合成唯一方案,才拿該方案的擺設去微調家具
-    (docs/ROOMPILOT_6_8_AGENT_RENDER_IMPLEMENTATION_SPEC.md §A/B 選擇階段、§驗收條件 3)。
-
-    這條曾被遠端 bella-new 的 e97adfce 用 `return false` 關掉,本分支在
-    234631fd 原封不動繼承,導致使用者一離開問卷就直接落在 3D 白模、
-    B 方案照生照丟。此測試就是那個開關的登記處。
-    """
+    """第 6 步先逐房選定 A/B 並合成唯一方案，再微調該方案的家具。"""
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
 
     required = source.split("function roomSchemeSelectionRequired()")[1].split("\n}")[0]

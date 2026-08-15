@@ -1,4 +1,4 @@
-"""Resolve verified CloudFront URLs for furniture GLB assets.
+"""Resolve verified remote-CDN URLs for furniture GLB assets.
 
 The upload-result manifest is the trust boundary.  A catalog path by itself is
 never enough to publish a URL: the manifest row must either contain a valid
@@ -23,13 +23,8 @@ except ImportError:  # pragma: no cover - server extra includes python-dotenv
 PROJECT_DIR = Path(__file__).resolve().parents[3]
 if load_dotenv is not None:
     load_dotenv(PROJECT_DIR / ".env", override=False)
-DEFAULT_MANIFEST_PATH = (
-    PROJECT_DIR
-    / "JSON"
-    / "manifests"
-    / "glb_upload_all_result.csv"
-)
-DEFAULT_CLOUDFRONT_BASE_URL = "https://ddgsm1yg3xikc.cloudfront.net"
+DEFAULT_MANIFEST_PATH: Path | None = None
+DEFAULT_CLOUDFRONT_BASE_URL: str | None = None
 
 _VALID_MODES = {"local", "cloudfront"}
 _REMOTE_READY_STATUSES = {
@@ -43,8 +38,8 @@ _REMOTE_READY_STATUSES = {
 
 
 def model_delivery_mode() -> str:
-    """Return the configured delivery policy, defaulting to the bundled cloud catalog."""
-    value = os.getenv("ROOMPILOT_MODEL_DELIVERY_MODE", "cloudfront").strip().lower()
+    """Return the configured delivery policy; remote delivery is explicit opt-in."""
+    value = os.getenv("ROOMPILOT_MODEL_DELIVERY_MODE", "local").strip().lower()
     return value if value in _VALID_MODES else "local"
 
 
@@ -63,9 +58,7 @@ def _https_url(value: object) -> str | None:
 
 
 def _cloudfront_base_url() -> str | None:
-    return _https_url(
-        os.getenv("ROOMPILOT_CLOUDFRONT_BASE_URL", DEFAULT_CLOUDFRONT_BASE_URL)
-    )
+    return _https_url(os.getenv("ROOMPILOT_CLOUDFRONT_BASE_URL", ""))
 
 
 def _manifest_path() -> Path | None:

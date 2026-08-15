@@ -78,6 +78,7 @@ git diff --check
 - [系統架構](docs/ARCHITECTURE.md)
 - [文件索引](docs/README.md)
 - [開發與測試](docs/DEVELOPMENT.md)
+- [發布檢查清單](docs/RELEASE_CHECKLIST.md)
 - [資產與資料政策](docs/ASSET_POLICY.md)
 - [已知限制](docs/KNOWN_LIMITATIONS.md)
 - [layout_json／scene_json 邊界](docs/contracts/LAYOUT_SCENE_BOUNDARY_CONTRACT.md)

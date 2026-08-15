@@ -1,6 +1,6 @@
 """generate_layout 產品分支的特徵測試(characterization tests)。
 
-用途:`docs/擺位計算邏輯.md` 的柵格引擎要接管擺位計算,而 generate_layout 還扛著
+用途：`backend.engine` 的柵格引擎接管擺位計算，而 generate_layout 還扛著
 規格完全沒有模型的產品功能。這些分支**原本沒有任何測試保護**,改壞了不會有人發現。
 
 本檔先把現行行為釘住,再動核心 —— 斷言的是「使用者看得到的性質」(地毯壓在沙發上、

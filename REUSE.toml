@@ -10,9 +10,12 @@ path = [
   "scripts/**",
   "tests/**",
   "*.md",
+  "*.lock",
   "*.ps1",
   "*.sh",
   "*.toml",
+  "*.txt",
+  ".github/**",
   ".env.example",
   ".gitattributes",
   ".gitignore"
@@ -22,7 +25,13 @@ SPDX-FileCopyrightText = "AIPE03 第四組"
 SPDX-License-Identifier = "GPL-3.0-only"
 
 [[annotations]]
-path = ["backend/server/static/vendor/three/**", "backend/server/static/vendor/draco/**"]
+path = ["backend/server/static/vendor/three/**"]
 precedence = "override"
 SPDX-FileCopyrightText = "Three.js authors"
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["backend/server/static/vendor/draco/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "Google Inc."
+SPDX-License-Identifier = "Apache-2.0"
