@@ -36,4 +36,3 @@ basic answers + room polar questions + selected style cards
 python -m pytest -q tests/test_agent_select.py tests/test_agent_place.py
 python -m pytest -q tests/test_scene_room_requirements.py tests/test_scene_furniture_retrieval.py
 ```
-

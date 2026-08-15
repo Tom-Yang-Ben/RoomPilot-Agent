@@ -27,3 +27,26 @@ def test_markdown_link_check_reports_missing_target(tmp_path: Path) -> None:
 
     assert len(errors) == 1
     assert "does-not-exist.md" in errors[0]
+
+
+def test_text_hygiene_accepts_clean_text() -> None:
+    errors: list[str] = []
+
+    public_repo_check._verify_text_hygiene(errors, "clean.py", "value = 1\n")
+
+    assert errors == []
+
+
+def test_text_hygiene_reports_trailing_whitespace_and_blank_eof() -> None:
+    errors: list[str] = []
+
+    public_repo_check._verify_text_hygiene(
+        errors,
+        "dirty.py",
+        "value = 1\nvalue = 2 \n\n",
+    )
+
+    assert errors == [
+        "trailing whitespace: dirty.py:2",
+        "extra blank line at end of file: dirty.py",
+    ]

@@ -36,4 +36,3 @@ room + walls + openings + catalog dimensions + requested furniture
 python -m pytest -q tests/test_placement.py tests/test_clearance.py
 python -m pytest -q tests/test_scene_visual_regressions.py
 ```
-

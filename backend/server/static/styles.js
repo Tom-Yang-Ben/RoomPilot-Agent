@@ -1209,7 +1209,6 @@ function renderActiveStyle() {
         <h3>地板真材質 pool</h3>
         <p>以下只列資料庫中的地板材質，且優先取目前風格推薦 pool。</p>
         <h4>地板</h4>
-        
       </article>
       <article class="style-info-card wide style-enter" style="--delay:400ms; ${cardStyle}">
         <h3>資料庫對應</h3>

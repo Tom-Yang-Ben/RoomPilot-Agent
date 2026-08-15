@@ -232,6 +232,14 @@ def _verify_markdown_links(
                 )
 
 
+def _verify_text_hygiene(errors: list[str], relative: str, text: str) -> None:
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if line.rstrip(" \t") != line:
+            errors.append(f"trailing whitespace: {relative}:{line_number}")
+    if text.endswith("\n\n"):
+        errors.append(f"extra blank line at end of file: {relative}")
+
+
 def main() -> int:
     errors: list[str] = []
     paths = _candidate_paths()
@@ -259,6 +267,8 @@ def main() -> int:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
+        if not relative.startswith("backend/server/static/vendor/"):
+            _verify_text_hygiene(errors, relative, text)
         for label, pattern in SECRET_PATTERNS.items():
             if pattern.search(text):
                 errors.append(f"possible {label}: {relative}")

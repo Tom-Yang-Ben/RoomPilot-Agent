@@ -8,4 +8,3 @@ Owner: Cody. Collaborators: Ancai and Bella. Read `docs/owners/CODY.md`.
 - Coordinate changes require engine and scene regression tests.
 
 Minimum tests: DXF unit tests, scene layout tests, and 3D visual contracts.
-

@@ -8,4 +8,3 @@ for release/integration utilities.
 - Generated outputs and large assets do not belong in Git.
 - Never silently delete or prune catalog rows.
 - Document the exact command and expected result beside each operational script.
-

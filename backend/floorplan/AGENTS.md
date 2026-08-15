@@ -11,4 +11,3 @@ Owner: Cody. Spatial collaborator: Django. Read `docs/owners/CODY.md` and
 - Do not add furniture placement or UI behavior here.
 
 Minimum tests: vision, room evaluation, semantic status, and a matching fixture.
-
