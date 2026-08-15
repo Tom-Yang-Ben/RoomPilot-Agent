@@ -511,7 +511,7 @@ def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation
     assert "function stabilizeWholeHouseWallAppearance(material)" in source
     assert "new THREE.MeshBasicMaterial" in source
     assert "toneMapped: false" in source
-    assert "exteriorWallMaterial = stabilizeWholeHouseWallAppearance(exteriorWallMaterial);" in source
+    assert "if (usesOneWholeHouseWall) material = stabilizeWholeHouseWallAppearance(material);" in source
 
 
 def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
@@ -522,7 +522,7 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
     assert 'id="questionnaire-furniture-preference"' in html
-    assert 'id="refresh-questionnaire-furniture"' in html
+    assert 'id="open-questionnaire-furniture-catalog"' in html
     assert 'id="questionnaire-room-usage-options"' in html
     assert 'id="questionnaire-wall-preference"' in html
     assert 'id="questionnaire-floor-preference"' in html
@@ -540,7 +540,8 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "function applyDefaultQuestionnaireFurnitureSelections" in source
     assert "const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in source
     assert 'defaults: ["bed", "wardrobe"]' in source
-    assert 'required: ["bed"]' in source
+    assert 'bedroom: {' in source
+    assert 'defaults: ["bed", "wardrobe"]' in source
     assert "function questionnaireFurnitureRole" in source
     assert "QUESTIONNAIRE_FURNITURE_SHORT_LABELS" in source
     assert "function questionnaireFurnitureDisplayLabel" in source
@@ -563,7 +564,8 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "第 6 步將檢查實際 GLB、門窗與走道" in source
     assert 'id="questionnaire-furniture-preference-tags"' in html
     assert "QUESTIONNAIRE_FURNITURE_PREFERENCE_TAGS" in source
-    assert 'model_load_verification: "deferred"' in source
+    assert 'model_load_verification: "verified"' in source
+    assert 'offer?.render_mode === "procedural_fixture"' in source
     assert ".rp-questionnaire-furniture-options" in css
     assert ".rp-questionnaire-room-usage-options" in css
 
@@ -1512,8 +1514,9 @@ def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
     assert 'id="selected-window-type"' in html
     assert 'value="floor_to_ceiling"' in html
     assert 'id="window-type-preview"' in html
-    assert "黑鋁框左右兩扇玻璃參考" in html
-    assert (STATIC / "structure_assets" / "floor-to-ceiling-window.png").is_file()
+    assert "黑色鋁框左右兩扇玻璃落地窗示意" in html
+    assert 'class="rp-window-procedural-preview"' in html
+    assert not (STATIC / "structure_assets" / "floor-to-ceiling-window.png").exists()
     assert "function applySelectedWindowType" in controller
     assert "function applyWindowType(windowId, type)" in controller
     assert 'class="rp-window-type-toggle"' in controller
@@ -1571,7 +1574,7 @@ def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() 
     assert result["lintels"] == 1
 
 
-def test_ceiling_picker_uses_the_selected_ceiling_photo_not_a_lighting_sprite() -> None:
+def test_ceiling_picker_uses_procedural_visuals_not_unlicensed_photos() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     style_packs = (STATIC / "scene_style_packs.js").read_text(encoding="utf-8")
     css = (STATIC / "site.css").read_text(encoding="utf-8")
@@ -1584,7 +1587,8 @@ def test_ceiling_picker_uses_the_selected_ceiling_photo_not_a_lighting_sprite() 
     assert '照明：${escapeHtml(lighting?.label || "未指定")}' in picker
     assert 'id: "floating-downlight"' in style_packs
     assert 'id: "floating-no-main"' in style_packs
-    assert "ceiling-floating-reference-v2.png" in css
+    assert "/static/questionnaire_images/" not in css
+    assert 'data-ceiling-design-visual="floating-downlight"]' in css
 
 
 def test_3d_door_openings_are_deduped_after_topology_gap_conversion() -> None:
@@ -1735,7 +1739,7 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "if (generatedInvalid.length && !allowPendingFurniture && !strictSelectedFurniture)" in viewer
     assert "if (missingCatalogModels.length && !allowPendingFurniture && !strictSelectedFurniture)" in viewer
     assert "const sceneFurniture = allowPendingFurniture" in viewer
-    assert "selectedFurniture.filter((item) => item.model_url)" in viewer
+    assert "selectedFurniture.filter(catalogItemRenderable)" in viewer
     assert "尚未找到可用的資料庫 GLB" in viewer
     assert "selected_furniture_exact: strictSelectedFurniture || allowPendingFurniture" in viewer
     assert "完成需求，建立配置方案" in html
@@ -3265,7 +3269,7 @@ def test_project_workflow_brand_confirms_before_returning_home() -> None:
     assert 'aria-label="離開專案並返回首頁"' in html
     assert "async function confirmProjectExit(event)" in controller
     assert "要離開目前專案並返回首頁嗎？" in controller
-    assert '$("#exit-project").addEventListener("click", confirmProjectExit);' in controller
+    assert '$("#exit-project")?.addEventListener("click", confirmProjectExit);' in controller
     assert "await saveSequence.catch(() => null);" in controller
     assert 'location.assign("/");' in controller
     assert "專案尚未完成保存，請稍後再試。" in controller
@@ -3313,7 +3317,7 @@ def test_all_18_style_cards_build_complete_four_colour_pbr_style_packs() -> None
           count: STYLE_PACKS.length,
           complete: STYLE_PACKS.every((pack) =>
             pack.palette.length === 4
-            && pack.sourceImage.startsWith("/static/style_cards/")
+            && pack.sourceImage.startsWith("data:image/svg+xml,")
             && pack.wall.pbr
             && pack.wall.surfaceOption
             && pack.floor.pbr
@@ -3617,9 +3621,12 @@ def test_viewer_keeps_missing_glbs_editable_without_pretending_the_proxy_is_vali
         "let lastSceneData", 1
     )[0]
     assert "createFallbackFurnitureProxy(" in load_scene
+    assert 'item.render_mode === "procedural_fixture"' in load_scene
+    assert '"portable profile procedural fixture"' in load_scene
+    assert "{ validFixture: true }" in load_scene
     assert '"資料庫尚未提供 GLB"' in load_scene
     assert '"GLB 載入失敗，請更換家具或檢查資料庫模型權限"' in load_scene
-    assert "wrapper.userData.modelLoadFailed = true" in source
+    assert "wrapper.userData.modelLoadFailed = !validFixture" in source
     assert "wrapper.userData.sceneObject = item" in source
     assert "addFurniturePickProxy(wrapper, item)" in source
     assert "wrapper?.userData.modelLoadFailed === true" in load_scene
@@ -3641,7 +3648,7 @@ def test_configuration_pending_actions_distinguish_model_and_placement_failures(
         "const blockingRooms = configurationBlockingFurnitureByRoom", 1
     )[1].split("const confirmButton", 1)[0]
     handlers = source.split(
-        'element.configurationPendingList.addEventListener("click"', 1
+        'element.configurationPendingList?.addEventListener("click"', 1
     )[1].split(
         'element.configurationPlanImage.addEventListener("load"', 1
     )[0]

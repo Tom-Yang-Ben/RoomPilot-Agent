@@ -1856,8 +1856,8 @@ def run(cfg: Config):
         if cfg.output:                       # 指令/config 有指定輸出就照用
             scale_out = cfg.output
         else:                                # 慣例：DXF(cm) → testdata/dxf/
-            os.makedirs("data/testdata/dxf", exist_ok=True)
-            scale_out = os.path.join("data/testdata/dxf", base + ".dxf")
+            os.makedirs(".runtime/floorplan/dxf", exist_ok=True)
+            scale_out = os.path.join(".runtime/floorplan/dxf", base + ".dxf")
         write_solid_dxf(rects, wins, img_h, scale / 10.0, cfg, out=scale_out, insunits=5)
 
         print(f"影像   : {img_w}x{img_h}px  比例 {scale:.4f} mm/px  風格 solid")
@@ -1868,9 +1868,9 @@ def run(cfg: Config):
     bw = bw_open
 
     if not cfg.output:                       # 慣例：DXF → testdata/dxf/
-        os.makedirs("data/testdata/dxf", exist_ok=True)
+        os.makedirs(".runtime/floorplan/dxf", exist_ok=True)
         cfg.output = os.path.join(
-            "data/testdata/dxf", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
+            ".runtime/floorplan/dxf", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
 
     H, V = detect_hough(bw, cfg) if cfg.method == "hough" else detect_morph(bw, cfg)
     raw = len(H) + len(V)
@@ -1935,10 +1935,10 @@ def main():
     # 批次模式：不帶參數(且 config 沒鎖單張)、第一參數是目錄、或字面 'png'/'color_png'
     if (not a.input and not cfg.input) or \
        (a.input and (os.path.isdir(a.input) or a.input.lower() in ("png", "color_png"))):
-        in_dir = a.input if (a.input and os.path.isdir(a.input)) else "data/testdata/color_png"
+        in_dir = a.input if (a.input and os.path.isdir(a.input)) else "examples/fixtures"
         if not os.path.isdir(in_dir):
             sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
-        run_batch(in_dir, (a.output or "data/testdata/dxf"), cfg)
+        run_batch(in_dir, (a.output or ".runtime/floorplan/dxf"), cfg)
         return
 
     if a.input:
@@ -1952,7 +1952,7 @@ def main():
         sys.exit("缺輸入：用 floorplan2dxf_color.py 圖.png，或 floorplan2dxf_color.py color_png 批次，或在 config_color.ini 設 input")
     # 慣例：輸入放 testdata/color_png/ —— 給的路徑讀不到時自動去 testdata/color_png/ 找
     if not os.path.isfile(cfg.input):
-        alt = os.path.join("data/testdata/color_png", cfg.input)
+        alt = os.path.join("examples/fixtures", cfg.input)
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]

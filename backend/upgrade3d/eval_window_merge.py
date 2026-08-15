@@ -1,7 +1,7 @@
 """窗段合併 eval:dxf_parser 的 3D 窗輸出 vs floorplan 管線的窗偵測 ground truth。
 
-比對基準:data/testdata/dxf_scale/floorXX.dxf(公分 DXF)經 parse_dxf_file 解析後,
-每扇窗應收斂成「一條」中心線段;data/testdata/json/floorXX.json 的 windows(每扇一筆,
+比對基準由 `ROOMPILOT_WINDOW_EVAL_ROOT` 指定；其中 dxf_scale/floorXX.dxf
+經 parse_dxf_file 解析後，每扇窗應收斂成「一條」中心線段；json/floorXX.json
 cm 座標與 dxf_scale 同座標系)當 ground truth。
 
 配對規則(貪婪一對一):方向相同、中心距離 ≤ 0.25 m、長度差 ≤ max(0.12 m, 12%)。
@@ -18,7 +18,10 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from backend.upgrade3d.dxf_parser import parse_dxf_file  # noqa: E402
 
-ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "data", "testdata")
+ROOT = os.environ.get(
+    "ROOMPILOT_WINDOW_EVAL_ROOT",
+    os.path.join(os.path.dirname(__file__), "..", "..", ".runtime", "floorplan", "evaluation"),
+)
 CENTER_TOL = 0.25          # 中心距離容差(m)
 LEN_TOL_ABS = 0.12         # 長度容差(m)
 LEN_TOL_PCT = 0.12

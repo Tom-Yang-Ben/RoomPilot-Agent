@@ -1,0 +1,28 @@
+version = 1
+
+[[annotations]]
+path = [
+  "backend/**",
+  "docker_postgresql/**",
+  "docs/**",
+  "examples/**",
+  "knowledge/**",
+  "scripts/**",
+  "tests/**",
+  "*.md",
+  "*.ps1",
+  "*.sh",
+  "*.toml",
+  ".env.example",
+  ".gitattributes",
+  ".gitignore"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "AIPE03 第四組"
+SPDX-License-Identifier = "GPL-3.0-only"
+
+[[annotations]]
+path = ["backend/server/static/vendor/three/**", "backend/server/static/vendor/draco/**"]
+precedence = "override"
+SPDX-FileCopyrightText = "Three.js authors"
+SPDX-License-Identifier = "MIT"

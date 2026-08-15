@@ -1,9 +1,7 @@
-"""Build the official 8,675-item catalog from Kai's versioned JSON source.
+"""Build a validated catalog from developer-supplied JSON and a manifest.
 
-The official JSON is the sole source of furniture identity and enrichment.
-The upload-result manifest supplies delivery evidence.  The metadata-only
-six-style file provides top-level style presentation definitions; its empty
-``furniture`` compatibility array is deliberately ignored.
+This is a migration helper, not a bundled source of product data.  The caller
+is responsible for provenance, licensing and delivery URLs.
 """
 from __future__ import annotations
 
@@ -15,7 +13,6 @@ from typing import Any
 from .postgres_repository import _GROUP_NAMES, _catalog_group
 
 
-OFFICIAL_CATALOG_COUNT = 8_675
 READY_UPLOAD_STATUSES = {
     "uploaded",
     "already_exists",
@@ -26,7 +23,7 @@ READY_UPLOAD_STATUSES = {
 }
 
 
-def _official_style_candidates(item: dict[str, Any]) -> list[dict[str, Any]]:
+def _catalog_style_candidates(item: dict[str, Any]) -> list[dict[str, Any]]:
     try:
         confidence = float(item.get("style_confidence") or item.get("confidence") or 1.0)
     except (TypeError, ValueError):
@@ -64,14 +61,11 @@ def build_official_catalog(
     canonical_items = list(cloud_catalog.get("items") or [])
     ignored_presentation_items = len(style_presentation.get("furniture") or [])
 
-    if len(canonical_items) != OFFICIAL_CATALOG_COUNT:
-        raise ValueError(
-            f"cloud catalog must contain {OFFICIAL_CATALOG_COUNT} items; "
-            f"got {len(canonical_items)}"
-        )
+    if not canonical_items:
+        raise ValueError("developer catalog must contain at least one item")
 
     canonical_ids = [str(item.get("id") or "").strip() for item in canonical_items]
-    if not all(canonical_ids) or len(set(canonical_ids)) != OFFICIAL_CATALOG_COUNT:
+    if not all(canonical_ids) or len(set(canonical_ids)) != len(canonical_items):
         raise ValueError("cloud catalog item IDs must be present and unique")
 
     manifest_by_id = {
@@ -88,13 +82,13 @@ def build_official_catalog(
     unexpected_ids = (set(manifest_by_id) - set(canonical_ids)) - excluded_ids
     if missing_ids or unexpected_ids:
         raise ValueError(
-            "official JSON and manifest IDs differ: "
+            "developer catalog JSON and manifest IDs differ: "
             f"missing={len(missing_ids)}, unexpected={len(unexpected_ids)}"
         )
 
     canonical_by_id = dict(zip(canonical_ids, canonical_items, strict=True))
 
-    official_items: list[dict[str, Any]] = []
+    catalog_items: list[dict[str, Any]] = []
     for item_id in canonical_ids:
         canonical = canonical_by_id[item_id]
         manifest = manifest_by_id[item_id]
@@ -125,7 +119,7 @@ def build_official_catalog(
             canonical.get("taxonomy_group")
             or _catalog_group(normalized_type, room_types)
         )
-        style_candidates = _official_style_candidates(canonical)
+        style_candidates = _catalog_style_candidates(canonical)
         primary_style = str(canonical.get("style_primary") or "").strip() or None
         style_confidence = style_candidates[0]["score"] if style_candidates else 0.0
 
@@ -171,16 +165,16 @@ def build_official_catalog(
             "style_candidates": style_candidates,
             "primary_style": primary_style,
             "style_confidence": style_confidence,
-            "style_assignment_source": "official_json_6styles",
+            "style_assignment_source": "developer_supplied_json",
             "upload_status": upload_status,
         }
 
-        # Preserve every field delivered by the official JSON. Explicit runtime
+        # Preserve every field delivered by the developer JSON. Explicit runtime
         # mappings and verified manifest URLs above keep precedence.
         for field, value in canonical.items():
             if field != "id" and value is not None:
                 item.setdefault(field, value)
-        official_items.append(item)
+        catalog_items.append(item)
 
     result = {
         key: value
@@ -189,27 +183,28 @@ def build_official_catalog(
     }
     result.update(
         {
-            "schema_version": "official-json-8675-v3",
-            "catalog_name": "RoomPilot official CloudFront furniture catalog",
+            "schema_version": "developer-catalog-v1",
+            "catalog_name": "Developer-supplied furniture catalog",
             "source_catalog": cloud_catalog.get("dataset_name"),
             "source_style_presentation": style_presentation.get("catalog_name"),
-            "furniture": official_items,
+            "furniture": catalog_items,
             "summary": {
-                "total_furniture": len(official_items),
-                "cloudfront_ready": len(official_items),
-                "style_enriched": sum(bool(item.get("primary_style")) for item in official_items),
-                "style_unclassified": sum(not item.get("primary_style") for item in official_items),
+                "total_furniture": len(catalog_items),
+                "cloudfront_ready": len(catalog_items),
+                "style_enriched": sum(bool(item.get("primary_style")) for item in catalog_items),
+                "style_unclassified": sum(not item.get("primary_style") for item in catalog_items),
                 "manifest_excluded": len(set(manifest_by_id) - set(canonical_ids)),
                 "style_presentation_furniture_ignored": ignored_presentation_items,
             },
         }
     )
     diagnostics = {
-        "official_items": len(official_items),
+        # Compatibility key retained for callers of the legacy migration helper.
+        "official_items": len(catalog_items),
         "manifest_items": len(manifest_by_id),
         "manifest_excluded_items": len(set(manifest_by_id) - set(canonical_ids)),
-        "style_enriched_items": sum(bool(item.get("primary_style")) for item in official_items),
-        "style_unclassified_items": sum(not item.get("primary_style") for item in official_items),
+        "style_enriched_items": sum(bool(item.get("primary_style")) for item in catalog_items),
+        "style_unclassified_items": sum(not item.get("primary_style") for item in catalog_items),
         "style_presentation_furniture_ignored": ignored_presentation_items,
     }
     return result, diagnostics

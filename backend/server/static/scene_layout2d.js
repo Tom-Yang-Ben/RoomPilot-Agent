@@ -328,13 +328,15 @@ export function furnitureFootprintStyle(item, pixelsPerCm) {
 }
 
 export function toSceneFurniture(item, { positionLocked = true } = {}) {
+  const renderMode = item.render_mode || item.renderMode || null;
   return {
     furniture_id: item.id,
     catalog_furniture_id: item.catalogFurnitureId || null,
     normalized_type: item.type,
     name_zh_raw: item.label,
     model_url: item.model_url || null,
-    has_model: Boolean(item.model_url),
+    render_mode: renderMode,
+    has_model: Boolean(item.model_url || renderMode === "procedural_fixture"),
     primary_style: item.primaryStyle || null,
     color: item.catalogColor || null,
     material: item.catalogMaterial || null,
@@ -362,7 +364,10 @@ export function mergeCatalogFurniture(item, catalogItem) {
     furniture_id: item.id,
     catalog_furniture_id: catalogItem.furniture_id,
     model_url: catalogItem.model_url,
-    has_model: Boolean(catalogItem.model_url),
+    render_mode: catalogItem.render_mode || null,
+    has_model: Boolean(
+      catalogItem.model_url || catalogItem.render_mode === "procedural_fixture"
+    ),
     size_cm: sceneItem.size_cm,
     catalog_size_cm: catalogItem.size_cm,
     requested_size_cm: sceneItem.size_cm,

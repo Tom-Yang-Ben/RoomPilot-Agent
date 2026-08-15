@@ -61,7 +61,7 @@ def matched(a, b):
 
 
 def main():
-    ans_dir = sys.argv[1] if len(sys.argv) > 1 else "data/testdata/Identify_ans/pngans/gray"
+    ans_dir = sys.argv[1] if len(sys.argv) > 1 else ".runtime/floorplan/evaluation/window_answers"
     chk_dir = sys.argv[2] if len(sys.argv) > 2 else "temp/chk/gray"
     ans_files = sorted(glob.glob(os.path.join(ans_dir, "*_ans.png")))
     if not ans_files:

@@ -7,13 +7,12 @@
 2026-07-30 CubiCasa 血統整批移除後那兩個常數不再存在，但**失效模式沒有消失，只是
 換了主角**。DINOv2 路徑同樣有兩個由模組位置推導的資產路徑：
 
-* `room_classifier.HEAD_PATH` → `backend/floorplan/room_head.npz`（15KB 線性頭）
-* `symbol_match.LIB_PATH` → `backend/floorplan/symbol_lib.npz`（943 條模板庫）
+* `room_classifier.HEAD_PATH` → `.runtime/floorplan/room_head.npz`
+* `symbol_match.LIB_PATH` → `.runtime/floorplan/symbol_lib.npz`
 
 兩者的共同危險在於**找不到檔不會報錯**——`_load()` 與 `load_lib()` 都回 None，
-房型靜默退回面積規則、模板比對靜默停用，只有評測分數悄悄掉下來。cody_adapter 走
-HTTP 請求路徑時伺服器 cwd 不保證是 repo 根，所以這裡把「絕對路徑 ＋ 錨定在套件
-目錄 ＋ 檔案真的在」三件事一起釘住。
+房型退回面積規則、模板比對停用。公開 repository 不附來源未證實的訓練產物，
+所以這裡釘住絕對 runtime 路徑、缺件降級，以及環境變數覆寫。
 """
 from __future__ import annotations
 
@@ -30,6 +29,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PIPELINE_DIR = REPO_ROOT / "backend" / "floorplan"
+RUNTIME_MODEL_DIR = REPO_ROOT / ".runtime" / "floorplan"
 
 
 @pytest.fixture(scope="module")
@@ -42,41 +42,39 @@ def symbol_match():
     return importlib.import_module("backend.floorplan.symbol_match")
 
 
-def test_room_head_anchors_to_the_package_directory(room_classifier) -> None:
-    """線性頭與 room_classifier.py 同層，路徑由模組位置推導而非 cwd。"""
+def test_room_head_anchors_to_runtime_directory(room_classifier) -> None:
+    """未附授權模型時只解析到忽略版控的 runtime 目錄。"""
     head = Path(room_classifier.HEAD_PATH)
 
     assert head.is_absolute(), "HEAD_PATH 預設值必須是絕對路徑"
-    assert head == PIPELINE_DIR / "room_head.npz"
+    assert head == RUNTIME_MODEL_DIR / "room_head.npz"
 
 
-def test_room_head_file_actually_exists(room_classifier) -> None:
-    """缺檔時 DINOv2 分類靜默停用（只印警告），故以測試釘住檔案真的在版控裡。"""
+def test_missing_room_head_disables_optional_semantics(room_classifier) -> None:
+    """portable clone 沒有本地線性頭時必須安全降級。"""
     head = Path(room_classifier.HEAD_PATH)
 
-    assert head.is_file(), f"線性頭不在 {head}——房型會靜默退回面積規則"
+    assert not head.is_file()
+    room_classifier._state = "unloaded"
+    assert room_classifier.available() is False
 
 
-def test_symbol_lib_anchors_to_the_package_directory(symbol_match) -> None:
-    """模板庫與消費它的 symbol_match.py 同目錄（2026-07-29 由 repo 根移入）。
-
-    舊寫法由模組位置往上三層推導，只搬 `backend/floorplan/` 而不保持整個 repo
-    目錄結構就會解析到錯路徑——這正是 MAIN_SYNC_TODO 第 9 點記載的失效模式。
-    """
+def test_symbol_lib_anchors_to_runtime_directory(symbol_match) -> None:
+    """模板庫預設只從忽略版控的 runtime 目錄讀取。"""
     lib = Path(symbol_match.LIB_PATH)
 
     assert lib.is_absolute(), "LIB_PATH 預設值必須是絕對路徑"
-    assert lib == PIPELINE_DIR / "symbol_lib.npz"
+    assert lib == RUNTIME_MODEL_DIR / "symbol_lib.npz"
 
 
-def test_symbol_lib_loads_into_a_non_empty_library(symbol_match) -> None:
-    """`load_lib()` 找不到檔時回 None、`match_symbols()` 回空清單，不報錯。"""
+def test_missing_symbol_library_is_an_explicit_safe_fallback(symbol_match) -> None:
+    """portable clone 無模板庫時回 None，不製造假辨識結果。"""
     lib = Path(symbol_match.LIB_PATH)
-    assert lib.is_file(), f"模板庫不在 {lib}——模板比對會靜默停用"
+    assert not lib.is_file()
 
+    symbol_match._lib_cache = "unloaded"
     loaded = symbol_match.load_lib()
-    assert loaded is not None
-    assert len(loaded["rasters"]) > 0
+    assert loaded is None
 
 
 def test_defaults_resolve_identically_when_run_from_the_package_directory() -> None:
@@ -106,8 +104,8 @@ def test_defaults_resolve_identically_when_run_from_the_package_directory() -> N
     assert result.returncode == 0, result.stderr
 
     resolved = json.loads(result.stdout.strip().splitlines()[-1])
-    assert Path(resolved["head"]) == PIPELINE_DIR / "room_head.npz"
-    assert Path(resolved["lib"]) == PIPELINE_DIR / "symbol_lib.npz"
+    assert Path(resolved["head"]) == RUNTIME_MODEL_DIR / "room_head.npz"
+    assert Path(resolved["lib"]) == RUNTIME_MODEL_DIR / "symbol_lib.npz"
 
 
 def test_room_head_environment_override_still_wins(tmp_path: Path) -> None:

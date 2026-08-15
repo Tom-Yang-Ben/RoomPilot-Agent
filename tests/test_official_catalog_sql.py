@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
+
+import pytest
 
 from scripts.sql import import_official_catalog_to_postgres as sql_import
 from scripts.catalog import remove_excluded_catalog_assets_from_manifests as manifest_cleanup
@@ -10,7 +11,7 @@ from scripts.catalog import remove_excluded_catalog_assets_from_manifests as man
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_sql_defaults_use_the_portable_official_catalog_handoff() -> None:
+def test_full_import_defaults_are_documented_but_not_bundled() -> None:
     expected_paths = {
         sql_import.DEFAULT_CATALOG: ROOT
         / "JSON"
@@ -36,7 +37,7 @@ def test_sql_defaults_use_the_portable_official_catalog_handoff() -> None:
 
     for actual, expected in expected_paths.items():
         assert actual == expected
-        assert actual.is_file()
+        assert not actual.exists()
 
 
 def test_sql_dry_run_does_not_persist_validation_report_by_default() -> None:
@@ -45,39 +46,9 @@ def test_sql_dry_run_does_not_persist_validation_report_by_default() -> None:
     assert args.validation_report is None
 
 
-def test_sql_dry_run_validates_all_official_assets_without_database(
-    tmp_path: Path, capsys
-) -> None:
-    report_path = tmp_path / "postgres_import_validation.json"
-
-    assert (
-        sql_import.main(
-            ["--dry-run", "--validation-report", str(report_path)]
-        )
-        == 0
-    )
-
-    report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report["valid"] is True
-    assert report["source_counts"] == {
-        "catalog_items": 8_675,
-        "glb_manifest_rows": 8_675,
-        "glb_result_rows": 8_675,
-        "image_manifest_rows": 26_025,
-        "image_result_rows": 26_025,
-    }
-    assert report["prepared_counts"]["assets"] == 34_700
-    assert report["prepared_counts"]["styles"] == 6
-    assert report["prepared_counts"]["vlm_annotations"] == 8_675
-    assert report["excluded_item_ids"] == [
-        "jp-armchairs-01-underl-tta-vacuum-flask-black-1-2-l"
-    ]
-    assert report["errors"] == []
-
-    output = capsys.readouterr().out
-    assert "家具：8,675" in output
-    assert "分類／風格／房間：56／6／9" in output
-    assert "Dry Run 完成；未連線 PostgreSQL，也未寫入資料庫。" in output
+def test_sql_dry_run_requires_operator_supplied_full_profile_assets() -> None:
+    with pytest.raises(FileNotFoundError, match="找不到輸入檔"):
+        sql_import.main(["--dry-run"])
 
 
 def test_replace_existing_is_atomic_and_keeps_non_catalog_tables_out_of_scope() -> None:
@@ -91,16 +62,9 @@ def test_replace_existing_is_atomic_and_keeps_non_catalog_tables_out_of_scope() 
     assert "roompilot.style_cards" not in reset_sql
 
 
-def test_excluded_furniture_is_absent_from_both_manifest_copies() -> None:
-    item_ids = manifest_cleanup.excluded_item_ids(manifest_cleanup.DEFAULT_CATALOG)
-
-    assert item_ids == ("jp-armchairs-01-underl-tta-vacuum-flask-black-1-2-l",)
-    for filename in manifest_cleanup.MANIFEST_FILES:
-        left = manifest_cleanup.MANIFEST_ROOTS[0] / filename
-        right = manifest_cleanup.MANIFEST_ROOTS[1] / filename
-        assert manifest_cleanup.matching_line_count(left, item_ids) == 0
-        assert manifest_cleanup.matching_line_count(right, item_ids) == 0
-        assert manifest_cleanup.sha256(left) == manifest_cleanup.sha256(right)
+def test_legacy_manifest_cleanup_has_no_public_inputs() -> None:
+    assert not manifest_cleanup.DEFAULT_CATALOG.exists()
+    assert all(not root.exists() for root in manifest_cleanup.MANIFEST_ROOTS)
 
 
 def test_sql_schema_exposes_current_catalog_and_staging_contracts() -> None:

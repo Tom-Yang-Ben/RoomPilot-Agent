@@ -19,7 +19,7 @@ from .cody_semantic import cody_semantic_room_labeler_status
 from .evaluation import summarize_room_polygons
 from .geometry import transform_confirmed_geometry
 from .image import decode_image, profile_floorplan_image
-from .reference_plan import match_builder_plan_630
+from .reference_plan import match_configured_reference
 from .room_icons import apply_icon_room_labels, detect_room_icons
 from .rooms import infer_rooms_from_walls
 from .spatial_report import build_spatial_report
@@ -454,7 +454,7 @@ def analyze_floorplan_image(
     recognition_mode = "provided_observations" if geometry_observations else "cody_vision"
     reference_match = None
     if not geometry_observations:
-        reference_match = match_builder_plan_630(image)
+        reference_match = match_configured_reference(image)
         if reference_match and not observations:
             observations = reference_match["ocr"]
     # OCR 供應者是最後手段：呼叫端提供的觀測與黃金圖參考標註都優先。

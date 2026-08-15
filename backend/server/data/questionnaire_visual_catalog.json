@@ -209,8 +209,7 @@
           "engine_effects": {
             "circulation_priority": "wide"
           },
-          "generation_status": "ready",
-          "image_sha256": "181b8bb202d29288543b1c1da34f03a816b00a36c02d270e93d0552d76e8baa6"
+          "generation_status": "planned"
         },
         {
           "option_id": "storage",
@@ -225,8 +224,7 @@
           "engine_effects": {
             "circulation_priority": "storage"
           },
-          "generation_status": "ready",
-          "image_sha256": "3e7354425f533b3e23f48da4a98d8ecb0ba08c274602e7e40c086352811b0c55"
+          "generation_status": "planned"
         }
       ]
     },
@@ -673,9 +671,8 @@
           "engine_effects": {
             "kitchen_boundary": "open"
           },
-          "generation_status": "ready",
-          "image_id": "qv-kitchen-boundary-open",
-          "image_sha256": "b22e0c790e35c6ca14096b15b6d7085e14befd0bc5e20fa67d0e3c75b032703f"
+          "generation_status": "planned",
+          "image_id": "qv-kitchen-boundary-open"
         },
         {
           "option_id": "enclosed",
@@ -689,9 +686,8 @@
           "engine_effects": {
             "kitchen_boundary": "enclosed"
           },
-          "generation_status": "ready",
-          "image_id": "qv-kitchen-boundary-enclosed",
-          "image_sha256": "c838b73ea8fda5596b4c4c5446fb05493695d33dcfcf74fc8afec47de089c002"
+          "generation_status": "planned",
+          "image_id": "qv-kitchen-boundary-enclosed"
         }
       ]
     },
@@ -1481,8 +1477,7 @@
           "engine_effects": {
             "wet_zone": "enclosed"
           },
-          "generation_status": "ready",
-          "image_sha256": "d4e8c178927a478288dbf94ff50c5232e6ac3afc986298494bd54c59feba6caa"
+          "generation_status": "planned"
         },
         {
           "option_id": "open",
@@ -1497,8 +1492,7 @@
           "engine_effects": {
             "wet_zone": "open"
           },
-          "generation_status": "ready",
-          "image_sha256": "4714f1c2dabfe34bfab3fe21124c9f2bc0a02f23d17092f657acf03f9bdf767b"
+          "generation_status": "planned"
         }
       ]
     },
@@ -2041,8 +2035,7 @@
           "engine_effects": {
             "lighting_bias": "recessed"
           },
-          "generation_status": "ready",
-          "image_sha256": "6226ac53325e1582eb3b26d7cffa5bc48b2982ff6f3bbb6cf8c3929b5c6c8159"
+          "generation_status": "planned"
         },
         {
           "option_id": "surface",
@@ -2057,8 +2050,7 @@
           "engine_effects": {
             "lighting_bias": "surface"
           },
-          "generation_status": "ready",
-          "image_sha256": "657d4b5a731f430345eabf3e6f8f7ed579af1cb71654c88fab0f71277dbf623e"
+          "generation_status": "planned"
         }
       ]
     },

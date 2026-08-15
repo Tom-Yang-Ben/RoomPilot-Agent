@@ -4,18 +4,12 @@ Bella 的 Django 式 icon／zone 規則不需要任何模型檔就能跑，所�
 **誠實回報語意層能不能動**，讓產品在資產缺失時穩定退回 fallback，而不是在請求
 路徑上炸掉。
 
-2026-07-30 起本模組改指 DINOv2：房型命名層已由 CubiCasa 語意投票換成凍結
-DINOv2 ViT-S/14 ＋ 線性頭（own_eval 72 房保留集 79.2% → 90.3%）。隨之消失的是
-整套 CubiCasa 資產管理——200MB v5 權重、GitHub Release 下載鏈與 token 交換、
-`cubicasa/room/*_mask.npz` 遮罩快取、`infer_cubicasa.py` subprocess 推論。
-DINOv2 的判定條件簡單得多，故本模組由 368 行縮到現在的規模：
+選配語意路徑使用 DINOv2 ViT-S/14 加本地線性頭。公開 repository 不附訓練資料、
+線性頭或骨幹權重；開發者必須自行確認模型與資料授權，再放入 runtime 目錄：
 
-* 線性頭 `backend/floorplan/room_head.npz`（15KB，進版控，clone 即得）
+* 線性頭 `.runtime/floorplan/room_head.npz`
 * `torch`（CPU 版即可，只推論不訓練）
 * DINOv2 骨幹 88MB，`torch.hub` 首次下載後快取於 `~/.cache/torch/hub/`
-
-授權上這也是本次改動的重點：DINOv2 程式碼與權重皆 Apache 2.0 可商用，v2.15 就
-記載的「CubiCasa5k 權重 CC BY-NC 禁商用」硬閘至此解除。
 """
 
 from __future__ import annotations
@@ -25,7 +19,7 @@ from pathlib import Path
 from typing import Mapping
 
 
-DEFAULT_HEAD = Path("backend/floorplan/room_head.npz")
+DEFAULT_HEAD = Path(".runtime/floorplan/room_head.npz")
 BACKBONE_CACHE_HINT = Path("~/.cache/torch/hub")
 MODEL_VERSION = "cody_dinov2_room_head_v1"
 

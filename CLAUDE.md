@@ -1,32 +1,21 @@
-# RoomPilot 協作指引
+# RoomPilot collaborator guide
 
-修改前先閱讀 `AGENTS.md`。它定義必要的閱讀順序、跨資料夾修改規則與驗證門檻。
+Start with `AGENTS.md` and `README.md`, then read the nearest directory-level
+`AGENTS.md` plus any affected contract under `docs/contracts/`.
 
-接著依序閱讀：
+The public default is the offline `portable` profile. It uses the project-authored
+fixture catalog, SQLite project storage, procedural 3D furniture, and loopback-only
+development hosting. The `full` profile is strict PostgreSQL and requires operators
+to supply their own licensed data and assets; failures must remain visible.
 
-1. `README.md`
-2. `docs/TEAM_AI_OWNERSHIP.md`
-3. 對應的 `docs/owners/<OWNER>.md`
-4. 目標路徑最近的 `AGENTS.md`
-5. 相關 `docs/contracts/`
+Keep these boundaries intact:
 
-## 修改前
+- `layout_json` is recognition output; `scene_json` is generated/edited output.
+- Cross-module geometry uses centimetres and `_cm` field names.
+- Only `backend/engine/` decides placement, collision, clearance, and legality.
+- `backend/server/static/` is the one production frontend.
+- Do not commit secrets, user data, database dumps, model weights, large GLBs, or
+  assets without verified redistribution rights.
 
-說明目標 owner、修改檔案、輸入/輸出契約與測試。跨多個 owner 目錄時，使用 `AGENTS.md` 的跨資料夾修改格式。
-
-禁止：
-
-- 未檢視差異就整包合併成員分支。
-- 新建第二套 FastAPI 或正式前端。
-- 將幾何決策移到 Graph RAG、瀏覽器或 LLM。
-- 未更新兩端測試就改動公分制 payload。
-- 將 quarantine 資料視為正式家具。
-- 覆蓋他人未提交的本機變更。
-
-## 目前產品邊界
-
-正式產品是 `backend/server/` 與 `backend/server/static/` 的八步 FastAPI/Three.js 工作流：辨識止於 `layout_json`，方案與編輯使用 `scene_json`，家具合法性由 `backend/engine/` 計算。
-
-第 6 步家具資料以 Kai PostgreSQL view `roompilot.furniture_catalog_current` 優先；只有資料庫暫時不可用才使用已驗證 JSON。家電需求留在問卷與 `scene_json.render_context` 協助第 8 步生圖，不列入 2D/3D 擺設。
-
-`frontend3d/` 是次要原型。責任、遠端分支與整合證據以 `docs/TEAM_AI_OWNERSHIP.md` 為準，不可只依 Git author 推論。
+Before handing off, run the validation commands documented in `AGENTS.md`. Do not
+push, merge, publish, or deploy unless the user explicitly asks for that action.

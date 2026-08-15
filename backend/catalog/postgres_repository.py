@@ -14,6 +14,8 @@ from pathlib import Path
 from threading import Lock
 from typing import Any, Iterator
 
+from ..runtime_profile import current_profile
+
 
 # The imported Kai migration currently publishes this compatibility view.  Keep
 # the runtime on it until Django owns the api_current view migration as well.
@@ -197,15 +199,22 @@ def _setting(project_dir: Path, name: str, default: str = "") -> str:
 
 
 def catalog_provider_mode(project_dir: Path) -> str:
-    """Return strict ``postgres`` by default or explicit offline ``json``."""
-    value = _setting(project_dir, "ROOMPILOT_CATALOG_PROVIDER", "postgres").casefold()
-    if value in {"json", "local", "fallback"}:
-        return "json"
-    return "postgres"
+    """Return the selected catalog provider for the active runtime profile."""
+    configured = _setting(project_dir, "ROOMPILOT_CATALOG_PROVIDER", "").casefold()
+    if not configured:
+        return "fixture" if current_profile() == "portable" else "postgres"
+    value = configured
+    if value in {"fixture", "portable", "procedural"}:
+        return "fixture"
+    if value == "postgres":
+        return "postgres"
+    raise RuntimeError(
+        "invalid ROOMPILOT_CATALOG_PROVIDER; expected fixture or postgres"
+    )
 
 
 def postgres_catalog_requested(project_dir: Path) -> bool:
-    return catalog_provider_mode(project_dir) != "json"
+    return catalog_provider_mode(project_dir) == "postgres"
 
 
 def _database_config(project_dir: Path) -> dict[str, Any]:
@@ -770,13 +779,16 @@ def catalog_summary(project_dir: Path) -> dict[str, Any]:
 def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
     """Probe the selected provider without exposing any connection settings."""
     mode = catalog_provider_mode(project_dir)
-    if mode == "json":
+    if mode == "fixture":
+        from .fixture_repository import load_fixture_catalog
+
         return {
-            "provider": "json_offline",
+            "provider": "portable_fixture",
             "available": True,
             "ready": True,
-            "source_of_truth": "versioned_files",
-            "reason": "explicit_json_mode",
+            "count": len(load_fixture_catalog()),
+            "source_of_truth": "project_authored_fixture",
+            "reason": "portable_profile",
             "strict": False,
         }
     try:

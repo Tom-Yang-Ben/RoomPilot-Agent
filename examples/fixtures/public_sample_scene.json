@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "coordinate_unit": "cm",
+  "sample": true,
+  "contains_user_data": false,
+  "floorplan": {
+    "source": "project_authored_fixture",
+    "width_cm": 500,
+    "depth_cm": 360,
+    "room_height_cm": 270,
+    "coordinate_unit": "cm"
+  },
+  "scene_objects": [
+    {
+      "furniture_id": "fixture-sofa-2seat",
+      "instance_id": "fixture-sofa-1",
+      "name_zh_raw": "程序化雙人沙發",
+      "normalized_type": "sofa",
+      "render_mode": "procedural_fixture",
+      "model_url": null,
+      "size_cm": {"width": 168, "depth": 84, "height": 78},
+      "position_cm": {"x": -90, "z": 70},
+      "rotation_y_deg": 180,
+      "placement_failed": false,
+      "placement_engine": "furniture_engine"
+    },
+    {
+      "furniture_id": "fixture-coffee-table",
+      "instance_id": "fixture-table-1",
+      "name_zh_raw": "程序化茶几",
+      "normalized_type": "coffee-table",
+      "render_mode": "procedural_fixture",
+      "model_url": null,
+      "size_cm": {"width": 96, "depth": 54, "height": 42},
+      "position_cm": {"x": -90, "z": -20},
+      "rotation_y_deg": 0,
+      "placement_failed": false,
+      "placement_engine": "furniture_engine"
+    }
+  ],
+  "ai_render": {
+    "status": "not_configured",
+    "artifact": null,
+    "message": "No fake render is bundled. Configure an external provider explicitly."
+  }
+}

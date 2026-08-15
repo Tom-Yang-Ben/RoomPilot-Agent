@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import subprocess
@@ -8,7 +7,6 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
-from PIL import Image
 
 from backend.server.questionnaire_visuals import (
     QuestionnaireVisualStore,
@@ -138,7 +136,7 @@ def test_confirmed_room_prefills_only_shared_unanswered_questions() -> None:
     }
 
 
-def test_ready_questionnaire_images_are_valid_assets() -> None:
+def test_questionnaire_images_are_explicitly_planned_not_fabricated() -> None:
     catalog = load_questionnaire_visual_catalog()
     ready = [
         option
@@ -147,14 +145,13 @@ def test_ready_questionnaire_images_are_valid_assets() -> None:
         if option["generation_status"] == "ready"
     ]
 
-    assert len(ready) == 8
-    for option in ready:
-        image_path = ROOT / "backend" / "server" / "static" / option["image_path"]
-        assert image_path.is_file()
-        with Image.open(image_path) as image:
-            assert image.size == (1536, 1024)
-            assert image.info["RoomPilotWatermark"] == "RoomPilot"
-        assert option["image_sha256"] == hashlib.sha256(image_path.read_bytes()).hexdigest()
+    assert ready == []
+    assert not (ROOT / "backend" / "server" / "static" / "questionnaire_images").exists()
+    assert all(
+        not option.get("image_sha256")
+        for question in catalog["questions"]
+        for option in question["options"]
+    )
 
 
 def test_visual_catalog_api_returns_planned_and_ready_questions(
@@ -172,7 +169,7 @@ def test_visual_catalog_api_returns_planned_and_ready_questions(
     payload = response.json()
     assert payload["question_count"] == 55
     assert payload["image_count"] == 110
-    assert payload["ready_image_count"] == 8
+    assert payload["ready_image_count"] == 0
     assert len(payload["questions"]) == 55
 
 
@@ -217,13 +214,14 @@ def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
     assert 'data-whole-house-style-pack="${escapeHtml(family.defaultPackId)}"' in javascript
 
 
-def test_ceiling_reference_photos_are_individual_and_cover_all_seven_choices() -> None:
+def test_ceiling_choices_use_procedural_placeholders_without_photos() -> None:
     stylesheet = (ROOT / "backend" / "server" / "static" / "site.css").read_text(encoding="utf-8")
 
     assert 'ceiling-reference-real-homes-v1.png' not in stylesheet
     for style in ("exposed", "flat", "cove", "floating", "linear", "feature-pendant", "wood-grid"):
         assert f'data-ceiling-style-visual="{style}"]' in stylesheet
-        assert (ROOT / "backend" / "server" / "static" / "questionnaire_images" / f"ceiling-{style}-reference.jpg").is_file()
+        assert f'data-ceiling-style-visual="{style}"]' in stylesheet
+    assert "/static/questionnaire_images/" not in stylesheet
 
 
 def test_every_ceiling_design_pack_has_its_own_picker_photo() -> None:
@@ -254,7 +252,7 @@ def test_questionnaire_ui_keeps_visual_catalog_for_rag_but_not_as_required_quest
 
     assert "全屋設定" in html
     assert "逐房需求與材質" in html
-    assert 'id="whole-house-air-conditioning-all"' in html
+    assert 'id="questionnaire-air-conditioning"' in html
     assert 'id="questionnaire-furniture-preference-tags"' in html
     assert 'const profileQuestions = WHOLE_HOUSE_QUESTIONS.filter((question) => question.id !== "overallStyle");' in javascript
     assert 'answers.overallStyle = selectedFamily?.label || "";' in javascript
@@ -282,7 +280,7 @@ def test_questionnaire_catalog_json_remains_the_versioned_source() -> None:
         option["generation_status"]
         for question in payload["questions"]
         for option in question["options"]
-    } == {"planned", "ready"}
+    } == {"planned"}
 
 
 def test_questionnaire_helpers_filter_rooms_and_enforce_both_gates() -> None:

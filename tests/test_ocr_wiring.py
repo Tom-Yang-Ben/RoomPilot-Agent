@@ -26,10 +26,10 @@ from backend.server import main as server_main
 client = TestClient(server_main.app)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-FLOOR01 = REPO_ROOT / "data" / "testdata" / "png" / "floor01.png"
+FLOOR01 = REPO_ROOT / "examples" / "fixtures" / "public_floorplan.png"
 
 needs_floor01 = pytest.mark.skipif(
-    not FLOOR01.exists(), reason="需要 testdata/png/floor01.png"
+    not FLOOR01.exists(), reason="需要公開平面圖 fixture"
 )
 
 
@@ -92,7 +92,7 @@ def _project_with_floor01() -> str:
     project_id = project["project_id"]
     uploaded = client.post(
         f"/api/projects/{project_id}/floorplan",
-        files={"file": ("floor01.png", FLOOR01.read_bytes(), "image/png")},
+        files={"file": (FLOOR01.name, FLOOR01.read_bytes(), "image/png")},
     )
     assert uploaded.status_code == 201
     saved = client.put(
@@ -139,35 +139,30 @@ def test_ocr_disabled_env_skips_provider_construction(monkeypatch) -> None:
 def test_provider_crash_does_not_break_analysis() -> None:
     result = analysis.analyze_floorplan_image(
         FLOOR01.read_bytes(),
-        filename="floor01.png",
+        filename=FLOOR01.name,
         ocr_provider=_RecordingProvider(error=RuntimeError("paddle 執行中炸掉")),
     )
 
     assert result["rooms"], "OCR 失敗時主流程仍須產出完整辨識結果"
 
 
-# ── 4a. 黃金圖參考標註優先於即時 OCR ────────────────────────────────
+# ── 4a. 公開版不內建特定客戶圖的黃金捷徑 ───────────────────────────
 
 
-BUILDER_630 = REPO_ROOT / "data" / "testdata" / "png" / "builder_plan_630.png"
-
-
-@pytest.mark.skipif(not BUILDER_630.exists(), reason="需要 builder_plan_630 測資")
-def test_reference_annotations_outrank_live_ocr_provider() -> None:
-    """630 黃金圖有已驗收的參考標註；真 OCR 不得搶走標準答案
-    （2026-07-29 mac 實跑：paddle 先執行導致 confirm 422 與 review_items 非空）。"""
+def test_public_fixture_uses_configured_ocr_provider() -> None:
+    """沒有明確設定 reference 時，公開 fixture 應走一般 OCR 供應者。"""
     provider = _RecordingProvider(
         observations=[{"text": "999", "bbox": [0.0, 0.0, 10.0, 10.0], "confidence": 0.9}]
     )
 
     result = analysis.analyze_floorplan_image(
-        BUILDER_630.read_bytes(),
-        filename="builder_plan_630.png",
+        FLOOR01.read_bytes(),
+        filename=FLOOR01.name,
         ocr_provider=provider,
     )
 
-    assert provider.calls == 0, "參考標註存在時不得呼叫 OCR 供應者"
-    assert result["scale"]["distance_cm"] == 630.0
+    assert provider.calls == 1
+    assert result["recognition_engine"] == "cody"
 
 
 # ── 4b. 同圈圍多房名去重與印刷房名優先權（floor01 實跑病灶）────────────

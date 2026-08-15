@@ -29,32 +29,26 @@ CANONICAL_STYLE_IDS = {
 }
 
 
-def test_old_twelve_style_json_is_archived_outside_the_active_catalog():
-    assert ARCHIVE_DIR.is_dir()
-    assert (ARCHIVE_DIR / "ikea_furniture_style_database.json").is_file()
-    assert (ARCHIVE_DIR / "external_furniture_import_index.json").is_file()
-    assert (ARCHIVE_DIR / "README.md").is_file()
+def test_private_twelve_style_archive_is_not_distributed():
+    assert not ARCHIVE_DIR.exists()
 
 
-def test_active_catalog_uses_the_official_cloud_set_and_only_confirmed_styles():
+def test_active_catalog_uses_project_authored_portable_fixtures():
     catalog = load_style_database()
     assert {style["style_id"] for style in catalog["styles"]} == CANONICAL_STYLE_IDS
 
     furniture = catalog["furniture"]
-    assert len(furniture) == 8_675
+    assert len(furniture) == 16
     assert all(item.get("name_zh") and re.search(r"[\u4e00-\u9fff]", item["name_zh"]) for item in furniture)
-
-    classified = [item for item in furniture if item.get("primary_style")]
-    unclassified = [item for item in furniture if not item.get("primary_style")]
-    assert len(classified) == 8_675
-    assert len(unclassified) == 0
-    assert all(item["primary_style"] in CANONICAL_STYLE_IDS for item in classified)
+    assert all(item["catalog_scope"] == "portable_fixture" for item in furniture)
+    assert all(item["render_mode"] == "procedural_fixture" for item in furniture)
+    assert all(item["model_url"] is None for item in furniture)
+    assert all(item["primary_style"] in CANONICAL_STYLE_IDS for item in furniture)
     assert all(
         set(candidate["style_id"] for candidate in item.get("style_candidates", []))
         <= CANONICAL_STYLE_IDS
-        for item in classified
+        for item in furniture
     )
-    assert all(item.get("style_candidates") == [] for item in unclassified)
 
 
 def test_library_exposes_hierarchical_category_options():

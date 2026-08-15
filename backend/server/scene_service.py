@@ -2660,6 +2660,7 @@ def generate_layout(
             "name_zh_raw": item.get("name_zh_raw"),
             "normalized_type": item_type,
             "model_url": item.get("model_url"),
+            "render_mode": item.get("render_mode"),
             "primary_style": item.get("primary_style"),
             "material": item.get("material"),
             # 型錄 VLM 外觀描述:第 8 步生圖提示詞的材質/配色證據

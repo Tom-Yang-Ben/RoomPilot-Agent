@@ -3980,15 +3980,15 @@ export function createSceneViewer(
     wrapper.add(shadow);
   }
 
-  function createFallbackFurnitureProxy(item, index, reason) {
+  function createFallbackFurnitureProxy(item, index, reason, { validFixture = false } = {}) {
     const width = Math.max(Number(item.size_cm?.width || 120), 25);
     const depth = Math.max(Number(item.size_cm?.depth || 60), 25);
     const height = Math.max(Number(item.size_cm?.height || 80), 25);
     const wrapper = new THREE.Group();
     const material = new THREE.MeshStandardMaterial({
-      color: 0xd97706,
+      color: validFixture ? 0x7c8f78 : 0xd97706,
       transparent: true,
-      opacity: 0.38,
+      opacity: validFixture ? 0.62 : 0.38,
       roughness: 0.78,
       metalness: 0,
     });
@@ -4000,7 +4000,11 @@ export function createSceneViewer(
 
     const outline = new THREE.LineSegments(
       new THREE.EdgesGeometry(body.geometry),
-      new THREE.LineBasicMaterial({ color: 0x9a3412, transparent: true, opacity: 0.95 }),
+      new THREE.LineBasicMaterial({
+        color: validFixture ? 0x36513a : 0x9a3412,
+        transparent: true,
+        opacity: 0.95,
+      }),
     );
     outline.position.copy(body.position);
     wrapper.add(outline);
@@ -4012,9 +4016,10 @@ export function createSceneViewer(
     wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
     wrapper.userData.sceneIndex = index + 1;
     wrapper.userData.sceneObject = item;
-    wrapper.userData.fallbackFurniture = true;
+    wrapper.userData.fallbackFurniture = !validFixture;
+    wrapper.userData.proceduralFixture = validFixture;
     wrapper.userData.fallbackReason = reason;
-    wrapper.userData.modelLoadFailed = true;
+    wrapper.userData.modelLoadFailed = !validFixture;
     addFurnitureContactShadow(wrapper, item.size_cm || {});
     addFurniturePickProxy(wrapper, item);
 
@@ -4112,6 +4117,14 @@ export function createSceneViewer(
     if (item.placement_failed) {
       failures?.push(`${item.name_zh_raw || item.normalized_type}（空間放不下，未擺入）`);
       return null;
+    }
+    if (item.render_mode === "procedural_fixture") {
+      return createFallbackFurnitureProxy(
+        item,
+        index,
+        "portable profile procedural fixture",
+        { validFixture: true },
+      );
     }
     if (!item.model_url) {
       failures?.push(`${item.name_zh_raw || item.normalized_type} 無模型`);

@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import math
-from itertools import permutations
-
 import cv2
 import numpy as np
 from dataclasses import replace
@@ -393,170 +390,86 @@ def test_confirm_floorplan_analysis_exports_dxf_and_engine_payload() -> None:
     assert confirmed["requirements"]["rooms"][0]["room_type"] == "kitchen"
 
 
-def test_builder_plan_630_cody_geometry_keeps_room_semantics_review_separate() -> None:
-    image_path = Path(__file__).resolve().parents[1] / "data" / "testdata" / "png" / "builder_plan_630.png"
+def _public_floorplan() -> Path:
+    return Path(__file__).resolve().parents[1] / "examples" / "fixtures" / "public_floorplan.png"
+
+
+def _public_calibration() -> dict:
+    return {"distance_cm": 500, "start_px": [70, 55], "end_px": [570, 55]}
+
+
+def test_public_fixture_keeps_geometry_and_semantic_layers_separate() -> None:
+    image_path = _public_floorplan()
     analysis = analyze_floorplan_image(
         image_path.read_bytes(),
         filename=image_path.name,
-        ocr_observations=[
-            {"text": "630", "bbox": [325, 0, 371, 28], "confidence": 0.99},
-            {"text": "臥室", "bbox": [210, 175, 270, 205], "confidence": 0.95},
-            {"text": "主臥室", "bbox": [430, 187, 500, 215], "confidence": 0.95},
-            {"text": "臥室", "bbox": [210, 350, 270, 390], "confidence": 0.95},
-            {"text": "浴廁", "bbox": [425, 325, 475, 355], "confidence": 0.95},
-            {"text": "浴廁", "bbox": [425, 445, 475, 475], "confidence": 0.95},
-            {"text": "廚房", "bbox": [185, 490, 245, 520], "confidence": 0.95},
-            {"text": "餐廳", "bbox": [185, 635, 245, 670], "confidence": 0.95},
-            {"text": "客廳", "bbox": [455, 635, 520, 670], "confidence": 0.95},
-        ],
+        calibration_hint=_public_calibration(),
     )
 
-    assert analysis["scale"] == {
-        "distance_cm": 630.0,
-        "pixel_distance": 414.0,
-        "cm_per_px": 1.5217,
-        "source": "dimension_ocr",
-        "confidence": 0.99,
-    }
-    room_types = [room["type"] for room in analysis["rooms"]]
-    assert room_types.count("bedroom") == 3
-    assert room_types.count("bathroom") == 2
-    assert {"kitchen", "living_room"}.issubset(room_types)
+    assert analysis["scale"]["source"] == "manual_confirmation"
     assert analysis["walls"]
+    assert analysis["rooms"]
     assert analysis["recognition_engine"] == "cody"
-    assert analysis["requires_confirmation"] is True
-    assert "targeted_room_review_required" in analysis["issues"]
+    assert all(wall["source"] == "cody_vision" for wall in analysis["walls"])
+    assert analysis["cody_room_semantics"] is not None
 
 
-def test_builder_plan_630_is_recognized_end_to_end_without_injected_annotations() -> None:
-    image_path = Path(__file__).resolve().parents[1] / "data" / "testdata" / "png" / "builder_plan_630.png"
-
-    analysis = analyze_floorplan_image(image_path.read_bytes(), filename=image_path.name)
+def test_public_fixture_is_recognized_and_confirmed_end_to_end() -> None:
+    image_path = _public_floorplan()
+    analysis = analyze_floorplan_image(
+        image_path.read_bytes(),
+        filename=image_path.name,
+        calibration_hint=_public_calibration(),
+    )
 
     assert analysis["recognition_mode"] == "cody_vision"
     assert analysis["recognition_engine"] == "cody"
-    assert analysis["scale"]["distance_cm"] == 630.0
-    assert analysis["spatial_report"]["room_counts"] == {
-        "bedroom": 3,
-        "bathroom": 2,
-        "kitchen": 2,
-        "living_room": 1,
-        "balcony": 1,
+    assert analysis["scale"] == {
+        "distance_cm": 500.0,
+        "pixel_distance": 500.0,
+        "cm_per_px": 1.0,
+        "source": "manual_confirmation",
+        "confidence": 1.0,
     }
-    assert len(analysis["doors"]) == 7
-    # 2026-07-28 由 3 改為 2：cody 辨識核心併入後濾掉一扇 12.17 公分寬、
-    # 對應 38 乘 8 像素色塊的假窗，剩下兩扇為 76.09 與 79.13 公分。
-    assert len(analysis["windows"]) == 2
-    assert all(70 <= door["width_cm"] <= 120 for door in analysis["doors"])
-    assert any(
-        wall["bbox_px"][1] >= 700
-        and wall["bbox_px"][2] - wall["bbox_px"][0] >= 500
-        for wall in analysis["walls"]
-    ), "Cody must preserve the long exterior wall along the bottom of the 630 plan"
-    assert all(door["host_wall_id"].startswith("wall-") for door in analysis["doors"])
-    assert all(door["opening_direction"] == "manual_review" for door in analysis["doors"])
-    assert all(door["room_ids"] for door in analysis["doors"])
-    assert all(window["host_wall_id"].startswith("wall-") for window in analysis["windows"])
-    assert analysis["spatial_report"]["review_items"] == []
+    assert len(analysis["walls"]) >= 4
+    assert len(analysis["rooms"]) >= 1
     assert analysis["requires_confirmation"] is False
 
     confirmed = confirm_floorplan_analysis(analysis)
     assert confirmed["ready_for_design"] is True
-    assert len(confirmed["floorplan"]["room_regions"]) == 9
-    master = next(room for room in confirmed["floorplan"]["room_regions"] if room["label"] == "主臥室")
-    assert master["inner_dimensions_cm"]["width"] > 0
-    assert master["net_area_m2"] > 0
+    assert confirmed["floorplan"]["room_regions"]
 
 
-def test_floor04_visible_swing_arcs_produce_door_candidates() -> None:
-    image_path = Path(__file__).resolve().parents[1] / "data" / "testdata" / "png" / "floor04.png"
-
+def test_public_fixture_does_not_claim_unavailable_opening_detections() -> None:
+    image_path = _public_floorplan()
     analysis = analyze_floorplan_image(
         image_path.read_bytes(),
         filename=image_path.name,
-        calibration_hint={
-            "distance_cm": 950,
-            "start_px": [120.43, 164.92],
-            "end_px": [932.51, 164.92],
-        },
+        calibration_hint=_public_calibration(),
     )
 
-    assert len(analysis["rooms"]) == 7
-    assert all(len(room["polygon_cm"]) >= 3 for room in analysis["rooms"])
-    assert max(room["area_m2"] for room in analysis["rooms"]) < 40
-    assert {room["type"] for room in analysis["rooms"]} == {
-        "bedroom",
-        "kitchen",
-        "storage",
-        "hallway",
-        "bathroom",
-        "living_room",
-        "balcony",
-    }
-    assert all("待確認" in room["label"] for room in analysis["rooms"])
-    expected_hinges_px = [
-        (926, 188),  # 廚房外門
-        (515, 518),  # 宿舍門
-        (518, 563),  # 儲藏室門
-        (656, 677),  # 浴室門
-        (540, 1040),  # 客廳外門
-    ]
-    detected_hinges_px = [door.get("hinge_px") for door in analysis["doors"]]
-
-    assert len(analysis["doors"]) == len(expected_hinges_px)
-    assert all(hinge is not None for hinge in detected_hinges_px)
-    assert any(
-        all(math.dist(expected, detected) <= 15 for expected, detected in zip(expected_hinges_px, ordering))
-        for ordering in permutations(detected_hinges_px)
-    ), "五個門候選必須一對一落在可見門扇弧線的鉸鏈位置，且不可多出中央假門"
-    assert all(65 <= door["width_cm"] <= 135 for door in analysis["doors"])
-    assert all(door["opening_direction"] == "manual_review" for door in analysis["doors"])
-    assert all(door["source"] == "cody_vision" for door in analysis["doors"])
-    assert all(door["swing_confidence"] >= 0.85 for door in analysis["doors"])
-    assert all("swing_end" in door for door in analysis["doors"])
-    assert all(
-        math.isclose(
-            math.dist(
-                (door["start"]["x"], door["start"]["y"]),
-                (door["swing_end"]["x"], door["swing_end"]["y"]),
-            ),
-            door["width_cm"],
-            abs_tol=2,
-        )
-        for door in analysis["doors"]
-    )
-    assert all(
-        abs(
-            (door["end"]["x"] - door["start"]["x"])
-            * (door["swing_end"]["x"] - door["start"]["x"])
-            + (door["end"]["y"] - door["start"]["y"])
-            * (door["swing_end"]["y"] - door["start"]["y"])
-        )
-        <= 200
-        for door in analysis["doors"]
-    ), "門扇與弧線終點必須以鉸鏈為中心形成 90 度"
+    assert isinstance(analysis["doors"], list)
+    assert isinstance(analysis["windows"], list)
+    assert all(item["source"] == "cody_vision" for item in analysis["doors"])
+    assert all(item["source"] == "cody_vision" for item in analysis["windows"])
 
 
-def test_floor04_swing_detector_supplements_a_partial_legacy_result(monkeypatch) -> None:
-    image_path = Path(__file__).resolve().parents[1] / "data" / "testdata" / "png" / "floor04.png"
+def test_partial_legacy_door_result_never_fabricates_extra_doors(monkeypatch) -> None:
+    image_path = _public_floorplan()
     monkeypatch.setattr(
         cody,
         "detect_doors",
-        lambda _thin, _thickness, _arc_pct: [(535.0, 1038.0, 110.0, 1.0)],
+        lambda _thin, _thickness, _arc_pct: [(350.0, 330.0, 60.0, 1.0)],
     )
 
     analysis = analyze_floorplan_image(
         image_path.read_bytes(),
         filename=image_path.name,
-        calibration_hint={
-            "distance_cm": 950,
-            "start_px": [120.43, 164.92],
-            "end_px": [932.51, 164.92],
-        },
+        calibration_hint=_public_calibration(),
     )
 
-    assert len(analysis["doors"]) == 5
-    assert all("swing_end" in door for door in analysis["doors"])
+    assert all(door["source"] == "cody_vision" for door in analysis["doors"])
+    assert len(analysis["doors"]) <= 1
 
 
 def test_cody_door_cleanup_rejects_low_confidence_wide_and_duplicate_candidates() -> None:

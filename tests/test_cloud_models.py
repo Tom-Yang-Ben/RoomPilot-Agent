@@ -22,14 +22,14 @@ def _write_manifest(path, rows):
         writer.writerows(rows)
 
 
-def test_default_manifest_path_uses_kai_json_delivery_result():
+def test_default_private_manifest_is_not_bundled():
     assert cloud_models.DEFAULT_MANIFEST_PATH == (
         cloud_models.PROJECT_DIR
         / "JSON"
         / "manifests"
         / "glb_upload_all_result.csv"
     )
-    assert cloud_models.DEFAULT_MANIFEST_PATH.is_file()
+    assert not cloud_models.DEFAULT_MANIFEST_PATH.exists()
 
 
 def test_cloud_model_url_uses_verified_delivery_url(monkeypatch, tmp_path):
@@ -249,7 +249,7 @@ def test_header_only_manifest_is_not_ready(monkeypatch, tmp_path):
     assert status["manifest_error"] == "empty"
 
 
-def test_bundled_kai_aws_manifest_is_the_default_cloud_source(monkeypatch):
+def test_missing_default_manifest_fails_closed(monkeypatch):
     monkeypatch.delenv("ROOMPILOT_MODEL_DELIVERY_MODE", raising=False)
     monkeypatch.delenv("ROOMPILOT_GLB_MANIFEST_PATH", raising=False)
     monkeypatch.delenv("ROOMPILOT_CLOUDFRONT_BASE_URL", raising=False)
@@ -259,8 +259,8 @@ def test_bundled_kai_aws_manifest_is_the_default_cloud_source(monkeypatch):
     assert status == {
         "mode": "cloudfront",
         "provider": "aws_cloudfront",
-        "manifest_ready": True,
-        "manifest_error": None,
-        "verified_model_count": 8675,
+        "manifest_ready": False,
+        "manifest_error": "missing",
+        "verified_model_count": 0,
         "cloudfront_base_url": "https://ddgsm1yg3xikc.cloudfront.net",
     }

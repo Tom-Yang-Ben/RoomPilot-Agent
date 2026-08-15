@@ -9,7 +9,7 @@ STATIC = ROOT / "backend" / "server" / "static"
 SURFACE_CATALOG = ROOT / "backend" / "catalog" / "data" / "surface_catalog.json"
 
 
-def test_style_presets_resolve_to_real_catalog_textures() -> None:
+def test_style_presets_resolve_to_procedural_catalog_surfaces() -> None:
     module_uri = (STATIC / "scene_surface_materials.js").as_uri()
     result = run_workflow_script(
         f"""
@@ -40,18 +40,14 @@ def test_style_presets_resolve_to_real_catalog_textures() -> None:
         """
     )
 
-    assert result["floorId"] == "wood_cc0_wood_textures_planks039"
-    assert result["wallId"] == "wall_json_ambientcg_wall_paint_plaster002"
-    assert result["warmWallId"] == "wall_json_ambientcg_wall_paint_paintedplaster017"
-    assert result["sageWallId"] == "wall_json_ambientcg_wall_wallpaper_fabric018"
-    assert result["floorTexture"] == (
-        "/static/surface_assets/_import_all/cc0-wood-textures/"
-        "ambientcg-Planks039.jpg"
-    )
-    assert result["wallTexture"]
-    assert result["warmWallTexture"]
-    assert result["sageWallTexture"]
-    assert len({result["wallTexture"], result["warmWallTexture"], result["sageWallTexture"]}) == 3
+    assert result["floorId"] == "light_oak"
+    assert result["wallId"] == "limewash"
+    assert result["warmWallId"] == "warm_white"
+    assert result["sageWallId"] == "limewash"
+    assert result["floorTexture"] is None
+    assert result["wallTexture"] is None
+    assert result["warmWallTexture"] is None
+    assert result["sageWallTexture"] is None
 
 
 def test_realtime_surface_recommendations_explain_and_vary_options() -> None:
@@ -71,14 +67,14 @@ def test_realtime_surface_recommendations_explain_and_vary_options() -> None:
     assert "mineral_beige" in source
 
 
-def test_surface_preset_mapping_no_longer_collapses_to_one_wall_material() -> None:
+def test_surface_preset_mapping_uses_only_public_procedural_ids() -> None:
     source = (STATIC / "scene_surface_materials.js").read_text(encoding="utf-8")
 
-    assert 'warm_white: "wall_json_ambientcg_wall_paint_paintedplaster017"' in source
-    assert 'limewash: "wall_json_ambientcg_wall_paint_plaster002"' in source
-    assert 'sage: "wall_json_ambientcg_wall_wallpaper_fabric018"' in source
-    assert 'greige: "wall_json_ambientcg_wall_paint_concrete008"' in source
-    assert source.count('wall_ambientcg_plaster006"') == 0
+    assert 'warm_white: "warm_white"' in source
+    assert 'limewash: "limewash"' in source
+    assert 'sage: "limewash"' in source
+    assert 'greige: "light_gray"' in source
+    assert "ambientcg" not in source.casefold()
 
 
 def test_scene_viewer_uses_image_texture_as_color_and_relief_maps() -> None:

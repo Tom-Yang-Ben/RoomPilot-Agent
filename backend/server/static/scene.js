@@ -1,5 +1,5 @@
 import { fetchFurniturePage, fetchSceneBootstrap, formatFurnitureName, formatSize, formatTypeLabel, initBackgroundFx } from "./common.js?v=20260711g";
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-cf5930cd1847";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-dc19646b0264";
 import { WORKFLOW_STEPS, restoreWorkflow } from "./scene_workflow.js?v=20260712b";
 import { applyMaterialScheme, classifyMaterialSlot, generateMaterialSchemes, restoreOriginalMaterials, updateFurnitureMaterialOverride } from "./scene_material_schemes.js?v=20260712c";
 import { buildDeliveryManifest } from "./scene_delivery.js?v=20260712b";
@@ -2928,9 +2928,9 @@ elements.loadFloorplan630?.addEventListener("click", async (event) => {
   event.preventDefault();
   elements.loadFloorplan630.disabled = true;
   try {
-    const response = await fetch("/api/floorplan/sample/630");
+    const response = await fetch("/api/floorplan/sample/public");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const file = new File([await response.blob()], "builder_plan_630.png", { type: "image/png" });
+    const file = new File([await response.blob()], "public_floorplan.png", { type: "image/png" });
     const transfer = new DataTransfer();
     transfer.items.add(file);
     elements.floorplan.files = transfer.files;

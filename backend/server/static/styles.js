@@ -49,23 +49,6 @@ const STYLE_CARD_COPY = {
   wabi_sabi_3:
     "現代輕奢把侘寂的樸素感加上細緻金屬與深色家具，氣氛安靜但更有質感。適合想要低調、乾淨，又希望空間有一點精緻度的人。",
 };
-const STYLE_IMAGE_VERSION = "20260708d";
-
-const STYLE_IMAGE_MAP = {
-  scandinavian: "/static/style_images/scandinavian.png",
-  modern: "/static/style_images/modern.png",
-  minimalist_muji: "/static/style_images/minimalist_muji_variant.png",
-  nordic_modern: "/static/style_images/nordic_modern.png",
-  industrial: "/static/style_images/industrial.png",
-  wabi_sabi: "/static/style_images/wabi_sabi.png",
-  melad: "/static/style_images/melad.png",
-  american: "/static/style_images/american.png",
-  american_country: "/static/style_images/american_country.png",
-  light_luxury: "/static/style_images/light_luxury.png",
-  classical: "/static/style_images/classical.png",
-  eclectic: "/static/style_images/eclectic.png",
-};
-
 const STYLE_ANNOTATIONS = {
   scandinavian: [
     ["大面採光窗", 18, 22],
@@ -759,11 +742,10 @@ function renderAnnotations(styleId) {
 
 function renderStyleStage(style) {
   const colors = style.palette_hex?.length ? style.palette_hex : ["#f6f1e8", "#d8c8b0", "#a88a67"];
-  const imageBase = STYLE_IMAGE_MAP[style.style_id] ?? STYLE_IMAGE_MAP.eclectic;
   const count = countFurnitureForStyle(style.style_id);
   return `
     <div class="style-stage" style="--tone-a:${colors[0]}; --tone-b:${colors[1] ?? colors[0]}; --tone-c:${colors[2] ?? colors[1] ?? colors[0]};">
-      <img class="style-stage-image" src="${imageBase}?v=${STYLE_IMAGE_VERSION}" alt="${style.style_name_zh} 風格示意圖" />
+      <div class="style-stage-image" role="img" aria-label="${style.style_name_zh} 專案自製色彩示意"></div>
       <div class="style-stage-overlay"></div>
       <div class="style-stage-header">
         <span class="style-stage-label">STYLE VISUAL</span>

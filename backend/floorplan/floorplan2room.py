@@ -397,7 +397,7 @@ def _ocr_words(img_path):
             from rapidocr_onnxruntime import RapidOCR
             _ocr_engine = RapidOCR()
         except ImportError:
-            print("⚠ rapidocr-onnxruntime 未安裝 → OCR 文字證據層停用")
+            print("[RoomPilot] RapidOCR is unavailable; OCR evidence is disabled")
             _ocr_engine = False
     if _ocr_engine is False:
         return []
@@ -443,7 +443,7 @@ def detect_room_text(img_path, dst_w=None, dst_h=None):
     if dst_w and dst_h:
         img = cv2.imread(img_path)
         if img is None:                    # 拿不到原圖尺寸＝縮放未知，寧缺勿錯位
-            print("⚠ OCR 原圖尺寸讀取失敗 → 本張文字證據放棄")
+            print("[RoomPilot] OCR source dimensions are invalid; OCR evidence was ignored")
             return []
         h, w = img.shape[:2]
         sx, sy = dst_w / float(w), dst_h / float(h)
@@ -853,7 +853,7 @@ def build_rooms(det):
     if probs is not None:
         classify_rooms_dino(det, labels, rooms, probs)
     else:
-        print("⚠ DINOv2 房型分類不可用 → 房型退回面積規則（品質明顯較差）")
+        print("[RoomPilot] DINOv2 is unavailable; using area-based room labels")
         fp_c.classify_rooms(rooms, cm, det["thin"], labels)
     # room_graph 只拿來算 has_door/相鄰圖——黃框依長度規則全畫，不被它篩掉
     edges, _kept = fp_c.room_graph(labels, outside, rooms, zones, rects, wins, T)
@@ -963,7 +963,7 @@ def process(path, out_dir, cfg_bw, cfg_color):
     # （floor06 的 LNDRY/BALCONY 曾被判成 ksink/sofa）。順序反了不會報錯，
     # 只會拿到空的抑制清單——test_symbol_gate.py 有斷言釘住。
     if not is_color and cfg_bw.deskew:           # OCR 讀原始檔，轉正後座標對不上分析圖
-        print("⚠ deskew 開啟 → OCR 文字證據層停用（座標無法對齊）")
+        print("[RoomPilot] deskew is enabled; OCR evidence is disabled")
         det["texts"], det["text_boxes"] = [], []
     else:
         det["texts"] = detect_room_text(path, det["img_w"], det["img_h"])  # OCR 文字證據（層 5）
@@ -1011,7 +1011,7 @@ def main():
         process(a.input, out_dir, cfg_bw, cfg_color)
         return
 
-    in_dir = a.input or "data/testdata/png"
+    in_dir = a.input or "examples/fixtures"
     if not os.path.isdir(in_dir):
         sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去，或給單張圖檔路徑)")
     imgs = sorted(p_ for p_ in glob.glob(os.path.join(in_dir, "*"))

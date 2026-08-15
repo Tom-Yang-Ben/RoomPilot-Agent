@@ -25,11 +25,11 @@ from backend.floorplan.cody_adapter import recognize_cody_rooms
 from backend.floorplan.vision import analysis
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-FLOOR01 = REPO_ROOT / "data" / "testdata" / "png" / "floor01.png"
-FLOOR01_CACHE = REPO_ROOT / "cubicasa" / "room" / "floor01_mask.npz"
+FLOOR01 = REPO_ROOT / "examples" / "fixtures" / "public_floorplan.png"
+FLOOR01_CACHE = REPO_ROOT / ".runtime" / "floorplan" / "public_floorplan_mask.npz"
 
 needs_floor01 = pytest.mark.skipif(
-    not FLOOR01.exists(), reason="需要 testdata/png/floor01.png"
+    not FLOOR01.exists(), reason="需要公開平面圖 fixture"
 )
 needs_floor01_cache = pytest.mark.skipif(
     not (FLOOR01.exists() and FLOOR01_CACHE.exists()),
@@ -67,10 +67,10 @@ def test_analyze_passes_filename_stem_to_semantic_layer(monkeypatch) -> None:
     monkeypatch.setattr(analysis, "recognize_cody_rooms", fake_rooms)
 
     result = analysis.analyze_floorplan_image(
-        FLOOR01.read_bytes(), filename="floor01.png"
+        FLOOR01.read_bytes(), filename=FLOOR01.name
     )
 
-    assert captured["cache_key"] == "floor01"
+    assert captured["cache_key"] == "public_floorplan"
     assert result["rooms"], "語意層回 None 時仍須產出房間"
 
 

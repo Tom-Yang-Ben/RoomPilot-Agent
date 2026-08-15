@@ -64,21 +64,20 @@ def test_cloudfront_mode_never_falls_back_to_local_model(monkeypatch, tmp_path):
 
 
 def test_catalog_status_exposes_provider_and_verified_count(monkeypatch, tmp_path):
-    manifest = tmp_path / "manifest.csv"
-    _manifest(manifest)
-    monkeypatch.setenv("ROOMPILOT_CATALOG_PROVIDER", "json")
-    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "cloudfront")
-    monkeypatch.setenv("ROOMPILOT_GLB_MANIFEST_PATH", str(manifest))
-    monkeypatch.setenv("ROOMPILOT_CLOUDFRONT_BASE_URL", "https://cdn.example")
+    monkeypatch.setenv("ROOMPILOT_PROFILE", "portable")
+    monkeypatch.setenv("ROOMPILOT_CATALOG_PROVIDER", "fixture")
 
     payload = main.catalog_status()
 
+    assert payload["profile"] == "portable"
+    assert payload["fixture"] is True
     assert payload["furniture"] == {
-        "provider": "aws_cloudfront",
+        "provider": "portable_fixture",
         "manifest_ready": True,
-        "manifest_error": None,
-        "verified_model_count": 1,
-        "cloudfront_base_url": "https://cdn.example",
+        "verified_model_count": 16,
+        "catalog_count": 16,
+        "source_of_truth": "project_authored_fixture",
+        "render_mode": "procedural_fixture",
     }
     assert payload["surfaces"]["provider"] == "local_pending_aws_manifest"
     assert payload["surfaces"]["wall_count"] > 0
@@ -131,12 +130,8 @@ def test_strict_catalog_legacy_viewer_alias_contains_only_cloudfront_urls(monkey
     ]
 
 
-def test_frontend3d_accepts_cloudfront_model_urls():
-    source = (
-        main.PROJECT_DIR / "frontend" / "src" / "components" / "Furniture.jsx"
-    ).read_text(encoding="utf-8")
-    # 前端必須讓 CloudFront 絕對網址原樣通過,不得再被包成 /api/furniture/。
-    # 合併後這裡是 yen 版實作(regex 同時涵蓋 http/https 並容忍 null),
-    # 語意與 bella 的 startsWith 版相同,故改以行為特徵斷言。
-    assert "/^https?:\/\//i.test(value)" in source
-    assert "/api/furniture/${encodeURIComponent(" in source
+def test_only_the_formal_static_frontend_is_distributed():
+    assert not (main.PROJECT_DIR / "frontend").exists()
+    viewer = (main.STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+    assert "loadGltfCached(loader, item.model_url)" in viewer
+    assert 'item.render_mode === "procedural_fixture"' in viewer

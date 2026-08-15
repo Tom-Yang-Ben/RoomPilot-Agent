@@ -163,7 +163,11 @@ def test_auto_decor_uses_verified_floor_lamp_catalog_items() -> None:
     generated = [item for item in payload["scene_objects"] if item.get("auto_decor_role")]
     assert {item["auto_decor_role"] for item in generated} == {"curtain", "rug", "plant", "light"}
     assert payload["decor_summary"]["unavailable"] == []
-    assert all(item["model_url"] for item in generated)
+    assert all(
+        item.get("model_url")
+        or item.get("render_mode") == "procedural_fixture"
+        for item in generated
+    )
     assert all(item["placement_engine"] == "furniture_engine" for item in generated)
     assert all(item["placement_failed"] is False for item in generated)
     light = next(item for item in generated if item["auto_decor_role"] == "light")

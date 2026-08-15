@@ -38,9 +38,6 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
-from dotenv import load_dotenv
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CATALOG = PROJECT_ROOT / "JSON" / "furniture" / "all_furniture_appliance_catalog.json"
 DEFAULT_MANIFEST = PROJECT_ROOT / "JSON" / "manifests" / "glb_upload_manifest.csv"
@@ -822,6 +819,13 @@ def write_high_priority_review_report(
 
 def load_db_config(env_path: Path) -> dict[str, Any]:
     """從專案外部的 .env 讀取並驗證 PostgreSQL 連線設定。"""
+    try:
+        from dotenv import load_dotenv
+    except ImportError as exc:
+        raise RuntimeError(
+            "PostgreSQL 匯入需要 full profile：uv sync --extra portable --extra postgres"
+        ) from exc
+
     if not env_path.exists():
         raise FileNotFoundError(
             f"找不到資料庫設定檔：{env_path}。"

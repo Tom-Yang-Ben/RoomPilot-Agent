@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
-  <link rel="stylesheet" href="/static/site.css?v=sha256-e76c2d47ab75" />
+  <link rel="stylesheet" href="/static/site.css?v=sha256-36c5340e384e" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -316,8 +316,8 @@
                   <label id="window-sill-height-field" hidden><span>窗台離地高度（公分）</span><input id="window-sill-height-cm" type="number" min="0" step="1" value="90" /></label>
                 </div>
                 <figure id="window-type-preview" class="rp-window-type-preview" hidden>
-                      <img src="/static/structure_assets/floor-to-ceiling-window.png?v=20260723-two-panel1" alt="黑色鋁框左右兩扇玻璃落地窗" />
-                      <figcaption>落地窗 · 黑鋁框左右兩扇玻璃參考</figcaption>
+                      <div class="rp-window-procedural-preview" role="img" aria-label="黑色鋁框左右兩扇玻璃落地窗示意"></div>
+                      <figcaption>落地窗 · 程序化黑鋁框雙扇示意</figcaption>
                 </figure>
                 <section id="opening-width-controls" class="rp-door-width-controls" hidden>
                   <div class="rp-door-width-heading">
@@ -1210,11 +1210,11 @@
     <script type="importmap">
       {
         "imports": {
-          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+          "three": "/static/vendor/three/build/three.module.min.js",
+          "three/addons/": "/static/vendor/three/examples/jsm/"
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-b68d6a70a6a4"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-016c3381586a"></script>
   </body>
 </html>

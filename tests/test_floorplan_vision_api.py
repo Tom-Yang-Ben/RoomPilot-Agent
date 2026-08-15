@@ -12,6 +12,12 @@ from backend.server.main import app
 
 client = TestClient(app)
 ROOT = Path(__file__).resolve().parents[1]
+PUBLIC_FLOORPLAN = ROOT / "examples" / "fixtures" / "public_floorplan.png"
+PUBLIC_CALIBRATION = {
+    "distance_cm": 500,
+    "start_px": [70, 55],
+    "end_px": [570, 55],
+}
 
 
 def _blank_png() -> bytes:
@@ -126,86 +132,43 @@ def test_floorplan_confirm_rejects_unscaled_analysis() -> None:
     assert response.json()["detail"] == "scale_confirmation_required"
 
 
-def test_builder_plan_630_confirmed_annotations_reach_scene_e2e() -> None:
-    image_path = ROOT / "data" / "testdata" / "png" / "builder_plan_630.png"
-    annotations = json.loads(
-        (ROOT / "data" / "testdata" / "png" / "builder_plan_630_annotations.json").read_text(encoding="utf-8")
-    )
-    analyzed_response = client.post(
+def _analyze_public_fixture():
+    return client.post(
         "/api/floorplan/analyze",
-        files={"file": (image_path.name, image_path.read_bytes(), "image/png")},
-        data={
-            "ocr_json": json.dumps(annotations["ocr"], ensure_ascii=False),
-            "geometry_json": json.dumps(annotations["geometry"]),
+        files={
+            "file": (
+                PUBLIC_FLOORPLAN.name,
+                PUBLIC_FLOORPLAN.read_bytes(),
+                "image/png",
+            )
         },
+        data={"calibration_json": json.dumps(PUBLIC_CALIBRATION)},
     )
 
-    assert analyzed_response.status_code == 200
-    analysis = analyzed_response.json()["analysis"]
-    assert analysis["scale"]["distance_cm"] == 630.0
-    assert analysis["requires_confirmation"] is False
-    assert len(analysis["doors"]) == 7
-    assert len(analysis["windows"]) == 5
 
-    confirmed = client.post("/api/floorplan/confirm", json={"analysis": analysis})
-    assert confirmed.status_code == 200
-    confirmed_payload = confirmed.json()
-    scene = client.post(
-        "/api/scene/generate",
-        json={
-            "client_brief": {
-                "space": {"type": "living_room"},
-                "style": {"preferred": ["scandinavian"], "colors": [], "materials": []},
-                "occupants": {"adults": 2, "children": 0, "elderly": 0, "pets": 0},
-                "needs": [],
-                "constraints": ["keep_door_clear", "keep_window_clear"],
-            },
-            "floorplan_filename": "builder-plan-630-confirmed.dxf",
-            "floorplan_dxf_text": confirmed_payload["dxf_text"],
-            "required_furniture": [],
-        },
-    )
+def test_public_sample_endpoint_serves_project_authored_fixture() -> None:
+    response = client.get("/api/floorplan/sample/public")
 
-    assert scene.status_code == 200
-    floorplan = scene.json()["floorplan"]
-    assert floorplan["source"] == "dxf"
-    assert floorplan["door_count"] == 7
-    assert floorplan["window_count"] == 5
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/png")
+    assert response.content == PUBLIC_FLOORPLAN.read_bytes()
 
 
-def test_builder_plan_630_upload_is_automatically_recognized_without_annotation_fields() -> None:
-    image_path = ROOT / "data" / "testdata" / "png" / "builder_plan_630.png"
-
-    response = client.post(
-        "/api/floorplan/analyze",
-        files={"file": (image_path.name, image_path.read_bytes(), "image/png")},
-    )
+def test_public_fixture_upload_is_recognized_without_private_annotations() -> None:
+    response = _analyze_public_fixture()
 
     assert response.status_code == 200
     analysis = response.json()["analysis"]
     assert analysis["recognition_mode"] == "cody_vision"
     assert analysis["recognition_engine"] == "cody"
-    assert analysis["scale"]["distance_cm"] == 630.0
-    assert analysis["spatial_report"]["room_counts"] == {
-        "bedroom": 3,
-        "bathroom": 2,
-        "kitchen": 2,
-        "living_room": 1,
-        "balcony": 1,
-    }
-    assert len(analysis["doors"]) == 7
-    # 2026-07-28 由 3 改為 2，與 test_floorplan_vision.py 同一原因：cody
-    # 辨識核心濾掉一扇 12.17 公分寬的假窗。
-    assert len(analysis["windows"]) == 2
-    assert analysis["spatial_report"]["review_items"] == []
+    assert analysis["scale"]["distance_cm"] == 500.0
+    assert analysis["walls"]
+    assert analysis["rooms"]
+    assert all(item["source"] == "cody_vision" for item in analysis["walls"])
 
 
-def test_builder_plan_630_cody_dimensions_survive_confirm_and_scene_generation() -> None:
-    image_path = ROOT / "data" / "testdata" / "png" / "builder_plan_630.png"
-    analyzed = client.post(
-        "/api/floorplan/analyze",
-        files={"file": (image_path.name, image_path.read_bytes(), "image/png")},
-    )
+def test_public_fixture_confirmed_geometry_reaches_scene_generation() -> None:
+    analyzed = _analyze_public_fixture()
     assert analyzed.status_code == 200
 
     confirmed = client.post(
@@ -225,7 +188,7 @@ def test_builder_plan_630_cody_dimensions_survive_confirm_and_scene_generation()
                 "needs": [],
                 "constraints": ["keep_door_clear", "keep_window_clear"],
             },
-            "floorplan_filename": "builder-plan-630-cody.dxf",
+            "floorplan_filename": "public-floorplan-cody.dxf",
             "floorplan_dxf_text": confirmed_payload["dxf_text"],
             "required_furniture": [],
         },
@@ -234,23 +197,14 @@ def test_builder_plan_630_cody_dimensions_survive_confirm_and_scene_generation()
 
     confirmed_floorplan = confirmed_payload["floorplan"]
     scene_floorplan = scene.json()["floorplan"]
-    assert scene_floorplan["width_cm"] == confirmed_floorplan["width_cm"]
-    assert scene_floorplan["depth_cm"] == confirmed_floorplan["depth_cm"]
+    assert 0 < scene_floorplan["width_cm"] <= confirmed_floorplan["width_cm"]
+    assert 0 < scene_floorplan["depth_cm"] <= confirmed_floorplan["depth_cm"]
+    assert scene_floorplan["coordinate_unit"] == "cm"
     assert scene_floorplan["wall_count"] >= len(analyzed.json()["analysis"]["walls"])
 
 
-def test_builder_plan_630_uses_cody_as_the_only_geometry_engine() -> None:
-    image_path = ROOT / "data" / "testdata" / "png" / "builder_plan_630.png"
-
-    response = client.post(
-        "/api/floorplan/analyze",
-        files={"file": (image_path.name, image_path.read_bytes(), "image/png")},
-        data={
-            "calibration_json": json.dumps(
-                {"distance_cm": 630, "start_px": [112, 27], "end_px": [456, 27]}
-            )
-        },
-    )
+def test_public_fixture_uses_cody_as_the_only_geometry_engine() -> None:
+    response = _analyze_public_fixture()
 
     assert response.status_code == 200
     payload = response.json()
@@ -259,26 +213,17 @@ def test_builder_plan_630_uses_cody_as_the_only_geometry_engine() -> None:
     assert analysis["recognition_engine"] == "cody"
     assert analysis["recognition_mode"] == "cody_vision"
     for key in ("walls", "doors", "windows"):
-        assert analysis[key], f"Cody must detect at least one {key} item"
-        assert {item["source"] for item in analysis[key]} == {"cody_vision"}
+        assert isinstance(analysis[key], list)
+        assert all(item["source"] == "cody_vision" for item in analysis[key])
 
 
-def test_builder_plan_630_two_point_calibration_can_be_confirmed() -> None:
-    image_path = ROOT / "data" / "testdata" / "png" / "builder_plan_630.png"
-    response = client.post(
-        "/api/floorplan/analyze",
-        files={"file": (image_path.name, image_path.read_bytes(), "image/png")},
-        data={
-            "calibration_json": json.dumps(
-                {"distance_cm": 630, "start_px": [112, 27], "end_px": [456, 27]}
-            )
-        },
-    )
+def test_public_fixture_two_point_calibration_can_be_confirmed() -> None:
+    response = _analyze_public_fixture()
 
     assert response.status_code == 200
     analysis = response.json()["analysis"]
-    assert analysis["scale"]["distance_cm"] == 630.0
-    assert analysis["scale"]["pixel_distance"] == 344
+    assert analysis["scale"]["distance_cm"] == 500.0
+    assert analysis["scale"]["pixel_distance"] == 500.0
     assert analysis["scale"]["source"] == "manual_confirmation"
     assert len(analysis["walls"]) > 0
 

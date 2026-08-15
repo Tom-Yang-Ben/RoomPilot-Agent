@@ -6,7 +6,7 @@ from scripts.sql import import_catalog_to_postgres as sql_import
 
 
 pytestmark = pytest.mark.skip(
-    reason="10,550 筆舊 catalog 已由 9,350 筆正式家具與獨立家電問卷流程取代。"
+    reason="舊私有 catalog schema 已退出公開 runtime。"
 )
 
 

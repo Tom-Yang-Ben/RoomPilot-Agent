@@ -11,11 +11,14 @@ import cv2
 import numpy as np
 
 CANVAS = 48
-LIB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "symbol_lib.npz")
-# 推論期資產，與消費它的模組同目錄（2026-07-29 由 repo 根移入）——
-# 只搬 backend/floorplan/ 的部署不會再解析到錯路徑（舊版往上三層推導，
-# 且找不到檔不報錯、靜默停用，是無聲失效的高風險寫法）
+_PKG_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_DIR = os.path.dirname(os.path.dirname(_PKG_DIR))
+LIB_PATH = os.environ.get(
+    "ROOMPILOT_SYMBOL_LIBRARY",
+    os.path.join(_PROJECT_DIR, ".runtime", "floorplan", "symbol_lib.npz"),
+)
+# 推論資產不進公開版控；預設從 .runtime/floorplan 讀取，也可用環境變數覆寫。
+# 找不到資產時管線會誠實停用這條選配證據路徑。
 # SVG class token → 證據 kind（oval/tubrect/stove 沿用既有計分；
 # shower/sinkicon 為新 kind，classify_rooms_cc 給保守小權重）
 TARGETS = {"Toilet": "oval", "Bathtub": "tubrect", "BathtubRound": "tubrect",
@@ -199,11 +202,10 @@ def load_lib(path=LIB_PATH, kinds=ENABLED_KINDS):
         all_labels = [str(x) for x in z["labels"]]
         missing = sorted(set(kinds) - set(all_labels))
         if missing:                    # 靜默停用是本模組的既有陷阱，這裡出聲
-            print(f"⚠ 模板庫無這些 kind：{', '.join(missing)}"
-                  f"（庫內有 {', '.join(sorted(set(all_labels)))}）")
+            print(f"[RoomPilot] symbol kinds unavailable: {', '.join(missing)}")
         keep = [i for i, l in enumerate(all_labels) if l in kinds]
         if not keep:
-            print(f"⚠ 模板庫沒有任何啟用中的 kind → 模板比對停用")
+            print("[RoomPilot] no enabled symbol kinds; optional matching is disabled")
             _lib_cache = None
             return _lib_cache
         labels = [all_labels[i] for i in keep]

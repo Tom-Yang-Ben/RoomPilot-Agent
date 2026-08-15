@@ -21,8 +21,11 @@ import cv2
 import numpy as np
 
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
-HEAD_PATH = os.environ.get("ROOM_HEAD",
-                           os.path.join(_PKG_DIR, "room_head.npz"))
+_PROJECT_DIR = os.path.dirname(os.path.dirname(_PKG_DIR))
+HEAD_PATH = os.environ.get(
+    "ROOM_HEAD",
+    os.path.join(_PROJECT_DIR, ".runtime", "floorplan", "room_head.npz"),
+)
 SIZE = 224
 MEAN = np.array([0.485, 0.456, 0.406], np.float32)
 STD = np.array([0.229, 0.224, 0.225], np.float32)
@@ -59,22 +62,21 @@ def _load():
         return _state
     _state = None
     if not os.path.isfile(HEAD_PATH):
-        print(f"⚠ 找不到房型線性頭 {HEAD_PATH} → DINOv2 房型分類停用")
         return _state
     try:
         import torch
     except ImportError:
-        print("⚠ torch 未安裝 → DINOv2 房型分類停用")
+        print("[RoomPilot] torch is unavailable; optional DINOv2 room labels are disabled")
         return _state
     z = np.load(HEAD_PATH, allow_pickle=False)
     if bool(z["use_ink"]) or bool(z["use_area"]):
-        print("⚠ 線性頭帶額外特徵（ink/area），本推論路徑未實作 → 停用")
+        print("[RoomPilot] unsupported room-head features; optional room labels are disabled")
         return _state
     try:
         model = torch.hub.load("facebookresearch/dinov2", str(z["backbone"]),
                                trust_repo=True, verbose=False)
     except Exception as e:                       # 離線、hub 快取缺失等
-        print(f"⚠ DINOv2 骨幹載入失敗（{type(e).__name__}）→ 房型分類停用")
+        print(f"[RoomPilot] DINOv2 loading failed ({type(e).__name__}); optional room labels are disabled")
         return _state
     model.eval()
     torch.set_num_threads(os.cpu_count() or 4)

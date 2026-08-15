@@ -3,9 +3,24 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 
 STYLE_CARDS_PATH = Path(__file__).resolve().parents[1] / "catalog" / "data" / "taiwan_style_cards.json"
+
+
+def _palette_preview_url(palette: list[str]) -> str:
+    colors = (palette or ["#f3eee5", "#c8b49b", "#766b60"])[:4]
+    width = 600 / len(colors)
+    rectangles = "".join(
+        f'<rect x="{index * width:g}" width="{width:g}" height="360" fill="{color}"/>'
+        for index, color in enumerate(colors)
+    )
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360">'
+        f"{rectangles}</svg>"
+    )
+    return "data:image/svg+xml," + quote(svg, safe="")
 
 
 def load_taiwan_style_cards() -> list[dict[str, Any]]:
@@ -22,7 +37,8 @@ def load_taiwan_style_cards() -> list[dict[str, Any]]:
             cards.append(
                 {
                     **card,
-                    "image_url": "/static/style_cards/" + card["image_file"].replace("\\", "/"),
+                    "image_url": _palette_preview_url(card.get("palette_hex") or []),
+                    "image_kind": "project_authored_palette",
                 }
             )
         normalized.append({**style, "cards": cards})

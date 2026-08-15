@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 import tomllib
 from pathlib import Path
@@ -29,9 +28,7 @@ def test_team_ai_guidance_covers_every_owner_and_primary_folder() -> None:
         "backend/server",
         "backend/spatial_data",
         "backend/upgrade3d",
-        "frontend",
         "scripts",
-        "data/testdata",
         "tests",
     )
     for folder in guided_folders:
@@ -39,51 +36,52 @@ def test_team_ai_guidance_covers_every_owner_and_primary_folder() -> None:
 
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     claude = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
-    assert "動手前必做" in agents
-    assert "跨資料夾修改" in agents
-    assert "修改前先閱讀 `AGENTS.md`" in claude
+    assert "不可違反的契約" in agents
+    assert "跨模組修改紀錄" in agents
+    assert "Start with `AGENTS.md`" in claude
 
 
 def test_readme_describes_current_flow_and_executable_startup() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "現行八步流程" in readme
-    assert "8 AI 渲染" in readme
+    assert "## 八步流程" in readme
+    assert "8 連接外部供應商後產生 AI 渲染" in readme
     assert "十步流程" not in readme
-    assert "pip install -r requirements.txt" in readme
-    assert "uvicorn backend.server.main:app" in readme
-    assert "-m pytest -q" in readme
+    assert "uv sync --extra portable --group dev" in readme
+    assert "uv run uvicorn backend.server.main:app" in readme
+    assert "uv run pytest -q" in readme
+    assert "127.0.0.1" in readme
 
 
 def test_requirements_pin_all_non_ocr_direct_dependencies() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    expected_names = {"shapely", "pytest"}
-    for group in ("server", "vision", "catalog"):
-        expected_names.update(
-            re.split(r"[<>=!~]", requirement, maxsplit=1)[0].lower()
-            for requirement in pyproject["project"]["optional-dependencies"][group]
-        )
+    expected_names = {
+        re.split(r"[<>=!~]", requirement, maxsplit=1)[0].lower()
+        for requirement in pyproject["project"]["optional-dependencies"]["portable"]
+    }
+    expected_names.update(
+        re.split(r"[<>=!~]", requirement, maxsplit=1)[0].lower()
+        for requirement in pyproject["dependency-groups"]["dev"]
+    )
 
     requirement_lines = [
         line.strip()
         for line in (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.lstrip().startswith("#")
     ]
-    assert all(re.fullmatch(r"[A-Za-z0-9_.-]+==[A-Za-z0-9_.+-]+", line) for line in requirement_lines)
-    pinned_names = {line.split("==", 1)[0].lower() for line in requirement_lines}
+    pinned_lines = [line for line in requirement_lines if not line.startswith("-e ")]
+    assert all(re.fullmatch(r"[A-Za-z0-9_.-]+==[A-Za-z0-9_.+-]+(?:\s*;.*)?", line) for line in pinned_lines)
+    pinned_names = {line.split("==", 1)[0].lower() for line in pinned_lines}
     assert expected_names <= pinned_names
 
     ocr_requirements = (ROOT / "requirements-ocr.txt").read_text(encoding="utf-8")
-    assert "-r requirements.txt" in ocr_requirements
     assert "paddleocr==3.7.0" in ocr_requirements
     assert "paddlepaddle==3.3.1" in ocr_requirements
 
 
-def test_frontend_lock_matches_documented_team_versions() -> None:
-    lock = json.loads((ROOT / "frontend/package-lock.json").read_text(encoding="utf-8"))
-    packages = lock["packages"]
-    assert packages["node_modules/react"]["version"] == "18.3.1"
-    assert packages["node_modules/react-dom"]["version"] == "18.3.1"
-    assert packages["node_modules/three"]["version"] == "0.160.1"
-    assert packages["node_modules/@react-three/fiber"]["version"] == "8.18.0"
-    assert packages["node_modules/@react-three/drei"]["version"] == "9.122.0"
-    assert packages["node_modules/vite"]["version"] == "8.1.0"
+def test_formal_frontend_vendors_the_documented_three_release() -> None:
+    assert not (ROOT / "frontend").exists()
+    vendor = ROOT / "backend" / "server" / "static" / "vendor" / "three"
+    assert (vendor / "build" / "three.module.min.js").is_file()
+    assert (vendor / "LICENSE").is_file()
+    notices = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+    assert "Three.js 0.165.0" in notices

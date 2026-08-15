@@ -9221,10 +9221,10 @@ body[data-page="scene"] .page-heading.compact h1 {
   margin-left: 8px;
   overflow: hidden;
   vertical-align: -0.08em;
-  background-image: url("/static/scene-step1-reference.png");
-  background-repeat: no-repeat;
-  background-size: 947px 650px;
-  background-position: -326px -130px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(236, 188, 132, 0.95) 0 7%, transparent 8%),
+    conic-gradient(from 45deg, transparent 0 10%, #aa7d5b 11% 14%, transparent 15% 35%, #aa7d5b 36% 39%, transparent 40% 60%, #aa7d5b 61% 64%, transparent 65% 85%, #aa7d5b 86% 89%, transparent 90%);
+  clip-path: polygon(50% 0, 59% 39%, 100% 50%, 59% 61%, 50% 100%, 41% 61%, 0 50%, 41% 39%);
   animation: sparkle-art-bright 1.6s ease-in-out infinite;
 }
 
@@ -12756,13 +12756,13 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   background-size: cover;
 }
 
-.rp-ceiling-choice-visual[data-ceiling-style-visual="exposed"] { background-image: url("/static/questionnaire_images/ceiling-exposed-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-style-visual="flat"] { background-image: url("/static/questionnaire_images/ceiling-flat-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-style-visual="cove"] { background-image: url("/static/questionnaire_images/ceiling-cove-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-style-visual="floating"] { background-image: url("/static/questionnaire_images/ceiling-floating-reference-v2.png"); }
-.rp-ceiling-choice-visual[data-ceiling-style-visual="linear"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-style-visual="feature-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-style-visual="wood-grid"] { background-image: url("/static/questionnaire_images/ceiling-wood-grid-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="exposed"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="flat"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="cove"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="floating"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="linear"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="feature-pendant"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="wood-grid"] { background-image: none; }
 
 /* 點進施工形式後的搭配卡用 data-ceiling-design-visual(每組材質＋照明一張),
    與外層的 data-ceiling-style-visual(每種施工形式一張)是兩套鍵;只補後者會讓
@@ -12772,7 +12772,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"],
 .rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"],
 .rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] {
-  background-image: url("/static/questionnaire_images/ceiling-design-flat-cove-grid.png");
+  background-image: none;
   background-size: 200% 200%;
 }
 .rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"] { background-position: left top; }
@@ -12784,7 +12784,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"],
 .rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"],
 .rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] {
-  background-image: url("/static/questionnaire_images/ceiling-design-linear-floating-grid.png");
+  background-image: none;
   background-size: 200% 200%;
 }
 .rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"] { background-position: left top; }
@@ -12796,7 +12796,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"],
 .rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"],
 .rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] {
-  background-image: url("/static/questionnaire_images/ceiling-design-slat-exposed-grid.png");
+  background-image: none;
   background-size: 200% 200%;
 }
 .rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"] { background-position: left top; }
@@ -12804,10 +12804,10 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
 .rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"] { background-position: left bottom; }
 .rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] { background-position: right bottom; }
 
-.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-design-visual="industrial-exposed"] { background-image: url("/static/questionnaire_images/ceiling-exposed-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-pendant"] { background-image: url("/static/questionnaire_images/ceiling-feature-pendant-reference.jpg"); }
-.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-track"] { background-image: url("/static/questionnaire_images/ceiling-linear-reference.jpg"); }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-pendant"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="industrial-exposed"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-pendant"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-track"] { background-image: none; }
 
 .rp-ceiling-choice-card strong,
 .rp-ceiling-choice-card small,
@@ -12895,7 +12895,7 @@ body[data-page="library"] .library-viewer-panel > .viewer-actions:not(.library-p
   display: block;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background-image: url("/static/questionnaire_images/lighting-systems-reference-v1.png");
+  background-image: none;
   background-repeat: no-repeat;
   background-size: 500% 100%;
 }
@@ -14388,7 +14388,7 @@ body.rp-workflow-page #space-step {
   overflow: hidden;
   padding: clamp(32px, 5vw, 58px);
   background-color: #d7cab9;
-  background-image: url("/static/style_images/scandinavian.png");
+  background-image: none;
   background-position: 58% center;
   background-size: cover;
 }
@@ -17074,4 +17074,18 @@ body.rp-workflow-page {
 .rp-step-panel--scale .rp-pane-heading,
 .rp-step-panel--structure .rp-pane-heading {
   padding-left: 12px;
+}
+.home-hero-palette {
+  background:
+    linear-gradient(120deg, rgba(20, 31, 27, 0.18), rgba(20, 31, 27, 0.64)),
+    linear-gradient(135deg, #e8dfd1 0 34%, #b9a17e 34% 62%, #6f7c6e 62% 82%, #303c37 82%);
+}
+
+.rp-window-procedural-preview {
+  min-height: 180px;
+  border: 10px solid #1f2933;
+  background:
+    linear-gradient(90deg, transparent 49%, #1f2933 49% 51%, transparent 51%),
+    linear-gradient(180deg, rgba(207, 231, 238, 0.94), rgba(149, 196, 211, 0.72));
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
 }

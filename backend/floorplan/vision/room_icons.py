@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from functools import lru_cache
+import os
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -18,7 +19,12 @@ import cv2
 import numpy as np
 
 
-TEMPLATE_DIR = Path(__file__).with_name("icon_templates")
+TEMPLATE_DIR = Path(
+    os.environ.get(
+        "ROOMPILOT_ICON_TEMPLATE_DIR",
+        Path(__file__).resolve().parents[3] / ".runtime" / "floorplan" / "icon_templates",
+    )
+)
 NORMALIZED_SIZE = 48
 MIN_CLASS_MARGIN = 0.025
 
@@ -182,7 +188,7 @@ def _orientations(template: np.ndarray) -> list[np.ndarray]:
 
 @lru_cache(maxsize=1)
 def load_icon_templates() -> dict[str, list[np.ndarray]]:
-    """Load curated read-only icon templates shipped with Bella."""
+    """Load optional, locally supplied icon templates from the runtime directory."""
     templates: dict[str, list[np.ndarray]] = {}
     for icon_class in ICON_RULES:
         class_dir = TEMPLATE_DIR / icon_class

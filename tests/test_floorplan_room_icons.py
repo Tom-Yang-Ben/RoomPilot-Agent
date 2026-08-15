@@ -1,6 +1,3 @@
-from pathlib import Path
-
-import cv2
 import numpy as np
 
 from backend.floorplan.vision.room_icons import (
@@ -9,15 +6,6 @@ from backend.floorplan.vision.room_icons import (
     load_icon_templates,
 )
 from backend.floorplan.vision.spatial_report import build_spatial_report
-
-
-TEMPLATE_ROOT = (
-    Path(__file__).resolve().parents[1]
-    / "backend"
-    / "floorplan"
-    / "vision"
-    / "icon_templates"
-)
 
 
 def _room_walls() -> list[dict]:
@@ -45,32 +33,15 @@ def _room_walls() -> list[dict]:
     ]
 
 
-def test_curated_django_templates_cover_supported_room_types() -> None:
+def test_portable_profile_does_not_bundle_unverified_icon_templates() -> None:
+    load_icon_templates.cache_clear()
     templates = load_icon_templates()
 
-    assert set(templates) == {
-        "bed",
-        "dining_set",
-        "shower",
-        "sofa",
-        "stove",
-        "toilet",
-    }
-    assert all(templates[icon_class] for icon_class in templates)
+    assert templates == {}
 
 
-def test_floorplan_bed_symbol_suggests_bedroom() -> None:
-    source = next((TEMPLATE_ROOT / "bed").glob("*.png"))
-    raw = cv2.imdecode(
-        np.fromfile(str(source), dtype=np.uint8),
-        cv2.IMREAD_GRAYSCALE,
-    )
+def test_missing_icon_templates_disable_detection_without_fabricating_labels() -> None:
     canvas = np.full((600, 800), 255, dtype=np.uint8)
-    canvas[180:400, 180:340] = cv2.resize(
-        raw,
-        (160, 220),
-        interpolation=cv2.INTER_AREA,
-    )
 
     detections = detect_room_icons(
         canvas,
@@ -78,33 +49,7 @@ def test_floorplan_bed_symbol_suggests_bedroom() -> None:
         plan_bbox_px=[100, 100, 700, 500],
         m_per_px=0.01,
     )
-    rooms = [
-        {
-            "id": "room-1",
-            "type": "default",
-            "label": "空間 1",
-            "area_m2": 24.0,
-            "polygon_m": [
-                {"x": 0, "y": 0},
-                {"x": 6, "y": 0},
-                {"x": 6, "y": 4},
-                {"x": 0, "y": 4},
-            ],
-        }
-    ]
-    apply_icon_room_labels(
-        rooms,
-        detections,
-        plan_bbox_px=[100, 100, 700, 500],
-        m_per_px=0.01,
-    )
-
-    assert detections[0]["class"] == "bed"
-    assert detections[0]["score"] >= 0.9
-    assert rooms[0]["type"] == "bedroom"
-    assert rooms[0]["label"] == "臥室"
-    assert rooms[0]["source"] == "furniture_icon_inference"
-    assert rooms[0]["room_review"] is False
+    assert detections == []
 
 
 def test_icon_inference_never_overwrites_ocr_room_name() -> None:

@@ -719,15 +719,11 @@ def test_design_delivery_rejects_project_mismatch(tmp_path, monkeypatch) -> None
     assert response.json()["detail"]["code"] == "delivery_project_mismatch"
 
 
-def test_design_delivery_prices_frontend_furniture_shape(tmp_path, monkeypatch) -> None:
-    """前端送的 furniture2d 形狀只有 id、沒有 price_twd（scene_v2.js 的
-    composeSelectedRoomFurniture()）。金額必須由報告階段用型錄 id 回查補上，
-    否則報價單每一列都會是「待報價」、小計恆為 0。"""
+def test_design_delivery_keeps_unpriced_portable_furniture_pending(tmp_path, monkeypatch) -> None:
     client, project_id = _client(tmp_path, monkeypatch)
-    catalog_id, expected_twd = next(iter(main._catalog_price_index().items()))
     payload = _design_delivery_payload(project_id)
     payload["configuration_snapshot"]["furniture"] = [
-        {"id": catalog_id, "room_id": "living", "label": "型錄家具"},
+        {"id": "fixture-sofa-2seat", "room_id": "living", "label": "程序化沙發"},
         {"id": "not-a-catalog-id", "room_id": "living", "label": "自訂家具"},
     ]
     response = client.post(
@@ -735,12 +731,14 @@ def test_design_delivery_prices_frontend_furniture_shape(tmp_path, monkeypatch) 
     )
     assert response.status_code == 200
     budget = response.json()["budget_report"]
-    assert budget["known_furniture_reference_subtotal_twd"] == expected_twd
-    # 查不到的 id 保留待報價，不得推估。
-    assert budget["pending_quote_count"] >= 1
+    furniture_lines = [line for line in budget["lines"] if line["category"] == "furniture"]
+    assert budget["known_furniture_reference_subtotal_twd"] == 0
+    assert len(furniture_lines) == 2
+    assert all(line["amount_twd"] is None for line in furniture_lines)
+    assert all(line["status"] == "pending_quote" for line in furniture_lines)
 
 
-def test_design_delivery_prices_by_glb_filename_when_ids_are_placement_ids(
+def test_design_delivery_does_not_infer_price_from_unverified_glb_filename(
     tmp_path, monkeypatch
 ) -> None:
     """實際存檔的家具兩個 id 欄位都不是型錄 id：``furniture_id`` 是引擎擺位 id
@@ -752,7 +750,6 @@ def test_design_delivery_prices_by_glb_filename_when_ids_are_placement_ids(
     斷的是 join key。
     """
     client, project_id = _client(tmp_path, monkeypatch)
-    catalog_id, expected_twd = next(iter(main._catalog_price_index().items()))
     payload = _design_delivery_payload(project_id)
     payload["configuration_snapshot"]["furniture"] = [
         {
@@ -760,7 +757,7 @@ def test_design_delivery_prices_by_glb_filename_when_ids_are_placement_ids(
             "catalog_furniture_id": "room-1-bed-double-candidate-1",
             "room_id": "living",
             "name_zh": "床架",
-            "model_url": f"https://cdn.example/models/ikea/{catalog_id}.glb",
+            "model_url": "https://cdn.example/models/ikea/unverified-bed.glb",
         },
         # 連 GLB 都沒有就真的無從查起，維持待報價、不推估。
         {"furniture_id": "room-1-chair-2", "room_id": "living", "name_zh": "單椅"},
@@ -770,5 +767,7 @@ def test_design_delivery_prices_by_glb_filename_when_ids_are_placement_ids(
     )
     assert response.status_code == 200
     budget = response.json()["budget_report"]
-    assert budget["known_furniture_reference_subtotal_twd"] == expected_twd
-    assert budget["pending_quote_count"] >= 1
+    furniture_lines = [line for line in budget["lines"] if line["category"] == "furniture"]
+    assert budget["known_furniture_reference_subtotal_twd"] == 0
+    assert all(line["amount_twd"] is None for line in furniture_lines)
+    assert budget["pending_quote_count"] >= 2

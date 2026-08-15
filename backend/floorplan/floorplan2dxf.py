@@ -1412,8 +1412,10 @@ def derive_wall_T(bw):
             on = dt[dt > 0]
             t_rb = max(2, int(round(2.0 * float(np.percentile(on, 99.5)))))
             if t_rb < T:
-                print(f"⚠ 牆存活率 {surv:.2f} <0.92（T={T} 遭粗塊撐爆）"
-                      f"→ 穩健牆厚 T={t_rb}")
+                print(
+                    f"[RoomPilot] wall survival ratio {surv:.2f} < 0.92; "
+                    f"using robust wall thickness T={t_rb} instead of T={T}"
+                )
                 T = t_rb
     return T
 
@@ -1472,8 +1474,8 @@ def run(cfg: Config):
         if cfg.output:                       # 指令/config 有指定輸出就照用
             scale_out = cfg.output
         else:                                # 慣例：DXF(cm) → testdata/dxf/
-            os.makedirs("data/testdata/dxf", exist_ok=True)
-            scale_out = os.path.join("data/testdata/dxf", base + ".dxf")
+            os.makedirs(".runtime/floorplan/dxf", exist_ok=True)
+            scale_out = os.path.join(".runtime/floorplan/dxf", base + ".dxf")
         json_out = os.path.join("temp/json/gray", base + ".json")
         arch_out = os.path.join("temp/json/arch", base + ".json")
         write_solid_dxf(rects, wins, img_h, mmpp / 10.0, cfg, out=scale_out, insunits=5)
@@ -1491,9 +1493,9 @@ def run(cfg: Config):
     bw = bw_open
 
     if not cfg.output:                       # 慣例：DXF → testdata/dxf/
-        os.makedirs("data/testdata/dxf", exist_ok=True)
+        os.makedirs(".runtime/floorplan/dxf", exist_ok=True)
         cfg.output = os.path.join(
-            "data/testdata/dxf", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
+            ".runtime/floorplan/dxf", os.path.splitext(os.path.basename(cfg.input))[0] + ".dxf")
 
     H, V = detect_hough(bw, cfg) if cfg.method == "hough" else detect_morph(bw, cfg)
     raw = len(H) + len(V)
@@ -1557,10 +1559,10 @@ def main():
     # 批次模式：不帶參數(且 config 沒鎖單張)、第一參數是目錄、或字面 'png'
     if (not a.input and not cfg.input) or \
        (a.input and (os.path.isdir(a.input) or a.input.lower() == "png")):
-        in_dir = a.input if (a.input and os.path.isdir(a.input)) else "data/testdata/png"
+        in_dir = a.input if (a.input and os.path.isdir(a.input)) else "examples/fixtures"
         if not os.path.isdir(in_dir):
             sys.exit(f"找不到目錄 {in_dir}/  (請把要批次的圖檔放進去)")
-        run_batch(in_dir, (a.output or "data/testdata/dxf"), cfg)
+        run_batch(in_dir, (a.output or ".runtime/floorplan/dxf"), cfg)
         return
 
     if a.input:
@@ -1574,7 +1576,7 @@ def main():
         sys.exit("缺輸入：用 floorplan2dxf.py 圖.png，或 floorplan2dxf.py png 批次，或在 config.ini 設 input")
     # 慣例：輸入放 testdata/png/ —— 給的路徑讀不到時自動去 testdata/png/ 找
     if not os.path.isfile(cfg.input):
-        alt = os.path.join("data/testdata/png", cfg.input)
+        alt = os.path.join("examples/fixtures", cfg.input)
         if os.path.isfile(alt):
             cfg.input = alt
     base = os.path.splitext(os.path.basename(cfg.input))[0]

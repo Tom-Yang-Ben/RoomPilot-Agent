@@ -33,46 +33,42 @@ def _css() -> str:
     return (STATIC / "site.css").read_text(encoding="utf-8")
 
 
-def test_overlay_dom_exposes_caption_gallery_close_and_present_button() -> None:
+def test_overlay_dom_exposes_empty_gallery_without_claiming_generated_images() -> None:
     html = _html()
     # 放大疊層:單張圖 + 房名/色卡標籤 + 圖片牆 + 切回 3D 關閉鈕。
     assert 'id="ai-render-image-stage"' in html
     assert 'id="ai-render-image-caption"' in html
     assert 'id="ai-render-gallery"' in html
     assert 'id="ai-render-stage-close"' in html
-    # 第 8 步缺的「呈現已獲取圖片」按鈕。
-    assert 'id="ai-openrouter-gallery"' in html
-    assert "查看已生成圖片" in html
+    assert 'id="ai-render-image-toggle"' in html
+    assert "尚未連接遠端渲染服務" in html
+    assert 'id="ai-openrouter-gallery"' not in html
     # 關閉鈕文案要讓使用者知道能切回 3D。
     assert "切回 3D" in html
 
 
-def test_js_exposes_enlarge_gallery_and_close_helpers() -> None:
+def test_js_exposes_enlarge_and_close_helpers_without_fake_gallery_action() -> None:
     js = _js()
     assert "let renderStageView" in js
     assert "function completedOpenrouterRows" in js
     assert "function showRenderImageEnlarged" in js
-    assert "function showRenderGallery" in js
+    assert "function showRenderGallery" not in js
     assert "function closeRenderImageStage" in js
     # 疊層元素都註冊到 element registry。
     for ref in (
         'aiRenderImageCaption: $("#ai-render-image-caption")',
         'aiRenderGallery: $("#ai-render-gallery")',
         'aiRenderStageClose: $("#ai-render-stage-close")',
-        'aiOpenrouterGallery: $("#ai-openrouter-gallery")',
     ):
         assert ref in js, ref
 
 
-def test_js_wires_thumbnail_clicks_and_present_button() -> None:
+def test_js_wires_only_real_completed_rows_and_close_actions() -> None:
     js = _js()
     # 第 7 步色卡縮圖點擊 → 放大。
     assert 'element.paletteRenderResults?.addEventListener("click"' in js
-    # 第 8 步全房縮圖點擊 → 放大(依 room 卡片 dataset)。
-    assert 'element.aiOpenrouterResults?.addEventListener("click"' in js
-    assert "card.dataset.roomId" in js
-    # 呈現按鈕開圖片牆;關閉鈕/圖片牆磚塊接線。
-    assert "element.aiOpenrouterGallery?.addEventListener" in js
+    assert "completedOpenrouterRows().find" in js
+    assert "tile.dataset.galleryRoom" in js
     assert "element.aiRenderStageClose?.addEventListener" in js
     assert "data-gallery-room" in js
 

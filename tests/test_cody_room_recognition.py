@@ -18,7 +18,7 @@ import pytest
 from backend.floorplan.cody_adapter import recognize_cody_rooms
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SAMPLE = REPO_ROOT / "data" / "testdata" / "png" / "floor01.png"
+SAMPLE = REPO_ROOT / "examples" / "fixtures" / "public_floorplan.png"
 
 
 @pytest.fixture(scope="module")
@@ -246,7 +246,7 @@ def test_analysis_labels_rooms_from_semantic_pipeline(sample_bytes: bytes) -> No
     """驗收條件二：上傳平面圖後 rooms[].label 來自語意管線而非 fallback。"""
     from backend.floorplan.vision.analysis import analyze_floorplan_image
 
-    result = analyze_floorplan_image(sample_bytes, filename="floor01.png")
+    result = analyze_floorplan_image(sample_bytes, filename="public_floorplan.png")
 
     assert result["cody_room_semantics"] is not None
     assert result["cody_room_semantic_labels_applied"] > 0
@@ -266,7 +266,7 @@ def test_analysis_still_completes_when_semantics_unavailable(
     from backend.floorplan.vision import analysis as analysis_module
 
     monkeypatch.setattr(analysis_module, "recognize_cody_rooms", lambda *_a, **_k: None)
-    result = analysis_module.analyze_floorplan_image(sample_bytes, filename="floor01.png")
+    result = analysis_module.analyze_floorplan_image(sample_bytes, filename="public_floorplan.png")
 
     assert result["cody_room_semantics"] is None
     assert result["cody_room_semantic_labels_applied"] == 0

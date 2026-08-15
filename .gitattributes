@@ -1,13 +1,13 @@
-# 前端源碼釘 LF:Windows checkout 不再轉出 CRLF,兩平台 npm run build 才會
-# 產出位元組相同的建置產物(否則行尾差異會讓 artifacts 整檔 churn 並在
-# ben 整合分支製造必然的合併衝突)。text=auto 讓二進位檔自動豁免。
-frontend/** text=auto eol=lf
-
-# Vite 建置產物視為原樣位元組,git 不做任何行尾轉換。
-backend/server/static/frontend3d/** -text
-
-# bella-test1 帶入:RAG 向量檔走 Git LFS。
-JSON/RAG/furniture_embeddings_bge_m3.jsonl filter=lfs diff=lfs merge=lfs -text
-
-# PostgreSQL 一鍵還原 dump（約 55MB）走 Git LFS，不進一般 git 歷史。
-*.sql.gz filter=lfs diff=lfs merge=lfs -text
+* text=auto
+*.sh text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.npz binary
+*.wasm binary
+backend/server/static/vendor/** -whitespace

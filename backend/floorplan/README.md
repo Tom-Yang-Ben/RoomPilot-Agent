@@ -1,149 +1,25 @@
-## 2026-07-14 學習式辨識落地:雲端微調分割模型 + 融合(94%/92% → 94%/95%)
+# Floor-plan recognition
 
-「雲端訓練、本地推論」跑通並接進生產管線。窗召回率 +3%、精準率持平,首次突破
-94/92 天花板。
+`backend/floorplan/` converts PNG/JPG/DXF input into reviewable walls, doors, windows, rooms and centimeter-normalized `layout_json` evidence. The user must confirm scale and uncertain structure before design generation.
 
-**訓練(Kaggle 免費 GPU,見 `export_training_data.py` 交接的資料格式)**:
-- 資料:CubiCasa5k 4200 張(SVG 標註轉三類遮罩 牆/窗/門)微調 U-Net(ResNet34)
-- 8 epoch,val 窗 IoU 0.69、無過擬合;匯出 `models/floorseg.onnx`(~93MB)
-- 21 張測資期末考:單獨 83%/91%(領域落差——訓練是芬蘭圖風,誤抓偏多)
+## Public portable path
 
-**推論(`seg_infer.py`,onnxruntime,M2 CPU 一張 160~220ms)**:
-逐像素分類 → 窗類連通塊 + 窗塊 softmax 信心。
+The portable profile uses deterministic OpenCV/raster rules and the self-authored files in `examples/fixtures/`. It does not ship training data, customer plans, model weights, icon templates or precomputed semantic heads.
 
-**融合(`floorplan2dxf._fuse_with_seg`,`FP2DXF_SEG`,預設有 onnx+onnxruntime 即啟用)**:
-「只增不減」——規則窗全數保留(94/92 當地板),模型獨有的窗只在**分割模型自己
-的信心 ≥0.90** 時追加。閘門用信心而非開口分類器是關鍵:規則管線訓練的分類器對
-模型的新框是分佈外(實測給不出有用分數,θ 掃描無甜蜜點);分割模型對自己的預測
-才可靠。門檻掃描:
+Optional assets default to `.runtime/floorplan/` and may be overridden with the variables documented in `.env.example`. Missing assets disable only the corresponding evidence layer; API output must report the fallback honestly.
 
-| 方法 | 精準 | 召回 |
-|---|---|---|
-| 純規則(基準) | 94% | 92% |
-| 模型單獨 | 83% | 91% |
-| 交集(共識) | 100% | 86% |
-| 融合 seg 信心 0.90 | 94% | 95% |
+## Boundaries
 
-`FP2DXF_SEG=0` 或缺 onnx/onnxruntime → 乾淨退回純規則 94/92(安全網)。門過濾維持
-19/19、DXF 窗合併 100%/100%、pytest 67 過。辨識端點 `/api/floorplan/recognize`
-自動吃到融合(內部走 detect_windows)。
+- Cross-module coordinates and lengths are centimeters; area is square meters.
+- Recognition evidence never becomes confirmed structure without the confirmation step.
+- Room relationships belong to `backend/spatial_data/`; furniture legality belongs to `backend/engine/`.
+- New public fixtures must be anonymous, reproducible and listed in `examples/fixtures/manifest.json`.
 
-## 2026-07-13 仲裁層研究:VLM 與本地分類器實測(結論:維持 94%/92% 基準,干預不可行)
+## Verification
 
-目標是把剩餘 12 案(7 漏 5 誤)修到 100%。兩條路都做出來、都被評測否決,完整記錄防重蹈:
+```powershell
+uv run pytest -q tests/test_floorplan_vision.py tests/test_floorplan_vision_api.py
+uv run pytest -q tests/test_cody_room_recognition.py tests/test_floorplan2room_paths.py
+```
 
-**路線 A:免費視覺模型(VLM)裁圖仲裁**(`vlm_judge.py`,`FP2DXF_VLM=1` 選配)
-候選開口裁圖(紅框+脈絡)拼蒙太奇問 gemma-4-26b:free 判窗/門/其他,附雜湊快取。
-實測 76 個裁圖 52 個被判 other(把 floor06 十扇真窗全滅、又把三扇真門平反成窗),
-全批評測 94%/92% → 90%/64%,直接棄用。免費模型對細線幾何符號的判讀不可靠。
-
-**路線 B:本地訓練分類器**(`opening_classifier.py` + `opening_model.npz`,`FP2DXF_SVM=1` 選配)
-管線候選(收錄/被殺/提案)對 pngans 自動標注 → 130 樣本;工程化結構特徵
-(跨牆剖面/沿牆剖面/門弧/扇貝弧/端蓋/內部線/延伸對比,45 維)+ 嶺回歸,
-leave-one-floor-out 驗證:v3 HOG 73.6% → v4 結構 86.9% → v5 90.8% → v6 93.1%。
-但「不對稱干預」所需的分數邊際不存在:出摺分數上誤抓與真窗重疊(-0.20 vs -0.22)、
-被誤殺的真窗比真門分數還低(-1.2 vs +0.07)——不存在任何門檻能修掉一案而不傷及 81 個正確案。
-以正負號當裁判 = 比基準差,故預設關閉。
-
-**結論**:剩餘 12 案(窗簾弧與門弧同構 ×4、淺灰線/家具壓線無候選 ×3、空心牆/檯面/門檻
-與窗同構 ×5)在 130 樣本可驗證的方法下不可分——這是本資料集規則式+小樣本學習的數學天花板,
-不是工程未盡。要過這道牆需要語意級分割模型(CubiCasa5k,峙宏分支);本輪留下的
-自動標注管線(`LAST_CANDIDATES` 鉤子+GT 對答案)與 LOOCV 評測迴圈是那條路的直接地基。
-付費 VLM(如 Claude 視覺)當仲裁者理論上可再測,是否花 API 費用由組長決定。
-
-回歸驗證:窗 94%/92%、門過濾 19/19、DXF 窗合併 100%/100%、pytest 67 過——基準無損。
-
-2026/7/8 v.1.5 變更
-
-比例尺改用外圍牆厚錨定（外牆必定 ≥15cm），門寬不再決定比例：
-
-- 門寬推比例有系統性偏差——拿有印刷尺寸的圖驗證，floor01（標 30'）、floor03（房間標 3.0M×3.0M）、floor05 的門推比例都偏大 1.3~2 倍（弧偵測抓到家具/小弧拼成的假門，門寬 px 中位數偏小）。門寬改為只做交叉檢核，不再回推比例
-- 新增 outer_wall_thickness()：只取「貼著平面圖外框、且沿外框方向延伸」的牆矩形，短邊中位數 = 外圍牆厚（px）。排除室內牆（端點碰到外框不算）與厚度 <0.35×T 的細長條（標註/尺寸線），量不到就退回 T
-- derive_door_scale() 改版：比例以 config 的 mm_per_px 為基準，若外圍牆厚換算 <15cm 就把比例撐到剛好 15cm（method: wall_min）；≥15cm 則維持 config 比例（method: config）
-- confidence 改為門寬交叉檢核結果：偵測門寬換算落在 70~110cm → high，偏離 → low（比例或門偵測至少一個有問題，值得人工看），沒偵測到門 → medium
-- json/ scale 區塊欄位更新：outer_wall_px、outer_wall_cm、wall_min_cm、median_door_cm（取代原本的 median_door_px / wall_thickness_cm）
-
-批次實測 21 張（對照圖面印刷尺寸）：floor01 高 30'=9.1m，舊輸出 13.2m → 新 10.0m；floor03 約 6.5×9m，舊 13.7×15.3m → 新 7.3×9.4m；floor05 約 9m 寬，舊 12.1m → 新 9.4m。已知問題：floor08 牆偵測本身幾乎失敗（只偵測到 2 個牆矩形），比例仍偏大（圖標 20'×30'=6.1×9.1m，輸出 12.2×17.4m），已標 low，需另調牆偵測參數。注意 wall_min 是下限錨點——實際外牆比 15cm 厚的圖，輸出尺寸會略小於真實（有印刷尺寸可對照的圖誤差皆在 10% 內）。
-
-2026/7/7 v.1.4 變更
-
-門寬推比例尺 + 前端交接 JSON（原本的 dxf/ 輸出完全不動）：
-
-- derive_door_scale()：取弧吻合度 ≥0.85 的高信心門，門寬 px 中位數 = door_width_cm（config 可調，預設 90cm）反推每張圖的比例；推出的比例要通過牆厚合理性檢查（最厚外牆 8~40cm）才採用，否則退回 config 的 mm_per_px 並標 confidence: low/none
-- dxf_scale/：每張圖另存一份門寬比例的 DXF，單位公分（$INSUNITS=5），幾何與 dxf/ 相同只有比例不同
-- json/：每張圖一份前端交接 JSON——scale 區塊（cm_per_px、method、confidence、doors_used、推算牆厚），walls/windows/doors 同時給 px（影像座標）與 cm（同 dxf_scale，原點左下 y 向上）兩套座標
-
-批次實測 21 張：10 張門推比例（全標 high），2 張假門被牆厚檢查正確擋掉，9 張沒抓到高信心門走 fallback。後續改進方向：把閉合門扇（_has_door_swing 抓到的）也納入比例計算，提高門推比例的覆蓋率。
-
-2026/7/6 v.1.3 變更
-
-- floorplan2dxf.py:925 新增 IMG_EXTS = (".png", ".jpg", ".jpeg", ".bmp")，run_batch 改成列出目錄後用副檔名（不分大小寫）過濾，所以 .JPG、.PNG 這種大寫也抓得到
-
-提醒：批次輸出是以檔名（去掉副檔名）命名，如果目錄裡同時有 floor01.png 和 floor01.jpg，兩者的 DXF 會互相覆蓋，只留最後處理的那張。
-
-2026/7/3 v.1.2 變更
-
-新增/door 目錄置門的種類放篩選圖型，雙開門、上下左右往兩邊打開圖型type分類
-
-門過濾率從 95% 提升到 100%（19/19 全過），同時窗戶精準率再往上推。
-
-成果
-門過濾率（door/ 19 張樣式）	94.7%（18/19）	100%（19/19）
-窗戶精準率	89%	93%
-窗戶召回率	91%	90%
-牆偵測	—	完全沒動，不受影響
-
-2026/7/2 v.1.0 變更
-
-成果
-抓對 誤抓 漏抓 精準率 召回率
-修改前 68 23 18 75%	79%
-修改後 78 10 8 89% 91%
-
-
-長窗上限從 15 倍牆厚放寬到 25 倍（floor05、floor12 的長窗）
-玻璃線畫成淺灰色時 Otsu 二值化會把它消掉——加了寬鬆門檻的備援檢測，但要求「至少兩群分開的貫穿線＋墨跡比例低」才算窗，擋掉檯面邊線和樓梯
-「開口附近有門就不算窗」改嚴：門的鉸鏈必須貼在開口端點、門寬要吻合、且門本身的弧線吻合度要夠高——之前淋浴間的曲線拼出假門，把好幾個真窗誤殺了
-新增「開闔弧線」備援門檢查：閉合畫法的門扇（雙細線躺在牆上）以前全被當成窗，現在拿開口兩端當鉸鏈掃弧線，含雙開門（兩端各半弧）；門檻鎖 0.9，實測真門≈1.0、真窗≤0.6
-推拉門的兩片線各只蓋半長——加「至少一條線貫穿開口全長」的結構檢查
-整條被細線畫的牆（floor16 下牆那種）以前連牆帶窗整段消失——現在用對齊的牆角推斷缺失牆線、垂直牆當虛擬夾邊，配最嚴格的結構檢查找回來
-
-
-Todos：
-
-寫 eval_windows.py 比對腳本（抽取綠框、配對、算 TP/FP/FN）
-用現行代碼建立基準分數（20 張全跑）
-分析誤判/漏抓案例，修正 detect_windows
-迭代到 20 張整體精準率/召回率都改善
-重新產生 chk/ 與 dxf/ 並回報結果
-
-格式：檔案總管圖片上的紅色＝牆、綠色框＝窗戶正確位置。
----
-
-## 2026-07-12 牆網搶救 + 窗評測迭代(93%/91% → 94%/92%)
-
-| 版本 | TP | FP | FN | 精準率 | 召回率 |
-|---|---|---|---|---|---|
-| 修改前 | 80 | 6 | 8 | 93% | 91% |
-| 修改後 | 81 | 5 | 7 | 94% | 92% |
-
-門過濾率維持 19/19 = 100%。
-
-**改了什麼:**
-
-- `remove_solid_blobs` 從「整個連通元件」級刪除改成逐像素厚核心移除(距離變換 ≥16px 的核心膨脹回塊邊界後只挖那一塊)。floor08 的實心黑塊與牆網相連,舊邏輯把整張圖的牆一起刪光(T 被量成 4px、只剩 2 個牆塊、窗全滅);新邏輯牆網完整保留,floor08 從全滅變成牆 10 塊+窗抓到 1/2。
-- `detect_windows` 加「殺單記憶」:主掃判定為門的開口,strict 補掃路徑不得復活(floor05 的門檻先被 door_swing 正確殺掉、又被補掃救回來變誤抓——修掉)。
-- 加 `FP2DXF_DEBUG=1` 環境變數:印出每個候選窗「從哪條路徑收錄/被哪個檢查殺掉」,失敗案例定位從猜變成看。
-
-**試過但被評測否決(已回滾,留記錄防重蹈):**
-
-- 「帶內 ≥2 條硬墨貫穿線=窗,免疫門弧誤殺」——本資料集的門常畫雙線門框/軌道,免疫規則反而保護了一批門,精準率 93%→82%,回滾。
-- 「covered 貫穿線全貼帶緣且中段無線=空心牆,不是窗」——floor08 的窗正是雙緣線畫法,被誤殺,回滾。
-- 門弧掃描加垂直向鉸鏈偏移——順帶誤殺鄰近窗簾弧的真窗,回滾。
-
-**剩餘失敗的分類(7 漏 5 誤,幾何規則的邊界):**
-
-- 漏 ×4(f03a/f07/f10a/f10b):真窗被鄰近門弧/窗簾弧誤殺——窗簾弧與門弧幾何同構(端點錨定+半徑≈開口寬),純幾何不可分。
-- 漏 ×3(f02/f03b/f08):窗符號線太粗被吸收成牆塊,或被家具(沙發)壓線——開口配對邏輯根本沒探測到。
-- 誤 ×5(f09 雙開門、f13 空心牆/檯面/門檻、f20 空心牆)——結構上與窗同構(≥2 條貫穿線)。
-- 這 12 案是傳統 CV 規則的天花板,繼續加規則會互相打架(本輪實驗已證);建議走學習式辨識(CubiCasa5k,峙宏分支實驗中)補這一段。
+Historical benchmark scripts remain research utilities only. They require external, appropriately licensed evaluation data and are not part of the portable release claim.

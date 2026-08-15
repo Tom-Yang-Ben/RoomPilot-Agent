@@ -1,8 +1,8 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-cf5930cd1847";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-dc19646b0264";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-7932d83e3afd";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-536f7186bfd3";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-e48e66f9829a";
-import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-ec29c3988ca1";
+import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-e59cfab159dd";
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
@@ -39,7 +39,7 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-48fba906f9d9";
+} from "./scene_layout2d.js?v=sha256-04985110a853";
 import {
   reconcileFurniture2dAfterGeneration,
   removeFurniture2dBySceneObject,
@@ -83,7 +83,7 @@ import {
   STYLE_FAMILIES,
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-9fa4b9967c7f";
+} from "./scene_style_packs.js?v=sha256-42fc6861cb3f";
 import {
   beamDragGeometry,
   canMarkWallForDemolition,
@@ -10072,6 +10072,16 @@ function catalogIdFromModelUrl(modelUrl) {
   return file.replace(/\.(glb|gltf)$/i, "");
 }
 
+function catalogItemRenderable(item) {
+  return Boolean(
+    item?.model_url || item?.render_mode === "procedural_fixture" || item?.renderMode === "procedural_fixture"
+  );
+}
+
+function catalogItemRenderKey(item) {
+  return String(item?.model_url || `procedural:${item?.furniture_id || item?.id || "unknown"}`);
+}
+
 function knownUnavailableCatalogFurnitureIds() {
   const failedInstanceIds = new Set(
     (whiteViewer.getDiagnostics()?.failedFurniture || [])
@@ -10093,6 +10103,7 @@ function knownUnavailableCatalogFurnitureIds() {
 }
 
 async function verifyQuestionnaireCatalogModel(offer) {
+  if (offer?.render_mode === "procedural_fixture") return true;
   const modelUrl = String(offer?.model_url || "");
   if (!modelUrl || unavailableCatalogModelUrls.has(modelUrl)) return false;
   if (verifiedCatalogModelUrls.has(modelUrl)) return true;
@@ -10120,8 +10131,8 @@ async function verifyQuestionnaireCatalogModel(offer) {
 async function verifiedQuestionnaireCatalogOffers(offers, unavailableCatalogIds = new Set()) {
   const candidates = (offers || []).filter((offer) => (
     !unavailableCatalogIds.has(String(offer.furniture_id))
-    && Boolean(offer.model_url)
-    && !unavailableCatalogModelUrls.has(String(offer.model_url))
+    && catalogItemRenderable(offer)
+    && !unavailableCatalogModelUrls.has(catalogItemRenderKey(offer))
   ));
   const verified = [];
   for (const offer of candidates) {
@@ -10533,7 +10544,7 @@ function specsFromSelectionResponse(room, response, fallbackSpecs) {
     if (
       catalogItem?.user_selected === true
       && catalogItem?.furniture_id
-      && catalogItem?.model_url
+      && catalogItemRenderable(catalogItem)
     ) {
       return [type, variant, reason, autoAdded, catalogItem];
     }
@@ -10545,6 +10556,7 @@ function specsFromSelectionResponse(room, response, fallbackSpecs) {
       ...matched,
       furniture_id: matched.furniture_id || catalogItem?.furniture_id,
       model_url: matched.model_url || catalogItem?.model_url,
+      render_mode: matched.render_mode || catalogItem?.render_mode,
       size_cm: matched.size_cm || catalogItem?.size_cm,
     };
     return [
@@ -10676,13 +10688,14 @@ async function autoLayoutFurniture() {
           heightCm: catalogSize.height,
         });
         item.roomId = room.id;
-        if (catalogItem?.model_url) {
+        if (catalogItemRenderable(catalogItem)) {
           item.label = catalogItem.name_zh
             || catalogItem.name_zh_raw
             || catalogItem.name_en
             || item.label;
           item.catalogFurnitureId = catalogItem.furniture_id;
           item.model_url = catalogItem.model_url;
+          item.renderMode = catalogItem.render_mode || null;
           item.primaryStyle = catalogItem.primary_style || null;
           item.catalogColor = catalogItem.color || null;
           item.catalogMaterial = catalogItem.material || null;
@@ -11263,7 +11276,7 @@ function deferredFurnitureRecord(item, reason) {
 function isVerifiedQuestionnaireFurnitureOffer(offer) {
   return Boolean(
     offer?.furniture_id
-    && offer?.model_url
+    && catalogItemRenderable(offer)
     && offer?.model_load_verified === true
     && offer?.room_fit_checked !== false
     && !knownUnavailableCatalogFurnitureIds().has(String(offer.furniture_id)),
@@ -12161,7 +12174,7 @@ function buildReplacementRoomPreviewScene(baseScene, current, candidate) {
 }
 
 async function previewReplacementCandidate(candidate) {
-  if (!candidate?.model_url) {
+  if (!catalogItemRenderable(candidate)) {
     element.replacement3dStatus.textContent = "這件家具沒有可載入的 3D 模型。";
     return;
   }
@@ -12443,6 +12456,7 @@ async function replaceSelectedLayoutFurniture(furnitureId) {
     heightCm: Number(size.height) || current.heightCm,
     catalogFurnitureId: catalogItem.furniture_id,
     model_url: catalogItem.model_url,
+    renderMode: catalogItem.render_mode || null,
     reason: `使用者從家具資料庫更換，並依「${state.rooms.find((room) => room.id === current.roomId)?.label || "目前房間"}」重新檢查位置。`,
   };
   element.replacementError.textContent = "正在由家具引擎檢查新尺寸、牆界、碰撞與淨空...";
@@ -12522,7 +12536,7 @@ async function resolveCatalogFurniture(item, { lockPositions = false } = {}) {
   // selected layout instead of re-placing it. Otherwise only user-pinned items
   // (item.locked) stay put. See completeRoomSchemeSelection / confirmLayout2d.
   const positionLocked = item.locked === true || lockPositions === true;
-  if (item.model_url && item.catalogFurnitureId) {
+  if (catalogItemRenderable(item) && item.catalogFurnitureId) {
     return {
       ...toSceneFurniture(item),
       position_locked: positionLocked,
@@ -12664,7 +12678,7 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
     const selectedFurniture = await Promise.all(
       placeableFurniture.map((item) => resolveCatalogFurniture(item, { lockPositions: strictSelectedFurniture })),
     );
-    const missingCatalogModels = selectedFurniture.filter((item) => !item.model_url);
+    const missingCatalogModels = selectedFurniture.filter((item) => !catalogItemRenderable(item));
     if (missingCatalogModels.length && !allowPendingFurniture && !strictSelectedFurniture) {
       element.layoutError.textContent =
         `有 ${missingCatalogModels.length} 件家具尚未找到可用的資料庫 GLB：${
@@ -12688,7 +12702,7 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
       ));
     }
     const sceneFurniture = allowPendingFurniture && !strictSelectedFurniture
-      ? selectedFurniture.filter((item) => item.model_url)
+      ? selectedFurniture.filter(catalogItemRenderable)
       : selectedFurniture;
     const firstRoom = state.rooms.find((room) => room.type === "living_room") || state.rooms[0];
     const dimensions = roomDimensions(firstRoom);
@@ -13687,14 +13701,15 @@ async function populateGlbSearchThumbnails(items, batchId) {
   for (const item of items) {
     if (batchId !== glbThumbnailBatch) return;
     const furnitureId = String(item.furniture_id || "");
-    if (!furnitureId || !item.model_url) continue;
+    if (!furnitureId || !catalogItemRenderable(item)) continue;
     const nativePreview = item.image_url
       || item.thumbnail_url
       || item.preview_url
       || item.main_image_url
       || item.image;
     if (nativePreview) continue;
-    let png = glbThumbnailCache.get(item.model_url);
+    const renderKey = catalogItemRenderKey(item);
+    let png = glbThumbnailCache.get(renderKey);
     if (!png) {
       try {
         await glbThumbnailViewer.loadScene(glbThumbnailScene(item));
@@ -13705,7 +13720,7 @@ async function populateGlbSearchThumbnails(items, batchId) {
         });
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         png = glbThumbnailViewer.capturePng();
-        glbThumbnailCache.set(item.model_url, png);
+        glbThumbnailCache.set(renderKey, png);
       } catch (error) {
         console.warn("GLB thumbnail generation failed", item.model_url, error);
         continue;
@@ -13724,8 +13739,9 @@ async function populateGlbSearchThumbnails(items, batchId) {
 async function populateQuestionnaireFurnitureThumbnails(items, revision) {
   for (const item of items) {
     if (revision !== questionnaireFurnitureThumbnailRevision) return;
-    if (!item?.furniture_id || !item?.model_url || questionnaireFurniturePreviewUrl(item)) continue;
-    let png = glbThumbnailCache.get(item.model_url);
+    if (!item?.furniture_id || !catalogItemRenderable(item) || questionnaireFurniturePreviewUrl(item)) continue;
+    const renderKey = catalogItemRenderKey(item);
+    let png = glbThumbnailCache.get(renderKey);
     if (!png) {
       try {
         await glbThumbnailViewer.loadScene(glbThumbnailScene(item));
@@ -13736,7 +13752,7 @@ async function populateQuestionnaireFurnitureThumbnails(items, revision) {
         });
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         png = glbThumbnailViewer.capturePng();
-        glbThumbnailCache.set(item.model_url, png);
+        glbThumbnailCache.set(renderKey, png);
       } catch (error) {
         console.warn("Questionnaire furniture thumbnail generation failed", item.model_url, error);
         continue;
@@ -13780,9 +13796,10 @@ async function replaceUnlockedFurnitureForStyle(pack) {
     if (item.user_specified || item.model_locked) return;
     try {
       const candidate = await styleFurnitureCandidate(item, pack);
-      if (!candidate?.model_url) return;
+      if (!catalogItemRenderable(candidate)) return;
       item.catalog_furniture_id = candidate.furniture_id;
       item.model_url = candidate.model_url;
+      item.render_mode = candidate.render_mode || null;
       item.name_zh_raw = candidate.name_zh || candidate.name_zh_raw || item.name_zh_raw;
       item.primary_style = candidate.primary_style || pack.styleId;
     } catch (error) {
@@ -14252,51 +14269,51 @@ function surfaceRecommendationReason(item, activePack, kind) {
 const SURFACE_VARIANT_OPTIONS = Object.freeze({
   scandinavian: {
     wall: [
-      { id: "sage", label: "鼠尾草礦物漆", color: "#D8DDCF", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "北歐風如果家具偏淺木，低彩度綠牆能增加層次，不會只剩白牆。", scoreFor: { scandinavian_2: 55 } },
-      { id: "mineral_beige", label: "米灰礦物塗料", color: "#DDD2C1", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "用米灰牆降低白牆冷感，適合小坪數與自然光不足的房間。", scoreFor: { scandinavian: 18 } },
+      { id: "sage", label: "鼠尾草礦物漆", color: "#D8DDCF", materialPreview: "", reason: "北歐風如果家具偏淺木，低彩度綠牆能增加層次，不會只剩白牆。", scoreFor: { scandinavian_2: 55 } },
+      { id: "mineral_beige", label: "米灰礦物塗料", color: "#DDD2C1", materialPreview: "", reason: "用米灰牆降低白牆冷感，適合小坪數與自然光不足的房間。", scoreFor: { scandinavian: 18 } },
     ],
     floor: [
-      { id: "herringbone_oak", label: "人字拼橡木", color: "#C8A16F", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks033B.jpg", reason: "想讓北歐不那麼制式時，人字拼能保留木質溫度並增加精緻度。", scoreFor: { scandinavian_3: 65 } },
+      { id: "herringbone_oak", label: "人字拼橡木", color: "#C8A16F", materialPreview: "", reason: "想讓北歐不那麼制式時，人字拼能保留木質溫度並增加精緻度。", scoreFor: { scandinavian_3: 65 } },
     ],
   },
   japanese: {
     wall: [
-      { id: "sand", label: "砂岩感塗料", color: "#D8C6A9", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "砂岩色能接住榻榻米、藤編與紙燈，不會像純白牆那麼硬。", scoreFor: { japanese: 40 } },
+      { id: "sand", label: "砂岩感塗料", color: "#D8C6A9", materialPreview: "", reason: "砂岩色能接住榻榻米、藤編與紙燈，不會像純白牆那麼硬。", scoreFor: { japanese: 40 } },
     ],
     floor: [
-      { id: "herringbone_oak", label: "細拼淺木地板", color: "#D2B889", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks033B.jpg", reason: "細拼木紋讓日系空間比較有手作感，適合想要溫潤但不厚重的配置。", scoreFor: { japanese_1: 45 } },
+      { id: "herringbone_oak", label: "細拼淺木地板", color: "#D2B889", materialPreview: "", reason: "細拼木紋讓日系空間比較有手作感，適合想要溫潤但不厚重的配置。", scoreFor: { japanese_1: 45 } },
     ],
   },
   modern_minimal: {
     wall: [
-      { id: "greige", label: "灰米微水泥牆", color: "#BEB8AF", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Tiles008.jpg", reason: "現代簡約需要乾淨背景，灰米牆比白牆更能襯出黑金屬與石材。", scoreFor: { modern_minimal_2: 70 } },
+      { id: "greige", label: "灰米微水泥牆", color: "#BEB8AF", materialPreview: "", reason: "現代簡約需要乾淨背景，灰米牆比白牆更能襯出黑金屬與石材。", scoreFor: { modern_minimal_2: 70 } },
     ],
     floor: [
-      { id: "microcement", label: "霧面微水泥地坪", color: "#9B9992", materialPreview: "/static/surface_assets/tile/ccity-CAL288001.png", reason: "微水泥適合俐落線條與低彩度家具，比木地板更有都會感。", scoreFor: { modern_minimal: 35, modern_minimal_2: 60 } },
+      { id: "microcement", label: "霧面微水泥地坪", color: "#9B9992", materialPreview: "", reason: "微水泥適合俐落線條與低彩度家具，比木地板更有都會感。", scoreFor: { modern_minimal: 35, modern_minimal_2: 60 } },
     ],
   },
   cream: {
     wall: [
-      { id: "mineral_beige", label: "奶茶礦物塗料", color: "#E7D8C3", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "奶油風需要暖底但不能太黃，奶茶礦物牆能讓白色家具有陰影層次。", scoreFor: { cream: 45 } },
+      { id: "mineral_beige", label: "奶茶礦物塗料", color: "#E7D8C3", materialPreview: "", reason: "奶油風需要暖底但不能太黃，奶茶礦物牆能讓白色家具有陰影層次。", scoreFor: { cream: 45 } },
     ],
     floor: [
-      { id: "herringbone_oak", label: "柔光人字木地板", color: "#DEC393", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-Planks033B.jpg", reason: "柔光人字拼比一般淺橡木更有精緻感，適合奶油風的圓角家具。", scoreFor: { cream_3: 55 } },
+      { id: "herringbone_oak", label: "柔光人字木地板", color: "#DEC393", materialPreview: "", reason: "柔光人字拼比一般淺橡木更有精緻感，適合奶油風的圓角家具。", scoreFor: { cream_3: 55 } },
     ],
   },
   industrial: {
     wall: [
-      { id: "greige", label: "斑駁灰泥牆", color: "#8E8A82", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Tiles009.jpg", reason: "工業風不一定要全黑，灰泥牆能保留粗獷但讓空間不壓迫。", scoreFor: { industrial_1: 50 } },
+      { id: "greige", label: "斑駁灰泥牆", color: "#8E8A82", materialPreview: "", reason: "工業風不一定要全黑，灰泥牆能保留粗獷但讓空間不壓迫。", scoreFor: { industrial_1: 50 } },
     ],
     floor: [
-      { id: "walnut", label: "深胡桃木地板", color: "#76583E", materialPreview: "/static/surface_assets/_import_all/cc0-wood-textures/ambientcg-WoodFloor039.jpg", reason: "深木地板能平衡鐵件與水泥，讓工業風比較像住宅而不是展場。", scoreFor: { industrial_2: 48 } },
+      { id: "walnut", label: "深胡桃木地板", color: "#76583E", materialPreview: "", reason: "深木地板能平衡鐵件與水泥，讓工業風比較像住宅而不是展場。", scoreFor: { industrial_2: 48 } },
     ],
   },
   american: {
     wall: [
-      { id: "mineral_beige", label: "暖米礦物漆", color: "#E5D8C4", materialPreview: "/static/surface_assets/wall_materials_20260708/ambientcg-wall-clean-Plaster006.jpg", reason: "美式家具份量較重，暖米牆能柔化線板與深木色。", scoreFor: { american: 30 } },
+      { id: "mineral_beige", label: "暖米礦物漆", color: "#E5D8C4", materialPreview: "", reason: "美式家具份量較重，暖米牆能柔化線板與深木色。", scoreFor: { american: 30 } },
     ],
     floor: [
-      { id: "marble", label: "柔紋石材地坪", color: "#DDD2BF", materialPreview: "/static/surface_assets/tile/ccity-CAL330121.png", reason: "想做輕奢美式時，柔紋石材比固定木地板更有正式感。", scoreFor: { american_3: 52 } },
+      { id: "marble", label: "柔紋石材地坪", color: "#DDD2BF", materialPreview: "", reason: "想做輕奢美式時，柔紋石材比固定木地板更有正式感。", scoreFor: { american_3: 52 } },
     ],
   },
 });

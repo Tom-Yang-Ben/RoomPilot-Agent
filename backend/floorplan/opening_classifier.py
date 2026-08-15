@@ -22,7 +22,11 @@ import cv2
 import numpy as np
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(_DIR, "opening_model.npz")
+_PROJECT_DIR = os.path.dirname(os.path.dirname(_DIR))
+MODEL_PATH = os.environ.get(
+    "ROOMPILOT_OPENING_MODEL",
+    os.path.join(_PROJECT_DIR, ".runtime", "floorplan", "opening_model.npz"),
+)
 FEATURE_VERSION = 6
 
 _model = None

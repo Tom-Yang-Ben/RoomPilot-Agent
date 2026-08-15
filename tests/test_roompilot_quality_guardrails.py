@@ -25,7 +25,7 @@ def test_scene_starts_with_project_creation_and_exposes_the_strict_upload_contra
 
 
 def test_dxf_parser_exposes_frontend_preview_contract():
-    sample = next((ROOT / "data" / "testdata" / "dxf").glob("*.dxf"))
+    sample = ROOT / "examples" / "fixtures" / "public_floorplan.dxf"
     parsed = parse_dxf_file(str(sample))
 
     assert parsed["width_cm"] > 0

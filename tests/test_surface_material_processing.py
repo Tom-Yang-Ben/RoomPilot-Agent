@@ -91,7 +91,7 @@ def test_tileable_material_encodes_grout_and_physical_module_size(tmp_path):
     assert repeat == pytest.approx([420 / 360.9, 360 / 60.9])
 
 
-def test_committed_catalog_defines_all_239_processed_materials():
+def test_committed_public_catalog_defines_only_procedural_materials():
     catalog = json.loads(
         (
             PROJECT_ROOT
@@ -101,87 +101,15 @@ def test_committed_catalog_defines_all_239_processed_materials():
             / "surface_catalog.json"
         ).read_text(encoding="utf-8")
     )
-    candidates = [
-        surface
-        for surface in catalog["surfaces"]
-        if str(surface.get("source_path", "")).startswith(
-            ("ccity-tile-flooring/", "ccity-wood-look-tiles/")
-        )
-    ]
+    assert len(catalog["surfaces"]) == 9
+    assert all(surface["texture_url"] is None for surface in catalog["surfaces"])
+    assert all(surface["source_license_status"] == "GPL-3.0-only" for surface in catalog["surfaces"])
+    assert not (
+        PROJECT_ROOT / "backend" / "catalog" / "data" / "surface_material_manifest.json"
+    ).exists()
 
-    assert len(candidates) == 239
-    assert all(surface.get("installation") for surface in candidates)
-    assert all(surface.get("material_processing") for surface in candidates)
-    assert all("/_processed/" in surface["texture_url"] for surface in candidates)
-    assert all(surface["installation"]["grout_width_mm"] == 3.0 for surface in candidates)
-    manifest = json.loads(
-        (
-            PROJECT_ROOT
-            / "backend"
-            / "catalog"
-            / "data"
-            / "surface_material_manifest.json"
-        ).read_text(encoding="utf-8")
-    )
-    manifest_by_id = {item["surface_id"]: item for item in manifest["items"]}
-    assert manifest["material_count"] == 239
-    assert set(manifest_by_id) == {surface["surface_id"] for surface in candidates}
-    for surface in candidates:
-        processed_path = (
-            PROJECT_ROOT
-            / "backend"
-            / "server"
-            / "static"
-            / surface["texture_url"].removeprefix("/static/")
-        )
-        assert processed_path.is_file()
-        output_sha256 = hashlib.sha256(processed_path.read_bytes()).hexdigest()
-        assert set(surface["material_processing"]) == {"module_size_cm"}
-        assert set(surface["installation"]) == {
-            "designer_confirmation_required",
-            "grout_width_mm",
-            "layout_pattern",
-            "orientation_rule",
-            "tile_size_cm",
-        }
-        item = manifest_by_id[surface["surface_id"]]
-        source_path = (
-            PROJECT_ROOT
-            / "backend"
-            / "server"
-            / "static"
-            / item["source_preview_url"].removeprefix("/static/")
-        )
-        assert item["processor_version"] == PROCESSOR_VERSION
-        assert item["source_sha256"] == hashlib.sha256(source_path.read_bytes()).hexdigest()
-        assert item["processed_url"] == surface["texture_url"]
-        assert item["material_processing"]["processed_url"] == surface["texture_url"]
-        assert item["material_processing"]["sha256"] == output_sha256
-        assert item["material_processing"]["module_size_cm"] == surface[
-            "material_processing"
-        ]["module_size_cm"]
-        for key, value in surface["installation"].items():
-            if key == "tile_size_cm":
-                assert {
-                    "width": item["installation"][key]["width"],
-                    "height": item["installation"][key]["height"],
-                } == value
-            else:
-                assert item["installation"][key] == value
-        with Image.open(processed_path) as processed:
-            assert processed.info["RoomPilotMaterialPattern"] == surface[
-                "installation"
-            ]["layout_pattern"]
-    assert manifest["version"] == PROCESSOR_VERSION
-    assert manifest["defaults"]["version"] == PROCESSOR_VERSION
-    assert manifest["processing_config"] == {
-        "processor_version": PROCESSOR_VERSION,
-        "default_grout_width_mm": 3.0,
-        "plank_aspect_ratio": 3.0,
-        "plank_layout_pattern": "running_bond_33",
-        "other_layout_pattern": "straight_grid",
-    }
-def test_styles_api_exposes_processed_tile_contract_and_texture():
+
+def test_styles_api_exposes_procedural_surface_contract():
     client = TestClient(main.app)
     response = client.get("/api/styles")
 
@@ -190,15 +118,11 @@ def test_styles_api_exposes_processed_tile_contract_and_texture():
         surface["surface_id"]: surface
         for surface in response.json()["surface_catalog"]["surfaces"]
     }
-    sample = surfaces["tile_ccity_tile_flooring_cal12658"]
-    assert sample["installation"]["tile_size_cm"] == {
-        "width": 29.5,
-        "height": 7.2,
-    }
-    assert sample["installation"]["layout_pattern"] == "running_bond_33"
-    assert set(sample["material_processing"]) == {"module_size_cm"}
+    sample = surfaces["light_oak"]
+    assert sample["usage"] == ["floor"]
+    assert sample["color_hex"].startswith("#")
+    assert sample["texture_url"] is None
     assert response.headers["content-encoding"] == "gzip"
-    assert client.get(sample["texture_url"]).status_code == 200
 
 
 def test_batch_failure_does_not_replace_existing_materials_or_catalog(tmp_path):

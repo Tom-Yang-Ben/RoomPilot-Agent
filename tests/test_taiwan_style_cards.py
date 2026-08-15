@@ -14,7 +14,12 @@ def test_site_payload_exposes_six_taiwan_style_groups_with_three_cards_each():
         "scandinavian", "japanese", "modern_minimal", "cream", "industrial", "american",
     ]
     assert all(len(item["cards"]) == 3 for item in cards)
-    assert all(card["image_url"].startswith("/static/style_cards/") for item in cards for card in item["cards"])
+    assert all(
+        card["image_url"].startswith("data:image/svg+xml,")
+        and card["image_kind"] == "project_authored_palette"
+        for item in cards
+        for card in item["cards"]
+    )
 
 
 def test_taiwan_style_card_ids_are_unique_and_have_scene_mapping():

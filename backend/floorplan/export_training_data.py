@@ -11,7 +11,7 @@
 
 標注來源與品質(誠實聲明,訓練時要知道):
     牆  = floorplan2dxf 管線的實心牆塊(機器標注,floor08 等難圖會缺漏)
-    窗  = data/testdata/pngans/ 的人工標準答案綠框(人工 GT,最可信)
+    窗  = `.runtime/floorplan/training_answers/` 的外部人工標準答案
     門  = 管線 detect_doors 高信心門(score ≥0.85,機器標注,覆蓋率低)
 用途:CubiCasa5k 預訓練模型的「台灣圖風微調集 + 驗收集」。樣本只有 21 張,
 只夠微調與評測,不夠從零訓練。另附 opening_dataset.npz(130 個開口候選
@@ -80,9 +80,9 @@ def main() -> None:
     os.makedirs(os.path.join(out, "masks"), exist_ok=True)
 
     entries = []
-    for png in sorted(glob.glob(os.path.join(ROOT, "data/testdata/png/floor*.png"))):
+    for png in sorted(glob.glob(os.path.join(ROOT, ".runtime/floorplan/training_input/floor*.png"))):
         base = os.path.splitext(os.path.basename(png))[0]
-        ans = os.path.join(ROOT, f"data/testdata/pngans/{base}_ans.png")
+        ans = os.path.join(ROOT, f".runtime/floorplan/training_answers/{base}_ans.png")
         if not os.path.exists(ans):
             print(f"{base}: 無人工答案,跳過")
             continue
@@ -97,7 +97,7 @@ def main() -> None:
         "classes": CLASSES,
         "label_sources": {
             "wall": "machine (floorplan2dxf solid rects) — floor08 等難圖會缺漏",
-            "window": "human GT (data/testdata/pngans green boxes) — 最可信",
+            "window": "external human ground truth from ignored runtime data",
             "door": "machine (detect_doors score>=0.85, 方形近似) — 覆蓋率低",
         },
         "intended_use": "CubiCasa5k 預訓練模型的台灣圖風微調集+驗收集(21 張,不夠從零訓練)",

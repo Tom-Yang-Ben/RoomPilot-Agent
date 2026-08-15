@@ -2,38 +2,23 @@ from __future__ import annotations
 
 import pytest
 
+from backend.catalog.fixture_repository import load_fixture_catalog
 from scripts.sql import import_furniture_embeddings_to_postgres as embedding_import
 from scripts.sql import import_official_catalog_to_postgres as catalog_import
 
 
-def test_official_catalog_has_complete_embedding_sources_but_no_vectors() -> None:
-    payload, sources, items = embedding_import.load_catalog(
-        embedding_import.DEFAULT_CATALOG
-    )
-
-    assert len(items) == 8_675
-    assert len(sources) == 8_076
-    assert payload["embedding_target"] == {
-        "embedding_model": "BAAI/bge-m3",
-        "embedding_dimension": 1024,
-        "distance_metric": "cosine",
-        "normalized": True,
-    }
-    assert embedding_import.load_records(None, items) == []
+def test_private_embedding_source_catalog_is_not_distributed() -> None:
+    assert not embedding_import.DEFAULT_CATALOG.exists()
 
 
-def test_restored_floor_lamps_are_active_embedding_sources() -> None:
-    _payload, sources, items = embedding_import.load_catalog(
-        embedding_import.DEFAULT_CATALOG
-    )
-
+def test_portable_floor_lamp_keeps_searchable_metadata() -> None:
+    items = list(load_fixture_catalog())
     floor_lamps = [
-        item for item in items if item.get("canonical_category_zh") == "落地燈"
+        item for item in items if item.get("normalized_type") == "floor-lamp"
     ]
-    assert len(floor_lamps) == 118
-    assert all(item.get("is_active", True) for item in floor_lamps)
-    assert all(item.get("rag_indexable", True) for item in floor_lamps)
-    assert {item["id"] for item in floor_lamps} <= set(sources)
+    assert len(floor_lamps) == 1
+    assert floor_lamps[0]["rag_text"]
+    assert floor_lamps[0]["render_mode"] == "procedural_fixture"
 
 
 def test_embedding_schema_keeps_dimension_open_and_filters_stale_text() -> None:

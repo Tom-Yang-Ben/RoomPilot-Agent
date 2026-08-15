@@ -31,7 +31,8 @@ from .questionnaire_visuals import (
     load_questionnaire_visual_catalog,
 )
 from ..catalog.style_db import sanitize_size_cm
-from ..catalog.cloud_catalog import OFFICIAL_CATALOG_COUNT, load_official_catalog
+from ..catalog.fixture_repository import load_fixture_catalog
+from ..runtime_profile import current_profile
 from ..floorplan.vision import (
     analyze_floorplan_image,
     confirm_floorplan_analysis,
@@ -128,7 +129,6 @@ def _project_path_from_env(name: str, default: Path) -> Path:
 
 
 STATIC_DIR = BASE_DIR / "static"
-MOODBOARD_DIR = STATIC_DIR / "moodboard_assets"
 STYLE_PRESENTATION_DB_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
 )
@@ -146,9 +146,10 @@ CLOUD_MANIFEST_PATH = _project_path_from_env(
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"
 DATASET_DIR = PROJECT_DIR / "dataset"
-PLAN_DIR = PROJECT_DIR / "data" / "testdata" / "pic" / "temp"
-SAMPLE_GLB_DIR = PROJECT_DIR / "data" / "testdata" / "sample_glb"
-SAMPLE_FLOORPLAN_630 = PROJECT_DIR / "data" / "testdata" / "png" / "builder_plan_630.png"
+PUBLIC_FIXTURE_DIR = PROJECT_DIR / "examples" / "fixtures"
+PLAN_DIR = PUBLIC_FIXTURE_DIR
+SAMPLE_GLB_DIR = PUBLIC_FIXTURE_DIR
+SAMPLE_FLOORPLAN = PUBLIC_FIXTURE_DIR / "public_floorplan.png"
 PROJECT_STORE = ProjectStore(project_runtime_dir(PROJECT_DIR))
 for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
     PROJECT_STORE.import_runtime(legacy_runtime)
@@ -219,7 +220,6 @@ def _questionnaire_visual_store() -> QuestionnaireVisualStore:
     return QUESTIONNAIRE_VISUAL_STORE
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/docs-assets", StaticFiles(directory=MOODBOARD_DIR), name="docs-assets")
 
 
 def _normalize_posix_path(path_text: str) -> str:
@@ -460,11 +460,22 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
 
 @lru_cache(maxsize=1)
 def load_style_database() -> dict:
-    return load_official_catalog(
-        CLOUD_CATALOG_PATH,
-        STYLE_PRESENTATION_DB_PATH,
-        CLOUD_MANIFEST_PATH,
-    )
+    presentation = json.loads(STYLE_PRESENTATION_DB_PATH.read_text(encoding="utf-8"))
+    furniture = list(load_fixture_catalog()) if current_profile() == "portable" else []
+    return {
+        **presentation,
+        "schema_version": "portable-fixture-v1" if furniture else "full-postgres-v1",
+        "catalog_name": (
+            "RoomPilot portable developer fixture"
+            if furniture
+            else "RoomPilot full PostgreSQL catalog"
+        ),
+        "furniture": furniture,
+        "summary": {
+            "total_furniture": len(furniture),
+            "procedural_fixture": len(furniture),
+        },
+    }
 
 
 @lru_cache(maxsize=1)
@@ -652,6 +663,8 @@ def _merge_style_candidates(items: list[dict]) -> list[dict]:
 
 
 def _model_url_for_merged_item(item: dict) -> str | None:
+    if item.get("render_mode") == "procedural_fixture":
+        return None
     cloud_url = cloud_model_url(item)
     if cloud_url:
         return cloud_url
@@ -868,6 +881,7 @@ def _furniture_payload_item(item: dict, include_model_url: bool = True) -> dict:
         "thumbnail_url": image_url,
         "preview_url": image_url,
         "preview_images": preview_images,
+        "render_mode": item.get("render_mode"),
         **_candidate_schema_fields(item, has_model),
     }
     if include_model_url:
@@ -908,22 +922,18 @@ def _furniture_card_payload(item: dict) -> dict:
         "thumbnail_url": item.get("thumbnail_url"),
         "preview_url": item.get("preview_url"),
         "preview_images": item.get("preview_images", {}),
+        "render_mode": item.get("render_mode"),
     }
 
 
 @lru_cache(maxsize=2)
 def _furniture_payload_for_provider(provider: str) -> tuple[dict, ...]:
-    """Keep every consumer on one explicitly selected catalog source.
-
-    PostgreSQL is Kai's canonical runtime catalog.  JSON is retained only for an
-    explicit offline mode; a database failure must be visible instead of silently
-    changing questionnaire and scene-generation data underneath the user.
-    """
+    """Keep every consumer on the profile's one explicit catalog source."""
+    if provider == "fixture":
+        return tuple(_furniture_payload_item(item) for item in load_fixture_catalog())
     if provider == "postgres":
-        items = load_postgres_catalog(PROJECT_DIR)
-        if len(items) == OFFICIAL_CATALOG_COUNT:
-            return items
-    return tuple(_furniture_payload_item(item) for item in _merged_furniture_catalog_cached())
+        return load_postgres_catalog(PROJECT_DIR)
+    raise RuntimeError(f"unsupported catalog provider: {provider}")
 
 
 @lru_cache(maxsize=1)
@@ -1191,10 +1201,7 @@ def _style_payloads(raw: dict | None = None, surface_catalog: dict | None = None
                 "visual_theme": style.get("visual_theme", {}),
                 "palette_hex": style.get("palette_hex", []),
                 "stats": style.get("stats", {}),
-                "moodboard_image_url": _safe_relative_url(
-                    (style.get("moodboard_card_path") or "").replace("docs/moodboard_assets/", "", 1),
-                    "/docs-assets",
-                ),
+                "moodboard_image_url": None,
             }
         )
     return styles
@@ -1550,12 +1557,7 @@ def _build_site_payload_for_provider(provider: str) -> dict:
                     "color": furniture.get("color"),
                     "material": furniture.get("material"),
                     "size_cm": sanitize_size_cm(furniture),
-                    "card_image_url": _safe_relative_url(
-                        card_path.replace("docs/moodboard_assets/", "", 1)
-                        if card_path.startswith("docs/moodboard_assets/")
-                        else card_path,
-                        "/docs-assets",
-                    ),
+                    "card_image_url": None,
                     "has_model": has_model,
                     "missing_model_reason": None if has_model else model_reason,
                     "model_url": furniture.get("model_url") if has_model else None,
@@ -1586,10 +1588,7 @@ def _build_site_payload_for_provider(provider: str) -> dict:
                 "visual_theme": style.get("visual_theme", {}),
                 "palette_hex": style.get("palette_hex", []),
                 "stats": style.get("stats", {}),
-                "moodboard_image_url": _safe_relative_url(
-                    (style.get("moodboard_card_path") or "").replace("docs/moodboard_assets/", "", 1),
-                    "/docs-assets",
-                ),
+                "moodboard_image_url": None,
                 "representative_furniture": representative_cards,
             }
         )
@@ -3201,14 +3200,14 @@ def analyze_project_floorplan(project_id: str) -> dict:
     }
 
 
-@app.get("/api/floorplan/sample/630")
-def floorplan_sample_630() -> FileResponse:
-    if not SAMPLE_FLOORPLAN_630.is_file():
+@app.get("/api/floorplan/sample/public")
+def floorplan_sample_public() -> FileResponse:
+    if not SAMPLE_FLOORPLAN.is_file():
         raise HTTPException(404, "sample_floorplan_not_found")
     return FileResponse(
-        SAMPLE_FLOORPLAN_630,
+        SAMPLE_FLOORPLAN,
         media_type="image/png",
-        filename="builder_plan_630.png",
+        filename="public_floorplan.png",
     )
 
 
@@ -3227,7 +3226,23 @@ def site_data() -> dict:
 def catalog_status() -> dict:
     """Describe active catalog providers without exposing credentials."""
     provider = catalog_provider_status(PROJECT_DIR)
-    if provider.get("provider") == "kai_postgresql" and provider.get("available"):
+    if provider.get("provider") == "portable_fixture":
+        furniture = {
+            "provider": "portable_fixture",
+            "manifest_ready": True,
+            "verified_model_count": int(provider.get("count") or 0),
+            "catalog_count": int(provider.get("count") or 0),
+            "source_of_truth": "project_authored_fixture",
+            "render_mode": "procedural_fixture",
+        }
+        furniture_images = {
+            "provider": "none",
+            "manifest_ready": True,
+            "verified_item_count": 0,
+            "verified_image_count": 0,
+            "source_of_truth": "procedural",
+        }
+    elif provider.get("provider") == "kai_postgresql" and provider.get("available"):
         assets = provider.get("assets") or {}
         furniture = {
             "provider": "kai_postgresql",
@@ -3253,7 +3268,15 @@ def catalog_status() -> dict:
     surfaces = load_surface_catalog().get("surfaces") or []
     wall_count = sum("wall" in (item.get("usage") or []) for item in surfaces)
     floor_count = sum("floor" in (item.get("usage") or []) for item in surfaces)
+    profile = current_profile()
     return {
+        "profile": profile,
+        "data_source": (
+            "project_authored_fixture"
+            if provider.get("provider") == "portable_fixture"
+            else provider.get("source_of_truth", "configured_provider")
+        ),
+        "fixture": provider.get("provider") == "portable_fixture",
         "catalog_provider": provider,
         "furniture": furniture,
         "furniture_images": furniture_images,
@@ -3842,8 +3865,8 @@ async def scene_layout(payload: dict) -> dict:
 
 
 _AUTO_DECOR_TYPES = {
-    "rug": ("large-medium-rug", "runner-small-rug"),
-    "plant": ("flower-pots-planter",),
+    "rug": ("rug", "large-medium-rug", "runner-small-rug"),
+    "plant": ("planter", "flower-pots-planter"),
     "light": ("floor-lamp",),
 }
 
@@ -3868,7 +3891,10 @@ def _auto_decor_catalog_item(
         for item in _furniture_payload_cache()
         if item.get("normalized_type") in requested_types
         and item.get("has_model")
-        and item.get("model_url")
+        and (
+            item.get("model_url")
+            or item.get("render_mode") == "procedural_fixture"
+        )
         and str(item.get("furniture_id")) not in excluded_ids
     ]
     if role == "rug" and max_footprint_cm:
