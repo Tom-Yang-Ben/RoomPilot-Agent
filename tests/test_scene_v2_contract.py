@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import subprocess
 
+from scripts.update_static_hashes import static_content_digest
 from test_scene_workflow import ROOT, run_workflow_script
 
 
@@ -19,10 +19,8 @@ def _space_heading_html(html: str) -> str:
 
 def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    bundle = (STATIC / "scene_v2.js").read_bytes()
-    css = (STATIC / "site.css").read_bytes()
-    expected_bundle = hashlib.sha256(bundle).hexdigest()[:12]
-    expected_css = hashlib.sha256(css).hexdigest()[:12]
+    expected_bundle = static_content_digest(STATIC / "scene_v2.js", 12)
+    expected_css = static_content_digest(STATIC / "site.css", 12)
 
     assert f'src="/static/scene_v2.js?v=sha256-{expected_bundle}"' in html
     assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
@@ -757,8 +755,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
     for importer_name, dependency_names in dependency_edges.items():
         importer = (STATIC / importer_name).read_text(encoding="utf-8")
         for dependency_name in dependency_names:
-            dependency = (STATIC / dependency_name).read_bytes()
-            expected = hashlib.sha256(dependency).hexdigest()[:12]
+            expected = static_content_digest(STATIC / dependency_name, 12)
             assert (
                 f'./{dependency_name}?v=sha256-{expected}' in importer
             ), f"{importer_name} has a stale cache key for {dependency_name}"

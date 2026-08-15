@@ -10,4 +10,5 @@
 *.jpeg binary
 *.npz binary
 *.wasm binary
+*.dxf binary
 backend/server/static/vendor/** -whitespace

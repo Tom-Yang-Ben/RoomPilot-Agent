@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import hashlib
 import re
 from pathlib import Path
+
+from scripts.update_static_hashes import static_content_digest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "backend" / "server" / "static"
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def test_rag_page_assets_have_matching_content_hashes() -> None:
@@ -18,8 +15,8 @@ def test_rag_page_assets_have_matching_content_hashes() -> None:
     css_hash = re.search(r"rag\.css\?v=sha256-([0-9a-f]{64})", html)
     js_hash = re.search(r"rag\.js\?v=sha256-([0-9a-f]{64})", html)
 
-    assert css_hash and css_hash.group(1) == _sha256(STATIC / "rag.css")
-    assert js_hash and js_hash.group(1) == _sha256(STATIC / "rag.js")
+    assert css_hash and css_hash.group(1) == static_content_digest(STATIC / "rag.css")
+    assert js_hash and js_hash.group(1) == static_content_digest(STATIC / "rag.js")
 
 
 def test_rag_navigation_is_hidden_from_formal_pages() -> None:

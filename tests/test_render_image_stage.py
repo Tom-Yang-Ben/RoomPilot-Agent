@@ -12,9 +12,9 @@ DOM id、函式與事件接線都在,任何一處被改壞測試就會紅燈。
 """
 from __future__ import annotations
 
-import hashlib
 import re
 
+from scripts.update_static_hashes import static_content_digest
 from test_scene_workflow import ROOT
 
 
@@ -167,9 +167,7 @@ def test_representative_room_still_gets_a_night_render() -> None:
 def test_entrypoint_cache_keys_are_fresh_after_this_change() -> None:
     """本變更改了 scene_v2.js 與 site.css → scene.html 的 sha256 cache key 必須同步更新。"""
     html = _html()
-    bundle = (STATIC / "scene_v2.js").read_bytes()
-    css = (STATIC / "site.css").read_bytes()
-    expected_bundle = hashlib.sha256(bundle).hexdigest()[:12]
-    expected_css = hashlib.sha256(css).hexdigest()[:12]
+    expected_bundle = static_content_digest(STATIC / "scene_v2.js", 12)
+    expected_css = static_content_digest(STATIC / "site.css", 12)
     assert f'src="/static/scene_v2.js?v=sha256-{expected_bundle}"' in html
     assert f'href="/static/site.css?v=sha256-{expected_css}"' in html

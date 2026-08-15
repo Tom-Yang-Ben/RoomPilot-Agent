@@ -1,21 +1,21 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-dc19646b0264";
-import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-7932d83e3afd";
-import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-536f7186bfd3";
-import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-e48e66f9829a";
-import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-e59cfab159dd";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-154e85053553";
+import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-7899eae4c7ba";
+import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
+import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
+import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-86c20d96394f";
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
   repairLegacyWallFurnitureGaps,
-} from "./scene_unit_contracts.js?v=sha256-363838ea8f45";
+} from "./scene_unit_contracts.js?v=sha256-737745020183";
 import {
   repairLoadedRoomPolygon,
-} from "./scene_room_geometry.js?v=sha256-d863939b9c06";
+} from "./scene_room_geometry.js?v=sha256-fea08f0d5f34";
 import {
   reviewItemsFromAnalysis,
   reviewReasonLabel,
   unresolvedReviewRooms,
-} from "./scene_recognition_review.js?v=sha256-0a495b440399";
+} from "./scene_recognition_review.js?v=sha256-14ba9b03b7c5";
 import {
   createWorkflow,
   restoreWorkflow,
@@ -26,7 +26,7 @@ import {
 import {
   buildScaleCalibration,
   calibrationActionState,
-} from "./scene_calibration.js?v=sha256-175dc2c59c64";
+} from "./scene_calibration.js?v=sha256-a1eb97980af1";
 import {
   createFurniture2DItem,
   FURNITURE_2D_LIBRARY,
@@ -39,19 +39,19 @@ import {
   mergeCatalogFurniture,
   replaceFurniture2DItem,
   toSceneFurniture,
-} from "./scene_layout2d.js?v=sha256-04985110a853";
+} from "./scene_layout2d.js?v=sha256-fc53e4d52dd5";
 import {
   reconcileFurniture2dAfterGeneration,
   removeFurniture2dBySceneObject,
   upsertFurniture2dFromSceneObject,
-} from "./scene_configuration_sync.js?v=sha256-51d8fa7788ce";
+} from "./scene_configuration_sync.js?v=sha256-4bc92d4c915c";
 import {
   catalogFurnitureOffer,
   rankCatalogFurniture,
-} from "./scene_furniture_retrieval.js?v=sha256-222deaca47ed";
+} from "./scene_furniture_retrieval.js?v=sha256-4639ea3888f5";
 import {
   WHOLE_HOUSE_QUESTIONS,
-} from "./scene_requirements.js?v=sha256-d52e62baac8d";
+} from "./scene_requirements.js?v=sha256-507b0843003e";
 import {
   applyVisualPreferencesToSpecs,
   finishesGate,
@@ -62,10 +62,10 @@ import {
   suggestSharedRoomAnswers,
   visualQuestionnaireProgress,
   VISUAL_SPACE_LABELS,
-} from "./scene_questionnaire_test2.js?v=sha256-9feb70ecc7cb";
+} from "./scene_questionnaire_test2.js?v=sha256-3094f16617f5";
 import {
   reloadViewerPreservingState,
-} from "./scene_viewer_reload.js?v=sha256-4adbd0d35e57";
+} from "./scene_viewer_reload.js?v=sha256-1106dd5bbffb";
 import {
   applyRoomFinishScope,
   buildSpecialRequestAnswer,
@@ -73,7 +73,7 @@ import {
   conditionalOptionId,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-fc211c401dd8";
+} from "./scene_room_requirements.js?v=sha256-cdfcb598c9e7";
 import {
   applyStylePack,
   CEILING_DESIGN_PACKS,
@@ -83,7 +83,7 @@ import {
   STYLE_FAMILIES,
   STYLE_MATERIAL_OPTIONS,
   STYLE_PACKS,
-} from "./scene_style_packs.js?v=sha256-42fc6861cb3f";
+} from "./scene_style_packs.js?v=sha256-3d88f5c6a441";
 import {
   beamDragGeometry,
   canMarkWallForDemolition,
@@ -91,19 +91,19 @@ import {
   dedupeWindowCandidates,
   wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-1cbee35fc90f";
-import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-2e7650196b86";
+} from "./scene_structure_utils.js?v=sha256-b84bfb98c74c";
+import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-9d866df171b3";
 import {
   findStructureWallCollision,
   resolveStructureWallCollisions,
   validateColumnDimensionsCm,
-} from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
+} from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
 import { buildDimensionedPlanAnnotations } from "./scene_dimensioned_plan.js?v=20260723-dimensioned-plan1";
 import {
   applyWindowTypePreset,
   normalizedWindowType,
   WINDOW_TYPES,
-} from "./scene_window_types.js?v=sha256-990e2abb3240";
+} from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
   activateScheme,
   allRoomsHaveSchemeSelections,
@@ -118,7 +118,7 @@ import {
   selectSchemeForRoom,
   selectedSchemeForRoom,
   structuresForScheme,
-} from "./scene_design_schemes.js?v=sha256-3bf1ebdf336d";
+} from "./scene_design_schemes.js?v=sha256-ef1a70576616";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];

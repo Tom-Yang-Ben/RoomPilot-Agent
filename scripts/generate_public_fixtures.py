@@ -70,7 +70,8 @@ def _write_dxf(path: Path) -> None:
     for x1, y1, x2, y2 in segments:
         lines.extend(["0", "LINE", "8", "WALL", "10", str(x1), "20", str(y1), "30", "0", "11", str(x2), "21", str(y2), "31", "0"])
     lines.extend(["0", "ENDSEC", "0", "EOF", ""])
-    path.write_text("\n".join(lines), encoding="ascii")
+    # DXF is checked in as binary so its generated checksum is identical on every OS.
+    path.write_bytes("\n".join(lines).encode("ascii"))
 
 
 def main() -> None:

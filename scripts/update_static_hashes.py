@@ -17,8 +17,10 @@ REFERENCE = re.compile(
 )
 
 
-def _digest(path: Path, length: int) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()[:length]
+def static_content_digest(path: Path, length: int = 64) -> str:
+    """Hash static text with checkout-independent line endings."""
+    content = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(content).hexdigest()[:length]
 
 
 def _refresh(path: Path) -> bool:
@@ -33,7 +35,7 @@ def _refresh(path: Path) -> bool:
         )
         if not referenced.is_file():
             return match.group(0)
-        digest = _digest(referenced, len(match.group("digest")))
+        digest = static_content_digest(referenced, len(match.group("digest")))
         return f"{prefix}{match.group('path')}?v=sha256-{digest}"
 
     refreshed = REFERENCE.sub(replace, source)

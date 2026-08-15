@@ -14,8 +14,8 @@ import {
   doorOpeningForWallTopology,
   openingWallInterval,
   wallSectionSpan,
-} from "./scene_architecture.js?v=sha256-7932d83e3afd";
-import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
+} from "./scene_architecture.js?v=sha256-7899eae4c7ba";
+import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 
 export const DEFAULT_SCENE_CONFIG = Object.freeze({
   wallHeightCm: 280,

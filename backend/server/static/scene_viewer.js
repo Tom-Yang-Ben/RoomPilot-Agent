@@ -14,17 +14,17 @@ import {
   furniturePbrProfile,
   surfacePbrProfile,
   surfaceTint,
-} from "./scene_pbr_contracts.js?v=sha256-e2a4e5e31adf";
+} from "./scene_pbr_contracts.js?v=sha256-d695a0f07d33";
 import {
   doorOpeningForWallTopology,
   openingBelongsToWall,
   openingWallInterval,
   wallSectionSpan,
   wallSegmentForOpening,
-} from "./scene_architecture.js?v=sha256-7932d83e3afd";
+} from "./scene_architecture.js?v=sha256-7899eae4c7ba";
 import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
-import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-4a2bf6282bb0";
-import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-990e2abb3240";
+import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
+import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
   clampWalkPosition,
   computeExactModelScale,
@@ -34,8 +34,8 @@ import {
   snapFurnitureToRoomSurface,
   synchronizedFloorRegions,
   viewPresentation,
-} from "./scene_visual_contracts.js?v=sha256-21f70e95c7c9";
-import { normalizedPlanarUvs } from "./scene_texture_uv.js?v=sha256-d6416b081798";
+} from "./scene_visual_contracts.js?v=sha256-df17eff718c3";
+import { normalizedPlanarUvs } from "./scene_texture_uv.js?v=sha256-1d68ae8102bc";
 
 const CM_PER_METER = 100;
 
