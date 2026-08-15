@@ -1,0 +1,96 @@
+{
+  "catalog_version": "2026-07-12",
+  "currency": "TWD",
+  "region": "台灣",
+  "rates": [
+    {
+      "work_code": "wall_wrap.carpentry",
+      "unit": "m",
+      "range_twd": {"low": 1320, "base": 2475, "high": 3630},
+      "source_ids": ["uptogo-wall-wrap-2026"],
+      "valid_as_of": "2026-04-25",
+      "inclusions": ["包樑、包柱或冷氣配管盒基本木作與材料"],
+      "exclusions": ["拆除", "清運", "機電移位", "表面高級飾材", "稅金"],
+      "normalization_note": "原行情 NT$400～1,100／台尺；以 1 台尺約 0.303 m 正規化。"
+    },
+    {
+      "work_code": "wall_cladding.single_face",
+      "unit": "ping",
+      "range_twd": {"low": 3200, "base": 3600, "high": 4000},
+      "source_ids": ["uptogo-wall-wrap-2026"],
+      "valid_as_of": "2026-04-25",
+      "inclusions": ["原牆單面封板找平"],
+      "exclusions": ["拆除", "管線處理", "特殊造型", "表面高級飾材", "稅金"]
+    },
+    {
+      "work_code": "partition.wood",
+      "unit": "ping",
+      "range_twd": {"low": 3500, "base": 4750, "high": 6000},
+      "source_ids": ["100design-carpentry-2026"],
+      "valid_as_of": "2026-07-11",
+      "inclusions": ["木作隔間牆基本工料"],
+      "exclusions": ["隔音升級", "防火特殊規格", "拆除", "清運", "機電移位", "稅金"]
+    },
+    {
+      "work_code": "electrical.outlet_relocation",
+      "unit": "point",
+      "range_twd": {"low": 300, "base": 650, "high": 1000},
+      "source_ids": ["945-outlet-2026"],
+      "valid_as_of": "2026-03-24",
+      "inclusions": ["開關或插座基本安裝／更換，連工帶料"],
+      "exclusions": ["鑿牆", "長距離拉線", "配電盤修改", "修補塗裝", "稅金"]
+    },
+    {
+      "work_code": "electrical.new_circuit",
+      "unit": "point",
+      "range_twd": {"low": 1500, "base": 2250, "high": 3000},
+      "source_ids": ["945-outlet-2026"],
+      "valid_as_of": "2026-03-24",
+      "inclusions": ["基本迴路設置，連工帶料"],
+      "exclusions": ["配電盤擴充", "長距離明暗管", "牆面修補", "稅金"]
+    },
+    {
+      "work_code": "furniture.system_cabinet_modification",
+      "unit": "chi",
+      "range_twd": {"low": 2500, "base": 5250, "high": 8000},
+      "source_ids": ["pro360-cabinet-modification-2026"],
+      "valid_as_of": "2026-01-02",
+      "inclusions": ["依尺寸與材質調整的系統櫃櫃體修改／訂製"],
+      "exclusions": ["特殊五金", "搬運", "牆面修補", "機電工程", "稅金"]
+    }
+  ],
+  "sources": [
+    {
+      "id": "uptogo-wall-wrap-2026",
+      "publisher": "UpToGo",
+      "title": "掌握裝潢預算核心：木作一坪多少？",
+      "url": "https://uptogo.com.tw/%E5%B1%85%E5%AE%B6/%E6%9C%A8%E4%BD%9C%E4%B8%80%E5%9D%AA%E5%A4%9A%E5%B0%91%EF%BC%9F/",
+      "published_or_updated_on": "2026-04-25",
+      "retrieved_on": "2026-07-12"
+    },
+    {
+      "id": "100design-carpentry-2026",
+      "publisher": "100室內設計",
+      "title": "木工 DIY 裝潢怎麼開始？行情價格、師傅挑選、系統櫃比較",
+      "url": "https://www.100.com.tw/article/8700",
+      "published_or_updated_on": null,
+      "retrieved_on": "2026-07-12"
+    },
+    {
+      "id": "945-outlet-2026",
+      "publisher": "找師傅",
+      "title": "2026年安裝開關／插座價格怎麼算？",
+      "url": "https://www.945.com.tw/life/price?id=62",
+      "published_or_updated_on": "2026-03-24",
+      "retrieved_on": "2026-07-12"
+    },
+    {
+      "id": "pro360-cabinet-modification-2026",
+      "publisher": "PRO360達人網",
+      "title": "系統櫃修改可行嗎？詳細改造懶人包",
+      "url": "https://www.pro360.com.tw/guide/system_cabinet_modified",
+      "published_or_updated_on": "2026-01-02",
+      "retrieved_on": "2026-07-12"
+    }
+  ]
+}

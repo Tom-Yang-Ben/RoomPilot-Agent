@@ -1,0 +1,213 @@
+{
+  "schema_version": "2.1-current-metadata-only",
+  "catalog_name": "RoomPilot 六風格中文展示定義（不含商品 catalog）",
+  "styles": [
+    {
+      "style_id": "scandinavian",
+      "style_name_zh": "北歐風",
+      "style_name_en": "Scandinavian",
+      "core_description_zh": "北歐風的室內家具搭配。",
+      "keywords_zh": [
+        "明亮",
+        "自然木質",
+        "實用"
+      ],
+      "main_colors_zh": [],
+      "materials_zh": [],
+      "shape_features_zh": [],
+      "avoid_elements_zh": [],
+      "palette_hex": [
+        "#F3EBDD",
+        "#D3B48A",
+        "#8B684B"
+      ],
+      "scene_background": {},
+      "wall_recommendations": [],
+      "floor_recommendations": [],
+      "recommended_wall_floor_pairs_zh": [],
+      "visual_theme": {},
+      "stats": {}
+    },
+    {
+      "style_id": "japanese",
+      "style_name_zh": "日式",
+      "style_name_en": "Japanese",
+      "core_description_zh": "日式的室內家具搭配。",
+      "keywords_zh": [
+        "溫潤",
+        "收納",
+        "原木"
+      ],
+      "main_colors_zh": [],
+      "materials_zh": [],
+      "shape_features_zh": [],
+      "avoid_elements_zh": [],
+      "palette_hex": [
+        "#D8D0C1",
+        "#A89B87",
+        "#625B50"
+      ],
+      "scene_background": {},
+      "wall_recommendations": [],
+      "floor_recommendations": [],
+      "recommended_wall_floor_pairs_zh": [],
+      "visual_theme": {},
+      "stats": {}
+    },
+    {
+      "style_id": "modern_minimal",
+      "style_name_zh": "現代簡約",
+      "style_name_en": "Modern Minimal",
+      "core_description_zh": "現代簡約的室內家具搭配。",
+      "keywords_zh": [
+        "留白",
+        "俐落",
+        "低彩度"
+      ],
+      "main_colors_zh": [],
+      "materials_zh": [],
+      "shape_features_zh": [],
+      "avoid_elements_zh": [],
+      "palette_hex": [
+        "#F4F3F0",
+        "#969696",
+        "#252525"
+      ],
+      "scene_background": {},
+      "wall_recommendations": [],
+      "floor_recommendations": [],
+      "recommended_wall_floor_pairs_zh": [],
+      "visual_theme": {},
+      "stats": {}
+    },
+    {
+      "style_id": "cream",
+      "style_name_zh": "奶油風",
+      "style_name_en": "Cream",
+      "core_description_zh": "奶油風的室內家具搭配。",
+      "keywords_zh": [
+        "柔和",
+        "淺色",
+        "溫暖"
+      ],
+      "main_colors_zh": [],
+      "materials_zh": [],
+      "shape_features_zh": [],
+      "avoid_elements_zh": [],
+      "palette_hex": [
+        "#F5EBDD",
+        "#DCC4A8",
+        "#A98568"
+      ],
+      "scene_background": {},
+      "wall_recommendations": [],
+      "floor_recommendations": [],
+      "recommended_wall_floor_pairs_zh": [],
+      "visual_theme": {},
+      "stats": {}
+    },
+    {
+      "style_id": "industrial",
+      "style_name_zh": "工業風",
+      "style_name_en": "Industrial",
+      "core_description_zh": "工業風的室內家具搭配。",
+      "keywords_zh": [
+        "金屬",
+        "深色",
+        "粗獷"
+      ],
+      "main_colors_zh": [],
+      "materials_zh": [],
+      "shape_features_zh": [],
+      "avoid_elements_zh": [],
+      "palette_hex": [
+        "#3D403F",
+        "#858078",
+        "#A56F4E"
+      ],
+      "scene_background": {},
+      "wall_recommendations": [],
+      "floor_recommendations": [],
+      "recommended_wall_floor_pairs_zh": [],
+      "visual_theme": {},
+      "stats": {}
+    },
+    {
+      "style_id": "american",
+      "style_name_zh": "美式",
+      "style_name_en": "American",
+      "core_description_zh": "美式的室內家具搭配。",
+      "keywords_zh": [
+        "經典",
+        "溫馨",
+        "質感"
+      ],
+      "main_colors_zh": [],
+      "materials_zh": [],
+      "shape_features_zh": [],
+      "avoid_elements_zh": [],
+      "palette_hex": [
+        "#F0E5D4",
+        "#B58D67",
+        "#6C513F"
+      ],
+      "scene_background": {},
+      "wall_recommendations": [],
+      "floor_recommendations": [],
+      "recommended_wall_floor_pairs_zh": [],
+      "visual_theme": {},
+      "stats": {}
+    }
+  ],
+  "taxonomy": [
+    {
+      "group_id": "living",
+      "group_name_zh": "客廳"
+    },
+    {
+      "group_id": "dining_kitchen",
+      "group_name_zh": "餐廚"
+    },
+    {
+      "group_id": "bedroom",
+      "group_name_zh": "臥室"
+    },
+    {
+      "group_id": "study",
+      "group_name_zh": "書房"
+    },
+    {
+      "group_id": "storage",
+      "group_name_zh": "收納展示"
+    },
+    {
+      "group_id": "soft_decor",
+      "group_name_zh": "軟裝配件"
+    },
+    {
+      "group_id": "kids",
+      "group_name_zh": "兒童家具"
+    },
+    {
+      "group_id": "outdoor",
+      "group_name_zh": "戶外家具"
+    },
+    {
+      "group_id": "equipment",
+      "group_name_zh": "設備家電"
+    }
+  ],
+  "furniture": [],
+  "summary": {
+    "total_furniture": 0,
+    "style_ids": [
+      "scandinavian",
+      "japanese",
+      "modern_minimal",
+      "cream",
+      "industrial",
+      "american"
+    ],
+    "furniture_source": "profile-selected catalog provider"
+  }
+}

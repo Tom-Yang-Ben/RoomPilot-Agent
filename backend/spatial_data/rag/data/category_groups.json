@@ -1,0 +1,39 @@
+{
+  "version": "v1",
+  "note": "Django category_group to category_final expansion. Groups intentionally overlap.",
+  "groups": {
+    "sofa": {"label_zh": "沙發", "categories": ["沙發", "布沙發", "皮沙發", "模組沙發", "沙發床"]},
+    "armchair": {"label_zh": "扶手椅／單椅", "categories": ["扶手椅", "椅子"]},
+    "dining_chair": {"label_zh": "餐椅", "categories": ["餐椅"]},
+    "office_chair": {"label_zh": "辦公椅", "categories": ["辦公椅", "電競椅"]},
+    "stool_bench": {"label_zh": "凳子與長凳", "categories": ["凳子與長凳", "兒童凳子與長凳"]},
+    "coffee_table": {"label_zh": "茶几", "categories": ["茶几"]},
+    "side_table": {"label_zh": "邊桌／床邊桌", "categories": ["床邊桌"]},
+    "dining_table": {"label_zh": "餐桌", "categories": ["餐桌", "吧檯桌"]},
+    "desk": {"label_zh": "書桌／工作桌", "categories": ["書桌", "桌子", "兒童桌"]},
+    "bed": {"label_zh": "床與床墊", "categories": ["床", "床墊"]},
+    "storage": {
+      "label_zh": "收納櫃體",
+      "categories": ["櫃體", "抽屜櫃", "書櫃", "電視櫃", "餐邊櫃", "展示櫃", "鏡櫃", "收納系統", "收納家具", "層架", "壁架", "收納盒與籃子"]
+    },
+    "wardrobe": {"label_zh": "衣櫃與鞋櫃", "categories": ["衣櫃", "PAX 衣櫃", "鞋櫃", "衣帽架"]},
+    "rug": {
+      "label_zh": "地毯",
+      "categories": ["地毯", "大型與中型地毯", "走道地毯與小地毯", "手工地毯", "圓形地毯", "羊皮與牛皮地毯", "戶外地毯", "門墊"]
+    },
+    "lighting": {"label_zh": "燈具", "categories": ["燈具", "檯燈", "落地燈", "吊燈", "壁燈", "吸頂燈", "工作燈", "燈罩與燈座"]},
+    "mirror": {"label_zh": "鏡子", "categories": ["鏡子", "大型鏡子", "立鏡"]},
+    "decor": {"label_zh": "軟裝與擺飾", "categories": ["抱枕靠墊", "裝飾配件", "花器", "盆栽植器"]},
+    "kids": {"label_zh": "兒童家具", "categories": ["兒童家具", "兒童椅與凳子", "兒童桌", "兒童凳子與長凳"]},
+    "media": {"label_zh": "電視與影音", "categories": ["電視與影音家具", "電視櫃"]},
+    "partition": {"label_zh": "屏風與隔間", "categories": ["屏風與隔間"]}
+  },
+  "room_default_sets": {
+    "living_room": ["sofa", "coffee_table", "rug", "lighting", "armchair"],
+    "bedroom": ["bed", "wardrobe", "side_table", "lighting"],
+    "dining_room": ["dining_table", "dining_chair", "lighting", "rug"],
+    "study": ["desk", "office_chair", "storage", "lighting"],
+    "kids_room": ["kids", "storage", "lighting", "rug"],
+    "entryway": ["storage", "mirror", "stool_bench", "rug"]
+  }
+}

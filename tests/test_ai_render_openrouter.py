@@ -1,0 +1,490 @@
+"""第 8 步 AI 生圖（OpenRouter nano banana）adapter 與 FastAPI 端到端測試。
+
+不碰網路：以假 gateway 替換 OpenRouter；驗證 scene_json → 生圖提示詞的資訊補充
+（家具鎖定、家電 context、色卡、逐房與整體補充需求、視角截圖 img2img）、整批
+一次改圖額度，以及未設定金鑰時明確 503。
+"""
+from __future__ import annotations
+
+import base64
+import io
+
+from fastapi.testclient import TestClient
+from PIL import Image
+
+from backend.server import ai_render_service, main
+from backend.server.ai_render_service import generate_room_images
+from backend.server.project_store import ProjectStore
+from backend.agent.llm import ImageResult, LLMError
+from backend.agent.tools.genpic_info import _LIGHTING_HINTS
+
+
+def _png_b64(color=(200, 180, 150)) -> str:
+    buffer = io.BytesIO()
+    Image.new("RGB", (32, 32), color).save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+REFERENCE_PNG = f"data:image/png;base64,{_png_b64((10, 20, 30))}"
+
+
+class CapturingGateway:
+    """記錄每次生圖/改圖的提示詞與輸入圖；chat 一律失敗以走改圖 fallback。"""
+
+    available = True
+    image_model = "google/gemini-2.5-flash-image"
+    image_fallback_model = "google/gemini-3-pro-image-preview"
+
+    def __init__(self) -> None:
+        self.prompts: list[str] = []
+        self.image_inputs: list[tuple] = []
+
+    def chat(self, messages, *, model=None, temperature=0.3, force_json=False) -> str:
+        raise LLMError("測試環境不提供文字模型")
+
+    def generate_image(self, prompt, *, images=(), model=None) -> ImageResult:
+        self.prompts.append(prompt)
+        self.image_inputs.append(tuple(images))
+        return ImageResult(image_b64=_png_b64(), model=model or self.image_model)
+
+
+def _scene() -> dict:
+    return {
+        "scene_id": "scene-x",
+        "requirement": {
+            "style": "scandinavian",
+            "constraints": {"notes": ["保留閱讀角落"]},
+        },
+        "style_card": {
+            "card_id": "scandinavian_1",
+            "name_zh": "自然木質",
+            "palette_hex": ["#F3EBDD", "#D3B48A"],
+        },
+        "design_choices": {"floor_option": "wood_oak", "wall_option": "auto"},
+        "surface_catalog": {
+            "surfaces": [
+                {"surface_id": "wood_oak", "name_zh": "橡木地板", "color_zh": "暖木色"}
+            ]
+        },
+        "render_context": {
+            "appliance_requirements": [
+                {
+                    "appliance_id": "fridge-1",
+                    "normalized_type": "refrigerator",
+                    "name_zh_raw": "雙門冰箱",
+                    "quantity": 1,
+                }
+            ]
+        },
+        "floorplan": {"width_cm": 400, "depth_cm": 360},
+        "scene_objects": [
+            {
+                "id": "sofa-1",
+                "furniture_id": "sofa-1",
+                "normalized_type": "sofa",
+                "name_zh_raw": "北歐布沙發",
+                "material": "亞麻布",
+                "position_cm": {"x": -80, "z": 100},
+                "rotation_y_deg": 180,
+                "size_cm": {"width": 210, "depth": 90, "height": 85},
+                "placement_room_id": "living-1",
+            },
+            {
+                "id": "bad-1",
+                "furniture_id": "bad-1",
+                "normalized_type": "cabinet",
+                "name_zh_raw": "無法擺放的櫃",
+                "placement_failed": True,
+                "position_cm": {"x": 0, "z": 0},
+                "size_cm": {"width": 10, "depth": 10},
+            },
+        ],
+    }
+
+
+def _rooms() -> list[dict]:
+    return [
+        {
+            "room_id": "living-1",
+            "room_label": "客廳",
+            "reference_png_data_url": REFERENCE_PNG,
+            "note": "沙發旁要立燈",
+        }
+    ]
+
+
+# ------------------------------------------------------------ adapter 單元測試
+
+
+def test_prompt_supplements_all_collected_info() -> None:
+    gateway = CapturingGateway()
+    outcome = generate_room_images(_scene(), _rooms(), gateway=gateway)
+
+    assert [row["status"] for row in outcome["results"]] == ["completed"]
+    prompt = gateway.prompts[0]
+    # 模板（yen genpic 更新）：極致寫實 + 風格 + 房間名；數值資訊（尺寸）不提供。
+    assert "極致寫實" in prompt
+    assert "房間：客廳" in prompt
+    # 家具鎖定（不含尺寸與位置措辭，附材質描述），placement_failed 不進畫面。
+    assert "北歐布沙發（sofa，亞麻布）" in prompt
+    assert "210x90cm" not in prompt
+    assert "房間中央" not in prompt and "面向" not in prompt
+    assert "無法擺放的櫃" not in prompt
+    # 鎖定擺設位置與視角（yen genpic 更新措辭；視角一併鎖住是 2026-08-13 的加強）。
+    assert "草圖中的格局位置不可變動、視角位置不可變動" in prompt
+    # 家電只作為畫面 context。
+    assert "家電：" in prompt and "雙門冰箱" in prompt
+    # 地板材質、60-30-10 色調。
+    assert "地板材質：" in prompt and "橡木地板" in prompt
+    assert "色調比例採(60%, 30%, 10%)：" in prompt and "#F3EBDD" in prompt
+    # 逐房與整體補充需求原文照列，不加前綴標籤。
+    assert "沙發旁要立燈" in prompt
+    assert "保留閱讀角落" in prompt
+    assert "使用者補充" not in prompt
+    assert "整體補充需求" not in prompt
+    # 3D 視角截圖當 img2img 參考（不移動擺設的關鍵）。
+    assert _png_b64((10, 20, 30)) in gateway.image_inputs[0][0]
+
+
+def test_living_room_night_image_relights_the_day_render() -> None:
+    """客廳夜間圖＝日光成圖重打光（2026-08-14 定案），不是拿白模截圖重畫一次：
+
+    img2img 附的是剛生出來的那張日光圖，提示詞也只留夜間光影一句——家具、色卡、
+    材質敘述再送一次只會讓模型整張重畫，畫面就跟日光那張對不起來。
+    """
+    gateway = CapturingGateway()
+    outcome = generate_room_images(_scene(), _rooms(), gateway=gateway)
+    row = outcome["results"][0]
+    assert row["room_id"] == "living-1" and row["status"] == "completed"
+    assert row["night_image_data_url"].startswith("data:image/png;base64,")
+    # 兩次呼叫：日光用 3D 視角截圖，夜間改用日光成圖。
+    assert len(gateway.prompts) == 2
+    assert gateway.image_inputs[0] == (_png_b64((10, 20, 30)),)
+    assert gateway.image_inputs[1] == (_png_b64(),)
+    assert gateway.prompts[1] == _LIGHTING_HINTS["night"]
+
+
+def test_night_only_relights_the_day_image_sent_by_the_client() -> None:
+    """`night_only` 只生夜間那張：代表房的日光初稿沿用第 7 步色卡圖，不重生。
+
+    沒有這條路徑時，客廳（＝色卡比較的代表房）因為已被色卡圖 seed 成「初稿完成」
+    而整個跳過全房生圖，`full_render_night` 從來不會被請求——前端與報告都沒有
+    夜間圖。夜景單獨失敗後的補生也走這裡。這條路徑的日光圖只在前端，前端要一起
+    送回來當 img2img 底圖。
+    """
+    gateway = CapturingGateway()
+    day_b64 = _png_b64((90, 90, 90))
+    rooms = [
+        {
+            **_rooms()[0],
+            "night_only": True,
+            "day_image_data_url": f"data:image/png;base64,{day_b64}",
+        }
+    ]
+    outcome = generate_room_images(_scene(), rooms, gateway=gateway)
+
+    row = outcome["results"][0]
+    assert row["status"] == "completed" and row["night_only"] is True
+    assert row["night_image_data_url"].startswith("data:image/png;base64,")
+    assert "image_data_url" not in row          # 不回日光圖，前端才不會覆蓋色卡圖
+    assert len(gateway.prompts) == 1 and gateway.prompts[0] == _LIGHTING_HINTS["night"]
+    assert gateway.image_inputs[0] == (day_b64,)
+    # 沒有伺服器端日光圖就沒有 lock_manifest：這條路徑不讓該房變成可改圖。
+    assert outcome["rooms"] == []
+
+
+def test_night_only_without_a_day_image_falls_back_to_the_viewpoint_capture() -> None:
+    """舊前端（或日光圖遺失）沒送 day_image_data_url 時退回 3D 視角截圖：
+    夜景品質會打折，但不能整批失敗。"""
+    gateway = CapturingGateway()
+    outcome = generate_room_images(
+        _scene(), [{**_rooms()[0], "night_only": True}], gateway=gateway
+    )
+    assert outcome["results"][0]["status"] == "completed"
+    assert gateway.image_inputs[0] == (_png_b64((10, 20, 30)),)
+
+
+def test_night_only_failure_is_reported_without_touching_the_day_draft() -> None:
+    class FailingGateway(CapturingGateway):
+        def generate_image(self, prompt, *, images=(), model=None):
+            raise LLMError("上游拒絕")
+
+    outcome = generate_room_images(
+        _scene(), [{**_rooms()[0], "night_only": True}], gateway=FailingGateway()
+    )
+    row = outcome["results"][0]
+    assert row["status"] == "failed" and row["night_only"] is True
+    assert row["notices"] and "image_data_url" not in row
+
+
+def test_fixed_equipment_and_room_size_enter_the_prompt_by_room_type() -> None:
+    """白模與家具清單都沒有的固定設備，必須用文字補回來（2026-08-14 使用者定案）：
+    浴室要有衛浴設備、廚房要有系統廚具、陽台要講明白色部分是室外，三者都報自己的
+    面積長寬（擺不擺得下淋浴間／一字型廚具／洗衣機由尺寸決定）。
+
+    尺寸取 ``floorplan.room_regions`` 裡該房自己的輪廓；用整體平面圖尺寸等於
+    把整層樓的長寬報成廚房的。其他房型維持「數值不進提示詞」的定案。
+    """
+    scene = _scene()
+    scene["floorplan"]["room_regions"] = [
+        {
+            "room_id": room_id,
+            "label": label,
+            "room_type": room_type,
+            "exterior": [
+                [-half_w, -half_d], [half_w, -half_d], [half_w, half_d], [-half_w, half_d]
+            ],
+        }
+        for room_id, label, room_type, half_w, half_d in (
+            ("bath-1", "浴室①", "bathroom", 100, 90),      # 200 × 180
+            ("kitchen-1", "廚房", "kitchen", 150, 125),     # 300 × 250
+            ("balcony-1", "陽台", "balcony", 160, 60),      # 320 × 120
+        )
+    ]
+    rooms = [
+        {
+            "room_id": room_id,
+            "room_label": label,
+            "room_type": room_type,
+            "reference_png_data_url": REFERENCE_PNG,
+        }
+        for room_id, label, room_type in (
+            ("bath-1", "浴室①", "bathroom"),
+            ("kitchen-1", "廚房", "kitchen"),
+            ("balcony-1", "陽台", "balcony"),
+            ("bed-1", "臥室①", "bedroom"),
+        )
+    ]
+    gateway = CapturingGateway()
+    generate_room_images(scene, rooms, gateway=gateway)
+    # 四房併發送出，prompts 順序不保證，用房名對回來。
+    prompt = {
+        label: next(text for text in gateway.prompts if f"房間：{label}" in text)
+        for label in ("浴室①", "廚房", "陽台", "臥室①")
+    }
+
+    assert "必須包含衛浴設備" in prompt["浴室①"]
+    assert "必須包含系統廚具" in prompt["廚房"]
+    assert "白色部分為「室外」空間" in prompt["陽台"]
+    # 面積長寬取各房自己的輪廓，不是整體平面圖（400x360 公分）。
+    for label, size, area in (
+        ("浴室①", "約 200 公分 × 180 公分", "面積約 3.6 平方公尺"),
+        ("廚房", "約 300 公分 × 250 公分", "面積約 7.5 平方公尺"),
+        ("陽台", "約 320 公分 × 120 公分", "面積約 3.8 平方公尺"),
+    ):
+        assert size in prompt[label] and area in prompt[label]
+    # 尺寸只給這三類；其他房型沒有專屬補述也沒有數值。
+    assert "平方公尺" not in prompt["臥室①"]
+    assert "必須包含" not in prompt["臥室①"]
+
+
+def test_non_living_room_has_no_night_image() -> None:
+    gateway = CapturingGateway()
+    rooms = [{"room_id": "study-1", "room_label": "書房", "reference_png_data_url": REFERENCE_PNG}]
+    outcome = generate_room_images(_scene(), rooms, gateway=gateway)
+    assert "night_image_data_url" not in outcome["results"][0]
+    assert len(gateway.prompts) == 1
+
+
+def test_palette_uses_official_style_cards_not_scene_pack_colors() -> None:
+    """v2 前端會把 style_card.palette_hex 蓋成 3D 場景四色（scene_style_packs.js）；
+    生圖色調必須以 card_id 回查官方 taiwan_style_cards.json 的 60/30/10 三色。"""
+    gateway = CapturingGateway()
+    scene = _scene()
+    scene["style_card"] = {
+        "card_id": "scandinavian_1",
+        "name_zh": "自然木質",
+        "palette_hex": ["#FAF4EE", "#DAAE7E", "#E0D4C8", "#7F8266"],
+    }
+    generate_room_images(scene, _rooms(), gateway=gateway)
+
+    prompt = gateway.prompts[0]
+    assert "#F3EBDD、#D3B48A、#8B684B" in prompt
+    assert "#FAF4EE" not in prompt and "#7F8266" not in prompt
+
+
+def test_style_segment_combines_family_and_card_name() -> None:
+    """風格標籤＝六風格中文名＋色卡名（如「日式 茶室禪意」）；
+    中文名去尾字「風」交由 genpic 模板補後綴，避免「北歐風…風」。
+    後綴措辭（風/style）屬 genpic_info 模板，這裡只驗標籤組合。"""
+    gateway = CapturingGateway()
+    scene = _scene()
+    scene["requirement"]["style"] = "japanese"
+    scene["style_card"] = {"card_id": "japanese_2", "name_zh": "茶室禪意"}
+    generate_room_images(scene, _rooms(), gateway=gateway)
+    assert "日式 茶室禪意" in gateway.prompts[0]
+    assert "japanese" not in gateway.prompts[0]
+
+    gateway = CapturingGateway()
+    scene = _scene()
+    scene["style_card"] = {"card_id": "scandinavian_1"}
+    generate_room_images(scene, _rooms(), gateway=gateway)
+    assert "北歐 自然木質" in gateway.prompts[0]
+    assert "北歐風 自然木質" not in gateway.prompts[0]
+
+
+def test_unknown_style_card_keeps_scene_palette() -> None:
+    """官方色卡查不到（自訂卡）時沿用 scene 內的 palette_hex，不得整段消失。"""
+    gateway = CapturingGateway()
+    scene = _scene()
+    scene["style_card"] = {
+        "card_id": "custom_x",
+        "name_zh": "自訂",
+        "palette_hex": ["#111111", "#222222"],
+    }
+    generate_room_images(scene, _rooms(), gateway=gateway)
+    assert "#111111、#222222" in gateway.prompts[0]
+
+
+def test_failed_furniture_room_still_returns_other_rooms() -> None:
+    scene = _scene()
+    rooms = [
+        {"room_id": "living-1", "room_label": "客廳", "reference_png_data_url": REFERENCE_PNG},
+        {"room_id": "study-1", "room_label": "書房", "reference_png_data_url": REFERENCE_PNG},
+    ]
+    outcome = generate_room_images(scene, rooms, gateway=CapturingGateway())
+    assert {row["room_id"] for row in outcome["results"]} == {"living-1", "study-1"}
+    assert all(row["status"] == "completed" for row in outcome["results"])
+
+
+def test_all_room_renders_are_dispatched_at_once() -> None:
+    """全房生圖:所有房間視角**一次併發**送出。barrier(N) 只有在 N 個請求同時在途才
+    通過;若逐一序列送出會卡住 timeout。輸出順序須對齊輸入 rooms。"""
+    import threading
+
+    rooms = [
+        {"room_id": f"room-{i}", "room_label": f"房{i}", "reference_png_data_url": REFERENCE_PNG}
+        for i in range(3)
+    ]
+    barrier = threading.Barrier(len(rooms), timeout=8)
+
+    class BarrierGateway(CapturingGateway):
+        def generate_image(self, prompt, *, images=(), model=None) -> ImageResult:
+            barrier.wait()
+            return super().generate_image(prompt, images=images, model=model)
+
+    outcome = generate_room_images(_scene(), rooms, gateway=BarrierGateway())
+    assert [row["status"] for row in outcome["results"]] == ["completed"] * 3
+    assert [row["room_id"] for row in outcome["results"]] == ["room-0", "room-1", "room-2"]
+
+
+# ------------------------------------------------------------ FastAPI 端到端
+
+
+def _client(tmp_path, monkeypatch) -> tuple[TestClient, str]:
+    monkeypatch.setattr(main, "PROJECT_STORE", ProjectStore(tmp_path / "runtime"))
+    client = TestClient(main.app)
+    project = client.post("/api/projects", json={"name": "AI render"}).json()["project"]
+    return client, project["project_id"]
+
+
+def test_generate_then_single_batch_edit_budget(tmp_path, monkeypatch) -> None:
+    gateway = CapturingGateway()
+    monkeypatch.setattr(ai_render_service, "OpenRouterGateway", lambda: gateway)
+    client, project_id = _client(tmp_path, monkeypatch)
+
+    generated = client.post(
+        f"/api/projects/{project_id}/ai-renders",
+        json={"project_id": project_id, "scene": _scene(), "rooms": _rooms()},
+    )
+    assert generated.status_code == 201
+    body = generated.json()
+    assert body["edit_remaining"] == 1
+    image_data_url = body["results"][0]["image_data_url"]
+    assert image_data_url.startswith("data:image/png;base64,")
+
+    edited = client.post(
+        f"/api/projects/{project_id}/ai-renders/living-1/edit",
+        json={"feedback": "把牆面改成淺灰", "image_data_url": image_data_url},
+    )
+    assert edited.status_code == 201
+    assert edited.json()["edit_remaining"] == 0
+    # 改圖鎖定清單約束既有家具不動，且帶入使用者意見。
+    edit_prompt = gateway.prompts[-1]
+    assert "把牆面改成淺灰" in edit_prompt
+    assert "北歐布沙發" in edit_prompt
+
+    exhausted = client.post(
+        f"/api/projects/{project_id}/ai-renders/living-1/edit",
+        json={"feedback": "再改一次", "image_data_url": image_data_url},
+    )
+    assert exhausted.status_code == 409
+    assert exhausted.json()["detail"]["code"] == "ai_edit_budget_exhausted"
+
+
+def test_reference_png_validation_rejects_empty_and_undecodable_payloads() -> None:
+    """直接釘住路由的圖片驗證函式本身。
+
+    三個端點（ai-renders／palette-renders／ai-renders/{id}/edit）共用它，而 edit 那條
+    在服務層**沒有**後備檢查——放寬這個述詞會讓空圖一路送到模型，且整套測試照樣全綠。
+    """
+    assert main._looks_like_png_data_url(REFERENCE_PNG)
+    assert main._looks_like_png_data_url(f"data:image/jpeg;base64,{_png_b64()}")
+    for bad in (
+        "",
+        None,
+        "data:image/png",                 # 沒有 ;base64, 段
+        "data:image/png;base64,",         # 有前綴、沒有內容
+        "data:image/png;base64,@@@",      # 不是 base64
+        "https://example.com/a.png",      # 不是 data URL
+    ):
+        assert not main._looks_like_png_data_url(bad), bad
+
+
+def test_edit_rejects_empty_base_image_payload(tmp_path, monkeypatch) -> None:
+    """改圖端點沒有服務層後備：空圖必須在入口就被擋下，不能送進模型。"""
+    gateway = CapturingGateway()
+    monkeypatch.setattr(ai_render_service, "OpenRouterGateway", lambda: gateway)
+    client, project_id = _client(tmp_path, monkeypatch)
+    client.post(
+        f"/api/projects/{project_id}/ai-renders",
+        json={"project_id": project_id, "scene": _scene(), "rooms": _rooms()},
+    )
+    before = len(gateway.prompts)
+
+    rejected = client.post(
+        f"/api/projects/{project_id}/ai-renders/living-1/edit",
+        json={"feedback": "把牆面改成淺灰", "image_data_url": "data:image/png;base64,"},
+    )
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"]["code"] == "base_image_required"
+    assert len(gateway.prompts) == before, "被擋下的改圖不該送出任何模型請求"
+
+
+def test_unconfigured_openrouter_reports_explicit_503(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    client, project_id = _client(tmp_path, monkeypatch)
+
+    status = client.get("/api/ai-render/status")
+    assert status.status_code == 200
+    assert status.json()["configured"] is False
+
+    generated = client.post(
+        f"/api/projects/{project_id}/ai-renders",
+        json={"project_id": project_id, "scene": _scene(), "rooms": _rooms()},
+    )
+    assert generated.status_code == 503
+    assert generated.json()["detail"]["code"] == "openrouter_api_key_not_configured"
+
+
+def test_generate_requires_room_views(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(ai_render_service, "OpenRouterGateway", lambda: CapturingGateway())
+    client, project_id = _client(tmp_path, monkeypatch)
+
+    missing_rooms = client.post(
+        f"/api/projects/{project_id}/ai-renders",
+        json={"project_id": project_id, "scene": _scene(), "rooms": []},
+    )
+    assert missing_rooms.status_code == 422
+    assert missing_rooms.json()["detail"]["code"] == "room_views_required"
+
+    missing_png = client.post(
+        f"/api/projects/{project_id}/ai-renders",
+        json={
+            "project_id": project_id,
+            "scene": _scene(),
+            "rooms": [{"room_id": "living-1", "room_label": "客廳"}],
+        },
+    )
+    assert missing_png.status_code == 422
+    assert missing_png.json()["detail"]["code"] == "reference_png_required"

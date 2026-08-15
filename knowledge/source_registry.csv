@@ -1,0 +1,5 @@
+﻿source_id,title,publisher,url,source_type,retrieved_date,use,price_source,confidence
+SRC-NLMA-INDOOR-DECORATION,建築物室內裝修管理辦法,內政部國土管理署,https://www.nlma.gov.tw/ch/legislation/law&regusw/210,official_regulation,2026-07-29,專業責任、室內裝修範圍、圖說與審查提醒,False,high
+SRC-PCC-PCCES,行政院公共工程委員會／PCCES 與公共工程價格相關系統,行政院公共工程委員會,https://www.pcc.gov.tw/,official_public_works_reference,2026-07-29,工項編碼、工程資料與公開價格基準的後續研究入口；不可直接視為住宅成交價,True,medium
+SRC-DATA-BULK-MATERIALS,大宗資材價格彙整表,行政院公共工程委員會／政府資料開放平臺,https://data.gov.tw/dataset/7374,official_open_data,2026-07-29,砂石、混凝土、鋼筋等大宗材料價格趨勢；不涵蓋多數住宅裝修成品,True,medium
+SRC-MVP-SYNTHETIC,RoomPilot MVP 合成示範資料,RoomPilot project,,synthetic_demo,2026-07-29,只為端到端 Demo、測試公式與文件輸出；禁止當正式報價或施工依據,True,low

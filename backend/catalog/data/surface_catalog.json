@@ -1,0 +1,183 @@
+{
+  "schema_version": "2.0",
+  "version": "public-portable-v1",
+  "notes_zh": "公開版只包含專案自製的程序化純色材質，不附第三方貼圖。",
+  "surfaces": [
+    {
+      "surface_id": "warm_white",
+      "name_zh": "暖白礦物漆（程序化）",
+      "material_group": "牆面塗料",
+      "category": "paint",
+      "color_zh": "暖白",
+      "color_hex": "#F7F3EA",
+      "usage": ["wall"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["scandinavian", "japanese", "modern_minimal", "cream", "american"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    },
+    {
+      "surface_id": "limewash",
+      "name_zh": "柔霧米色（程序化）",
+      "material_group": "牆面塗料",
+      "category": "paint",
+      "color_zh": "柔霧米",
+      "color_hex": "#EDE5D8",
+      "usage": ["wall"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["scandinavian", "japanese", "cream", "american"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    },
+    {
+      "surface_id": "light_gray",
+      "name_zh": "霧灰牆（程序化）",
+      "material_group": "牆面塗料",
+      "category": "paint",
+      "color_zh": "霧灰",
+      "color_hex": "#C9C9C6",
+      "usage": ["wall"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["modern_minimal", "industrial"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    },
+    {
+      "surface_id": "charcoal",
+      "name_zh": "炭灰重點牆（程序化）",
+      "material_group": "牆面塗料",
+      "category": "paint",
+      "color_zh": "炭灰",
+      "color_hex": "#3C3D3B",
+      "usage": ["wall"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["industrial", "modern_minimal"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    },
+    {
+      "surface_id": "light_oak",
+      "name_zh": "淺橡木色地坪（程序化）",
+      "material_group": "地坪",
+      "category": "wood_color",
+      "color_zh": "淺橡木",
+      "color_hex": "#D9B985",
+      "usage": ["floor"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["scandinavian", "japanese", "cream", "american"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    },
+    {
+      "surface_id": "walnut",
+      "name_zh": "胡桃木色地坪（程序化）",
+      "material_group": "地坪",
+      "category": "wood_color",
+      "color_zh": "胡桃木",
+      "color_hex": "#8B6B4E",
+      "usage": ["floor"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["japanese", "industrial", "american"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    },
+    {
+      "surface_id": "stone_gray",
+      "name_zh": "霧灰石色地坪（程序化）",
+      "material_group": "地坪",
+      "category": "stone_color",
+      "color_zh": "石灰",
+      "color_hex": "#AFAEAA",
+      "usage": ["floor"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["modern_minimal", "industrial"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    },
+    {
+      "surface_id": "microcement",
+      "name_zh": "微水泥色地坪（程序化）",
+      "material_group": "地坪",
+      "category": "cement_color",
+      "color_zh": "水泥灰",
+      "color_hex": "#9B9992",
+      "usage": ["floor"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["modern_minimal", "industrial"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    },
+    {
+      "surface_id": "marble",
+      "name_zh": "米白石色地坪（程序化）",
+      "material_group": "地坪",
+      "category": "stone_color",
+      "color_zh": "米白石色",
+      "color_hex": "#E5D8C4",
+      "usage": ["floor"],
+      "texture_url": null,
+      "preview_url": null,
+      "suitable_styles": ["cream", "american"],
+      "source_license_status": "GPL-3.0-only",
+      "source": "AIPE03 第四組"
+    }
+  ],
+  "style_surface_profiles": {
+    "scandinavian": {
+      "default_wall_surface_id": "warm_white",
+      "default_floor_surface_id": "light_oak",
+      "wall_surface_ids": ["warm_white", "limewash"],
+      "floor_surface_ids": ["light_oak", "stone_gray"],
+      "surface_pairings": [{"label_zh": "暖白牆＋淺木地坪", "wall": "warm_white", "floor": "light_oak"}]
+    },
+    "japanese": {
+      "default_wall_surface_id": "limewash",
+      "default_floor_surface_id": "light_oak",
+      "wall_surface_ids": ["limewash", "warm_white"],
+      "floor_surface_ids": ["light_oak", "walnut"],
+      "surface_pairings": [{"label_zh": "柔霧牆＋淺木地坪", "wall": "limewash", "floor": "light_oak"}]
+    },
+    "modern_minimal": {
+      "default_wall_surface_id": "warm_white",
+      "default_floor_surface_id": "stone_gray",
+      "wall_surface_ids": ["warm_white", "light_gray"],
+      "floor_surface_ids": ["stone_gray", "microcement"],
+      "surface_pairings": [{"label_zh": "霧灰牆＋灰石地坪", "wall": "light_gray", "floor": "stone_gray"}]
+    },
+    "cream": {
+      "default_wall_surface_id": "limewash",
+      "default_floor_surface_id": "light_oak",
+      "wall_surface_ids": ["limewash", "warm_white"],
+      "floor_surface_ids": ["light_oak", "marble"],
+      "surface_pairings": [{"label_zh": "奶油牆＋淺木地坪", "wall": "limewash", "floor": "light_oak"}]
+    },
+    "industrial": {
+      "default_wall_surface_id": "light_gray",
+      "default_floor_surface_id": "microcement",
+      "wall_surface_ids": ["light_gray", "charcoal"],
+      "floor_surface_ids": ["microcement", "stone_gray"],
+      "surface_pairings": [{"label_zh": "灰牆＋微水泥色地坪", "wall": "light_gray", "floor": "microcement"}]
+    },
+    "american": {
+      "default_wall_surface_id": "warm_white",
+      "default_floor_surface_id": "walnut",
+      "wall_surface_ids": ["warm_white", "limewash"],
+      "floor_surface_ids": ["walnut", "light_oak", "marble"],
+      "surface_pairings": [{"label_zh": "暖白牆＋胡桃木色地坪", "wall": "warm_white", "floor": "walnut"}]
+    }
+  },
+  "stats": {
+    "surface_count": 9,
+    "wall_count": 4,
+    "floor_count": 5,
+    "third_party_texture_count": 0
+  }
+}

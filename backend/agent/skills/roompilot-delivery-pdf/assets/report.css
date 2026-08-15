@@ -1,0 +1,139 @@
+/* 版面規則。顏色與字級一律來自 tokens.css 的變數，這裡只負責「東西放哪裡」。 */
+
+@page { size: A4; margin: var(--page-margin); }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--ink-700);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+p { margin: 0 0 var(--sp-3); }
+p:last-child { margin-bottom: 0; }
+strong { color: var(--ink-900); font-weight: 600; }
+.en { font-family: var(--font-body); color: var(--ink-500); }
+
+/* ---------- 通用 ---------- */
+.page { page-break-after: always; }
+.page:last-child { page-break-after: auto; }
+.avoid-break { page-break-inside: avoid; }
+
+.label {
+  font-size: var(--fs-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--ink-300);
+  font-weight: 600;
+}
+
+.rule { border: 0; border-top: var(--rule); margin: var(--sp-5) 0; }
+
+/* ---------- 封面 ---------- */
+.cover { height: 247mm; display: flex; flex-direction: column; }
+.cover-image {
+  flex: 1 1 auto; min-height: 0;
+  background-size: cover; background-position: center;
+  border-radius: var(--r-none);
+  margin-bottom: var(--sp-6);
+}
+.cover-kicker { color: var(--accent); letter-spacing: var(--track-label);
+  font-size: var(--fs-label); text-transform: uppercase; font-weight: 600;
+  margin-bottom: var(--sp-3); }
+.cover h1 {
+  font-family: var(--font-display); font-size: var(--fs-cover);
+  line-height: var(--lh-tight); color: var(--ink-900);
+  margin: 0 0 var(--sp-3); font-weight: 400;
+}
+.cover-sub { font-size: var(--fs-lead); color: var(--ink-500); margin-bottom: var(--sp-5); }
+.cover-meta { display: flex; gap: var(--sp-6); border-top: var(--rule); padding-top: var(--sp-3); }
+.cover-meta div { font-size: var(--fs-caption); color: var(--ink-500); }
+.cover-meta .k { display: block; color: var(--ink-300); font-size: var(--fs-label);
+  letter-spacing: var(--track-label); text-transform: uppercase; margin-bottom: 2pt; }
+
+/* ---------- 章節標頭 ---------- */
+.section-head { display: flex; align-items: baseline; gap: var(--sp-3);
+  border-bottom: var(--rule); padding-bottom: var(--sp-2); margin-bottom: var(--sp-5); }
+.section-no { font-family: var(--font-display); font-size: var(--fs-h1);
+  color: var(--accent); line-height: 1; }
+.section-head h1 { font-family: var(--font-display); font-size: var(--fs-h1);
+  color: var(--ink-900); margin: 0; font-weight: 400; line-height: 1; }
+.section-head .en { font-size: var(--fs-caption); margin-left: auto; }
+
+/* ---------- 設計總論 ---------- */
+.lead { font-size: var(--fs-lead); line-height: 1.7; color: var(--ink-900);
+  font-family: var(--font-display); margin-bottom: var(--sp-5); }
+.pillars { display: flex; flex-direction: column; gap: var(--sp-4); }
+.pillar { border-left: 2pt solid var(--accent); padding-left: var(--sp-3); }
+.pillar h3 { font-size: var(--fs-h3); color: var(--ink-900); margin: 0 0 var(--sp-1);
+  font-weight: 600; }
+
+/* ---------- 事實表 ---------- */
+.facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0;
+  background: var(--paper-alt); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-5); }
+.facts div { padding: var(--sp-2) 0; border-bottom: var(--rule); }
+.facts div:nth-last-child(-n+2) { border-bottom: 0; }
+.facts .k { display: block; font-size: var(--fs-label); letter-spacing: var(--track-label);
+  text-transform: uppercase; color: var(--ink-300); margin-bottom: 2pt; }
+.facts .v { color: var(--ink-900); font-size: var(--fs-body); }
+
+/* ---------- 圖片 ---------- */
+figure { margin: 0 0 var(--sp-4); }
+figure img { width: 100%; display: block; border-radius: var(--r-none); }
+figcaption { font-size: var(--fs-caption); line-height: var(--lh-caption);
+  color: var(--ink-500); margin-top: var(--sp-2); }
+/* 主視覺限高，才塞得下同一頁的敘述、理由與規格表。
+   一個空間一頁，屋主翻閱時的節奏才對。 */
+.hero img { max-height: 76mm; object-fit: cover; }
+.img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.img-grid img { max-height: 42mm; object-fit: cover; }
+/* 主視覺與附圖並列（客廳的日光／夜間）：半版寬本身就限住高度，
+   再套附圖的 42mm 會把兩張都裁成細條。 */
+.img-grid.hero img { max-height: none; }
+.img-missing { width: 100%; aspect-ratio: 16/9; background: var(--paper-alt);
+  border: 0.5pt dashed var(--ink-300); border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-300); font-size: var(--fs-caption); }
+
+/* ---------- 空間篇章 ---------- */
+.scene-line { background: var(--accent-soft); border-radius: var(--r-sm);
+  padding: var(--sp-3) var(--sp-4); font-family: var(--font-display);
+  font-size: var(--fs-lead); line-height: 1.6; color: var(--ink-900);
+  margin-bottom: var(--sp-4); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-5); }
+.block h3 { font-size: var(--fs-h3); color: var(--ink-900); margin: 0 0 var(--sp-2);
+  font-weight: 600; }
+.block h3::before { content: ""; display: inline-block; width: 10pt; height: 1.5pt;
+  background: var(--accent); vertical-align: middle; margin-right: var(--sp-2); }
+.why { list-style: none; padding: 0; margin: 0; }
+.why li { margin-bottom: var(--sp-3); }
+.why .t { display: block; color: var(--ink-900); font-weight: 600; margin-bottom: 2pt; }
+
+/* ---------- 規格表 ---------- */
+table.spec { width: 100%; border-collapse: collapse; font-size: var(--fs-caption); }
+table.spec th { text-align: left; font-size: var(--fs-label);
+  letter-spacing: var(--track-label); text-transform: uppercase;
+  color: var(--ink-300); font-weight: 600; padding: var(--sp-2) var(--sp-2) var(--sp-2) 0;
+  border-bottom: var(--rule); }
+table.spec td { padding: var(--sp-2) var(--sp-2) var(--sp-2) 0;
+  border-bottom: var(--rule); vertical-align: top; line-height: 1.5; }
+table.spec td:first-child { color: var(--ink-900); width: 34%; }
+
+/* ---------- 色卡與材質 ---------- */
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-3);
+  margin-bottom: var(--sp-5); }
+.swatch .chip { height: 46pt; border-radius: var(--r-sm); border: 0.5pt solid var(--line); }
+.swatch .n { display: block; font-size: var(--fs-caption); color: var(--ink-900);
+  margin-top: var(--sp-2); }
+.swatch .u { display: block; font-size: var(--fs-caption); color: var(--ink-500); }
+
+/* ---------- 提醒 / 限制 ---------- */
+.notes { list-style: none; padding: 0; margin: 0; font-size: var(--fs-caption);
+  line-height: var(--lh-caption); }
+.notes li { padding-left: var(--sp-4); position: relative; margin-bottom: var(--sp-2); }
+.notes li::before { content: "—"; position: absolute; left: 0; color: var(--accent); }
+.notes.limits li::before { color: var(--warn); }

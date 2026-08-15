@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.26"
+          enable-cache: true
+      - name: Audit locked Python requirements
+        run: >-
+          uvx --from pip-audit==2.10.1 pip-audit
+          --no-deps --skip-editable --progress-spinner off
+          -r requirements.txt
+          -r requirements-delivery.txt
+          -r requirements-rag.txt
+          -r requirements-ocr.txt
+      - name: Verify license metadata
+        run: uvx --from reuse==5.1.1 reuse lint
+
+  portable:
+    name: Portable (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.26"
+          python-version: "3.12"
+          enable-cache: true
+      - name: Sync portable environment
+        run: uv sync --frozen --extra portable --group dev
+      - name: Verify public repository boundary
+        run: uv run python scripts/public_repo_check.py
+      - name: Run Python tests
+        run: uv run pytest -q
+      - name: Check browser JavaScript syntax
+        run: |
+          node --check backend/server/static/scene_v2.js
+          node --check backend/server/static/scene_viewer.js
+      - name: Check patch whitespace
+        run: git diff --check
+
+  browser-smoke:
+    name: Browser smoke (Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.26"
+          python-version: "3.12"
+          enable-cache: true
+      - name: Sync browser environment
+        run: uv sync --frozen --extra portable --extra delivery --group dev
+      - name: Install Chromium
+        run: uv run playwright install --with-deps chromium
+      - name: Run browser smoke test
+        env:
+          ROOMPILOT_BROWSER_TEST: "1"
+        run: uv run pytest -q -m browser tests/test_browser_smoke.py
+
+  postgres:
+    name: PostgreSQL full-profile contract
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f
+        env:
+          POSTGRES_DB: roompilot_db
+          POSTGRES_USER: roompilot
+          POSTGRES_PASSWORD: roompilot-test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U roompilot -d roompilot_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.26"
+          python-version: "3.12"
+          enable-cache: true
+      - name: Sync PostgreSQL environment
+        run: uv sync --frozen --extra portable --extra postgres --group dev
+      - name: Run PostgreSQL integration test
+        env:
+          ROOMPILOT_POSTGRES_TEST: "1"
+          ROOMPILOT_PROFILE: full
+          ROOMPILOT_CATALOG_PROVIDER: postgres
+          DB_HOST: 127.0.0.1
+          DB_PORT: "5432"
+          DB_NAME: roompilot_db
+          DB_USER: roompilot
+          DB_PASSWORD: roompilot-test
+          DB_SSLMODE: disable
+        run: uv run pytest -q -m postgres tests/test_postgres_profile_integration.py

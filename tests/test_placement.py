@@ -1,0 +1,231 @@
+"""
+furniture_engine 核心邏輯測試
+
+涵蓋:
+- place_furniture:合法放置 / 重疊偵測 / 出界偵測 / 穿牆偵測
+- adjust_furniture:移動(軸分離)/ 旋轉
+
+單位:一律公分(cm),與引擎契約一致。
+"""
+import pytest
+
+from backend.engine.models import Room, Wall, FurnitureCatalogItem, PlacedFurniture
+from backend.engine.geometry import check_placement
+from backend.engine.placement import (
+    place_adjacent_to_furniture,
+    place_furniture,
+    place_furniture_batch,
+    place_overlay_on_furniture,
+)
+from backend.engine.adjustment import adjust_furniture
+from backend.engine.schema import placed_to_dict
+
+
+# ---------- 共用測資 ----------
+
+@pytest.fixture
+def room() -> Room:
+    """500cm x 400cm 的矩形房間,四面都有牆"""
+    return Room(
+        width=500, depth=400,
+        walls=[
+            Wall(0, 0, 500, 0),
+            Wall(500, 0, 500, 400),
+            Wall(500, 400, 0, 400),
+            Wall(0, 400, 0, 0),
+        ],
+    )
+
+
+@pytest.fixture
+def sofa_catalog() -> FurnitureCatalogItem:
+    return FurnitureCatalogItem(type="sofa", name="沙發", width=200, depth=90)
+
+
+@pytest.fixture
+def table_catalog() -> FurnitureCatalogItem:
+    return FurnitureCatalogItem(type="table", name="茶几", width=100, depth=60)
+
+
+def test_placed_furniture_payload_declares_centimeter_contract(sofa_catalog) -> None:
+    payload = placed_to_dict(
+        PlacedFurniture(
+            id="sofa-1",
+            catalog=sofa_catalog,
+            pos_x=150,
+            pos_y=90,
+            rotation=0,
+        )
+    )
+
+    assert payload["schema_version"] == "2.0"
+    assert payload["coordinate_unit"] == "cm"
+    assert payload["width"] == 200
+    assert payload["pos_x"] == 150
+
+
+# ---------- check_placement 基本案例 ----------
+
+def test_center_placement_is_valid(room, sofa_catalog):
+    """家具放在房間正中央,應該合法"""
+    item = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=200)
+    assert check_placement(item, room, []) is None
+
+
+def test_out_of_bounds_detected(room, sofa_catalog):
+    """家具中心點超出房間邊界,應該偵測到出界"""
+    item = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=1000, pos_y=1000)
+    reason = check_placement(item, room, [])
+    assert reason == "物件超出空間範圍"
+
+
+def test_wall_collision_detected(room, sofa_catalog):
+    """家具貼在牆的正上方(中心點在牆邊界),應該偵測到穿牆"""
+    item = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=47)
+    reason = check_placement(item, room, [])
+    assert reason == "與牆體穿透"
+
+
+def test_furniture_overlap_detected(room, sofa_catalog, table_catalog):
+    """兩件家具位置重疊,應該偵測到重疊並回報名稱"""
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=200)
+    table = PlacedFurniture(id="table_1", catalog=table_catalog, pos_x=250, pos_y=200)
+    reason = check_placement(table, room, [sofa])
+    assert reason == "與「沙發」重疊"
+
+
+def test_furniture_no_false_positive_when_apart(room, sofa_catalog, table_catalog):
+    """兩件家具位置離得夠遠,不該誤判重疊"""
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=200)
+    table = PlacedFurniture(id="table_1", catalog=table_catalog, pos_x=250, pos_y=350)
+    reason = check_placement(table, room, [sofa])
+    assert reason is None
+
+
+# ---------- place_furniture / place_furniture_batch ----------
+
+def test_place_furniture_finds_valid_position(room, sofa_catalog):
+    result = place_furniture(room, sofa_catalog, "sofa_1", [])
+    assert result["success"] is True
+    assert result["placed"] is not None
+    # 確認回傳的座標本身真的合法
+    assert check_placement(result["placed"], room, []) is None
+
+
+def test_place_furniture_batch_avoids_overlap(room, sofa_catalog, table_catalog):
+    """批次放置時,後放的家具不該跟先放好的重疊"""
+    items = [(sofa_catalog, "sofa_1"), (table_catalog, "table_1")]
+    result = place_furniture_batch(room, items)
+    assert len(result["placed"]) == 2
+    assert result["failed"] == []
+
+    sofa, table = result["placed"]
+    assert check_placement(table, room, [sofa]) is None
+
+
+def test_place_furniture_fails_when_room_too_small(sofa_catalog):
+    """房間太小塞不下家具時,應該回報失敗,而不是硬塞一個不合法的位置"""
+    tiny_room = Room(width=100, depth=100, walls=[])
+    result = place_furniture(tiny_room, sofa_catalog, "sofa_1", [])
+    assert result["success"] is False
+    assert result["reason"] == "找不到合法擺放位置"
+
+
+def test_overlay_keeps_target_coordinates_in_centimeters(room, sofa_catalog):
+    sofa = PlacedFurniture(
+        id="sofa_1",
+        catalog=sofa_catalog,
+        pos_x=250,
+        pos_y=200,
+    )
+    rug = FurnitureCatalogItem(type="rug", name="地毯", width=180, depth=120)
+
+    result = place_overlay_on_furniture(room, rug, "rug_1", sofa)
+
+    assert result["success"] is True
+    assert result["placed"].pos_x == pytest.approx(250)
+    assert result["placed"].pos_y == pytest.approx(200)
+
+
+def test_adjacent_accessory_uses_twelve_centimeter_gap(room, table_catalog):
+    target = PlacedFurniture(
+        id="table_1",
+        catalog=table_catalog,
+        pos_x=250,
+        pos_y=200,
+    )
+    plant = FurnitureCatalogItem(type="plant", name="植栽", width=40, depth=40)
+
+    result = place_adjacent_to_furniture(room, plant, "plant_1", target, [target])
+
+    assert result["success"] is True
+    placed = result["placed"]
+    expected_offset = table_catalog.width / 2 + plant.width / 2 + 12
+    assert abs(placed.pos_x - target.pos_x) == pytest.approx(expected_offset)
+
+
+# ---------- adjust_furniture：移動 ----------
+
+def test_move_valid_direction_succeeds(room, sofa_catalog):
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=200)
+    result = adjust_furniture(room, sofa, [], {"action": "move", "dx": 30, "dy": 0})
+    assert result["success"] is True
+    assert sofa.pos_x == pytest.approx(280)
+    assert sofa.pos_y == pytest.approx(200)
+
+
+def test_move_axis_separation_blocks_only_bad_axis(room, sofa_catalog):
+    """
+    軸分離特性:X 方向移動會撞牆(該方向被擋、還原),
+    Y 方向移動 0 距離必定合法,所以整體回報 success=True,
+    但 X 座標不應該真的改變。
+    """
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=200)
+    result = adjust_furniture(room, sofa, [], {"action": "move", "dx": 1000, "dy": 0})
+    assert result["success"] is True          # Y 軸(移動0)必定成功
+    assert sofa.pos_x == pytest.approx(250)    # X 軸被擋下,座標不變
+    assert sofa.pos_y == pytest.approx(200)
+
+
+def test_move_both_axes_blocked_reports_failure(room, sofa_catalog):
+    """兩個軸同時都會撞到才會回報真正的 success=False"""
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=200)
+    result = adjust_furniture(room, sofa, [], {"action": "move", "dx": 1000, "dy": 1000})
+    assert result["success"] is False
+    assert result["reason"] is not None
+    # 位置應該完全沒變
+    assert sofa.pos_x == pytest.approx(250)
+    assert sofa.pos_y == pytest.approx(200)
+
+
+def test_move_blocked_by_other_furniture(room, sofa_catalog, table_catalog):
+    """移動目標會撞到別件家具,應該被擋下"""
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=150)
+    table = PlacedFurniture(id="table_1", catalog=table_catalog, pos_x=250, pos_y=300)
+    result = adjust_furniture(room, sofa, [table], {"action": "move", "dx": 0, "dy": 150})
+    assert sofa.pos_y == pytest.approx(150)  # 應該被擋下,沒有移動到跟 table 重疊
+
+
+# ---------- adjust_furniture：旋轉 ----------
+
+def test_rotate_valid_angle_succeeds(room, sofa_catalog):
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=200)
+    result = adjust_furniture(room, sofa, [], {"action": "rotate", "rotation": 90})
+    assert result["success"] is True
+    assert sofa.rotation == 90
+
+
+def test_rotate_into_wall_reverts(room, sofa_catalog):
+    """靠近牆邊的家具,旋轉後若會穿牆,應該還原成原本角度"""
+    # 沙發寬 200cm、深 90cm,放在很靠近側牆的位置,旋轉 90 度後長邊會朝向牆
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=50, pos_y=200, rotation=0)
+    result = adjust_furniture(room, sofa, [], {"action": "rotate", "rotation": 90})
+    assert result["success"] is False
+    assert sofa.rotation == 0  # 還原
+
+
+def test_unknown_action_returns_failure(room, sofa_catalog):
+    sofa = PlacedFurniture(id="sofa_1", catalog=sofa_catalog, pos_x=250, pos_y=200)
+    result = adjust_furniture(room, sofa, [], {"action": "teleport"})
+    assert result["success"] is False
+    assert "未知的動作" in result["reason"]

@@ -1,0 +1,14 @@
+* text=auto
+*.sh text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.npz binary
+*.wasm binary
+*.dxf binary
+backend/server/static/vendor/** -whitespace

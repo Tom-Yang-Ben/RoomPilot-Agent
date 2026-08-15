@@ -1,0 +1,20 @@
+{
+  "styles": {
+    "scandinavian": {"zh": "北歐風", "definition": "淺色原木、白色基調、簡潔圓潤線條與明亮放鬆氛圍。"},
+    "japanese": {"zh": "日式", "definition": "自然材質、低彩度大地色、低矮家具與寧靜留白。"},
+    "modern_minimal": {"zh": "現代簡約", "definition": "俐落幾何、黑白灰、玻璃金屬與乾淨都會感。"},
+    "cream": {"zh": "奶油風", "definition": "奶油白與奶茶色、柔霧質感、圓弧和柔軟布藝。"},
+    "industrial": {"zh": "工業風", "definition": "黑鐵、深色木材、皮革、水泥灰與粗獷結構。"},
+    "american": {"zh": "美式", "definition": "厚實木作、線板、皮革與沉穩舒適的家庭氛圍。"}
+  },
+  "style_compat": {
+    "scandinavian": {"scandinavian": 1.0, "japanese": 0.9, "modern_minimal": 0.8, "cream": 0.7, "american": 0.4, "industrial": 0.3},
+    "japanese": {"japanese": 1.0, "scandinavian": 0.9, "modern_minimal": 0.8, "cream": 0.5, "industrial": 0.4, "american": 0.2},
+    "modern_minimal": {"modern_minimal": 1.0, "scandinavian": 0.8, "japanese": 0.8, "industrial": 0.7, "cream": 0.5, "american": 0.4},
+    "cream": {"cream": 1.0, "scandinavian": 0.7, "american": 0.7, "modern_minimal": 0.5, "japanese": 0.5, "industrial": 0.2},
+    "industrial": {"industrial": 1.0, "modern_minimal": 0.7, "american": 0.5, "japanese": 0.4, "scandinavian": 0.3, "cream": 0.2},
+    "american": {"american": 1.0, "cream": 0.7, "industrial": 0.5, "modern_minimal": 0.4, "scandinavian": 0.4, "japanese": 0.2}
+  },
+  "patterns": ["素色", "木紋", "幾何", "花紋"],
+  "moods": ["溫馨", "放鬆", "明亮", "寧靜", "俐落", "率性", "沉穩", "大器", "優雅", "浪漫", "質樸", "自然", "精緻", "高級", "復古", "懷舊", "活潑", "繽紛", "純粹", "靜謐", "粗獷", "溫潤", "療癒", "都會"]
+}
