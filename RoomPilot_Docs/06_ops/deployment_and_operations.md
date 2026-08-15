@@ -99,7 +99,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 | `ROOMPILOT_AGENT_TEXT_MODEL` | 空（回落 `openrouter/auto`） | agent 通用文字（優先於 `OPENROUTER_MODEL`） | `model_config.py`；`agent/llm.py:default_text_model` |
 | `ROOMPILOT_REPORT_MODEL` | 空（回落 `openai/gpt-5.6-luna`） | 第 8 步設計手冊／交付提案文案 | `model_config.py`；`agent/llm.py:report_model` |
 | `ROOMPILOT_AGENT_LLM_TIMEOUT` | `120`（秒） | agent 側 LLM 逾時（NFR-011） | `agent/llm.py:147-148` |
-| `ROOMPILOT_GENPIC_MODEL`／`..._FALLBACK_MODEL` | 空（回落 `x-ai/grok-imagine-image-2.0`／`google/gemini-2.5-flash-image`） | 第 8 步逐房生圖主／備模型 | `model_config.py`；`ai_render_service.py:ai_render_status` |
+| `ROOMPILOT_GENPIC_MODEL`／`..._FALLBACK_MODEL` | 空（回落 `google/gemini-3.1-flash-image`／`google/gemini-2.5-flash-image`） | 第 8 步逐房生圖主／備模型 | `model_config.py`；`ai_render_service.py:ai_render_status` |
 | `ROOMPILOT_GENPIC_PALETTE_MODEL`／`..._PALETTE_FALLBACK_MODEL` | 空（回落 `google/gemini-3-pro-image-preview`／第 8 步主模型） | 第 7 步色卡模型 | `model_config.py`；`ai_render_service.py:_palette_gateway` |
 | `OPENROUTER_SCENE_PLANNING_ENABLED` | 未設＝關 | `=1` 才啟用第 6 步 LLM 場景規劃 | `scene_service.py:96,103,377` |
 | `OPENROUTER_INTAKE_ENABLED` | 未設＝關 | `=1` 才啟用進件 LLM 解析 | `intake_service.py:138,157` |

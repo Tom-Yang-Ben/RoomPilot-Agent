@@ -11,7 +11,7 @@
 | 第 8 步 設計手冊／交付提案文案 | `ROOMPILOT_REPORT_MODEL` | `openai/gpt-5.6-luna` |
 | 第 7 步 代表房三色卡比較圖（主） | `ROOMPILOT_GENPIC_PALETTE_MODEL` | `google/gemini-3-pro-image-preview` |
 | 第 7 步 色卡比較圖（備援） | `ROOMPILOT_GENPIC_PALETTE_FALLBACK_MODEL` | 空＝退回第 8 步生圖主模型 |
-| 第 8 步 逐房寫實生圖／改圖（主） | `ROOMPILOT_GENPIC_MODEL` | `x-ai/grok-imagine-image-2.0` |
+| 第 8 步 逐房寫實生圖／改圖（主） | `ROOMPILOT_GENPIC_MODEL` | `google/gemini-3.1-flash-image`（Nano Banana 2） |
 | 第 8 步 逐房寫實生圖／改圖（備援） | `ROOMPILOT_GENPIC_FALLBACK_MODEL` | `google/gemini-2.5-flash-image` |
 | 平面圖開口窗／門／其他 VLM 仲裁（選配，`FP2DXF_VLM`） | `OPENROUTER_VISION_MODELS` | 三顆免費視覺模型輪替 |
 | 家具檢索 query parser（`ROOMPILOT_RAG_PARSER_PROVIDER` 決定用哪列） | `ROOMPILOT_RAG_PARSER_MODEL` → `ROOMPILOT_RAG_{OPENAI,ANTHROPIC}_MODEL` | 見 `rag_parser_*` |
@@ -71,7 +71,9 @@ REGISTRY: dict[str, tuple[tuple[str, ...], str, str]] = {
     ),
     "genpic": (
         ("ROOMPILOT_GENPIC_MODEL",),
-        "x-ai/grok-imagine-image-2.0",
+        # Nano Banana 2；與本機 .env 的 ROOMPILOT_GENPIC_MODEL 同值，這樣沒有 .env
+        # 的機器（.env 被 gitignore）第 8 步顯示與實際送出的模型才不會跟開發機不同。
+        "google/gemini-3.1-flash-image",
         "第 8 步 逐房寫實生圖／改圖（主）",
     ),
     "genpic_fallback": (

@@ -66,7 +66,7 @@
 2. **上游明確拒絕**：額度用盡（402）、rate limit（429）、模型下線（404）、供應商 5xx → `OpenRouter 回應 <碼>：…`，主＋備援共 6 次全敗（`agent/llm.py:189-196`；`genpic_agent.py:161-190`）。
 3. **併發放大 rate limit**：一鍵全生以 `max_workers = 房數` 同時打出 N 個請求（`ai_render_service.py:423-426`；NFR-018），單張生圖只送 1 房（`scene_v2.js:16982-16990`）。房數多時 A 形態會集中出現。
 4. **連線或逾時**：TLS／DNS／代理問題走 `OpenRouter 連線失敗：…`；單次逾時預設 120 秒，由 `ROOMPILOT_AGENT_LLM_TIMEOUT` 控制（`agent/llm.py:147-149,157-165,197-198`）。模型只回文字不回圖則是 `生圖模型未回傳影像內容`（`agent/llm.py:266-272`）。
-5. **模型 id 覆蓋錯誤**：`ROOMPILOT_GENPIC_MODEL`／`ROOMPILOT_GENPIC_FALLBACK_MODEL` 指到不存在的 id（沒設時的內建預設 `x-ai/grok-imagine-image-2.0` ＋ `google/gemini-2.5-flash-image`）；第 7 步色卡另用一顆較高階模型（預設 `google/gemini-3-pro-image-preview`），由 `ROOMPILOT_GENPIC_PALETTE_MODEL` 控制——**S7 壞、S8 好**幾乎一定是這條。哪個功能吃哪個變數見 `backend/model_config.py` 的 `REGISTRY`。
+5. **模型 id 覆蓋錯誤**：`ROOMPILOT_GENPIC_MODEL`／`ROOMPILOT_GENPIC_FALLBACK_MODEL` 指到不存在的 id（沒設時的內建預設 `google/gemini-3.1-flash-image`＝Nano Banana 2 ＋ `google/gemini-2.5-flash-image`）；第 7 步色卡另用一顆較高階模型（預設 `google/gemini-3-pro-image-preview`），由 `ROOMPILOT_GENPIC_PALETTE_MODEL` 控制——**S7 壞、S8 好**幾乎一定是這條。哪個功能吃哪個變數見 `backend/model_config.py` 的 `REGISTRY`。
 6. **模型 id 存在但沒出現在預設模型清單**：OpenRouter 的 `/api/v1/models` **不含生圖模型**，要 `?output_modalities=image` 才查得到（45 顆）。用預設清單驗證會誤判成「模型不存在」。生圖一律送 `/api/v1/images`（`agent/llm.py:37`），不是 `chat/completions`。
 7. **不是本 runbook**：422 `scene_required`／`room_views_required`／`reference_png_required` 是前置條件不足（`main.py:2084-2106`），請使用者回第 6／7 步；`/api/projects/{id}/render-jobs` 的 503／502 屬另一套遠端渲染商（`main.py:2033-2057`、`REMOTE_RENDER_CONTRACT.md`），與 GenPic 無關。
 
