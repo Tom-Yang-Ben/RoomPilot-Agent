@@ -264,7 +264,7 @@ The integration is done when:
 The `decor_model_missing` floor-lamp failure is catalog data mapping, not Cody recognition. See:
 
 ```text
-docs/contracts/FLOOR_LAMP_CATALOG_MAPPING_HANDOFF.md
+docs/FULL_PROFILE.md
 ```
 
 Handle it separately from Cody pipeline integration.

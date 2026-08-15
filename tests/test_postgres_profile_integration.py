@@ -75,7 +75,7 @@ def test_full_profile_reads_a_developer_supplied_postgres_catalog() -> None:
         assert item["has_model"] is False
 
         status = catalog_provider_status(ROOT)
-        assert status["provider"] == "kai_postgresql"
+        assert status["provider"] == "postgres"
         assert status["available"] is True
         assert status["ready"] is True
         assert status["strict"] is True

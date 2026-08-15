@@ -1,9 +1,9 @@
 from backend.agent.quote import build_quote
 from backend.server.design_manual_service import _manual_rows
-from backend.server.postgres_catalog import _payload_from_row
+from backend.catalog.postgres_repository import _payload_from_row
 
 
-def test_kai_postgres_row_maps_to_the_scene_catalog_contract() -> None:
+def test_postgres_row_maps_to_the_scene_catalog_contract() -> None:
     payload = _payload_from_row(
         {
             "item_id": "chair-01",
@@ -31,7 +31,7 @@ def test_kai_postgres_row_maps_to_the_scene_catalog_contract() -> None:
         }
     )
 
-    assert payload["catalog_scope"] == "kai_postgresql"
+    assert payload["catalog_scope"] == "developer_supplied"
     assert payload["model_url"] == "https://cdn.example/chair.glb"
     assert payload["preview_images"] == {
         "front": "https://cdn.example/chair-front.png",
@@ -48,7 +48,7 @@ def test_kai_postgres_row_maps_to_the_scene_catalog_contract() -> None:
 def test_catalog_row_carries_the_price_into_the_quote() -> None:
     """型錄單價要一路帶到報價單，不能在型錄轉換這層掉。
 
-    `roompilot.furniture_catalog_current` 有 `price_twd`（實測 8076 筆全部有值），
+    `roompilot.furniture_catalog_current` 可提供 `price_twd`，
     但 `_payload_from_row` 先前沒有輸出這一欄 → `scene_objects[].price_twd` 永遠
     是 None → 報價單每一列都印「待報價」。這裡把型錄列一路走到 QuoteLine，
     確保整條鏈不會再被某一層默默截斷。

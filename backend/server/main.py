@@ -11,6 +11,7 @@ import unicodedata
 import urllib.error
 import urllib.request
 import zipfile
+from contextlib import asynccontextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -120,32 +121,11 @@ BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent.parent
 
 
-def _project_path_from_env(name: str, default: Path) -> Path:
-    raw = os.getenv(name, "").strip()
-    if not raw:
-        return default
-    path = Path(raw).expanduser()
-    return path if path.is_absolute() else PROJECT_DIR / path
-
-
 STATIC_DIR = BASE_DIR / "static"
 STYLE_PRESENTATION_DB_PATH = (
     BASE_DIR.parent / "catalog" / "data" / "furniture_catalog_6styles_zh.json"
 )
-OFFICIAL_FURNITURE_CATALOG_PATH = (
-    PROJECT_DIR / "JSON" / "furniture" / "furniture_official_catagory.json"
-)
-CLOUD_CATALOG_PATH = _project_path_from_env(
-    "ROOMPILOT_CLOUD_CATALOG_PATH",
-    OFFICIAL_FURNITURE_CATALOG_PATH,
-)
-CLOUD_MANIFEST_PATH = _project_path_from_env(
-    "ROOMPILOT_GLB_MANIFEST_PATH",
-    PROJECT_DIR / "JSON" / "manifests" / "glb_upload_all_result.csv",
-)
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
-EXTERNAL_IMPORT_PATH = BASE_DIR.parent / "catalog" / "data" / "舊友：12種風格與JSON" / "external_furniture_import_index.json"
-DATASET_DIR = PROJECT_DIR / "dataset"
 PUBLIC_FIXTURE_DIR = PROJECT_DIR / "examples" / "fixtures"
 PLAN_DIR = PUBLIC_FIXTURE_DIR
 SAMPLE_GLB_DIR = PUBLIC_FIXTURE_DIR
@@ -180,25 +160,21 @@ WORKFLOW_STEPS = {
     "proposal_review",
     "ai_render",
 }
-_EXTERNAL_GLB_ZIP_SEARCH_DIRS = (
-    DATASET_DIR,
-    Path.home() / "Downloads",
-)
-_EXTERNAL_GLB_ZIP_PATTERNS = (
-    "downloaded-files*.zip",
-    "ABO*.zip",
-    "補缺的GLB*.zip",
-    "ikea抓取家具glb_中文命名版*.zip",
-    "drive-download-202607*.zip",
-)
 
-# GLB 實檔可能在 dataset/ 的不同層(依組員從雲端下載後的擺法)
-_DATASET_GLB_ROOTS = [
-    DATASET_DIR,
-    DATASET_DIR / "ikea_glb_db" / "ikea抓取家具glb_中文命名版",
-]
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    try:
+        _furniture_payload_cache()
+        build_site_payload()
+    except Exception as exc:
+        print(f"[RoomPilot] catalog cache warmup skipped: {exc}")
+    yield
 
-app = FastAPI(title="AI 室內風格與家具配置展示系統")
+
+app = FastAPI(
+    title="AI 室內風格與家具配置展示系統",
+    lifespan=_lifespan,
+)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.include_router(rag_router)
 
@@ -255,53 +231,14 @@ def _glb_lookup_keys(path_text: str) -> list[str]:
     return list(dict.fromkeys(keys))
 
 
-@lru_cache(maxsize=1)
-def _dataset_glb_lookup() -> dict[str, Path]:
-    lookup: dict[str, Path] = {}
-    conflicts: set[str] = set()
-    if not DATASET_DIR.exists():
-        return lookup
-
-    def remember(key: str, path: Path) -> None:
-        existing = lookup.get(key)
-        if existing is not None and existing != path:
-            conflicts.add(key)
-            return
-        lookup[key] = path
-
-    for path in DATASET_DIR.rglob("*.glb"):
-        if not path.is_file():
-            continue
-        for key in _glb_lookup_keys(path.name):
-            remember(key, path)
-        for root in _DATASET_GLB_ROOTS:
-            try:
-                relative = path.relative_to(root)
-            except ValueError:
-                continue
-            for key in _glb_lookup_keys(relative.as_posix()):
-                remember(key, path)
-
-    for key in conflicts:
-        lookup.pop(key, None)
-    return lookup
-
-
-def _safe_relative_url(path_text: str | None, mount_prefix: str) -> str | None:
-    if not path_text:
-        return None
-    return f"{mount_prefix}/{_normalize_posix_path(path_text)}"
-
-
 def _iter_external_zip_paths() -> list[Path]:
-    roots: list[Path] = []
     env_roots = os.environ.get("ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS", "")
+    roots: list[Path] = []
     for raw_root in env_roots.split(os.pathsep):
         raw_root = raw_root.strip()
         if raw_root:
-            roots.append(Path(raw_root))
-    if not roots:
-        roots.extend(_EXTERNAL_GLB_ZIP_SEARCH_DIRS)
+            root = Path(raw_root).expanduser()
+            roots.append(root if root.is_absolute() else PROJECT_DIR / root)
 
     found: list[Path] = []
     seen: set[str] = set()
@@ -310,8 +247,7 @@ def _iter_external_zip_paths() -> list[Path]:
         if root.is_file() and root.suffix.lower() == ".zip":
             candidates = [root]
         elif root.is_dir():
-            for pattern in _EXTERNAL_GLB_ZIP_PATTERNS:
-                candidates.extend(root.glob(pattern))
+            candidates.extend(root.glob("*.zip"))
 
         for candidate in candidates:
             key = str(candidate.resolve()).casefold()
@@ -352,20 +288,7 @@ def _external_zip_entry_lookup() -> dict[str, tuple[Path, str]]:
 
 def _external_zip_entry_variants(entry_name: object) -> list[str]:
     entry = _normalize_posix_path(str(entry_name or "").strip())
-    if not entry:
-        return []
-
-    variants = [entry]
-    if entry.startswith("downloaded-files/ABO/"):
-        variants.append(entry.replace("downloaded-files/ABO/", "downloaded-files(furniture)/ABO/", 1))
-    if entry.startswith("downloaded-files/"):
-        variants.append(entry.replace("downloaded-files/", "downloaded-files(furniture)/", 1))
-        variants.append(entry.replace("downloaded-files/", "downloaded-files(home apppliances)/", 1))
-    if entry.startswith("ABO/"):
-        variants.append(f"downloaded-files(furniture)/{entry}")
-    variants.append(f"downloaded-files(furniture)/{entry}")
-    variants.append(f"downloaded-files(home apppliances)/{entry}")
-    return list(dict.fromkeys(variants))
+    return [entry] if entry else []
 
 
 def _resolve_external_zip_entry(furniture: dict) -> tuple[Path, str] | None:
@@ -378,29 +301,6 @@ def _resolve_external_zip_entry(furniture: dict) -> tuple[Path, str] | None:
     if not entry_names:
         return None
 
-    direct_archive = Path(str(furniture.get("source_archive_path") or ""))
-    direct_candidates = [direct_archive]
-    if not direct_archive.is_absolute():
-        direct_candidates.extend(
-            [
-                PROJECT_DIR / direct_archive,
-                DATASET_DIR / direct_archive,
-                Path.home() / "Downloads" / direct_archive.name,
-            ]
-        )
-
-    for archive_path in direct_candidates:
-        if not (archive_path.is_file() and archive_path.suffix.lower() == ".zip"):
-            continue
-        try:
-            with zipfile.ZipFile(archive_path) as archive:
-                names = set(archive.namelist())
-                for variant in entry_names:
-                    if variant in names:
-                        return archive_path, variant
-        except (OSError, zipfile.BadZipFile):
-            continue
-
     lookup = _external_zip_entry_lookup()
     for variant in entry_names:
         for key in _glb_lookup_keys(variant):
@@ -411,24 +311,26 @@ def _resolve_external_zip_entry(furniture: dict) -> tuple[Path, str] | None:
 
 
 def _resolve_glb_path(furniture: dict) -> Path | None:
-    """依序嘗試:metadata 的絕對路徑 → 專案 dataset/ 下的相對路徑。"""
-    absolute_text = furniture.get("glb_absolute_path")
-    if absolute_text and Path(absolute_text).exists():
-        return Path(absolute_text)
+    """Resolve a GLB only inside explicitly configured local roots."""
+    raw_roots = os.environ.get("ROOMPILOT_LOCAL_GLB_ROOTS", "")
+    roots: list[Path] = []
+    for raw_root in raw_roots.split(os.pathsep):
+        if raw_root.strip():
+            root = Path(raw_root.strip()).expanduser()
+            roots.append((root if root.is_absolute() else PROJECT_DIR / root).resolve())
 
-    relative_text = furniture.get("glb_relative_path")
-    if relative_text:
-        relative = _normalize_posix_path(relative_text)
-        for root in _DATASET_GLB_ROOTS:
-            candidate = root / relative
-            if candidate.exists():
-                return candidate
-        lookup = _dataset_glb_lookup()
-        for key in _glb_lookup_keys(relative):
-            candidate = lookup.get(key)
-            if candidate is not None and candidate.exists():
-                return candidate
-
+    path_text = furniture.get("glb_absolute_path") or furniture.get("glb_relative_path")
+    if not path_text:
+        return None
+    supplied = Path(str(path_text))
+    for root in roots:
+        candidate = supplied.resolve() if supplied.is_absolute() else (root / supplied).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            continue
+        if candidate.is_file() and candidate.suffix.casefold() == ".glb":
+            return candidate
     return None
 
 
@@ -455,7 +357,7 @@ def _model_status(furniture: dict) -> tuple[bool, str]:
     if _resolve_glb_path(furniture) is not None:
         return True, "GLB 可用"
 
-    return False, "資料有記錄，但 dataset/ 中找不到對應的 GLB 檔案(請先從雲端下載 dataset)。"
+    return False, "資料有記錄，但 ROOMPILOT_LOCAL_GLB_ROOTS 中找不到對應 GLB。"
 
 
 @lru_cache(maxsize=1)
@@ -483,13 +385,6 @@ def load_surface_catalog() -> dict:
     if not SURFACE_DB_PATH.exists():
         return {"schema_version": "1.0", "surfaces": [], "style_surface_profiles": {}}
     return json.loads(SURFACE_DB_PATH.read_text(encoding="utf-8"))
-
-
-@lru_cache(maxsize=1)
-def load_external_import_index() -> dict:
-    if not EXTERNAL_IMPORT_PATH.exists():
-        return {"schema_version": "1.0", "items": [], "archives": []}
-    return json.loads(EXTERNAL_IMPORT_PATH.read_text(encoding="utf-8"))
 
 
 def _style_surface_profile(surface_catalog: dict, style_id: str | None) -> dict:
@@ -1024,14 +919,6 @@ def _get_furniture_by_id(furniture_id: str) -> dict:
     return furniture
 
 
-def _get_external_furniture_by_id(furniture_id: str) -> dict:
-    data = load_external_import_index()
-    furniture = next((item for item in data.get("items", []) if item.get("furniture_id") == furniture_id), None)
-    if not furniture:
-        raise HTTPException(status_code=404, detail="找不到外部匯入家具。")
-    return furniture
-
-
 def _get_merged_furniture_by_id(furniture_id: str) -> dict:
     for item in _furniture_payload_cache():
         if str(item.get("furniture_id")) == str(furniture_id):
@@ -1105,7 +992,10 @@ def _model_response_for_merged_furniture(furniture: dict):
 def _get_model_path_for_furniture(furniture: dict) -> str:
     model_path = _resolve_glb_path(furniture)
     if model_path is None:
-        raise HTTPException(status_code=404, detail="找不到這件家具對應的 GLB 檔案(dataset/ 未就緒?)。")
+        raise HTTPException(
+            status_code=404,
+            detail="找不到這件家具對應的 GLB；請設定 ROOMPILOT_LOCAL_GLB_ROOTS。",
+        )
 
     return str(model_path)
 
@@ -3242,17 +3132,17 @@ def catalog_status() -> dict:
             "verified_image_count": 0,
             "source_of_truth": "procedural",
         }
-    elif provider.get("provider") == "kai_postgresql" and provider.get("available"):
+    elif provider.get("provider") == "postgres" and provider.get("available"):
         assets = provider.get("assets") or {}
         furniture = {
-            "provider": "kai_postgresql",
+            "provider": "postgres",
             "manifest_ready": True,
             "verified_model_count": int(assets.get("model_count") or 0),
             "catalog_count": int(provider.get("count") or 0),
             "source_of_truth": "postgresql",
         }
         furniture_images = {
-            "provider": "kai_postgresql",
+            "provider": "postgres",
             "manifest_ready": True,
             "verified_item_count": int(assets.get("complete_image_item_count") or 0),
             "verified_image_count": sum(
@@ -3472,15 +3362,6 @@ def _furniture_detail_payload(furniture_id: str) -> dict:
         }
     )
     return payload
-
-
-@app.on_event("startup")
-def warm_catalog_cache() -> None:
-    try:
-        _furniture_payload_cache()
-        build_site_payload()
-    except Exception as exc:
-        print(f"[RoomPilot] catalog cache warmup skipped: {exc}")
 
 
 @app.get("/api/scene/provider-status")
@@ -4206,7 +4087,7 @@ def furniture_model_image(furniture_id: str, image_index: int) -> Response:
 
 
 # ---------------------------------------------------------------------------
-# 以下路由自原 app/backend/main.py 移植,供 frontend3d(React Three Fiber)使用
+# Legacy-compatible model routes retained for the single static frontend.
 # ---------------------------------------------------------------------------
 
 

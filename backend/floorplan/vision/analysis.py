@@ -155,7 +155,7 @@ def apply_floorplan2room_labels(
 ) -> int:
     """把 cody floorplan2room 的房型語意套到 rooms[]，回傳實際套用筆數。
 
-    `docs/CODY_MAIN_SYNC_TODO.md` 第 2 點要求房型改由語意管線提供，而非
+    房型由語意管線提供，而非
     django_icon_zone_rules。配對方式是像素空間包含判定：rooms[] 的 bbox 中心
     落在哪個語意方塊裡就採用該方塊的房型。
 
@@ -528,7 +528,7 @@ def analyze_floorplan_image(
         scale = cody_result["scale"]
         scale.pop("cody_scale", None)
         cody_diagnostics = cody_result["diagnostics"]
-        # CODY_MAIN_SYNC_TODO 第 2 點：房型改由 floorplan2room 語意管線提供。
+        # 房型由 floorplan2room 語意管線提供。
         # 回 None（無法辨識）時下方仍走 django_icon_zone_rules，行為向下相容。
         cody_room_semantics = recognize_cody_rooms(
             image_bytes,

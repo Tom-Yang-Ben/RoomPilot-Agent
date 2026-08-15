@@ -208,6 +208,6 @@
       "industrial",
       "american"
     ],
-    "furniture_source": "JSON/furniture/furniture_official_catagory.json"
+    "furniture_source": "profile-selected catalog provider"
   }
 }

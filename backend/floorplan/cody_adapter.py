@@ -959,7 +959,7 @@ def recognize_cody_rooms(
 ) -> dict[str, Any] | None:
     """走 cody floorplan2room 全鏈路取房型語意，結果留在記憶體。
 
-    `docs/CODY_MAIN_SYNC_TODO.md` 第 2 點的主線側實作。floorplan2room 是腳本
+    現行主線由 floorplan2room 提供語意房型。floorplan2room 是腳本
     形狀——`process()` 吃檔案路徑、回傳 bool、把資料寫進硬編路徑
     `training/json/room/` 並另存兩張預覽 PNG。主線 API 手上只有 image bytes，
     因此這裡不呼叫 `process()`，改直接串它的內部函式，並自行組裝 payload。

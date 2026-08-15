@@ -1,6 +1,6 @@
 """cody 管線模組的可載入性冒煙測試。
 
-`docs/CODY_MAIN_SYNC_TODO.md` 第 2 點要求預設入口改走 floorplan2room，前置是把
+預設入口走 floorplan2room，前置是把
 cody 分支的四個管線模組與兩份設定檔搬進 backend/floorplan/。搬入當下還沒有任何
 產品程式碼 import 它們（入口切換另案處理），所以需要這支測試守住兩件事：
 

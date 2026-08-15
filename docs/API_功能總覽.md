@@ -90,7 +90,7 @@
 
 ## 7. 家具型錄
 
-契約：`docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md`
+契約：`docs/FULL_PROFILE.md`
 
 | 方法 | 路由 | 位置 | 功能 |
 |---|---|---|---|
@@ -143,7 +143,7 @@
 |---|---|
 | `docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md` | `/api/agent/*`、`/api/scene/generate` 欄位與 fallback 規則 |
 | `docs/contracts/REMOTE_RENDER_CONTRACT.md` | `/api/projects/{id}/render-jobs` 遠端渲染 |
-| `docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md` | 家具型錄與模型交付 |
+| `docs/FULL_PROFILE.md` | 家具型錄與模型交付 |
 | `docs/contracts/LAYOUT_EVALUATION_SCHEMA.md` | 擺放與驗證規則（`/api/scene/layout`、`/api/scene/validate`） |
 | `docs/contracts/FURNITURE_ENGINEERING_RULES.md` | 家具工程規則 |
 | `docs/contracts/STYLEPACK_RENDERING_CONTRACT.md` | StylePack 即時渲染 |

@@ -103,7 +103,7 @@
 </tbody></table>
 
 <h2>7. 家具型錄</h2>
-<p class="meta">契約：<code>docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md</code></p>
+<p class="meta">契約：<code>docs/FULL_PROFILE.md</code></p>
 <table><thead><tr><th>方法</th><th>路由</th><th>位置</th><th>功能</th></tr></thead><tbody>
 <tr><td><span class="m GET">GET</span></td><td><code>/api/furniture</code></td><td class="loc">main.py:2590</td><td>型錄搜尋（分頁／篩選）。Query：<code>style</code>、<code>group</code>、<code>type</code>、<code>q</code>、<code>page</code>、<code>page_size</code>、<code>has_model</code>、<code>detail</code>、<code>color</code>、<code>material</code>、<code>size</code></td></tr>
 <tr><td><span class="m GET">GET</span></td><td><code>/api/furniture/{furniture_id}/model</code></td><td class="loc">main.py:3281</td><td>下載家具 GLB（本機直傳或 CloudFront 重定向）</td></tr>
@@ -147,7 +147,7 @@
 <table><thead><tr><th>契約文件</th><th>涵蓋範圍</th></tr></thead><tbody>
 <tr><td><code>docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md</code></td><td><code>/api/agent/*</code>、<code>/api/scene/generate</code> 欄位與 fallback 規則</td></tr>
 <tr><td><code>docs/contracts/REMOTE_RENDER_CONTRACT.md</code></td><td><code>/api/projects/{id}/render-jobs</code> 遠端渲染</td></tr>
-<tr><td><code>docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md</code></td><td>家具型錄與模型交付</td></tr>
+<tr><td><code>docs/FULL_PROFILE.md</code></td><td>家具型錄與模型交付</td></tr>
 <tr><td><code>docs/contracts/LAYOUT_EVALUATION_SCHEMA.md</code></td><td>擺放與驗證規則（<code>/api/scene/layout</code>、<code>/api/scene/validate</code>）</td></tr>
 <tr><td><code>docs/contracts/FURNITURE_ENGINEERING_RULES.md</code></td><td>家具工程規則</td></tr>
 <tr><td><code>docs/contracts/STYLEPACK_RENDERING_CONTRACT.md</code></td><td>StylePack 即時渲染</td></tr>

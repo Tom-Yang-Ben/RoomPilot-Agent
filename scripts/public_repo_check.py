@@ -7,7 +7,9 @@ import json
 import re
 import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
+from urllib.parse import unquote
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,6 +36,17 @@ FORBIDDEN_SUFFIXES = (
     ".safetensors",
     ".sql.gz",
 )
+FORBIDDEN_PATHS = {
+    "backend/server/postgres_catalog.py",
+    "docker_postgresql/DOCKER_ONECLICK.md",
+    "scripts/catalog/remove_excluded_catalog_assets_from_manifests.py",
+    "scripts/sql/import_catalog_to_postgres.py",
+    "scripts/sql/import_furniture_embeddings_to_postgres.py",
+    "scripts/sql/import_official_catalog_to_postgres.py",
+    "scripts/sql/roompilot_catalog_10550_schema.sql",
+    "scripts/sql/roompilot_furniture_embeddings_schema.sql",
+    "scripts/sql/roompilot_postgresql_schema.sql",
+}
 SECRET_PATTERNS = {
     "private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     "GitHub token": re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
@@ -59,6 +72,33 @@ TEXT_SUFFIXES = {
     ".yaml",
     ".yml",
 }
+CANONICAL_MARKDOWN = (
+    ROOT / "README.md",
+    ROOT / "CONTRIBUTING.md",
+    ROOT / "SECURITY.md",
+    ROOT / "THIRD_PARTY_NOTICES.md",
+    ROOT / "docs" / "README.md",
+    ROOT / "docs" / "ARCHITECTURE.md",
+    ROOT / "docs" / "ASSET_POLICY.md",
+    ROOT / "docs" / "DEVELOPMENT.md",
+    ROOT / "docs" / "FULL_PROFILE.md",
+    ROOT / "docs" / "KNOWN_LIMITATIONS.md",
+    ROOT / "docs" / "TEAM_AI_OWNERSHIP.md",
+    ROOT / "docs" / "contracts" / "README.md",
+    ROOT / "backend" / "floorplan" / "README.md",
+    ROOT / "backend" / "catalog" / "data" / "README.md",
+    ROOT / "scripts" / "README.md",
+    ROOT / "scripts" / "sql" / "README.md",
+    *(ROOT / "docs" / "owners").glob("*.md"),
+)
+MARKDOWN_LINK = re.compile(r"!?\[[^]]*\]\((<[^>]+>|[^)\s]+)")
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def _git_lines(*args: str) -> list[str]:
@@ -102,6 +142,33 @@ def _verify_fixture_manifest(errors: list[str]) -> None:
             errors.append(f"manifest provenance incomplete: {asset.relative_to(ROOT)}")
 
 
+def _verify_markdown_links(
+    errors: list[str], markdown_paths: Iterable[Path] | None = None
+) -> None:
+    for document in markdown_paths or CANONICAL_MARKDOWN:
+        if not document.is_file():
+            errors.append(f"canonical document missing: {_display_path(document)}")
+            continue
+        text = document.read_text(encoding="utf-8")
+        for match in MARKDOWN_LINK.finditer(text):
+            raw_target = match.group(1).strip("<>")
+            target = unquote(raw_target.split("#", 1)[0])
+            if not target or target.startswith("#"):
+                continue
+            if re.match(r"^[a-z][a-z0-9+.-]*:", target, re.IGNORECASE):
+                continue
+            resolved = (
+                ROOT / target.lstrip("/")
+                if target.startswith("/")
+                else document.parent / target
+            ).resolve()
+            if not resolved.exists():
+                errors.append(
+                    "broken canonical link: "
+                    f"{_display_path(document)} -> {raw_target}"
+                )
+
+
 def main() -> int:
     errors: list[str] = []
     paths = _candidate_paths()
@@ -119,6 +186,8 @@ def main() -> int:
             errors.append(f"file exceeds 10 MiB: {relative} ({size} bytes)")
         if relative.startswith(FORBIDDEN_PREFIXES):
             errors.append(f"forbidden public path: {relative}")
+        if relative in FORBIDDEN_PATHS:
+            errors.append(f"forbidden legacy path: {relative}")
         if relative.casefold().endswith(FORBIDDEN_SUFFIXES):
             errors.append(f"forbidden public artifact: {relative}")
         if path.suffix.casefold() not in TEXT_SUFFIXES or size > 2 * 1024 * 1024:
@@ -147,6 +216,7 @@ def main() -> int:
             errors.append(f"runtime CDN dependency remains: {html.relative_to(ROOT)}")
 
     _verify_fixture_manifest(errors)
+    _verify_markdown_links(errors)
 
     if errors:
         print("Public repository check failed:")

@@ -1,4 +1,4 @@
-"""PostgreSQL read repository for Kai's official furniture catalog.
+"""PostgreSQL read repository for a developer-supplied furniture catalog.
 
 The repository owns catalog querying and row-to-domain mapping.  FastAPI is a
 consumer of this module: it must not load the complete catalog merely to
@@ -17,8 +17,7 @@ from typing import Any, Iterator
 from ..runtime_profile import current_profile
 
 
-# The imported Kai migration currently publishes this compatibility view.  Keep
-# the runtime on it until Django owns the api_current view migration as well.
+# The public full-profile schema publishes this stable compatibility view.
 _VIEW = "roompilot.furniture_catalog_current"
 
 _STYLE_ID_MAP = {
@@ -383,7 +382,7 @@ def _payload_from_row(row: dict[str, Any]) -> dict[str, Any]:
         "taxonomy_type_zh": _repair_text(row.get("taxonomy_type_zh"))
         or _repair_text(row.get("category_name_zh"))
         or category_code,
-        "catalog_scope": _repair_text(row.get("catalog_scope")) or "kai_postgresql",
+        "catalog_scope": _repair_text(row.get("catalog_scope")) or "developer_supplied",
         "normalized_type": category_code,
         "primary_style": style_codes[0] if style_codes else None,
         "style_primary": style_codes[0] if style_codes else None,
@@ -391,7 +390,7 @@ def _payload_from_row(row: dict[str, Any]) -> dict[str, Any]:
         "style_candidates": candidates,
         "style_confidence": primary_confidence,
         "style_assignment_source": _repair_text(row.get("style_assignment_source"))
-        or "kai_postgresql_vlm",
+        or "developer_supplied",
         "room_types": room_codes,
         "catalog_role": role,
         "role": role,
@@ -407,6 +406,8 @@ def _payload_from_row(row: dict[str, Any]) -> dict[str, Any]:
         "object_type_zh": _repair_text(row.get("object_type_zh")),
         "color": _repair_text(row.get("primary_color")),
         "material": _repair_text(row.get("primary_material")),
+        "price_twd": _as_number(row.get("price_twd")),
+        "price_is_estimated": bool(row.get("price_is_estimated")),
         "size_cm": {"width": width, "depth": depth, "height": height},
         "must_against_wall": bool(row.get("must_against_wall", False)),
         "can_rotate": True if row.get("can_rotate") is None else bool(row.get("can_rotate")),
@@ -426,7 +427,7 @@ def _payload_from_row(row: dict[str, Any]) -> dict[str, Any]:
         "placement_hints": {},
         "clearance_zones": [],
         "layout_relations": [],
-        "match_reason": "依 Kai 正式家具資料庫的風格、房間與 VLM 描述推薦。",
+        "match_reason": "依開發者家具資料庫的風格、房間與描述推薦。",
         "rule": {},
     }
 
@@ -855,7 +856,7 @@ def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
                     else None
                 )
         return {
-            "provider": "kai_postgresql",
+            "provider": "postgres",
             "available": count > 0,
             "ready": count > 0 and bool(database[2]),
             "count": count,
@@ -875,7 +876,7 @@ def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
         }
     except Exception as exc:
         return {
-            "provider": "kai_postgresql",
+            "provider": "postgres",
             "available": False,
             "ready": False,
             "reason": type(exc).__name__,

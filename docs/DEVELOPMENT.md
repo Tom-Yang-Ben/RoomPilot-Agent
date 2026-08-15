@@ -20,6 +20,12 @@ node --check backend/server/static/scene_viewer.js
 git diff --check
 ```
 
+已知漏洞可用 PyPA `pip-audit` 檢查四份已鎖定的 requirements；CI 使用相同指令，且不自動修改版本：
+
+```powershell
+uvx --from pip-audit==2.10.1 pip-audit --no-deps --skip-editable --progress-spinner off -r requirements.txt -r requirements-delivery.txt -r requirements-rag.txt -r requirements-ocr.txt
+```
+
 PostgreSQL、OCR、RAG 與 delivery 是明確 opt-in extras。預設 CI 不下載模型、不呼叫外部 AI、不連正式資料庫。需要瀏覽器測試時另執行 `uv sync --extra portable --extra delivery --group dev` 與 `uv run playwright install chromium`。
 
 ## Cache 與 runtime

@@ -9,6 +9,26 @@ permissions:
   contents: read
 
 jobs:
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.26"
+          enable-cache: true
+      - name: Audit locked Python requirements
+        run: >-
+          uvx --from pip-audit==2.10.1 pip-audit
+          --no-deps --skip-editable --progress-spinner off
+          -r requirements.txt
+          -r requirements-delivery.txt
+          -r requirements-rag.txt
+          -r requirements-ocr.txt
+
   portable:
     name: Portable (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

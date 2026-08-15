@@ -1,6 +1,6 @@
 """cody floorplan2room 房型語意的記憶體橋接測試。
 
-`docs/CODY_MAIN_SYNC_TODO.md` 第 2 點要求辨識預設走 floorplan2room，一次拿到
+辨識預設走 floorplan2room，一次拿到
 幾何與房型。floorplan2room 本身是腳本形狀（`process()` 吃檔案路徑、回傳 bool、
 把結果寫進硬編路徑 `training/json/room/`），主線 API 手上只有 image bytes，
 因此由 `recognize_cody_rooms()` 做記憶體橋接。這支測試守住橋接的三個要求：
@@ -241,7 +241,7 @@ def test_polygon_cm_rooms_need_both_plan_bbox_and_scale() -> None:
     assert rooms[0]["source"] == "cody_wall_enclosure"
 
 
-# ── 端對端：CODY_MAIN_SYNC_TODO 驗收條件 ────────────────────────────────────
+# ── 端對端房型辨識驗收條件 ──────────────────────────────────────────────────
 def test_analysis_labels_rooms_from_semantic_pipeline(sample_bytes: bytes) -> None:
     """驗收條件二：上傳平面圖後 rooms[].label 來自語意管線而非 fallback。"""
     from backend.floorplan.vision.analysis import analyze_floorplan_image
