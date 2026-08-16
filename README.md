@@ -1,46 +1,82 @@
-# RoomPilot-Agent
+# RoomPilot
 
-## IKEA 地端 GLB 備援（尚未完成）
+RoomPilot 是 AIPE03 第四組開發的 AI 室內設計系統。使用者上傳一張平面圖，
+系統即可完成辨識與尺寸校正、逐房需求訪談、家具自動配置、2D/3D 同步編輯、
+AI 渲染出圖，最後產出含設計語彙、家具採購明細、工程費用與初步工期的成果報告。
+整個流程以專案為單位保存，隨時可以中斷、恢復與分享。
 
-Kai 的 CloudFront catalog 目前仍是唯一正式模型來源。Django 與 Kai 後續會共同完成本機 IKEA GLB 備援的 JSON 對照、固定備份路徑與 API 模式；完成前請勿在 `.env` 啟用本機模式，也不要將大型 GLB 提交到 Git。已清洗的網站 PBR 紋理可提交至 `frontend/pbr_assets/`。
+## 功能總覽
 
-RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識、人工
-校正、逐房需求、家具資料庫、幾何配置、2D/3D 編輯、方案視角與 AI
-渲染整合成一個可恢復的網頁流程。
+| 步驟 | 功能 | 產出 |
+|---|---|---|
+| 0 | 帳號註冊／登入，進入「我的專案」 | 使用者、角色與專案清單 |
+| 1 | 建立專案 | 可保存、恢復與分享的 `project_id` |
+| 2 | 上傳 PNG／JPG／DXF 平面圖 | 原始平面圖 |
+| 3 | 兩點標定，確認公分尺度 | 統一公分制的比例尺 |
+| 4 | 校正空間、牆、門、窗、樑與柱 | `layout_json` |
+| 5 | 全屋風格、材質、冷氣範圍，再逐房確認用途、家具類型、尺寸與數量 | 問卷與三張風格色卡 |
+| 6 | 自動配置家具，同一畫面同步編輯 2D／3D 並走動預覽 | `scene_json` |
+| 7 | 鎖定方案，逐房選擇並微調生成視角 | 鎖定的逐房相機 |
+| 8 | AI 渲染：依問卷、家具、材質、色卡與視角逐房出圖 | 逐房渲染圖與成果包 |
+| 9 | 成果報告：設計語彙、家具採購明細、工程施工費與初步工期 | HTML／XLSX／JSON 三份文件 |
+
+- 家具碰撞、淨空不足、超出邊界或模型載入失敗都會在畫面上標示原因，並阻擋進入下一步；
+  第 4 步結構一旦變更，系統會重新驗證目前所有家具。
+- 第 6 步的家具是否合法只由幾何引擎判定，前端只負責呈現與送出操作。
+- 冰箱、洗衣機等家電由問卷保存並帶進第 8 步生圖，不參與第 6 步的自動擺設。
+- 第 9 步在 `/engineering`：把鎖定版 `ProjectSnapshot` 轉成三份文件。家具採購與
+  工程施工費是兩筆獨立預算，報告分別列示、不合計；設計語彙來自團隊編纂的
+  `backend/catalog/data/design/`，報告會如實標示其信心等級。
+
+## 系統架構
+
+```text
+瀏覽器 HTML/CSS/JavaScript/Three.js（frontend/）
+  <-> FastAPI API 與專案持久化（backend/server/）
+      -> 平面圖辨識（backend/floorplan/）
+      -> 空間關係與 layout evaluation（backend/spatial_data/）
+      -> layout_json
+      -> 需求解析與家具選件（backend/agent/）
+      -> 家具型錄 / CloudFront / PostgreSQL / RAG（backend/catalog/）
+      -> 幾何配置、碰撞與淨空（backend/engine/）
+      -> scene_json
+      -> 2D/3D 編輯、方案視角、AI 渲染、成果報告（backend/server/ + frontend/）
+```
+
+- 辨識止於 `layout_json`；方案生成與編輯以 `scene_json` 為準。
+- Graph RAG 只負責房間、家具、風格、材質與限制關係的檢索與證據，
+  幾何、碰撞、淨空與結構合法性一律由 `backend/engine/` 計算。
+- 前端不經打包：`frontend/` 以原生 ES module 直接載入 `vendor/three/`，沒有 Node.js 建置步驟。
+
+完整圖解見 [使用者流程與系統架構圖](docs/使用者流程與系統架構圖.md)；
+跨模組協作與資料邊界見 [現行版本總覽](docs/RoomPilot_現行版本總覽.md)。
 
 ## 快速啟動
 
-需求：
+### 環境需求
 
-- Windows 10/11 64-bit
+- Windows 10／11 64-bit
 - Python 3.12
-- Git
-- PostgreSQL 17：第 6 步正式家具 catalog 的優先資料來源
+- Git 與 Git LFS（家具向量檔 `JSON/RAG/furniture_embeddings_bge_m3.jsonl` 以 LFS 儲存）
+- PostgreSQL 17 + pgvector：家具型錄、風格材質與專案的正式資料來源
+- Node.js 22+：第 9 步 XLSX 匯出使用
 
 在乾淨的新機器上從零佈到「三個 provider 全走 PostgreSQL、RAG 開啟」的完整狀態，
-依照 [換機部署清單](docs/NEW_MACHINE_SETUP.md)；本節只涵蓋最短的啟動路徑。
+請依 [換機部署清單](docs/NEW_MACHINE_SETUP.md) 逐節執行；本節只涵蓋最短的啟動路徑。
 
-### 方式一：Python venv 與 requirements.txt
+### 安裝與啟動
 
-在 repo 根目錄開啟 PowerShell：
+方式一：Python venv 與 `requirements.txt`
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-.\.venv\Scripts\python.exe -m uvicorn backend.server.main:app --host 127.0.0.1 --port 8002 --reload
+.\dev.ps1            # 等同 uvicorn backend.server.main:app --host 127.0.0.1 --port 8002 --reload
 ```
 
-開啟 <http://127.0.0.1:8002>。
-
-如果 `8002` 已占用，把指令改成 `--port 8023` 或其他未使用連接埠。
-若既有 `.venv\Scripts\python.exe` 指向已移除的舊 Python 路徑，先把
-舊 `.venv` 重新命名備份，再執行上面的建立指令。
-
-### 方式二：uv
-
-日常開發不含大型 OCR：
+方式二：uv
 
 ```powershell
 uv sync --extra server --extra vision --extra catalog --group dev
@@ -48,66 +84,48 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 uv run uvicorn backend.server.main:app --host 127.0.0.1 --port 8002 --reload
 ```
 
-需要 PaddleOCR 時，使用完整環境：
+開啟 <http://127.0.0.1:8002>，在 `/login` 註冊第一個帳號後即可建立專案。
+`8002` 已被占用時改成 `.\dev.ps1 8023` 或其他未使用的連接埠。
 
-```powershell
-uv sync --extra server --extra vision --extra catalog --extra ocr --group dev
-```
+### 選配元件
 
-使用 pip 的 OCR 鎖定版本：
+| 元件 | 用途 | 安裝 |
+|---|---|---|
+| 房型語意層（DINOv2） | 提高第 4 步房型判讀準確度；未安裝時退回面積規則，`room_label_source` 標示 `area_rules` 而非 `dinov2_semantic` | `uv sync --extra semantic`（torch 約 2 GB） |
+| PaddleOCR | 尺度文字與繁中房名 OCR；未安裝時比例尺改由第 3 步手動標定 | `uv sync --extra ocr` 或 `pip install -r requirements-ocr.txt` |
+| 家具 RAG（BGE-M3 + pgvector） | `/rag` 需求解析與向量檢索 | `uv pip install -r requirements-rag.txt`，並在 `.env` 開啟 `ROOMPILOT_RAG_ENABLED=true`；模型快取約 6.5 GB，見換機部署清單 |
+| XLSX 匯出 | 第 9 步估價表 | `cd tools/artifact_tool_local; npm ci`，並在 `.env` 設 `ROOMPILOT_ARTIFACT_TOOL_MODULES=<repo>\tools\artifact_tool_local` |
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-ocr.txt
-```
+## 設定（`.env`）
 
-OCR 套件較大，且不是啟動網站或執行目前標準測試的必要條件。
+完整清單與說明見 [`.env.example`](.env.example)。常用項目：
 
-需要 CubiCasa 語意房型辨識時（`backend/floorplan/infer_cubicasa.py` 需要
-torch），再加 `semantic`：
+| 群組 | 變數 | 說明 |
+|---|---|---|
+| 資料來源 | `ROOMPILOT_CATALOG_PROVIDER` | 家具型錄來源，預設 `postgres`（嚴格模式，連不上回 503）；離線開發才明確設 `json` |
+| | `ROOMPILOT_RUNTIME_CATALOG_PROVIDER` | 風格卡、表面材質、裝修費率來源，預設 `postgres` |
+| | `ROOMPILOT_PROJECT_STORE_PROVIDER` | 專案與 workflow 保存位置，`postgres` 或 `sqlite` |
+| | `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` | PostgreSQL 連線；`DB_POOL_MAX` 控制併發上限 |
+| 帳戶 | `ROOMPILOT_AUTH_SECRET` | Token 簽章金鑰，多節點部署必須設定同一把 |
+| | `ROOMPILOT_AUTH_ACCESS_TTL_MINUTES` / `ROOMPILOT_AUTH_REFRESH_TTL_DAYS` | Token 有效期 |
+| | `ROOMPILOT_AUTH_DISABLE_FIRST_ADMIN` | 設 `1` 關閉「第一個註冊帳號自動成為 admin」 |
+| LLM 與生圖 | `OPENROUTER_API_KEY` / `OPENROUTER_MODELS` | 第 6 步選件 agent 與第 8 步內建生圖共用；留空則選件走本地規則 |
+| | `ROOMPILOT_RENDER_IMAGE_MODEL` | 第 8 步生圖模型，預設 `google/gemini-2.5-flash-image` |
+| | `ROOMPILOT_RENDER_PROVIDER_URL` / `_TOKEN` | 自訂遠端渲染服務；設定後優先於內建生圖 |
+| RAG | `ROOMPILOT_RAG_ENABLED` / `ROOMPILOT_RAG_PARSER_PROVIDER` | 開關與需求解析 provider（`openrouter` / `openai` / `anthropic`） |
+| 工程報告 | `ROOMPILOT_DEMO_MODE` | 預設 `false`：缺報價或工率的項目保持待確認，不臆測數值；只有流程展示才設 `true` |
+| | `ROOMPILOT_ARTIFACT_NODE` / `ROOMPILOT_ARTIFACT_TOOL_MODULES` | XLSX 匯出用的 Node 與 adapter 路徑 |
 
-```powershell
-uv sync --extra server --extra vision --extra catalog --extra semantic --group dev
-```
+## 帳戶與權限
 
-不裝也不會壞：房型會退回面積規則，分析照常完成，`cody_room_semantics.room_label_source`
-會標示 `area_rules` 而非 `cubicasa_semantic`。torch 會連帶拉進 CUDA 相依套件，
-因此與 OCR 同樣不放進預設環境。
-
-## 驗證指令
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-git diff --check
-git status --short
-```
-
-平面圖辨識：
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q tests/test_floorplan_vision.py tests/test_floorplan_vision_api.py
-```
-
-網頁流程與專案恢復：
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q tests/test_scene_workflow.py tests/test_project_workflow_api.py tests/test_scene_v2_contract.py
-```
-
-## 帳戶端
-
-八步流程之前需要登入。`/login` 註冊或登入後進入 `/projects`（我的專案），
-再從那裡建立或開啟專案。
-
+- 八步流程之前需要登入：`/login` 註冊或登入後進入 `/projects`（我的專案），再建立或開啟專案。
 - 第一個註冊的帳號自動成為 `admin`，並收養帳戶端上線前建立的既有專案。
   正式部署請在開放註冊前先建 admin，或設 `ROOMPILOT_AUTH_DISABLE_FIRST_ADMIN=1`。
-- 角色：`designer` 建立與編輯專案、鎖版出報告；`client` 只檢視被分享的專案；
-  `admin` 可跨帳號維運。
+- 角色：`designer` 建立與編輯專案、鎖版出報告；`client` 只檢視被分享的專案；`admin` 可跨帳號維運。
 - 專案可分享給其他帳號，成員角色為 `editor`（可編輯）或 `viewer`（唯讀）。
-- 改密碼：「我的專案」頁的帳號設定；成功後撤銷所有既有 session，需重新登入。
-- 忘記密碼：本產品無寄信基礎設施，由 admin 以
-  `POST /api/auth/admin/reset-password` 設臨時密碼並口頭告知，登入後自行修改。
-- 停用帳號：admin 以 `POST /api/auth/admin/set-active` 停用／恢復；停用立即
-  生效（登入 403、既有 token 全部失效），不能停用自己。
+- 改密碼：「我的專案」頁的帳號設定；成功後撤銷所有既有 session。
+- 忘記密碼：由 admin 以 `POST /api/auth/admin/reset-password` 設臨時密碼並告知，登入後自行修改。
+- 停用帳號：admin 以 `POST /api/auth/admin/set-active` 停用／恢復；停用立即生效，不能停用自己。
 
 簽章金鑰請在 `.env` 明確設定，否則每個節點會各自產生一把，token 無法跨節點驗證：
 
@@ -117,196 +135,120 @@ ROOMPILOT_AUTH_ACCESS_TTL_MINUTES=30
 ROOMPILOT_AUTH_REFRESH_TTL_DAYS=14
 ```
 
-PostgreSQL 專案儲存需要先套用新增的使用者與成員資料表：
+PostgreSQL 專案儲存需先套用使用者與成員資料表：
 
 ```powershell
 psql -U postgres -d roompilot_db -f scripts/project_store/roompilot_project_store_schema.sql
 ```
 
-## 現行八步流程
+## 家具資料與 PostgreSQL
 
-```text
-0 註冊／登入並選擇專案
--> 1 建立專案
--> 2 上傳 PNG/JPG/DXF 平面圖
--> 3 兩點標定並確認公分尺度
--> 4 校正空間、牆、門、窗、樑與柱
--> 5 先選全屋風格、材質與冷氣範圍，再逐房確認用途、家具類型、尺寸與數量
--> 6 產生配置，在同一畫面同步編輯 2D/3D 家具與走動預覽
--> 7 鎖定方案，每個空間選擇並微調生成視角
--> 8 AI 渲染與成果包：依問卷、家具、材質、色卡與視角產生逐房成果
--> 9 成果報告與明細：設計風格語彙、家具採購明細、工程施工費與初步工期
+- 第 6 步讀取 PostgreSQL view `roompilot.furniture_catalog_current`：7,958 筆啟用家具
+  （`furniture_items` 共 8,557 筆，599 筆因品質標記 `is_active = false` 不進 view）。
+- 每筆家具都有 CloudFront 交付的 GLB 與正面、側面、45 度三視角 PNG，
+  以及房間類型、風格、材質、尺寸與 VLM／RAG 說明。
+- 燈具另走 `roompilot.lighting_assets`（`lighting_assets_current` 637 筆可用）。
+- `JSON/furniture/furniture_official_catagory.json` 為同一份 8,557 筆的離線備援，
+  只在明確設定 `ROOMPILOT_CATALOG_PROVIDER=json` 時使用。
+- 未匹配或隔離資料不會出現在 API、Agent 候選或 3D 場景。
+
+匯入正式型錄（先 dry-run，再正式執行）：
+
+```powershell
+.\.venv\Scripts\python.exe scripts/sql/import_official_catalog_to_postgres.py --dry-run
+.\.venv\Scripts\python.exe scripts/sql/import_official_catalog_to_postgres.py
 ```
 
-第 9 步在 `/engineering`：把鎖定版 `ProjectSnapshot` 轉成 HTML／XLSX／JSON 三份
-文件。家具採購與工程施工費是兩筆獨立預算，報告不予合計；設計語彙來自
-`backend/catalog/data/design/`，屬團隊編纂（medium confidence），報告會如實標示。
+匯入採 transaction 與 UPSERT，預設不刪除其他資料。需要完整重建家具 tables／views／staging 時，
+先通過 dry-run，再使用 `--replace-existing`（只影響家具型錄，不動 project、render 或 runtime catalog），
+完成後重新匯入家具向量。安裝與驗收細節見
+[PostgreSQL 17.10 安裝與資料匯入指南](scripts/sql/PostgreSQL%2017.10%20安裝與資料匯入指南.md)。
 
-未處理的家具碰撞、淨空、超界或模型載入問題會阻擋下一步。結構變更
-必須回到第 4 步，系統會重新驗證目前家具。
+Phase 1～5 的資料契約（讀取、CRUD、專案儲存、runtime catalog、單一來源）與 RAG 相關契約
+都在 [`docs/contracts/`](docs/contracts/)。
 
-## 系統架構
+## 驗證
 
-詳細圖解請見 [使用者流程與系統架構圖](docs/使用者流程與系統架構圖.md)。
-
-```text
-瀏覽器 HTML/CSS/JavaScript/Three.js
-  <-> FastAPI API 與專案持久化
-      -> Cody 平面圖辨識
-      -> Django 空間關係與 layout evaluation
-      -> layout_json
-      -> Yen 需求解析與家具選擇
-      -> Kai catalog / AWS / PostgreSQL / 關係檢索
-      -> Ancai 幾何配置、碰撞與淨空
-      -> scene_json
-      -> Bella 2D/3D 編輯、方案與渲染流程
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+git diff --check
+git status --short
 ```
 
-Graph RAG 只負責房間、家具、風格、材質與限制關係的檢索和證據，
-不負責幾何、碰撞、淨空或結構合法性。
+只跑平面圖辨識：
 
-## 團隊責任
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests/test_floorplan_vision.py tests/test_floorplan_vision_api.py
+```
 
-| 分支／人員 | 主要路徑 | 功能 |
-|---|---|---|
-| Bella | `backend/server/`, `frontend/` | FastAPI、專案、八步流程、2D/3D UI、整合 |
-| Cody | `backend/floorplan/`, `backend/upgrade3d/` | PNG/DXF、牆門窗房間辨識、`layout_json` |
-| Django | `backend/spatial_data/`, floorplan spatial helpers | 房間尺寸、面積、關係、layout evaluation、RAG 關係 |
-| Kai | `backend/catalog/`, `JSON/`, `scripts/sql/` | 家具型錄、AWS/CloudFront、Manifest、PostgreSQL |
-| Yen | `backend/agent/` | 需求結構化、選件、排序、修復意圖與說明 |
-| Ancai | `backend/engine/` | 家具座標、碰撞、淨空、移動與合法性 |
-| Ben | `testdata/`, evaluation/docs support | 辨識資料 QA、模型評估與版本證據 |
+只跑網頁流程與專案恢復：
 
-AI 或新成員開始修改前，必須依序閱讀：
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests/test_scene_workflow.py tests/test_project_workflow_api.py tests/test_scene_v2_contract.py
+```
 
-1. [AGENTS.md](AGENTS.md)
-2. [CLAUDE.md](CLAUDE.md)
-3. [團隊 AI ownership 與架構](docs/TEAM_AI_OWNERSHIP.md)
-4. `docs/owners/` 內對應成員檔案
-5. 目標資料夾內的 `AGENTS.md`
-6. 相關 `docs/contracts/`
+需要 PostgreSQL 的 live 測試以 `run_postgres_live_tests.ps1` 執行。
 
-跨資料夾修改前必須列出雙方 owner、資料契約、修改原因與兩側測試。
-
-## 主要資料夾
+## 專案結構
 
 | 路徑 | 用途 |
 |---|---|
-| `backend/agent/` | 需求與家具決策 |
-| `backend/catalog/` | 家具、材質與正式雲端 catalog |
-| `backend/engine/` | 幾何擺放與驗證 |
-| `backend/floorplan/` | 平面圖辨識與確認 |
-| `backend/spatial_data/` | 空間關係與 evaluation 的共享邊界 |
-| `backend/server/` | 正式 FastAPI 與 production frontend |
+| `backend/server/` | FastAPI、專案持久化、帳戶、八步流程、渲染與工程文件（`engineering/`） |
+| `frontend/` | 正式前端：登入、我的專案、八步場景、RAG 與工程文件頁 |
+| `backend/floorplan/` | 平面圖辨識、房型語意層與確認 |
+| `backend/spatial_data/` | 空間關係與 layout evaluation |
+| `backend/agent/` | 需求結構化、選件、排序與說明 |
+| `backend/catalog/` | 家具、材質、風格卡與 PostgreSQL／CloudFront 型錄 |
+| `backend/engine/` | 幾何擺放、碰撞、淨空與合法性 |
 | `backend/upgrade3d/` | 已確認格局轉 3D 幾何 |
-| `JSON/` | Catalog/manifest 交接資料 |
-| `scripts/sql/` | PostgreSQL schema 與匯入 |
-| `testdata/` | 小型辨識測資與 ground truth |
+| `rag/` | 家具 RAG 管線與 VLM 標註 |
+| `JSON/` | 型錄、manifest 與家具向量交接資料 |
+| `scripts/sql/`、`scripts/project_store/`、`scripts/runtime_catalog/` | PostgreSQL schema、匯入與遷移 |
+| `tools/artifact_tool_local/` | 第 9 步 XLSX 匯出的本機 adapter |
+| `testdata/` | 辨識測資與 ground truth |
 | `tests/` | 單元、API、契約與視覺回歸測試 |
-| `docs/contracts/` | 跨模組資料契約 |
+| `docs/` | 契約、架構、部署與團隊文件 |
 
-## 關鍵資料契約
+## 資料契約
 
-- 跨模組長度與座標使用公分，新欄位以 `_cm` 結尾。
-- 面積使用 `_m2`。
-- 相容欄位 `width`, `depth`, `pos_x`, `pos_y` 必須搭配
-  `coordinate_unit: "cm"` 和 schema version。
-- 平面圖辨識輸出是 `layout_json`。
-- 方案生成與編輯輸出是 `scene_json`。
+- 跨模組長度與座標使用公分，新欄位以 `_cm` 結尾；面積使用 `_m2`。
+- 相容欄位 `width`、`depth`、`pos_x`、`pos_y` 必須搭配 `coordinate_unit: "cm"` 與 schema version。
+- 平面圖辨識輸出是 `layout_json`；方案生成與編輯輸出是 `scene_json`。
 - 家具是否合法只能由 `backend/engine/` 判斷。
-- Production frontend 只有 `frontend/` 一套，不另建第二套。
+- 正式前端只有 `frontend/` 一套。
 
-更多契約：
+主要契約：
 
 - [Layout 與 Scene 邊界](docs/contracts/LAYOUT_SCENE_BOUNDARY_CONTRACT.md)
 - [Agent 前後端契約](docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md)
 - [家具模型交付](docs/contracts/CATALOG_MODEL_DELIVERY_CONTRACT.md)
 - [StylePack 渲染](docs/contracts/STYLEPACK_RENDERING_CONTRACT.md)
+- [遠端渲染](docs/contracts/REMOTE_RENDER_CONTRACT.md)
+- [工程文件](docs/contracts/ENGINEERING_DOCUMENT_MVP.md)（machine-readable 版本可用
+  `python -m backend.server.engineering.export_contracts` 重建）
 
-## 家具資料與 PostgreSQL
+## 團隊與模組分工
 
-正式雲端 catalog 由 Kai 的資料流維護：
+| 成員 | 主要模組 | 負責功能 |
+|---|---|---|
+| Bella | `backend/server/`、`frontend/` | FastAPI、專案、八步流程、2D/3D UI、整合 |
+| Cody | `backend/floorplan/`、`backend/upgrade3d/` | PNG/DXF、牆門窗房間辨識、`layout_json` |
+| Django | `backend/spatial_data/` | 房間尺寸、面積、關係、layout evaluation、RAG 關係 |
+| Kai | `backend/catalog/`、`JSON/`、`scripts/sql/` | 家具型錄、AWS/CloudFront、Manifest、PostgreSQL |
+| Yen | `backend/agent/` | 需求結構化、選件、排序、修復意圖與說明 |
+| Ancai | `backend/engine/` | 家具座標、碰撞、淨空、移動與合法性 |
+| Ben | `testdata/`、評估與文件 | 辨識資料 QA、模型評估、整合與版本證據 |
 
-- Kai 官方 JSON catalog：8,557 筆；目前為 API 與本機開發的預設資料來源
-- PostgreSQL：完成 Kai 匯入後才以 `ROOMPILOT_CATALOG_PROVIDER=postgres` 明確啟用
-- 每筆具有 CloudFront GLB 與正面、側面、45 度 PNG
-- 資料來源切換：預設讀取上述 Kai JSON；僅在明確設定 PostgreSQL provider 時才讀取資料庫
-- 家電問卷需求會保留給 AI 生圖，不會進入第 6 步 2D/3D 擺設
-
-先建立 `.env`：
-
-```dotenv
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=roompilot_db
-DB_USER=postgres
-DB_PASSWORD=安裝 PostgreSQL 時自行設定的密碼
-```
-
-網站預設嘗試 PostgreSQL。若本機尚未匯入或資料庫暫時不可連線，會自動
-使用已驗證 JSON 備援；如需強制使用 JSON 進行離線開發，可在 `.env` 加入：
-
-```dotenv
-ROOMPILOT_CATALOG_PROVIDER=json
-```
-
-Dry-run：
-
-```powershell
-.\.venv\Scripts\python.exe scripts/sql/import_official_catalog_to_postgres.py --dry-run
-```
-
-正式匯入：
-
-```powershell
-.\.venv\Scripts\python.exe scripts/sql/import_official_catalog_to_postgres.py
-```
-
-匯入採 transaction 與 UPSERT，預設不刪除其他資料。只有經過人工確認
-才可使用 `--prune-extra`。
-
-目前的責任、資料流與家電邊界請看
-[現行版本總覽](docs/RoomPilot_現行版本總覽.md) 與
+協作規範、跨模組修改流程與各成員的 owner 文件見
+[AGENTS.md](AGENTS.md)、[CLAUDE.md](CLAUDE.md) 與
 [團隊 AI 責任與整合架構](docs/TEAM_AI_OWNERSHIP.md)。
 
 ## 套件版本
 
-Python baseline 經實際測試：
+Python baseline（實測於 Python 3.12.13）：FastAPI 0.140.0、Uvicorn 0.51.0、
+Shapely 2.1.2、NumPy 2.5.1、OpenCV 4.13.0.92、ezdxf 1.4.4、Pillow 12.3.0、pytest 9.1.1。
+完整清單以 [requirements.txt](requirements.txt) 為準；選配 extra 由 `pyproject.toml` 與 `uv.lock` 管理。
 
-- Python `3.12.13`
-- FastAPI `0.140.0`
-- Uvicorn `0.51.0`
-- Shapely `2.1.2`
-- NumPy `2.5.1`
-- OpenCV `4.13.0.92`
-- ezdxf `1.4.4`
-- Pillow `12.3.0`
-- pytest `9.1.1`
+## 授權
 
-完整 Python 直接依賴版本以 [requirements.txt](requirements.txt) 為準。
-可選 OCR 版本由 `pyproject.toml` 與 `uv.lock` 管理。
-
-前端不經打包：`frontend/` 直接以原生 ES module 載入
-`vendor/three/`，沒有 Node.js 建置步驟。
-
-## 版本控制與整合
-
-```powershell
-git fetch origin
-git switch bella
-git pull --ff-only origin bella
-git switch -c integration/<owner>-<feature>
-git diff --name-status bella...origin/<owner-branch>
-git log --oneline bella..origin/<owner-branch>
-```
-
-只移植責任範圍內、符合現行契約的 commit。禁止以整份 ours/theirs
-覆蓋衝突、建立第二套 FastAPI、搬入完整舊前端或提交大型模型。
-
-不得提交：
-
-- `.env` 或密碼
-- `.runtime/` 專案資料
-- `.tmp/` 與快取
-- 大型 GLB、圖片包或模型權重
-- 未驗證的 catalog 或自動標註結果
+本專案採 [GNU General Public License v3.0](LICENSE)。
