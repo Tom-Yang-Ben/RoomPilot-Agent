@@ -8,7 +8,6 @@ from test_scene_workflow import ROOT, run_workflow_script
 STATIC = ROOT / "backend" / "server" / "static"
 PBR_MODULE = STATIC / "scene_pbr_contracts.js"
 ARCHITECTURE_MODULE = STATIC / "scene_architecture.js"
-SHELL_MODULE = STATIC / "scene_shell_geometry.js"
 VIEWER = STATIC / "scene_viewer.js"
 STYLE_PACKS_MODULE = STATIC / "scene_style_packs.js"
 
@@ -592,27 +591,7 @@ def test_gap_window_has_no_usable_span_inside_the_split_host_wall() -> None:
 
 def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
     # 沒有落在任何牆段上的窗(第 4 步切分後的殘段)仍必須出玻璃與補實件:
-    # SceneModel 的開口件一律落在開口自身線段上,不依賴 host 牆。
-    result = run_workflow_script(
-        f"""
-        import {{ buildSceneModel, shellConfig }} from {json.dumps(SHELL_MODULE.as_uri())};
-        const model = buildSceneModel({{
-          walls: [{{ id: "wall-1", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }}],
-          windows: [{{
-            id: "w-detached", sill_height_cm: 90, height_cm: 120,
-            start: {{x: 0, z: 400}}, end: {{x: 150, z: 400}},
-          }}],
-        }}, shellConfig({{}}));
-        console.log(JSON.stringify(model.boxes
-          .filter((box) => box.meta.openingId === "w-detached")
-          .map((box) => box.role)));
-        """
-    )
-    # 縫內(未 hosted)開口除玻璃與補實外,還有自己的頂蓋補齊頂線。
-    assert set(result) == {
-        "window-glass", "window-sill-infill", "window-head-infill", "top-cap",
-    }
-
+    # 正式 viewer 直接依開口自身線段建立 standalone assembly。
     viewer = VIEWER.read_text(encoding="utf-8")
     assert "buildStandaloneOpeningAssemblies(" in viewer
     assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
@@ -646,29 +625,12 @@ def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
 
     assert result == {"openingEdge": True, "realCorner": False}
 
-    # 橋接補牆不得跨過開口縫:縫中央有門/窗時 junction-fill 必須讓路。
-    bridge = run_workflow_script(
-        f"""
-        import {{ buildSceneModel, shellConfig }} from {json.dumps(SHELL_MODULE.as_uri())};
-        const cfg = shellConfig({{}});
-        const walls = (doorAtGap) => ({{
-          walls: [
-            {{ id: "wall-a", start: {{x: -300, z: 0}}, end: {{x: -10, z: 0}} }},
-            {{ id: "wall-b", start: {{x: 10, z: 0}}, end: {{x: 300, z: 0}} }},
-          ],
-          doors: doorAtGap
-            ? [{{ id: "door-1", topology_gap: true, start: {{x: -10, z: 0}}, end: {{x: 10, z: 0}} }}]
-            : [],
-        }});
-        const openGap = buildSceneModel(walls(false), cfg);
-        const doorGap = buildSceneModel(walls(true), cfg);
-        const fills = (model) => model.boxes.filter((box) => box.role === "junction-fill").length;
-        console.log(JSON.stringify({{ open: fills(openGap), door: fills(doorGap) }}));
-        """
-    )
-    assert bridge == {"open": 1, "door": 0}
-
     viewer = VIEWER.read_text(encoding="utf-8")
+    junctions = viewer.split("function buildConfirmedWallJunctionFills", 1)[1].split(
+        "segments.forEach", 1
+    )[0]
+    assert "bridgeTouchesProtectedOpening(start, end)" in junctions
+    assert "protectedOpenings" in junctions
     assert 'roompilotArchitecturalDetail = "wall-junction-seal"' not in viewer
     assert "openingWidth + 1.2" not in viewer
     assert "openingWidth + wallThickness * 2.1" not in viewer
@@ -731,11 +693,11 @@ def test_gap_window_wall_sections_end_flush_with_the_opening() -> None:
         "internalSeam": {"from": 0, "to": 50.6},
     }
 
-    # 牆段切分改由純函式層完成:消縫仍走 wallSectionSpan。
-    shell = SHELL_MODULE.read_text(encoding="utf-8")
-    assert "wallSectionSpan(section.from, section.to, frame.length)" in shell
-
     viewer = VIEWER.read_text(encoding="utf-8")
+    segment_walls = viewer.split("function buildSegmentWalls", 1)[1].split(
+        "function buildConfirmedDoorLeaves", 1
+    )[0]
+    assert "wallSectionSpan(from, to, length)" in segment_walls
     standalone = viewer.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
         "function buildStructuralMembers", 1
     )[0]
@@ -808,23 +770,6 @@ def test_floor_is_a_room_region_plane_with_module_slab_reserved() -> None:
     # viewer 基底樓板 = synchronizedFloorRegions 房間多邊形平面(y=0、
     # roompilotBaseFloor 旗標,presentation ground 藏於 -3.2);逐房材質
     # override 仍用房間多邊形(createRoomSurfaceOverrides 不變)。
-    # 純函式層的 bbox 薄盒樓板(§5.6)保留給 node 單測沿用。
-    result = run_workflow_script(
-        f"""
-        import {{ buildSceneModel, shellConfig }} from {json.dumps(SHELL_MODULE.as_uri())};
-        const model = buildSceneModel({{
-          walls: [
-            {{ id: "wall-1", start: {{x: -200, z: -150}}, end: {{x: 200, z: -150}} }},
-            {{ id: "wall-2", start: {{x: 200, z: -150}}, end: {{x: 200, z: 150}} }},
-          ],
-        }}, shellConfig({{}}));
-        console.log(JSON.stringify(model.floor));
-        """
-    )
-    assert result["kind"] == "floor"
-    assert result["center"] == [0, -2.5, 0]
-    assert result["size"] == [500, 5, 400]
-
     source = VIEWER.read_text(encoding="utf-8")
     assert "createFloorGeometry(sceneData.floorplan, widthCm, depthCm)" in source
     assert "floor.userData.roompilotBaseFloor = true" in source
@@ -850,12 +795,12 @@ def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:
     assert "buildWallMassTopCaps(" in source
     assert "buildContinuousWallTopCaps(" not in source
 
-    # 開口補實件的角色移入純函式層(路徑 A 窗台/窗頂、門楣;路徑 B openingInfill)。
-    shell = SHELL_MODULE.read_text(encoding="utf-8")
-    assert '"window-sill-infill"' in shell
-    assert '"window-head-infill"' in shell
-    assert '"door-lintel"' in shell
-    assert '"opening-infill-wall"' in shell
+    standalone = source.split("function buildStandaloneOpeningAssemblies", 1)[1].split(
+        "function buildStructuralMembers", 1
+    )[0]
+    assert '"window-wall-sill"' in standalone
+    assert '"window-wall-header"' in standalone
+    assert '"door-wall-header"' in standalone
 
 
 def test_orthographic_dollhouse_avoids_gtao_projection_artifacts() -> None:

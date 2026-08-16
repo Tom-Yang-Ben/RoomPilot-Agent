@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { shouldUseDarkFurnitureStage } from "./common.js?v=20260708e";
+import { shouldUseDarkFurnitureStage } from "./common.js?v=sha256-10f8a45f5c18";
 
 const cache = new Map();
 let renderQueue = Promise.resolve();

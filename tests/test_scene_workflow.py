@@ -439,7 +439,7 @@ def test_scene_wizard_exposes_one_panel_for_each_confirmed_step() -> None:
     assert "此空間暫不作答" not in html
     assert "確認此房用途與家具" in html
     assert "我已確認是否有指定家具需求" not in html
-    # bella-new 架構：第 5 步問卷改為嵌入式逐房面板，只收集需求；
+    # 目前架構：第 5 步問卷改為嵌入式逐房面板，只收集需求；
     # GLB 尺寸/碰撞/門窗/走道等實際處理集中在第 6 步（不再有浮動微調面板）。
     assert "此處只收集需求。實際 GLB 尺寸、碰撞、門窗與走道問題會在第 6 步集中說明並處理。" in html
 

@@ -13,7 +13,6 @@
 | 第 7 步 色卡比較圖（備援） | `ROOMPILOT_GENPIC_PALETTE_FALLBACK_MODEL` | 空＝退回第 8 步生圖主模型 |
 | 第 8 步 逐房寫實生圖／改圖（主） | `ROOMPILOT_GENPIC_MODEL` | `google/gemini-3.1-flash-image`（Nano Banana 2） |
 | 第 8 步 逐房寫實生圖／改圖（備援） | `ROOMPILOT_GENPIC_FALLBACK_MODEL` | `google/gemini-2.5-flash-image` |
-| 平面圖開口窗／門／其他 VLM 仲裁（選配，`FP2DXF_VLM`） | `OPENROUTER_VISION_MODELS` | 三顆免費視覺模型輪替 |
 | 家具檢索 query parser（`ROOMPILOT_RAG_PARSER_PROVIDER` 決定用哪列） | `ROOMPILOT_RAG_PARSER_MODEL` → `ROOMPILOT_RAG_{OPENAI,ANTHROPIC}_MODEL` | 見 `rag_parser_*` |
 
 金鑰不在這裡：`OPENROUTER_API_KEY`／`OPENAI_API_KEY`／`ANTHROPIC_API_KEY` 由各呼叫端
@@ -80,13 +79,6 @@ REGISTRY: dict[str, tuple[tuple[str, ...], str, str]] = {
         ("ROOMPILOT_GENPIC_FALLBACK_MODEL",),
         "google/gemini-2.5-flash-image",
         "第 8 步 逐房寫實生圖／改圖（備援）",
-    ),
-    "floorplan_vision": (
-        ("OPENROUTER_VISION_MODELS",),
-        "google/gemma-4-26b-a4b-it:free,"
-        "google/gemma-4-31b-it:free,"
-        "nvidia/nemotron-nano-12b-v2-vl:free",
-        "平面圖開口窗／門／其他 VLM 仲裁（選配）",
     ),
     "rag_parser_openai": (
         ("ROOMPILOT_RAG_OPENAI_MODEL",),

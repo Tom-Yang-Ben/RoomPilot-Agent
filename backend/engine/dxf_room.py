@@ -118,8 +118,3 @@ def build_room_from_dxf(
     room = Room(width=round(bb["maxx"] * _M_TO_CM - ox, 1), depth=round(bb["maxz"] * _M_TO_CM - oz, 1), walls=walls)
     used = "plan" if (mode == "plan" or not polys) else "plan(fallback:無封閉房間)"
     return DxfRoomBuild(room, (ox, oz), used, room.width * room.depth)
-
-
-def room_from_dxf(parsed: dict, mode: str = "largest", **kw) -> Room:
-    """便捷版:只回 Room(引擎直接用)。需要座標映射時改用 build_room_from_dxf。"""
-    return build_room_from_dxf(parsed, mode, **kw).room

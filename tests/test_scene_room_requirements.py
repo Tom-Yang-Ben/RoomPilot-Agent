@@ -187,7 +187,7 @@ def test_questionnaire_enters_step_six_when_scheme_b_needs_adjustment() -> None:
     assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" })' in SCENE
     assert "目前格局無法在保留問卷需求下產生方案 B 的合法配置" in SCENE
     generation = SCENE.split("async function generateWhiteModelFromRequirements", 1)[1].split(
-        "async function addWhiteModelBeamFromWorld", 1
+        "function cancelWhiteModelBeamPlacement", 1
     )[0]
     assert generation.count("await confirmLayout2d({ allowPendingFurniture: true })") == 2
     assert 'state.designSchemes.schemes.B.staleReason = message;' in generation

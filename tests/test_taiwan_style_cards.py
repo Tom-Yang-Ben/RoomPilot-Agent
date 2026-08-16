@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from backend.server.main import _model_priority_ids, build_site_payload
@@ -47,6 +48,19 @@ def test_styles_page_is_the_six_style_gallery():
     assert "renderActiveStyle();" not in javascript
 
 
+def test_styles_page_copy_uses_current_catalog_card_ids():
+    javascript = (ROOT / "backend" / "server" / "static" / "styles.js").read_text(encoding="utf-8")
+    cards = build_site_payload()["taiwan_style_cards"]
+    card_ids = {card["card_id"] for group in cards for card in group["cards"]}
+    copy_block = javascript.split("const STYLE_CARD_COPY = {", 1)[1].split("\n};", 1)[0]
+    copy_ids = set(re.findall(r"^  ([a-z0-9_]+):", copy_block, re.MULTILINE))
+
+    assert copy_ids == card_ids
+    assert "japanese_minimal_" not in javascript
+    assert "nordic_modern_" not in javascript
+    assert "wabi_sabi_" not in javascript
+
+
 def test_unresolvable_external_furniture_does_not_steal_glb_priority():
     items = [{
         "_catalog_origin": "import",
@@ -59,12 +73,19 @@ def test_unresolvable_external_furniture_does_not_steal_glb_priority():
 
 
 def test_scene_accepts_style_card_handoff_from_styles_page():
-    javascript = (ROOT / "backend" / "server" / "static" / "scene.js").read_text(encoding="utf-8")
+    static = ROOT / "backend" / "server" / "static"
+    javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
+    styles = (static / "styles.js").read_text(encoding="utf-8")
     main = (ROOT / "backend" / "server" / "main.py").read_text(encoding="utf-8")
     service = (ROOT / "backend" / "server" / "scene_service.py").read_text(encoding="utf-8")
-    assert 'sceneQuery.get("style_card")' in javascript
-    assert "applyStyleCardFromQuery" in javascript
-    assert "style_card_id: requestedStyleCardId" in javascript
+    assert 'const STYLE_CARD_STORAGE_KEY = "roompilot:selectedStyleCard"' in styles
+    assert 'new URLSearchParams({ style: group.scene_style_id, style_card: card.card_id })' in styles
+    assert 'query.get("style_card") || stored?.style_card' in javascript
+    assert "function applyStyleCardHandoff" in javascript
+    assert "candidate.id === handoff.cardId" in javascript
+    assert "stylePackId: pack.id" in javascript
+    assert "projectQuery.set(\"project_id\", state.projectId)" in javascript
+    assert not (static / "scene.js").exists()
     assert '"style_card_id": payload.get("style_card_id")' in main
     assert 'questionnaire.get("style_card_id")' in service
 

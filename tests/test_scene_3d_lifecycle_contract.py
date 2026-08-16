@@ -61,7 +61,7 @@ def test_viewer_exposes_incremental_furniture_operations() -> None:
 
 
 def test_viewer_exposes_update_room_surfaces_used_by_material_flow() -> None:
-    """第 6→7 步材質狀態機呼叫 whiteViewer.updateRoomSurfaces()（bella-new 拼接帶入）。
+    """第 6→7 步材質狀態機呼叫 whiteViewer.updateRoomSurfaces()。
     viewer 若未匯出此方法，confirmWhiteModel 會擲
     "updateRoomSurfaces is not a function" → 未捕捉的 promise → 「確認家具配置並
     調整材質」按鈕點了沒反應。回歸守門:呼叫端存在,且 viewer 公開 API 真的有它。"""

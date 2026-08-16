@@ -8,7 +8,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { classifyMaterialSlot } from "./scene_material_schemes.js?v=20260712b";
+import { classifyMaterialSlot } from "./scene_material_schemes.js?v=sha256-74eb894736af";
 import {
   architecturalPbrProfile,
   furniturePbrProfile,
@@ -22,7 +22,7 @@ import {
   wallSectionSpan,
   wallSegmentForOpening,
 } from "./scene_architecture.js?v=sha256-7899eae4c7ba";
-import { createViewModeState } from "./scene_view_modes.js?v=20260712b";
+import { createViewModeState } from "./scene_view_modes.js?v=sha256-13bc85e6a748";
 import { columnGeometryDescriptor } from "./scene_structure_geometry.js?v=sha256-041eec531ccf";
 import { windowOpeningMetrics } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
@@ -5727,7 +5727,7 @@ export function createSceneViewer(
 
   return {
     loadScene,
-    // The bella-new step 5-8 material state machine calls updateRoomSurfaces to
+    // The Step 5-8 material state machine calls updateRoomSurfaces to
     // re-apply per-room wall/floor/ceiling materials after the user edits them.
     // roomId is an unused targeting hint; rebuilding the shell from the current
     // sceneData yields the same visible result (only edited surfaces change).

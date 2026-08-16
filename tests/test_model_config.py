@@ -10,7 +10,6 @@ import os
 import pytest
 
 from backend.agent.llm import OpenRouterGateway, default_text_model, report_model
-from backend.floorplan.vlm_judge import get_vision_models
 from backend.model_config import REGISTRY, model_default, model_id, model_list
 from backend.server.ai_render_service import _palette_gateway
 from backend.server.intake_service import _models as intake_models
@@ -40,7 +39,6 @@ def test_every_feature_resolves_to_a_model_id() -> None:
             "ROOMPILOT_GENPIC_PALETTE_FALLBACK_MODEL",
             lambda: _palette_gateway().image_fallback_model,
         ),
-        ("OPENROUTER_VISION_MODELS", lambda: get_vision_models()[0]),
     ],
 )
 def test_each_feature_reads_its_own_env_var(monkeypatch, env_name, resolve) -> None:
@@ -73,5 +71,5 @@ def test_reading_models_never_leaks_env_file_secrets_into_the_process(monkeypatc
     """
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     model_id("genpic")
-    model_list("floorplan_vision")
+    model_list("intake")
     assert os.getenv("OPENROUTER_API_KEY") is None

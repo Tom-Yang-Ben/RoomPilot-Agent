@@ -11,4 +11,3 @@ Owner: Bella. Read `docs/owners/BELLA.md`.
 - Cross-folder changes must name the producer owner and test both boundaries.
 
 Minimum tests: API/contract tests for the feature plus full `pytest -q`.
-

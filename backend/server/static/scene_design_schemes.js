@@ -166,4 +166,3 @@ export function selectedSchemeForRoom(designSchemes, roomId, fallback = "A") {
   const selected = validRoomSelections(designSchemes?.room_selections)[String(roomId)];
   return ["A", "B"].includes(selected) ? selected : fallback;
 }
-

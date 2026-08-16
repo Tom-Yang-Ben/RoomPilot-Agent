@@ -30,12 +30,12 @@ def test_render_submission_requires_a_user_visible_render_brief() -> None:
     assert "function openRenderBriefDialog(" in source
     assert "function confirmRenderBriefAndSubmit()" in source
     assert "render_brief: renderBrief" in source
-    assert "room_scheme_selections" in source
+    assert "room_selections" in source
     assert "configuration_snapshot" in source
 
 
 def test_step_six_surface_controls_live_in_the_white_model_sidebar_tab() -> None:
-    # bella-new 架構：材質微調不再彈任務對話框（open-surface-adjustment /
+    # 目前架構：材質微調不再彈任務對話框（open-surface-adjustment /
     # surface-adjustment-dialog / openStepSixTaskDialog 皆已拆除），改為第 6 步
     # 白模側欄三分頁的「牆面與地面」分頁（white-model-surface-entry），並以
     # confirmStepSixRoomSurfaces / unlockStepSixRoomSurfaces 提供逐房草稿→鎖定

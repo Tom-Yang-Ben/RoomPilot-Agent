@@ -2088,25 +2088,6 @@ def _region_boundary_by_id(
     return None
 
 
-def scene_object_in_boundary(
-    item: dict[str, Any],
-    room: Room,
-    boundary: Polygon | None,
-) -> bool:
-    """以家具中心判斷所屬房間；貼牆家具可略跨內縮後的房間邊界。"""
-    if not item.get("position_cm") or item.get("placement_failed"):
-        return False
-    if boundary is None:
-        return True
-    position = item.get("position_cm") or {}
-    return boundary.buffer(12).contains(
-        Point(
-            float(position.get("x") or 0) + room.width / 2,
-            float(position.get("z") or 0) + room.depth / 2,
-        )
-    )
-
-
 def validate_single_placement(
     floorplan: dict[str, Any] | None,
     item: dict[str, Any],
@@ -3086,17 +3067,3 @@ def build_scene_payload(
             "unavailable_types": unavailable_types,
         },
     }
-
-
-def save_uploaded_floorplan(upload_dir: Path, upload) -> str | None:
-    if not upload or not getattr(upload, "filename", ""):
-        return None
-
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    safe_name = f"{uuid.uuid4().hex}_{Path(upload.filename).name}"
-    target = upload_dir / safe_name
-
-    with target.open("wb") as output:
-        output.write(upload.file.read())
-
-    return str(target)

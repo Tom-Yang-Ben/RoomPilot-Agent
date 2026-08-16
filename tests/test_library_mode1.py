@@ -168,6 +168,9 @@ def test_library_exposes_mode_one_room_type_and_proposal_contract() -> None:
     assert "return (group?.types || [])" in script
     assert "groupType.type_name_zh" in script
     assert "MODE_ONE_CATEGORY_DEFS" not in script
+    assert "if (item.model_url)" in script
+    assert "viewer.clear();" in script
+    assert "此離線型錄項目沒有可用的 GLB 模型" in script
 
 
 def test_library_places_style_next_to_space_selector() -> None:

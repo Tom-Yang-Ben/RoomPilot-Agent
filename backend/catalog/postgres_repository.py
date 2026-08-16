@@ -1,15 +1,9 @@
-"""PostgreSQL read repository for a developer-supplied furniture catalog.
-
-The repository owns catalog querying and row-to-domain mapping.  FastAPI is a
-consumer of this module: it must not load the complete catalog merely to
-filter, count, facet, or paginate it.
-"""
+"""PostgreSQL read repository for a developer-supplied furniture catalog."""
 
 from __future__ import annotations
 
 import os
 from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
 from typing import Any, Iterator
@@ -39,11 +33,6 @@ _STYLE_ID_MAP = {
     "scandinavian": "scandinavian",
     "scandi_luxe": "scandinavian",
 }
-
-_STYLE_CODES_BY_API_ID: dict[str, tuple[str, ...]] = {}
-for _database_style, _api_style in _STYLE_ID_MAP.items():
-    _STYLE_CODES_BY_API_ID.setdefault(_api_style, ())
-    _STYLE_CODES_BY_API_ID[_api_style] += (_database_style,)
 
 _TYPE_ID_MAP = {"planter": "flower-pots-planter"}
 
@@ -82,101 +71,7 @@ _GROUP_TYPES = {
     },
 }
 
-_FACET_TRANSLATIONS = {
-    "color": {
-        "white": "白色",
-        "black": "黑色",
-        "grey": "灰色",
-        "gray": "灰色",
-        "beige": "米色",
-        "brown": "棕色",
-        "green": "綠色",
-        "blue": "藍色",
-        "red": "紅色",
-        "silver": "銀色",
-        "gold": "金色",
-        "yellow": "黃色",
-        "wood": "木色",
-        "walnut": "胡桃木色",
-        "navy": "海軍藍",
-    },
-    "material": {
-        "wood": "木材",
-        "oak": "橡木",
-        "metal": "金屬",
-        "fabric": "布料",
-        "textile": "織物",
-        "leather": "皮革",
-        "glass": "玻璃",
-        "steel": "鋼材",
-        "birch": "樺木",
-        "walnut": "胡桃木",
-        "wood veneer": "木皮",
-        "solid wood": "實木",
-        "plywood": "夾板",
-        "plastic": "塑膠",
-    },
-}
-
-_IGNORED_FACET_VALUES = {"", "尚未整理", "未整理", "unknown", "none", "null", "-"}
-_SIZE_OPTIONS = [
-    {"value": "small", "label": "小型（80 cm 以下）"},
-    {"value": "medium", "label": "中型（81–160 cm）"},
-    {"value": "large", "label": "大型（161 cm 以上）"},
-]
-
-
-_TYPE_SQL = "COALESCE(normalized_type, category_code, source_type, 'furniture')"
-_GROUP_SQL = "COALESCE(taxonomy_group, 'soft_decor')"
 _HAS_MODEL_SQL = "(glb_url IS NOT NULL AND BTRIM(glb_url) <> '')"
-_SIZE_SQL = """
-CASE
-    WHEN GREATEST(width_cm, depth_cm) <= 80 THEN 'small'
-    WHEN GREATEST(width_cm, depth_cm) <= 160 THEN 'medium'
-    WHEN GREATEST(width_cm, depth_cm) > 160 THEN 'large'
-    ELSE NULL
-END
-""".strip()
-_SEARCH_SQL = """
-LOWER(CONCAT_WS(
-    ' ', item_id, name_en, name_zh, category_code, category_name_zh,
-    source_type, primary_color, primary_material,
-    ARRAY_TO_STRING(COALESCE(style_codes::TEXT[], ARRAY[]::TEXT[]), ' '),
-    ARRAY_TO_STRING(COALESCE(room_codes::TEXT[], ARRAY[]::TEXT[]), ' '),
-    object_type_zh, description,
-    ARRAY_TO_STRING(COALESCE(rag_text, ARRAY[]::TEXT[]), ' ')
-))
-""".strip()
-
-
-@dataclass(frozen=True)
-class CatalogQuery:
-    style: str | None = None
-    group: str | None = None
-    item_type: str | None = None
-    q: str | None = None
-    page: int = 1
-    page_size: int = 24
-    has_model: bool | None = None
-    color: str | None = None
-    material: str | None = None
-    size: str | None = None
-
-
-@dataclass(frozen=True)
-class CatalogPage:
-    items: tuple[dict[str, Any], ...]
-    page: int
-    page_size: int
-    total: int
-    type_options: tuple[dict[str, Any], ...]
-    category_groups: tuple[dict[str, Any], ...]
-    filter_options: dict[str, list[dict[str, Any]]]
-    model_urls: tuple[str, ...]
-
-    @property
-    def has_next_page(self) -> bool:
-        return self.page * self.page_size < self.total
 
 
 def _read_env_file(path: Path) -> dict[str, str]:
@@ -210,10 +105,6 @@ def catalog_provider_mode(project_dir: Path) -> str:
     raise RuntimeError(
         "invalid ROOMPILOT_CATALOG_PROVIDER; expected fixture or postgres"
     )
-
-
-def postgres_catalog_requested(project_dir: Path) -> bool:
-    return catalog_provider_mode(project_dir) == "postgres"
 
 
 def _database_config(project_dir: Path) -> dict[str, Any]:
@@ -432,69 +323,6 @@ def _payload_from_row(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _normalize_facet_value(value: object, key: str) -> str:
-    import re
-
-    translations = _FACET_TRANSLATIONS.get(key, {})
-    parts = [part.strip() for part in re.split(r"[,/、]+", str(value or "")) if part.strip()]
-    return "、".join(translations.get(part.casefold(), part) for part in parts)
-
-
-def _facet_candidates(value: str, key: str) -> list[str]:
-    normalized = _normalize_facet_value(value, key).casefold()
-    candidates = {value.strip().casefold(), normalized}
-    for source, label in _FACET_TRANSLATIONS.get(key, {}).items():
-        if label.casefold() == normalized:
-            candidates.add(source.casefold())
-    return sorted(candidate for candidate in candidates if candidate)
-
-
-def _style_codes(style: str) -> list[str]:
-    return list(_STYLE_CODES_BY_API_ID.get(style, (style,)))
-
-
-def _where_clause(
-    query: CatalogQuery,
-    *,
-    include_group: bool = True,
-    include_type: bool = True,
-    include_query: bool = True,
-    include_color: bool = True,
-    include_material: bool = True,
-    include_size: bool = True,
-) -> tuple[str, list[Any]]:
-    predicates = ["kind = 'furniture'"]
-    params: list[Any] = []
-
-    if query.style:
-        predicates.append(
-            "COALESCE(style_codes::TEXT[], ARRAY[]::TEXT[]) && %s::TEXT[]"
-        )
-        params.append(_style_codes(query.style))
-    if include_group and query.group:
-        predicates.append(f"{_GROUP_SQL} = %s")
-        params.append(query.group)
-    if include_type and query.item_type:
-        predicates.append(f"{_TYPE_SQL} = %s")
-        params.append(query.item_type)
-    if query.has_model is not None:
-        predicates.append(f"{_HAS_MODEL_SQL} = %s")
-        params.append(query.has_model)
-    if include_query and query.q and query.q.strip():
-        predicates.append(f"POSITION(LOWER(%s) IN {_SEARCH_SQL}) > 0")
-        params.append(query.q.strip())
-    if include_color and query.color:
-        predicates.append("LOWER(BTRIM(COALESCE(primary_color, ''))) = ANY(%s::TEXT[])")
-        params.append(_facet_candidates(query.color, "color"))
-    if include_material and query.material:
-        predicates.append("LOWER(BTRIM(COALESCE(primary_material, ''))) = ANY(%s::TEXT[])")
-        params.append(_facet_candidates(query.material, "material"))
-    if include_size and query.size:
-        predicates.append(f"{_SIZE_SQL} = %s")
-        params.append(query.size)
-    return " WHERE " + " AND ".join(predicates), params
-
-
 def _dict_cursor(connection: Any):
     try:
         from psycopg2.extras import RealDictCursor
@@ -506,157 +334,6 @@ def _dict_cursor(connection: Any):
 def catalog_dict_cursor(connection: Any):
     """Return a RealDictCursor without duplicating psycopg2 setup code."""
     return _dict_cursor(connection)
-
-
-def _counted_facets(cursor: Any, where_sql: str, params: list[Any]) -> dict[str, list[dict[str, Any]]]:
-    counts_by_key: dict[str, dict[str, int]] = {"color": {}, "material": {}}
-    for key, column in (("color", "primary_color"), ("material", "primary_material")):
-        cursor.execute(
-            f"SELECT {column} AS value, COUNT(*) AS count FROM {_VIEW}"
-            f"{where_sql} GROUP BY {column}",
-            params,
-        )
-        for row in cursor.fetchall():
-            value = _normalize_facet_value(row.get("value"), key)
-            if value.casefold() in _IGNORED_FACET_VALUES or "�" in value:
-                continue
-            counts_by_key[key][value] = counts_by_key[key].get(value, 0) + int(row["count"])
-
-    def options(key: str) -> list[dict[str, Any]]:
-        return [
-            {"value": value, "label": value, "count": count}
-            for value, count in sorted(
-                counts_by_key[key].items(), key=lambda pair: (-pair[1], pair[0])
-            )[:18]
-        ]
-
-    return {"sizes": list(_SIZE_OPTIONS), "colors": options("color"), "materials": options("material")}
-
-
-def _type_options(cursor: Any, query: CatalogQuery) -> tuple[dict[str, Any], ...]:
-    where_sql, params = _where_clause(
-        query,
-        include_type=False,
-        include_query=False,
-        include_color=False,
-        include_material=False,
-        include_size=False,
-    )
-    cursor.execute(
-        f"SELECT {_TYPE_SQL} AS type, "
-        f"MAX(COALESCE(taxonomy_type_zh, category_name_zh, {_TYPE_SQL})) AS type_name_zh, "
-        f"COUNT(*) AS count FROM {_VIEW}{where_sql} GROUP BY 1 ORDER BY count DESC, type",
-        params,
-    )
-    return tuple(
-        {
-            "type": row["type"],
-            "count": int(row["count"]),
-            "type_name_zh": _repair_text(row.get("type_name_zh")) or row["type"],
-        }
-        for row in cursor.fetchall()
-    )
-
-
-def _category_groups(cursor: Any, query: CatalogQuery) -> tuple[dict[str, Any], ...]:
-    where_sql, params = _where_clause(
-        query,
-        include_group=False,
-        include_type=False,
-        include_query=False,
-        include_color=False,
-        include_material=False,
-        include_size=False,
-    )
-    cursor.execute(
-        f"SELECT {_GROUP_SQL} AS group_id, {_TYPE_SQL} AS type, "
-        f"MAX(COALESCE(taxonomy_type_zh, category_name_zh, {_TYPE_SQL})) AS type_name_zh, "
-        f"COUNT(*) AS count FROM {_VIEW}{where_sql} GROUP BY 1, 2",
-        params,
-    )
-    groups: dict[str, dict[str, Any]] = {}
-    for row in cursor.fetchall():
-        group_id = str(row.get("group_id") or "soft_decor")
-        group = groups.setdefault(
-            group_id,
-            {
-                "group_id": group_id,
-                "group_name_zh": _GROUP_NAMES.get(group_id, group_id),
-                "types": [],
-            },
-        )
-        group["types"].append(
-            {
-                "type": row["type"],
-                "type_name_zh": _repair_text(row.get("type_name_zh")) or row["type"],
-                "count": int(row["count"]),
-            }
-        )
-    for group in groups.values():
-        group["types"].sort(key=lambda entry: entry["type_name_zh"])
-    return tuple(sorted(groups.values(), key=lambda entry: entry["group_name_zh"]))
-
-
-def query_catalog_page(project_dir: Path, query: CatalogQuery) -> CatalogPage:
-    """Execute SQL filtering, counting, facets and pagination for one API page."""
-    if query.page < 1 or not 1 <= query.page_size <= 80:
-        raise ValueError("catalog_page_out_of_range")
-
-    final_where, final_params = _where_clause(query)
-    facet_where, facet_params = _where_clause(
-        query, include_color=False, include_material=False, include_size=False
-    )
-    offset = (query.page - 1) * query.page_size
-
-    with _borrow_connection(project_dir) as connection:
-        with _dict_cursor(connection) as cursor:
-            cursor.execute(
-                f"SELECT COUNT(*) AS total FROM {_VIEW}{final_where}", final_params
-            )
-            total = int(cursor.fetchone()["total"])
-
-            cursor.execute(
-                f"SELECT * FROM {_VIEW}{final_where} ORDER BY item_id LIMIT %s OFFSET %s",
-                [*final_params, query.page_size, offset],
-            )
-            items = tuple(_payload_from_row(dict(row)) for row in cursor.fetchall())
-
-            type_options = _type_options(cursor, query)
-            category_groups = _category_groups(cursor, query)
-            filter_options = _counted_facets(cursor, facet_where, facet_params)
-
-            cursor.execute(
-                f"SELECT glb_url FROM {_VIEW}{final_where} ORDER BY item_id LIMIT 24",
-                final_params,
-            )
-            model_urls = tuple(
-                str(row["glb_url"])
-                for row in cursor.fetchall()
-                if str(row.get("glb_url") or "").startswith(("https://", "http://"))
-            )
-
-    return CatalogPage(
-        items=items,
-        page=query.page,
-        page_size=query.page_size,
-        total=total,
-        type_options=type_options,
-        category_groups=category_groups,
-        filter_options=filter_options,
-        model_urls=tuple(dict.fromkeys(model_urls)),
-    )
-
-
-def get_catalog_item(project_dir: Path, furniture_id: str) -> dict[str, Any] | None:
-    """Fetch one active official furniture item by its primary key."""
-    with _borrow_connection(project_dir) as connection:
-        with _dict_cursor(connection) as cursor:
-            cursor.execute(
-                f"SELECT * FROM {_VIEW} WHERE kind = 'furniture' AND item_id = %s",
-                (furniture_id,),
-            )
-            row = cursor.fetchone()
-    return _payload_from_row(dict(row)) if row else None
 
 
 def get_catalog_items_by_ids(
@@ -713,68 +390,6 @@ def load_price_index(project_dir: Path) -> dict[str, int]:
         if item_id and price:
             index[item_id] = round(price)
     return index
-
-
-def catalog_summary(project_dir: Path) -> dict[str, Any]:
-    """Build current six-style counts from SQL without a process-lifetime cache."""
-    mapping = tuple(_STYLE_ID_MAP.items())
-    values_sql = ", ".join(["(%s, %s)"] * len(mapping))
-    mapping_params = [value for pair in mapping for value in pair]
-    expanded_cte = f"""
-        WITH style_map(database_style, ui_style) AS (VALUES {values_sql}),
-        expanded AS (
-            SELECT DISTINCT catalog.item_id, catalog.normalized_type, style_map.ui_style
-            FROM {_VIEW} AS catalog
-            CROSS JOIN LATERAL UNNEST(
-                COALESCE(catalog.style_codes::TEXT[], ARRAY[]::TEXT[])
-            ) AS source_style(database_style)
-            JOIN style_map
-              ON style_map.database_style = source_style.database_style
-            WHERE catalog.kind = 'furniture'
-        )
-    """
-    with _borrow_connection(project_dir) as connection:
-        with _dict_cursor(connection) as cursor:
-            cursor.execute(
-                f"SELECT COUNT(*) AS total FROM {_VIEW} WHERE kind = 'furniture'"
-            )
-            total = int(cursor.fetchone()["total"])
-            cursor.execute(
-                expanded_cte + "SELECT COUNT(DISTINCT item_id) AS styled FROM expanded",
-                mapping_params,
-            )
-            styled_count = int(cursor.fetchone()["styled"])
-            cursor.execute(
-                expanded_cte
-                + """
-                  SELECT ui_style, normalized_type, COUNT(*) AS count
-                  FROM expanded
-                  GROUP BY ui_style, normalized_type
-                  ORDER BY ui_style, count DESC, normalized_type
-                  """,
-                mapping_params,
-            )
-            rows = cursor.fetchall()
-    style_counts: dict[str, int] = {}
-    style_type_counts: dict[str, dict[str, int]] = {}
-    for row in rows:
-        style_id = str(row["ui_style"])
-        item_type = str(row.get("normalized_type") or "unknown")
-        count = int(row["count"])
-        style_counts[style_id] = style_counts.get(style_id, 0) + count
-        style_type_counts.setdefault(style_id, {})[item_type] = count
-    return {
-        "total_furniture": total,
-        "styled_furniture": styled_count,
-        "fallback_furniture": total - styled_count,
-        "style_furniture_counts": style_counts,
-        "style_type_counts": {
-            style_id: sorted(
-                type_counts.items(), key=lambda pair: (-pair[1], pair[0])
-            )
-            for style_id, type_counts in style_type_counts.items()
-        },
-    }
 
 
 def catalog_provider_status(project_dir: Path) -> dict[str, Any]:

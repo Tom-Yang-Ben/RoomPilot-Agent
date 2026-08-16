@@ -268,7 +268,6 @@ class GenPicInfoTool:
         for key, label in (("地板", "地板材質"), ("牆面", "牆壁材質")):
             if materials.get(key):
                 segments.append(f"{label}：{materials[key]}")
-        
         furniture = furniture_lines(scene, room)
         # 提示詞用帶外觀描述的版本；鎖定清單仍存短標籤（改圖指令要精簡）。
         described = furniture_prompt_lines(scene, room)

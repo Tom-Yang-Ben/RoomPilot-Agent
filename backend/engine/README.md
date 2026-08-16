@@ -29,8 +29,8 @@ When several violations apply, the first one is returned. Consumers must preserv
 | `models.py`, `schema.py` | Public Python objects, centimetre serialization and tool schemas |
 | `geometry.py`, `clearance.py`, `obb.py` | Body, wall, oriented-box and clearance checks |
 | `placement.py`, `adjustment.py` | Deterministic placement and legal move/rotate operations |
-| `raster.py`, `segment.py`, `constraints.py` | Occupancy grid, passages and forbidden masks |
-| `rules.py`, `layout_model.py`, `layout_bridge.py` | Room rules and conversion from confirmed layout data |
+| `raster.py`, `constraints.py` | Occupancy grid, passages and forbidden masks |
+| `rules.py`, `layout_model.py` | Room rules and confirmed-layout data models |
 | `dxf_room.py` | Legacy DXF adapter; unit conversion is isolated at its input boundary |
 
 `place_furniture()` and `place_furniture_batch()` provide the core placement API. `adjust_furniture()` supports legal move and rotate operations. `schema.py` contains the compatibility serialization used by server and agent adapters.

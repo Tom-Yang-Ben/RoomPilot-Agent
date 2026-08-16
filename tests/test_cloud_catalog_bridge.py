@@ -95,7 +95,6 @@ def test_catalog_status_exposes_provider_and_verified_count(monkeypatch, tmp_pat
         (main.furniture_model_gltf, ("legacy-chair",)),
         (main.furniture_model_buffer, ("legacy-chair",)),
         (main.furniture_model_image, ("legacy-chair", 0)),
-        (main.sample_furniture_file, ("legacy-chair.glb",)),
     ],
 )
 def test_strict_cloudfront_blocks_legacy_local_model_endpoints(monkeypatch, call, args):
@@ -105,29 +104,6 @@ def test_strict_cloudfront_blocks_legacy_local_model_endpoints(monkeypatch, call
         call(*args)
 
     assert exc_info.value.status_code == 410
-
-
-def test_strict_cloudfront_sample_list_does_not_advertise_local_glbs(monkeypatch):
-    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "cloudfront")
-
-    assert main.sample_furniture() == {
-        "furniture": [],
-        "provider": "aws_cloudfront",
-        "message": "請由家具型錄取得已驗證的 CloudFront model_url。",
-    }
-
-
-def test_strict_catalog_legacy_viewer_alias_contains_only_cloudfront_urls(monkeypatch):
-    monkeypatch.setenv("ROOMPILOT_MODEL_DELIVERY_MODE", "cloudfront")
-    items = [
-        {"model_url": "https://cdn.example/models/chair.glb", "has_model": True},
-        {"model_url": "/api/furniture/local/model", "has_model": True},
-        {"model_url": None, "has_model": False},
-    ]
-
-    assert main._legacy_viewer_models(items) == [
-        "https://cdn.example/models/chair.glb"
-    ]
 
 
 def test_only_the_formal_static_frontend_is_distributed():

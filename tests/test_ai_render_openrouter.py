@@ -122,7 +122,7 @@ def test_prompt_supplements_all_collected_info() -> None:
 
     assert [row["status"] for row in outcome["results"]] == ["completed"]
     prompt = gateway.prompts[0]
-    # 模板（yen genpic 更新）：極致寫實 + 風格 + 房間名；數值資訊（尺寸）不提供。
+    # 目前模板：極致寫實 + 風格 + 房間名；數值資訊（尺寸）不提供。
     assert "極致寫實" in prompt
     assert "房間：客廳" in prompt
     # 家具鎖定（不含尺寸與位置措辭，附材質描述），placement_failed 不進畫面。
@@ -130,7 +130,7 @@ def test_prompt_supplements_all_collected_info() -> None:
     assert "210x90cm" not in prompt
     assert "房間中央" not in prompt and "面向" not in prompt
     assert "無法擺放的櫃" not in prompt
-    # 鎖定擺設位置與視角（yen genpic 更新措辭；視角一併鎖住是 2026-08-13 的加強）。
+    # 鎖定擺設位置與視角；視角也屬不可變更的場景條件。
     assert "草圖中的格局位置不可變動、視角位置不可變動" in prompt
     # 家電只作為畫面 context。
     assert "家電：" in prompt and "雙門冰箱" in prompt

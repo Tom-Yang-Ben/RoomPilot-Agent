@@ -158,8 +158,3 @@ def image_manifest_status() -> dict:
         "verified_image_count": image_count,
         "cloudfront_base_url": _cloudfront_base_url(),
     }
-
-
-def clear_cloud_image_caches() -> None:
-    _current_manifest_index.cache_clear()
-    _manifest_index.cache_clear()

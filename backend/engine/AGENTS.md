@@ -11,4 +11,3 @@ Owner: Ancai. Read `docs/owners/ANCAI.md` and `backend/engine/README.md`.
 
 Minimum tests: `test_placement.py`, `test_clearance.py`, and affected integration
 tests.
-

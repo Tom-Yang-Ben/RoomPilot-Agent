@@ -239,33 +239,7 @@ def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation
 
 
 def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
-    """viewer 內聯 buildSegmentWalls:牆段切分、窗上下補實、踢腳板與每段頂蓋
-    直接建 mesh。純函式層(scene_shell_geometry)保留同等行為供 node 單測。"""
-    shell_module = ROOT / "backend" / "server" / "static" / "scene_shell_geometry.js"
-    result = run_workflow_script(
-        f"""
-        import {{ buildSceneModel, shellConfig }} from {json.dumps(shell_module.as_uri())};
-        const model = buildSceneModel({{
-          walls: [{{ id: "wall-1", start: {{x: -200, z: 0}}, end: {{x: 200, z: 0}} }}],
-          windows: [{{
-            id: "w-1", host_wall_id: "wall-1", width_cm: 100,
-            sill_height_cm: 90, height_cm: 120,
-            start: {{x: -50, z: 0}}, end: {{x: 50, z: 0}},
-          }}],
-        }}, shellConfig({{}}));
-        const roles = model.boxes.map((box) => box.role);
-        const cap = model.boxes.find((box) => box.role === "top-cap");
-        console.log(JSON.stringify({{ roles, capSize: cap.size, capCenterY: cap.center[1] }}));
-        """
-    )
-    assert result["roles"].count("wall-section") == 2
-    assert "window-glass" in result["roles"]
-    assert "window-sill-infill" in result["roles"]
-    assert "window-head-infill" in result["roles"]
-    assert result["roles"].count("top-cap") == 1
-    assert result["capSize"][1] == 2.5
-    assert result["capCenterY"] == 281.25
-
+    """正式 viewer 直接建立牆段、開口補實、踢腳板與頂蓋。"""
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
@@ -279,62 +253,22 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
 
 
 def test_confirmed_step4_wall_junctions_fill_only_micro_gaps_outside_openings() -> None:
-    """已確認牆端點間 ≤ max(36, 2·牆厚) 的微縫以橋接牆補上;超過門檻的
-    大縫(真實通道)不得補。橋接為 SceneModel 的 junction-fill 盒。"""
-    shell_module = ROOT / "backend" / "server" / "static" / "scene_shell_geometry.js"
-    result = run_workflow_script(
-        f"""
-        import {{ buildSceneModel, shellConfig }} from {json.dumps(shell_module.as_uri())};
-        const cfg = shellConfig({{}});
-        const plan = (gapCm) => ({{
-          walls: [
-            {{ id: "wall-a", start: {{x: -300, z: 0}}, end: {{x: -gapCm / 2, z: 0}} }},
-            {{ id: "wall-b", start: {{x: gapCm / 2, z: 0}}, end: {{x: 300, z: 0}} }},
-          ],
-        }});
-        const fills = (gapCm) => buildSceneModel(plan(gapCm), cfg).boxes
-          .filter((box) => box.role === "junction-fill");
-        const micro = fills(20);
-        console.log(JSON.stringify({{
-          micro: micro.length,
-          detail: micro[0]?.meta?.detail || null,
-          wide: fills(80).length,
-        }}));
-        """
+    """正式 viewer 只橋接小型共線辨識縫，且不得跨過已確認開口。"""
+    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
+        encoding="utf-8"
     )
-    assert result["micro"] == 1
-    assert result["detail"] == "confirmed-wall-junction-fill"
-    assert result["wide"] == 0
-
-    shell = shell_module.read_text(encoding="utf-8")
-    assert "junction: Object.freeze({ minGapCm: 0.8, maxGapFactor: 2, maxGapFloorCm: 36 })" in shell
-    assert "const touchesOpening" in shell
+    junctions = source.split("function buildConfirmedWallJunctionFills", 1)[1].split(
+        "segments.forEach", 1
+    )[0]
+    assert "Math.max(36, Number(wallThickness) * 2)" in junctions
+    assert "distance > 0.8 && distance <= junctionToleranceCm" in junctions
+    assert "sharesWallAxis(endpoint.segment, candidate.segment)" in junctions
+    assert "bridgeTouchesProtectedOpening(start, end)" in junctions
+    assert 'roompilotArchitecturalDetail = "confirmed-wall-junction-fill"' in source
 
 
 def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
-    """補實件以 frameAllowance 讓出框位、厚度內縮 2·epsilon 防 z-fighting;
-    框件貼齊牆面(faceOffset 0),玻璃盒由 SceneModel 置中於開口線。"""
-    shell_module = ROOT / "backend" / "server" / "static" / "scene_shell_geometry.js"
-    result = run_workflow_script(
-        f"""
-        import {{ windowPieces, shellConfig }} from {json.dumps(shell_module.as_uri())};
-        const pieces = windowPieces({{
-          id: "w-1", sill_height_cm: 90, height_cm: 120,
-          start: {{x: 0, z: 0}}, end: {{x: 150, z: 0}},
-        }}, shellConfig({{}}), {{ kind: "window" }});
-        console.log(JSON.stringify(pieces));
-        """
-    )
-    by_role = {piece["role"]: piece for piece in result}
-    sill = by_role["window-sill-infill"]
-    head = by_role["window-head-infill"]
-    glass = by_role["window-glass"]
-    assert sill["size"][1] == 89.4  # 90 - frameAllowance 0.6
-    assert head["center"][1] == 245.3  # (210 + 0.6 + 280) / 2
-    assert sill["size"][2] == 11.6  # 12 - 2·epsilon
-    assert glass["center"] == [75, 150, 0]
-    assert glass["size"][2] == 2
-
+    """正式 viewer 讓補實牆避開窗框，框件貼齊牆面避免 z-fighting。"""
     source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
         encoding="utf-8"
     )
@@ -343,6 +277,12 @@ def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
     )[0]
     assert "const frameDepth = Math.max(Number(anchor.wallThickness || 12) + 0.4, 4.2)" in opening_builder
     assert "const faceOffset = 0" in opening_builder
+    segment_walls = source.split("function buildSegmentWalls", 1)[1].split(
+        "function buildConfirmedDoorLeaves", 1
+    )[0]
+    assert "const frameAllowanceCm = 0.6" in segment_walls
+    assert "sillHeight - frameAllowanceCm" in segment_walls
+    assert "openingHeight + frameAllowanceCm" in segment_walls
     assert "frame.position.set(x, y, faceOffset)" in opening_builder
     assert 'roompilotArchitecturalDetail = "flush-window-sill"' in opening_builder
 

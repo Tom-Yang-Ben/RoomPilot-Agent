@@ -11,4 +11,3 @@ gates.
 - Do not weaken a test merely to accept a regression.
 
 Final gate: focused tests, full `python -m pytest -q`, and `git diff --check`.
-

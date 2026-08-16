@@ -343,7 +343,7 @@ def _process(doc, name, scale_m, thickness, height):
     # The upload-preview API consumes centimetres and the browser draws
     # segments with `{ start: { x, z }, end: { x, z } }`.  Keep the parser's
     # internal metres-based representation, but expose a canonical client
-    # representation here so `/api/upload` cannot silently fall back to a
+    # representation here so callers cannot silently fall back to a
     # default square when these fields are absent.
     def client_segments(seglist):
         return [

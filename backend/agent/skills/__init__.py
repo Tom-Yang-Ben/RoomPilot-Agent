@@ -13,7 +13,7 @@ agent / tools）＋「## 提示詞：<key>」＋「## 輸出 schema：<key>」�
 skill（foundry-skills 英文原文），只有 SKILL.md 宣告層、無流程層，
 由 ``tools.design_knowledge`` 節錄供選件提示與生圖措辭引用。
 ``roompilot-delivery-pdf/`` 是打包的排版 skill（SKILL.md＋scripts＋assets＋
-references，自 .skill 壓縮包解出、保持原文），無 Python 流程層；由
+references，以可重現的 source directory 提交、保持原文），無 Python 流程層；由
 ``delivery/`` 流程層以 subprocess 呼叫其 ``scripts/build_pdf.py`` 排版
 交付提案 PDF。
 """

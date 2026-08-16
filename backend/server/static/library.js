@@ -5,9 +5,9 @@ import {
   scrollPageTop,
   shouldUseDarkFurnitureStage,
   styleNameMap,
-} from "./common.js?v=20260711g";
-import { createViewer } from "./viewer.js?v=20260708a";
-import { attachLibraryThumbnail } from "./library_thumbnails.js?v=20260708c";
+} from "./common.js?v=sha256-10f8a45f5c18";
+import { createViewer } from "./viewer.js?v=sha256-0dd71c0a4943";
+import { attachLibraryThumbnail } from "./library_thumbnails.js?v=sha256-84c7bd6abede";
 
 const LIBRARY_PROPOSAL_STORAGE_KEY = "roompilot-mode1-proposal-v1";
 const LIBRARY_FAVORITES_STORAGE_KEY = "roompilot-mode1-favorites-v1";
@@ -543,7 +543,12 @@ function setActiveFurniture(item) {
   elements.viewerMaterial.textContent = formatMaterialValue(item.material);
   elements.viewerColor.textContent = formatColorValue(item.color);
   viewer.setTheme(shouldUseDarkFurnitureStage(item) ? "dark-stage" : "light-stage");
-  viewer.load(item.model_url);
+  if (item.model_url) {
+    viewer.load(item.model_url);
+  } else {
+    viewer.clear();
+    elements.viewerStatus.textContent = "此離線型錄項目沒有可用的 GLB 模型；尺寸與材質資料仍可正常瀏覽。";
+  }
   syncActiveButtons();
 }
 

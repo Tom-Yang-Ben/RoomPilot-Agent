@@ -121,14 +121,3 @@ def stamp_obb(mask: np.ndarray, grid: Grid, obb: Obb) -> None:
         return
     inside = _inside(grid, obb, (ix0, ix1, iy0, iy1))
     mask[iy0:iy1 + 1, ix0:ix1 + 1] |= inside
-
-
-def obb_overlaps(grid: Grid, probe: Obb, target: Obb) -> bool:
-    """兩件家具是否重疊(§5.2):把 target 烙進暫存畫布,再拿 probe 測碰撞。
-
-    ⚠ 重疊判定的解析度 = 格徑(預設 5cm),不是解析幾何。呼叫端必須先確認
-    probe 在網格內,否則出界的 True 會被誤讀成重疊。
-    """
-    canvas = grid.blank()
-    stamp_obb(canvas, grid, target)
-    return obb_blocked(canvas, grid, probe)

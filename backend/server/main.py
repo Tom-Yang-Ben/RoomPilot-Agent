@@ -40,19 +40,15 @@ from ..floorplan.vision import (
     infer_room_requirements,
 )
 from ..floorplan.vision.ocr import default_ocr_provider
-from ..upgrade3d.dxf_parser import list_plans, parse_dxf_bytes, parse_dxf_file
 from .scene_service import (
     _largest_region_boundary,
     _region_boundary_by_id,
     _regions_boundary,
     build_scene_payload,
-    curtain_window_hint,
     floorplan_from_editor_payload,
     generate_layout,
-    get_openrouter_status,
     parse_floorplan_with_engine,
     room_from_payload,
-    scene_object_in_boundary,
     validate_single_placement,
 )
 from .intake_service import advance_intake, start_intake
@@ -127,8 +123,6 @@ STYLE_PRESENTATION_DB_PATH = (
 )
 SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 PUBLIC_FIXTURE_DIR = PROJECT_DIR / "examples" / "fixtures"
-PLAN_DIR = PUBLIC_FIXTURE_DIR
-SAMPLE_GLB_DIR = PUBLIC_FIXTURE_DIR
 SAMPLE_FLOORPLAN = PUBLIC_FIXTURE_DIR / "public_floorplan.png"
 PROJECT_STORE = ProjectStore(project_runtime_dir(PROJECT_DIR))
 for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
@@ -834,45 +828,6 @@ def _furniture_payload_for_provider(provider: str) -> tuple[dict, ...]:
 @lru_cache(maxsize=1)
 def _furniture_payload_cache() -> tuple[dict, ...]:
     return _furniture_payload_for_provider(catalog_provider_mode(PROJECT_DIR))
-
-
-@lru_cache(maxsize=1)
-def _appliance_payload_cache() -> tuple[dict, ...]:
-    return ()
-    if not COMBINED_CATALOG_PATH.exists():
-        return ()
-    raw = json.loads(COMBINED_CATALOG_PATH.read_text(encoding="utf-8"))
-    items = []
-    manifest = _appliance_manifest_index()
-    for source in raw.get("items", []):
-        if source.get("role_code") != "appliance":
-            continue
-        item = {
-            **source,
-            "furniture_id": source.get("furniture_id") or source.get("id"),
-            "normalized_type": (
-                source.get("normalized_type")
-                or source.get("type_code")
-                or source.get("type")
-            ),
-            "name_zh_raw": source.get("name_zh_raw") or source.get("name_zh"),
-            "category_label": source.get("category_label") or source.get("category"),
-            "taxonomy_group": "appliance",
-            "taxonomy_group_zh": "家電",
-            "catalog_scope": "appliance",
-        }
-        payload = _furniture_payload_item(item)
-        verified_url = manifest.get(str(item["furniture_id"]))
-        if verified_url:
-            payload["has_model"] = True
-            payload["missing_model_reason"] = None
-            payload["model_url"] = verified_url
-            payload["match_reason"] = (
-                f"類型為 {payload.get('normalized_type')}，"
-                "且已有完整 manifest 驗證的 CloudFront GLB。"
-            )
-        items.append(payload)
-    return tuple(items)
 
 
 @lru_cache(maxsize=2048)
@@ -3305,7 +3260,6 @@ def furniture_catalog(
     total = len(filtered)
     start = (page - 1) * page_size
     end = start + page_size
-    sample_files = _legacy_viewer_models(filtered)
     return {
         "items": [
             item if detail == "scene" else _furniture_card_payload(item)
@@ -3319,26 +3273,8 @@ def furniture_catalog(
         "type_options": _type_options_for(style, group, has_model),
         "category_groups": _category_groups_for(style, has_model),
         "filter_options": _furniture_filter_options(facet_items),
-        "furniture": sample_files,
         "catalog_status": catalog_status(),
     }
-
-
-def _legacy_viewer_models(items: list[dict]) -> list[str]:
-    """Feed the retired R3F viewer without advertising blocked local GLBs."""
-    if cloudfront_required():
-        urls = [
-            str(item.get("model_url"))
-            for item in items
-            if item.get("has_model")
-            and str(item.get("model_url") or "").startswith("https://")
-        ]
-        return list(dict.fromkeys(urls))[:24]
-    return (
-        sorted(f.name for f in SAMPLE_GLB_DIR.iterdir() if f.suffix.lower() == ".glb")
-        if SAMPLE_GLB_DIR.is_dir()
-        else []
-    )
 
 
 def _furniture_detail_payload(furniture_id: str) -> dict:
@@ -3362,11 +3298,6 @@ def _furniture_detail_payload(furniture_id: str) -> dict:
         }
     )
     return payload
-
-
-@app.get("/api/scene/provider-status")
-def scene_provider_status() -> dict:
-    return get_openrouter_status()
 
 
 @app.post("/api/agent/intake/start")
@@ -3745,295 +3676,6 @@ async def scene_layout(payload: dict) -> dict:
     }
 
 
-_AUTO_DECOR_TYPES = {
-    "rug": ("rug", "large-medium-rug", "runner-small-rug"),
-    "plant": ("planter", "flower-pots-planter"),
-    "light": ("floor-lamp",),
-}
-
-
-_AUTO_DECOR_LABELS = {
-    "rug": "地毯",
-    "plant": "植栽",
-    "light": "燈具",
-}
-
-
-def _auto_decor_catalog_item(
-    role: str,
-    style_id: str | None,
-    excluded_ids: set[str] | None = None,
-    max_footprint_cm: tuple[float, float] | None = None,
-) -> dict:
-    requested_types = _AUTO_DECOR_TYPES[role]
-    excluded_ids = excluded_ids or set()
-    candidates = [
-        item
-        for item in _furniture_payload_cache()
-        if item.get("normalized_type") in requested_types
-        and item.get("has_model")
-        and (
-            item.get("model_url")
-            or item.get("render_mode") == "procedural_fixture"
-        )
-        and str(item.get("furniture_id")) not in excluded_ids
-    ]
-    if role == "rug" and max_footprint_cm:
-        max_width, max_depth = sorted(max_footprint_cm, reverse=True)
-        fitting = []
-        for item in candidates:
-            size = item.get("size_cm") or {}
-            item_width, item_depth = sorted(
-                (float(size.get("width") or 0), float(size.get("depth") or 0)),
-                reverse=True,
-            )
-            if item_width <= max_width and item_depth <= max_depth:
-                fitting.append(item)
-        if fitting:
-            candidates = fitting
-    if not candidates:
-        raise HTTPException(
-            409,
-            {
-                "code": "decor_model_missing",
-                "message": f"型錄中找不到可用的{_AUTO_DECOR_LABELS[role]} GLB，已停止自動配置。",
-            },
-        )
-
-    def score(item: dict) -> tuple[int, float]:
-        style_match = item.get("primary_style") == style_id or any(
-            candidate.get("style_id") == style_id
-            for candidate in item.get("style_candidates", [])
-            if isinstance(candidate, dict)
-        )
-        return (1 if style_match else 0, float(item.get("style_confidence") or 0))
-
-    selected = dict(
-        max(
-            candidates,
-            key=lambda item: (
-                *score(item),
-                str(item.get("furniture_id") or ""),
-            ),
-        )
-    )
-    selected["auto_decor_role"] = role
-    selected["position_locked"] = False
-    return selected
-
-
-def _curtain_catalog_item() -> dict:
-    return {
-        "furniture_id": "roompilot-auto-curtain",
-        "normalized_type": "curtain",
-        "name_zh_raw": "自動配置布簾",
-        "size_cm": {"width": 240, "depth": 12, "height": 240},
-        "model_url": "/static/models/roompilot-curtain.glb",
-        "has_model": True,
-        "auto_decor_role": "curtain",
-        "position_locked": False,
-    }
-
-
-@app.post("/api/scene/decorate")
-async def scene_decorate(payload: dict) -> dict:
-    """依風格加入軟裝，所有最終座標仍由家具引擎決定。"""
-    editor_floorplan = payload.get("floorplan_editor")
-    if isinstance(editor_floorplan, dict) and editor_floorplan:
-        floorplan, room = floorplan_from_editor_payload(editor_floorplan)
-    else:
-        floorplan = payload.get("floorplan") or {}
-        room = room_from_payload(floorplan)
-
-    placement_room_id = payload.get("placement_room_id")
-    # 指定房間 → 該房邊界;整屋呼叫(最終確認驗證、全屋鎖定覆核)→ 所有房
-    # 的聯集。柵格對「格外」一律視為阻擋,聯集才不會把最大房以外的家具
-    # 全數誤殺;無房型資料才退回最大區域(手動矩形模式)。
-    place_boundary = (
-        _region_boundary_by_id(floorplan, room, placement_room_id)
-        or _regions_boundary(floorplan, room)
-        or _largest_region_boundary(floorplan, room)
-    )
-    region = next(
-        (
-            item
-            for item in floorplan.get("room_regions", [])
-            if str(item.get("room_id")) == str(placement_room_id)
-        ),
-        {},
-    )
-    confirmed_room = payload.get("room") if isinstance(payload.get("room"), dict) else {}
-    room_type = str(
-        region.get("room_type")
-        or confirmed_room.get("type")
-        or confirmed_room.get("room_type")
-        or "default"
-    )
-    existing = [dict(item) for item in payload.get("scene_objects", [])]
-    room_id = str(placement_room_id or "default")
-    # 舊版本的 default 軟裝與目前房間的軟裝都先移除，確保每次重跑是重算而非累加。
-    existing = [
-        item
-        for item in existing
-        if not item.get("auto_decor_role")
-        or str(item.get("auto_decor_room_id") or "default") not in {room_id, "default"}
-    ]
-    # 單房呼叫不得動別房家具:非目標房的一律原樣通過,不進重排。單房柵格
-    # 對房外一律視為阻擋,整屋清單塞進來會讓別房鎖定件 preserve 檢查失敗、
-    # 掉進自動重排(擠進本房或標放不下)——進即時寫實整屋亂掉的伺服器側
-    # 根因,前端即使送整屋(舊版 bundle)也不再受害。
-    decor_passthrough: list[dict] = []
-    if placement_room_id:
-        active_existing: list[dict] = []
-        for item in existing:
-            assigned = str(
-                item.get("placement_room_id") or item.get("auto_decor_room_id") or ""
-            )
-            if assigned and assigned != room_id:
-                decor_passthrough.append(item)
-            else:
-                active_existing.append(item)
-        existing = active_existing
-    room_items = []
-    for item in existing:
-        assigned_room_id = item.get("placement_room_id") or item.get("auto_decor_room_id")
-        if assigned_room_id:
-            if str(assigned_room_id) == room_id:
-                room_items.append(item)
-            continue
-        if scene_object_in_boundary(item, room, place_boundary):
-            room_items.append(item)
-    room_types = {
-        str(item.get("normalized_type") or "")
-        for item in room_items
-    }
-    rug_anchors = {"sofa", "sofa-bed", "bed", "bed-frame", "dining-table"}
-    companion_anchors = rug_anchors | {"desk", "armchair"}
-    requested_roles = []
-    # 落地燈屬起居/閱讀情境;餐廚照明由天花吊燈方案處理,不放落地燈
-    # (feedback:廚房出現落地燈)。
-    if room_types & companion_anchors and room_type in {
-        "living_room", "bedroom", "storage", "default",
-    }:
-        requested_roles.append("light")
-    if room_types & rug_anchors:
-        requested_roles.append("rug")
-    if room_type == "balcony" or (
-        room_type in {"living_room", "dining_room", "default"}
-        and room_types & companion_anchors
-    ):
-        requested_roles.append("plant")
-    if curtain_window_hint(
-        floorplan,
-        room_width_cm=room.width,
-        room_depth_cm=room.depth,
-        boundary=place_boundary,
-    ) and room_type in {"living_room", "bedroom", "dining_room", "default"}:
-        requested_roles.append("curtain")
-
-    # 使用者刪過的軟裝角色不再自動補回:錨點推導無記憶,少了這層過濾,
-    # 刪掉的地毯/燈會在下次重跑時以同角色另一件品項復活。
-    dismissed_roles = {
-        str(role)
-        for role in payload.get("dismissed_roles") or []
-        if isinstance(role, str) and role
-    }
-    if dismissed_roles:
-        requested_roles = [
-            role for role in requested_roles if role not in dismissed_roles
-        ]
-
-    additions: list[dict] = []
-    if "curtain" in requested_roles:
-        additions.append(_curtain_catalog_item())
-    used_ids = {str(item.get("furniture_id")) for item in existing}
-    boundary_width_cm = boundary_depth_cm = 0.0
-    if place_boundary is not None:
-        min_x, min_y, max_x, max_y = place_boundary.bounds
-        boundary_width_cm = max((max_x - min_x) - 20, 0)
-        boundary_depth_cm = max((max_y - min_y) - 20, 0)
-    rug_anchor = next(
-        (
-            item
-            for item in room_items
-            if str(item.get("normalized_type") or "") in rug_anchors
-        ),
-        None,
-    )
-    rug_anchor_size = (rug_anchor or {}).get("size_cm") or {}
-    rug_max_footprint = (
-        min(boundary_width_cm, float(rug_anchor_size.get("width") or boundary_width_cm)),
-        min(boundary_depth_cm, float(rug_anchor_size.get("depth") or boundary_depth_cm)),
-    )
-    unavailable_roles: list[str] = []
-    for role in ("rug", "plant", "light"):
-        if role in requested_roles:
-            try:
-                addition = _auto_decor_catalog_item(
-                    role,
-                    payload.get("style"),
-                    used_ids,
-                    rug_max_footprint if role == "rug" else None,
-                )
-            except HTTPException as exc:
-                if exc.status_code != 409:
-                    raise
-                unavailable_roles.append(role)
-                continue
-            additions.append(addition)
-            used_ids.add(str(addition.get("furniture_id")))
-    for item in additions:
-        item["auto_decor_room_id"] = room_id
-    rug = next((item for item in additions if item["auto_decor_role"] == "rug"), None)
-    if rug is not None:
-        rug["placement_relation"] = {
-            "kind": "under",
-            "target_types": ["sofa", "sofa-bed", "bed", "bed-frame", "dining-table"],
-        }
-    for item in additions:
-        if item["auto_decor_role"] in {"plant", "light"} and not (
-            room_type == "balcony" and item["auto_decor_role"] == "plant"
-        ):
-            item["placement_relation"] = {
-                "kind": "adjacent",
-                "target_types": [
-                    "sofa", "sofa-bed", "bed", "bed-frame", "desk",
-                    "dining-table", "armchair",
-                ],
-            }
-
-    scene_objects = generate_layout(
-        room.width,
-        room.depth,
-        [*existing, *additions],
-        room=room,
-        regions_boundary=_regions_boundary(floorplan, room),
-        place_boundary=place_boundary,
-        floorplan=floorplan,
-        preserve_existing_count=len(existing),
-        hints=placement_hints([*existing, *additions]),
-    )
-    # 自動軟裝放不下就不硬塞，也不把失敗標記留在 3D 場景裡。
-    scene_objects = [
-        item
-        for item in scene_objects
-        if not (item.get("auto_decor_role") and item.get("placement_failed"))
-    ]
-    return {
-        "scene_objects": [*decor_passthrough, *scene_objects],
-        "decor_summary": {
-            "requested": requested_roles,
-            "placed": [
-                item["auto_decor_role"]
-                for item in scene_objects
-                if item.get("auto_decor_role") and not item.get("placement_failed")
-            ],
-            "unavailable": unavailable_roles,
-            "engine": "furniture_engine",
-        },
-    }
-
-
 @app.post("/api/scene/validate")
 async def scene_validate(payload: dict) -> dict:
     """F6 拖曳落點驗證:單件家具在指定位置/角度是否合法(引擎檢查)。"""
@@ -4084,46 +3726,6 @@ def furniture_model_image(furniture_id: str, image_index: int) -> Response:
     model_path_text = _get_model_path_for_furniture(furniture)
     image_bytes, mime_type = _image_bytes_from_glb(model_path_text, image_index)
     return Response(content=image_bytes, media_type=mime_type)
-
-
-# ---------------------------------------------------------------------------
-# Legacy-compatible model routes retained for the single static frontend.
-# ---------------------------------------------------------------------------
-
-
-@app.get("/api/plans")
-def plans() -> dict:
-    return {"plans": list_plans(str(PLAN_DIR))}
-
-
-@app.get("/api/plan")
-def plan(
-    name: str,
-    scale_m: float | None = Query(None, gt=0, le=500),
-    thickness: float = Query(0.18, gt=0, le=2),
-    height: float = Query(2.7, gt=0, le=10),
-):
-    path = PLAN_DIR / Path(name).name  # basename: 防路徑跳脫
-    if not path.is_file():
-        raise HTTPException(404, f"plan not found: {name}")
-    try:
-        return parse_dxf_file(str(path), scale_m, thickness, height)
-    except Exception as e:
-        raise HTTPException(422, f"parse failed: {e}")
-
-
-@app.post("/api/upload")
-async def upload(
-    file: UploadFile = File(...),
-    scale_m: float | None = Query(None, gt=0, le=500),
-    thickness: float = Query(0.18, gt=0, le=2),
-    height: float = Query(2.7, gt=0, le=10),
-):
-    data = await file.read()
-    try:
-        return parse_dxf_bytes(data, file.filename or "upload.dxf", scale_m, thickness, height)
-    except Exception as e:
-        raise HTTPException(422, f"parse failed: {e}")
 
 
 def _floorplan_json_field(raw: str | None, field: str, default):
@@ -4210,29 +3812,6 @@ def cost_estimate(payload: dict):
         raise HTTPException(422, str(exc)) from exc
 
 
-@app.get("/api/sample-furniture")
-def sample_furniture() -> dict:
-    if cloudfront_required():
-        return {
-            "furniture": [],
-            "provider": "aws_cloudfront",
-            "message": "請由家具型錄取得已驗證的 CloudFront model_url。",
-        }
-    files = (
-        sorted(f for f in SAMPLE_GLB_DIR.iterdir() if f.suffix.lower() == ".glb")
-        if SAMPLE_GLB_DIR.is_dir()
-        else []
-    )
-    return {"furniture": [f.name for f in files]}
-
-
-@app.get("/api/furniture/{name}")
-def sample_furniture_file(name: str):
-    if not name.lower().endswith(".glb"):
-        return _furniture_detail_payload(name)
-    if cloudfront_required():
-        raise HTTPException(410, "CloudFront 模式不提供本機範例 GLB。")
-    path = SAMPLE_GLB_DIR / Path(name).name
-    if not path.is_file():
-        raise HTTPException(404, f"furniture not found: {name}")
-    return FileResponse(path, media_type="model/gltf-binary")
+@app.get("/api/furniture/{furniture_id}")
+def furniture_detail(furniture_id: str) -> dict:
+    return _furniture_detail_payload(furniture_id)

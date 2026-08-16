@@ -50,82 +50,6 @@ CH_THR = 1.2                 # chamfer 平均邊緣距離門檻（48px 畫布上
 # SYMBOL_KINDS 環境變數可覆寫供 A/B 驗收（同 CC_WEIGHTS／CC_CACHE_DIR 慣例）。
 ENABLED_KINDS = tuple(
     k for k in os.environ.get("SYMBOL_KINDS", "kstove,ksink").split(",") if k)
-_PATH_SAMPLES = 120
-
-
-def _pts_attr(node):
-    raw = node.getAttribute("points").replace(",", " ").split()
-    return np.array([float(x) for x in raw], float).reshape(-1, 2)
-
-
-def collect_primitives(e, _hidden=False, _invisible=False):
-    """遞迴收集節點下可見繪圖元素為折線清單（local 座標，不套 transform）。
-    排除 display:none 群組（Direction/Name）與 fill=none stroke=none 的
-    隱形 BoundaryPolygon。可見元素實測只有 rect/path/polygon/circle 四種。"""
-    from svgpathtools import parse_path
-    polys = []
-    for k in e.childNodes:
-        if k.nodeType != 1:
-            continue
-        hidden = _hidden or "display: none" in (k.getAttribute("style") or "")
-        if hidden:
-            continue
-        if k.nodeName == "g":
-            f, s = k.getAttribute("fill"), k.getAttribute("stroke")
-            invisible = _invisible or (f == "none" and s == "none")
-            polys += collect_primitives(k, hidden, invisible)
-        elif _invisible:
-            continue
-        elif k.nodeName == "polygon":
-            p = _pts_attr(k)
-            if len(p) >= 2:
-                polys.append(np.vstack([p, p[:1]]))
-        elif k.nodeName == "rect":
-            x = float(k.getAttribute("x") or 0)
-            y = float(k.getAttribute("y") or 0)
-            w = float(k.getAttribute("width") or 0)
-            h = float(k.getAttribute("height") or 0)
-            if w > 0 and h > 0:
-                polys.append(np.array([[x, y], [x + w, y], [x + w, y + h],
-                                       [x, y + h], [x, y]]))
-        elif k.nodeName == "circle":
-            cx = float(k.getAttribute("cx") or 0)
-            cy = float(k.getAttribute("cy") or 0)
-            r = float(k.getAttribute("r") or 0)
-            if r > 0:
-                t = np.linspace(0, 2 * np.pi, 32)
-                polys.append(np.stack([cx + r * np.cos(t),
-                                       cy + r * np.sin(t)], 1))
-        elif k.nodeName == "path":
-            try:
-                pp = parse_path(k.getAttribute("d"))
-                if pp.length() > 0:
-                    ts = np.linspace(0, 1, _PATH_SAMPLES)
-                    zz = np.array([pp.point(t) for t in ts])
-                    polys.append(np.stack([zz.real, zz.imag], 1))
-            except Exception:
-                pass                         # 退化 path 跳過（建庫端計數回報）
-    return polys
-
-
-def render_polylines(polys, canvas=CANVAS):
-    """折線清單 → 等比縮放置中的 uint8 線稿 raster（黑底白線）。"""
-    if not polys:
-        return None
-    allp = np.vstack(polys)
-    x0, y0 = allp.min(0)
-    x1, y1 = allp.max(0)
-    w, h = x1 - x0, y1 - y0
-    if w < 2 or h < 2:
-        return None
-    s = (canvas - 4) / max(w, h)
-    ox = (canvas - w * s) / 2 - x0 * s
-    oy = (canvas - h * s) / 2 - y0 * s
-    img = np.zeros((canvas, canvas), np.uint8)
-    for p in polys:
-        q = np.round(p * s + (ox, oy)).astype(np.int32)
-        cv2.polylines(img, [q], False, 255, 1)
-    return img
 
 
 def crop_to_canvas(img, x, y, w, h, canvas=CANVAS):
@@ -141,22 +65,6 @@ def crop_to_canvas(img, x, y, w, h, canvas=CANVAS):
     ox, oy = (canvas - nw) // 2, (canvas - nh) // 2
     out[oy:oy + nh, ox:ox + nw] = small
     return out
-
-
-def hu_of(raster):
-    """raster 全部線條像素的 log-Hu 向量 (7,)。
-    用整張線稿的矩（非單一輪廓）——多部件符號（爐台四圈）才不會漏訊息。"""
-    m = cv2.moments(raster, binaryImage=True)
-    hu = cv2.HuMoments(m).flatten()
-    return np.sign(hu) * np.log10(np.abs(hu) + 1e-30)
-
-
-def hu_dist(hu_a, hu_b):
-    """cv2.matchShapes CONTOURS_MATCH_I1 等價（作用在 log-Hu 向量上）。"""
-    with np.errstate(divide="ignore"):
-        ia = np.where(hu_a != 0, 1.0 / hu_a, 0.0)
-        ib = np.where(hu_b != 0, 1.0 / hu_b, 0.0)
-    return float(np.abs(ia - ib).sum())
 
 
 def dist_transform(raster):
