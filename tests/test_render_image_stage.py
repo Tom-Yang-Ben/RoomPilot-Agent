@@ -12,6 +12,8 @@ DOM id、函式與事件接線都在,任何一處被改壞測試就會紅燈。
 """
 from __future__ import annotations
 
+from scripts.static_source_graph import scene_controller_source, scene_stylesheet_source
+
 import re
 
 from scripts.update_static_hashes import static_content_digest
@@ -26,14 +28,11 @@ def _html() -> str:
 
 
 def _js() -> str:
-    return (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    return scene_controller_source(STATIC)
 
 
 def _css() -> str:
-    return "\n".join(
-        (STATIC / name).read_text(encoding="utf-8")
-        for name in ("site.css", "scene.css")
-    )
+    return scene_stylesheet_source(STATIC)
 
 
 def test_overlay_dom_exposes_empty_gallery_without_claiming_generated_images() -> None:
@@ -52,7 +51,7 @@ def test_overlay_dom_exposes_empty_gallery_without_claiming_generated_images() -
 
 def test_js_exposes_enlarge_and_close_helpers_without_fake_gallery_action() -> None:
     js = _js()
-    assert "let renderStageView" in js
+    assert "renderStageView: null" in js
     assert "function completedOpenrouterRows" in js
     assert "function showRenderImageEnlarged" in js
     assert "function showRenderGallery" not in js
@@ -127,8 +126,9 @@ def test_module_state_assignments_are_all_declared() -> None:
 def test_step8_render_state_variables_are_declared() -> None:
     """疊層的兩個模組層狀態要成對存在；少一個就等於整個看圖路徑沒接上。"""
     js = _js()
-    assert "let renderStageView" in js
-    assert "let aiRenderImageVisible" in js
+    assert "const proposalRuntimeState = {" in js
+    assert "renderStageView: null" in js
+    assert "aiRenderImageVisible: false" in js
 
 
 def test_report_payload_carries_the_living_room_night_image() -> None:

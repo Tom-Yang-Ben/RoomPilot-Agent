@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.server import main
+from scripts.static_source_graph import scene_controller_source, scene_viewer_source
 from backend.server.project_store import ProjectStore
 from backend.server.render_service import _render_timeout_seconds, prepare_render_payload
 
@@ -111,8 +112,8 @@ def test_unconfigured_remote_renderer_reports_explicit_503(
 
 def test_scene_contains_review_then_room_render_controls() -> None:
     html = (main.STATIC_DIR / "scene.html").read_text(encoding="utf-8")
-    controller = (main.STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
-    viewer = (main.STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+    controller = scene_controller_source(main.STATIC_DIR)
+    viewer = scene_viewer_source(main.STATIC_DIR)
 
     assert html.index('id="proposal-review-summary"') < html.index('id="lock-master-view"')
     assert 'data-panel="proposal-review"' in html

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from scripts.static_source_graph import scene_viewer_source
 from test_scene_workflow import ROOT, run_workflow_script
 
 
@@ -592,7 +593,7 @@ def test_gap_window_has_no_usable_span_inside_the_split_host_wall() -> None:
 def test_split_wall_openings_use_the_standalone_3d_assembly_fallback() -> None:
     # 沒有落在任何牆段上的窗(第 4 步切分後的殘段)仍必須出玻璃與補實件:
     # 正式 viewer 直接依開口自身線段建立 standalone assembly。
-    viewer = VIEWER.read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
     assert "buildStandaloneOpeningAssemblies(" in viewer
     assert "const doorSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
     assert "const windowSegments = dedupeArchitecturalOpeningsFor3d(" in viewer
@@ -625,7 +626,7 @@ def test_opening_edges_do_not_receive_wall_junction_caps() -> None:
 
     assert result == {"openingEdge": True, "realCorner": False}
 
-    viewer = VIEWER.read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
     junctions = viewer.split("function buildConfirmedWallJunctionFills", 1)[1].split(
         "segments.forEach", 1
     )[0]
@@ -669,7 +670,7 @@ def test_gap_window_uses_its_own_host_wall_for_surface_material() -> None:
 
     # 縫內開口的補實件先以 wallSegmentForOpening 找回自己的 host 牆取材質,
     # 找不到才退回 segments[0](resolver 依線段中點採樣房間)。
-    viewer = VIEWER.read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
     segment_walls = viewer.split("function buildSegmentWalls", 1)[1].split(
         "function buildConfirmedDoorLeaves", 1
     )[0]
@@ -693,7 +694,7 @@ def test_gap_window_wall_sections_end_flush_with_the_opening() -> None:
         "internalSeam": {"from": 0, "to": 50.6},
     }
 
-    viewer = VIEWER.read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
     segment_walls = viewer.split("function buildSegmentWalls", 1)[1].split(
         "function buildConfirmedDoorLeaves", 1
     )[0]
@@ -740,14 +741,14 @@ def test_architectural_openings_have_dedicated_physical_profiles() -> None:
     assert result["frame"]["metalness"] > result["door"]["metalness"]
     assert result["glass"]["transmission"] > 0.7
 
-    source = VIEWER.read_text(encoding="utf-8")
+    source = scene_viewer_source(STATIC)
     assert "function createArchitecturalMaterial" in source
     assert "wood_cc0_wood_textures_woodfloor039" in source
     assert 'architecturalPbrProfile("glass")' in source
 
 
 def test_viewer_uses_physical_materials_relief_and_contact_shadows() -> None:
-    source = VIEWER.read_text(encoding="utf-8")
+    source = scene_viewer_source(STATIC)
 
     assert "new THREE.MeshPhysicalMaterial" in source
     assert "surfacePbrProfile" in source
@@ -759,7 +760,7 @@ def test_viewer_uses_physical_materials_relief_and_contact_shadows() -> None:
 
 
 def test_realistic_views_hide_planning_circulation_overlay() -> None:
-    source = VIEWER.read_text(encoding="utf-8")
+    source = scene_viewer_source(STATIC)
 
     assert "function configureCirculationForView" in source
     assert 'object.visible = mode === "topdown"' in source
@@ -770,7 +771,7 @@ def test_floor_is_a_room_region_plane_with_module_slab_reserved() -> None:
     # viewer 基底樓板 = synchronizedFloorRegions 房間多邊形平面(y=0、
     # roompilotBaseFloor 旗標,presentation ground 藏於 -3.2);逐房材質
     # override 仍用房間多邊形(createRoomSurfaceOverrides 不變)。
-    source = VIEWER.read_text(encoding="utf-8")
+    source = scene_viewer_source(STATIC)
     assert "createFloorGeometry(sceneData.floorplan, widthCm, depthCm)" in source
     assert "floor.userData.roompilotBaseFloor = true" in source
     assert "presentationGround.position.y = -3.2" in source
@@ -779,7 +780,7 @@ def test_floor_is_a_room_region_plane_with_module_slab_reserved() -> None:
 
 
 def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:
-    source = VIEWER.read_text(encoding="utf-8")
+    source = scene_viewer_source(STATIC)
 
     assert "function buildWallMass" in source
     assert "new THREE.ExtrudeGeometry" in source
@@ -804,7 +805,7 @@ def test_dxf_wall_mass_is_extruded_before_segment_fallback() -> None:
 
 
 def test_orthographic_dollhouse_avoids_gtao_projection_artifacts() -> None:
-    source = VIEWER.read_text(encoding="utf-8")
+    source = scene_viewer_source(STATIC)
 
     assert '["walk", "orbit"].includes(mode)' in source
     assert '["walk", "orbit"].includes(viewMode.mode)' in source

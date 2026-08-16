@@ -1,0 +1,45 @@
+/* Scene workflow visual system: keep the planning mechanics in place while
+   giving every step the same warm, editorial product language as the public pages. */
+body.rp-workflow-page {
+  --rp-canvas: #f3f0ea;
+  --rp-surface: #fffdf9;
+  --rp-surface-muted: #f8f5ef;
+  --rp-ink-strong: #29231f;
+  --rp-accent: #2b725d;
+  --rp-accent-soft: #e3efe8;
+  --rp-border-strong: #cfc7bc;
+  background: var(--rp-canvas);
+  color: var(--rp-ink-strong);
+}
+
+
+
+.rp-control-pane {
+  max-height: calc(100vh - 274px);
+  padding: 30px;
+  border-left: 0;
+  background: var(--rp-surface-muted);
+}
+
+
+
+
+
+
+
+
+
+.home-hero-palette {
+  background:
+    linear-gradient(120deg, rgba(20, 31, 27, 0.18), rgba(20, 31, 27, 0.64)),
+    linear-gradient(135deg, #e8dfd1 0 34%, #b9a17e 34% 62%, #6f7c6e 62% 82%, #303c37 82%);
+}
+
+.rp-window-procedural-preview {
+  min-height: 180px;
+  border: 10px solid #1f2933;
+  background:
+    linear-gradient(90deg, transparent 49%, #1f2933 49% 51%, transparent 51%),
+    linear-gradient(180deg, rgba(207, 231, 238, 0.94), rgba(149, 196, 211, 0.72));
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+}

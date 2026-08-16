@@ -1,0 +1,2432 @@
+/* Guided wizard: one focused screen at a time, without page scrolling. */
+body[data-page="scene"] {
+  overflow: hidden;
+}
+
+
+
+
+body[data-page="scene"] #scene-form {
+  height: calc(100% - 120px);
+  overflow: hidden;
+}
+
+body[data-page="scene"] [hidden] {
+  display: none !important;
+}
+
+
+@keyframes wizard-enter {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+
+
+@keyframes guide-orbit {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.35; }
+  50% { transform: translate(-24px, -12px) rotate(18deg); opacity: 0.75; }
+}
+
+
+body[data-page="scene"] .page-heading.compact {
+  position: relative;
+  max-width: 760px;
+  margin-bottom: 16px;
+}
+
+body[data-page="scene"] .page-heading.compact h1 {
+  font-family: Georgia, "Noto Serif TC", serif;
+  font-size: clamp(2.2rem, 4vw, 4.15rem);
+  letter-spacing: 0.02em;
+}
+
+
+
+@keyframes sparkle-art-bright {
+  0%, 100% { opacity: 0.72; filter: brightness(0.95); transform: scale(0.96); }
+  45% { opacity: 1; filter: brightness(1.35) drop-shadow(0 0 8px rgba(224, 160, 106, 0.7)); transform: scale(1.06); }
+  70% { opacity: 0.84; filter: brightness(1.05); transform: scale(1); }
+}
+
+@keyframes sparkle-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-7px) rotate(12deg); }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@keyframes tip-sparkle {
+  0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.55; }
+  50% { transform: rotate(22deg) scale(1.18); opacity: 1; }
+}
+
+@keyframes line-grow {
+  from { width: 38px; opacity: 0.4; }
+  to { width: 96px; opacity: 1; }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+body[data-page="library"] .library-preview-image {
+  background: #181411;
+}
+
+body[data-page="library"] .viewer-side {
+  max-height: calc(100vh - 116px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+body[data-page="library"] .viewer-canvas {
+  overscroll-behavior: contain;
+}
+
+
+body[data-page="home"] .home-feature-strip article {
+  position: relative;
+  overflow: hidden;
+}
+
+body[data-page="home"] .home-feature-strip article::after {
+  content: none;
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  width: 34px;
+  height: 34px;
+  color: #34312e;
+  opacity: 0;
+  transform: translate(-50%, 22px) scale(0.92);
+  transition: 220ms ease;
+  pointer-events: none;
+}
+
+body[data-page="home"] .home-feature-strip article:hover::after {
+  opacity: 0;
+}
+
+body[data-page="home"] .home-flow-step {
+  border-radius: 26px;
+  transition: transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+}
+
+body[data-page="home"] .home-flow-step:hover {
+  background: rgba(255, 252, 247, 0.92);
+  box-shadow: 0 20px 46px rgba(82, 67, 54, 0.14);
+  transform: translateY(-10px);
+}
+
+body[data-page="home"] .home-flow-step:hover .home-step-icon {
+  transform: translateY(-4px) scale(1.08);
+}
+
+body[data-page="home"] .home-flow-step h3,
+body[data-page="home"] .home-flow-step p,
+body[data-page="home"] .home-step-icon {
+  transition: transform 220ms ease, color 220ms ease, opacity 220ms ease;
+}
+
+body[data-page="home"] .home-flow-step:hover h3 {
+  transform: translateY(-2px);
+  color: #1f1b18;
+}
+
+body[data-page="home"] .home-flow-step:hover p {
+  color: rgba(45, 42, 39, 0.82);
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(1)::after {
+  border: 2px dashed currentColor;
+  border-radius: 7px;
+  box-shadow: inset 9px -9px 0 -7px currentColor;
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(2)::after {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 38%, currentColor 0 3px, transparent 4px),
+    radial-gradient(circle at 66% 50%, currentColor 0 3px, transparent 4px),
+    radial-gradient(circle at 54% 72%, currentColor 0 3px, transparent 4px);
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(3)::after {
+  border: 2px solid currentColor;
+  border-radius: 9px 9px 5px 5px;
+  box-shadow: inset 0 -11px 0 -9px currentColor;
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(4)::after {
+  border: 2px solid currentColor;
+  transform: translate(-50%, 22px) rotate(45deg) scale(0.92);
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(4):hover::after {
+  transform: translate(-50%, 0) rotate(45deg) scale(1);
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(5)::after {
+  border: 2px solid currentColor;
+  transform: translate(-50%, 22px) rotate(30deg) skew(-10deg) scale(0.92);
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(5):hover::after {
+  transform: translate(-50%, 0) rotate(30deg) skew(-10deg) scale(1);
+}
+
+/* Home feature strip: default is icon + bold title; hover reveals the detail cue. */
+body[data-page="home"] .home-feature-strip {
+  overflow: visible;
+}
+
+body[data-page="home"] .home-feature-strip article {
+  min-height: 126px;
+  overflow: hidden;
+  transition: transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+}
+
+body[data-page="home"] .home-feature-strip article small {
+  display: block;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: max-height 220ms ease, opacity 220ms ease, transform 220ms ease;
+}
+
+body[data-page="home"] .home-feature-strip article::after {
+  content: "";
+  bottom: 14px;
+  opacity: 0;
+  transform: translate(-50%, 22px) scale(0.9);
+}
+
+body[data-page="home"] .home-feature-strip article:hover {
+  z-index: 2;
+  background: rgba(255, 252, 247, 0.95);
+  box-shadow: 0 22px 48px rgba(80, 68, 58, 0.18);
+  transform: translateY(-8px);
+}
+
+body[data-page="home"] .home-feature-strip article:hover small {
+  max-height: 48px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body[data-page="home"] .home-feature-strip article:hover::after {
+  opacity: 0.32;
+  transform: translate(-50%, 2px) scale(1.1);
+}
+
+body[data-page="home"] .home-feature-strip article.is-linked-active,
+body[data-page="home"] .home-feature-strip article:focus-visible {
+  z-index: 3;
+  background: rgba(255, 252, 247, 0.97);
+  box-shadow: 0 22px 48px rgba(80, 68, 58, 0.18);
+  transform: translateY(-8px);
+}
+
+body[data-page="home"] .home-feature-strip article.is-linked-active small,
+body[data-page="home"] .home-feature-strip article:focus-visible small {
+  max-height: 48px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body[data-page="home"] .home-feature-strip article.is-linked-active::after,
+body[data-page="home"] .home-feature-strip article:focus-visible::after {
+  opacity: 0.32;
+  transform: translate(-50%, 2px) scale(1.1);
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(4).is-linked-active::after,
+body[data-page="home"] .home-feature-strip article:nth-child(4):focus-visible::after {
+  transform: translate(-50%, 0) rotate(45deg) scale(1);
+}
+
+body[data-page="home"] .home-feature-strip article:nth-child(5).is-linked-active::after,
+body[data-page="home"] .home-feature-strip article:nth-child(5):focus-visible::after {
+  transform: translate(-50%, 0) rotate(30deg) skew(-10deg) scale(1);
+}
+
+/* Top cards keep a single icon; the lower flow row handles the paired highlight. */
+body[data-page="home"] .home-feature-strip article::after,
+body[data-page="home"] .home-feature-strip article:hover::after,
+body[data-page="home"] .home-feature-strip article.is-linked-active::after,
+body[data-page="home"] .home-feature-strip article:focus-visible::after {
+  content: none !important;
+  display: none !important;
+}
+
+body[data-page="home"] .home-flow-step.is-linked-active,
+body[data-page="home"] .home-flow-step:focus-visible {
+  background: rgba(255, 252, 247, 0.95);
+  box-shadow: 0 20px 46px rgba(82, 67, 54, 0.14);
+  transform: translateY(-10px);
+}
+
+body[data-page="home"] .home-flow-step.is-linked-active .home-step-icon,
+body[data-page="home"] .home-flow-step:focus-visible .home-step-icon {
+  opacity: 1;
+  transform: translateY(-4px) scale(1.08);
+}
+
+body[data-page="home"] .home-flow-step.is-linked-active .home-step-number,
+body[data-page="home"] .home-flow-step:focus-visible .home-step-number {
+  background: #eadbc8;
+  color: #4b3322;
+  transform: translateY(-4px);
+}
+
+body[data-page="home"] .home-flow-step.is-linked-active h3,
+body[data-page="home"] .home-flow-step:focus-visible h3 {
+  transform: translateY(-2px);
+  color: #1f1b18;
+}
+
+body[data-page="home"] .home-flow-step.is-linked-active p,
+body[data-page="home"] .home-flow-step:focus-visible p {
+  color: rgba(45, 42, 39, 0.82);
+}
+
+body[data-page="home"] .home-flow-section h2 {
+  margin-bottom: 0;
+  transition: margin 220ms ease;
+}
+
+body[data-page="home"] .home-flow-list {
+  max-height: 0;
+  margin-top: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition: max-height 320ms ease, margin 220ms ease, opacity 220ms ease, transform 220ms ease;
+}
+
+body[data-page="home"].is-home-flow-open .home-flow-section h2 {
+  margin-bottom: 28px;
+}
+
+body[data-page="home"].is-home-flow-open .home-flow-list {
+  max-height: 320px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+body[data-page="home"] .home-feature-strip article:focus-visible,
+body[data-page="home"] .home-flow-step:focus-visible {
+  outline: 2px solid rgba(126, 96, 70, 0.36);
+  outline-offset: 4px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Step 1 is the real working surface; the reference screenshot is not
+   rendered inside it. Keep all three cards visible before upload. */
+body[data-page="scene"] .page-heading.compact h1 {
+  font-size: clamp(2.15rem, 3.6vw, 3.35rem);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Keep the desktop composition usable in the embedded 1048px browser. */
+@media (min-width: 761px) and (max-width: 1180px) {
+  body[data-page="scene"] {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body[data-page="scene"] .app-topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    min-height: 68px;
+    padding: 12px 20px;
+  }
+
+  body[data-page="scene"] .app-brand,
+  body[data-page="scene"] .app-topbar .topnav,
+  body[data-page="scene"] .app-topbar .topbar-cta {
+    justify-self: initial;
+  }
+
+  body[data-page="scene"] .app-topbar .topnav {
+    gap: 18px;
+  }
+
+  body[data-page="scene"] .app-topbar .topnav a {
+    font-size: 0.86rem;
+  }
+
+  body[data-page="scene"] .app-topbar .topbar-cta {
+    min-height: 38px;
+    padding: 8px 16px;
+    font-size: 0.82rem;
+  }
+
+
+  body[data-page="scene"] #scene-form {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
+@keyframes sparkle-bright {
+  0%, 100% { opacity: 0.72; transform: scale(0.9) rotate(0deg); filter: brightness(0.95); }
+  45% { opacity: 1; transform: scale(1.18) rotate(10deg); filter: brightness(1.35); }
+  70% { opacity: 0.82; transform: scale(1) rotate(-7deg); filter: brightness(1.05); }
+}
+
+/* Never crop the working cards: the scene wizard is a scrollable document,
+   while the final 3D viewer can still use its own internal viewport. */
+body[data-page="scene"] {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+
+
+body[data-page="scene"] #scene-form {
+  height: auto;
+  overflow: visible;
+}
+
+/* Compact the first-step composition so the working cards begin in the
+   initial viewport instead of being pushed below the fold. */
+body[data-page="scene"] .app-topbar {
+  min-height: 72px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* Test2 questionnaire, integrated into the ten-step Bella workflow. */
+#requirements-step .rp-questionnaire-workspace {
+  display: block;
+  min-height: 0;
+}
+
+.rp-test2-questionnaire {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 56px;
+}
+
+.rp-questionnaire-heading,
+.rp-questionnaire-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.rp-questionnaire-heading {
+  padding-bottom: 22px;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-heading h2,
+.rp-questionnaire-section-heading h3 {
+  margin: 4px 0 6px;
+  letter-spacing: 0;
+}
+
+.rp-questionnaire-heading p,
+.rp-questionnaire-section-heading p {
+  margin: 0;
+  color: #68645e;
+}
+
+.rp-questionnaire-heading-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rp-questionnaire-heading-actions > strong {
+  flex: 0 0 auto;
+  padding-left: 16px;
+  border-left: 3px solid #2b725f;
+  color: #29473e;
+}
+
+.rp-questionnaire-stage-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 20px 0 30px;
+  border-block: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-stage-nav button {
+  min-width: 0;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 0;
+  border-right: 1px solid #d8d5ce;
+  border-radius: 0;
+  background: #fff;
+  color: #706c66;
+}
+
+.rp-questionnaire-stage-nav button:last-child {
+  border-right: 0;
+}
+
+.rp-questionnaire-stage-nav button b {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid #bcb8b1;
+  border-radius: 50%;
+  font-size: 13px;
+}
+
+.rp-questionnaire-stage-nav button.is-active {
+  background: #e9f2ed;
+  color: #1f5b4b;
+  font-weight: 700;
+}
+
+.rp-questionnaire-stage-nav button.is-active b,
+.rp-questionnaire-stage-nav button.is-complete b {
+  border-color: #26715c;
+  background: #26715c;
+  color: #fff;
+}
+
+.rp-questionnaire-stage-nav button:disabled {
+  cursor: not-allowed;
+  color: #aaa69f;
+  opacity: 0.72;
+}
+
+.rp-questionnaire-stage {
+  min-height: 440px;
+}
+
+.rp-questionnaire-section-heading {
+  margin-bottom: 24px;
+}
+
+.rp-test2-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-test2-profile-grid > label {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border-right: 1px solid #d8d5ce;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-test2-profile-grid > label:nth-child(even) {
+  border-right: 0;
+}
+
+.rp-test2-profile-grid select,
+.rp-test2-profile-grid textarea,
+.rp-questionnaire-material-grid select {
+  width: 100%;
+}
+
+
+.rp-questionnaire-plan-stage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 360px;
+  border: 1px solid #cbc8c0;
+  background: #f6f6f3;
+}
+
+
+
+
+
+
+.rp-room-questionnaire-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.rp-room-questionnaire-plan {
+  position: sticky;
+  top: 132px;
+  min-width: 0;
+}
+
+.rp-questionnaire-plan-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+.rp-questionnaire-plan-stage img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.rp-questionnaire-plan-stage svg {
+  position: absolute;
+  touch-action: none;
+}
+
+.rp-questionnaire-plan-stage [data-questionnaire-room],
+.rp-questionnaire-plan-stage [data-questionnaire-wall] {
+  cursor: pointer;
+}
+
+.rp-room-questionnaire-editor {
+  min-width: 0;
+}
+
+.rp-visual-space-nav {
+  display: grid;
+  align-content: start;
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-visual-space-nav button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 14px 8px;
+  border: 0;
+  border-bottom: 1px solid #d8d5ce;
+  border-radius: 0;
+  background: transparent;
+  color: #595650;
+  text-align: left;
+}
+
+.rp-visual-space-nav button.is-active {
+  padding-left: 14px;
+  border-left: 3px solid #2b725f;
+  background: #eef4f0;
+  color: #214f42;
+}
+
+.rp-visual-space-nav small {
+  white-space: nowrap;
+}
+
+
+
+
+
+
+.rp-visual-question-card {
+  padding: 0;
+}
+
+.rp-visual-question-card h3 {
+  margin: 4px 0 8px;
+  font-size: 28px;
+  letter-spacing: 0;
+}
+
+.rp-visual-question-card > p {
+  margin: 0 0 20px;
+  color: #68645e;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.rp-questionnaire-style-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.rp-questionnaire-style-grid.is-fixed-style {
+  grid-template-columns: minmax(0, 520px);
+}
+
+.rp-fixed-style-reference {
+  overflow: hidden;
+  border: 1px solid #c9c5bd;
+  background: #fff;
+}
+
+.rp-fixed-style-reference > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.rp-fixed-style-reference strong,
+.rp-fixed-style-reference small {
+  display: block;
+}
+
+.rp-fixed-style-reference small {
+  color: #6a625b;
+  line-height: 1.45;
+}
+
+.rp-questionnaire-furniture {
+  margin: 24px 0;
+  padding: 20px 0;
+  border-top: 1px solid #d8d5ce;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-room-usage {
+  margin: 24px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid #d8d5ce;
+}
+
+/* 第 5 步用途卡：scene_v2.js renderQuestionnaireRoomUsage() 產生
+   .rp-room-usage-card 結構(媒體圖示 + 文案 + 狀態)，但樣式一直沒補進來，
+   卡片會退回瀏覽器預設 inline 排版 —— 標題與說明黏成一行、視覺符號變成
+   孤字、原生 checkbox 露出成大方框。以下規則是那組 markup 的對應樣式。 */
+.rp-questionnaire-room-usage-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 10px;
+}
+
+.rp-room-usage-card {
+  --usage-tint: #efece5;
+  --usage-ink: #5c5349;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #cbc7bf;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.rp-room-usage-card:hover {
+  border-color: #9fb5a9;
+}
+
+/* 視覺隱藏但保留鍵盤可及:焦點框改由卡片畫。 */
+.rp-room-usage-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rp-room-usage-card:has(input:focus-visible) {
+  outline: 2px solid #27715d;
+  outline-offset: 2px;
+}
+
+.rp-room-usage-card.is-selected {
+  border-color: #27715d;
+  background: #f1f8f5;
+  box-shadow: inset 0 0 0 1px #27715d;
+}
+
+/* 用途圖示:2x2 淡格線當平面圖意象,符號字疊在上面。 */
+.rp-room-usage-card-media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 7px;
+  background: var(--usage-tint);
+  color: var(--usage-ink);
+}
+
+.rp-room-usage-card-schematic-grid {
+  position: absolute;
+  inset: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  opacity: 0.38;
+}
+
+.rp-room-usage-card-schematic-grid i {
+  border: 1px solid currentColor;
+  border-radius: 1px;
+}
+
+.rp-room-usage-card-media b {
+  position: relative;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rp-room-usage-card-copy {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+}
+
+.rp-room-usage-card-copy strong {
+  color: #29231f;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.rp-room-usage-card-copy small {
+  color: #6f665c;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+/* 未選取時 JS 給的是空的 state span,不佔位也不畫東西。 */
+.rp-room-usage-card-state {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rp-room-usage-card-check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #27715d;
+  color: #fff;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.rp-room-usage-card-label {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #27715d;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* tone 來自 ROOM_USAGE_VISUALS,只染圖示磚,不改卡片底色以免蓋過選取狀態。 */
+.rp-room-usage-card[data-usage-tone="rest"] {
+  --usage-tint: #e6efe9;
+  --usage-ink: #2b6551;
+}
+
+.rp-room-usage-card[data-usage-tone="social"] {
+  --usage-tint: #f6ecdf;
+  --usage-ink: #8a5a2b;
+}
+
+.rp-room-usage-card[data-usage-tone="focus"] {
+  --usage-tint: #e4ecf2;
+  --usage-ink: #33607e;
+}
+
+.rp-room-usage-card[data-usage-tone="care"] {
+  --usage-tint: #f3e9ef;
+  --usage-ink: #7d4a68;
+}
+
+.rp-room-usage-card[data-usage-tone="play"] {
+  --usage-tint: #fbeade;
+  --usage-ink: #a8552e;
+}
+
+.rp-room-usage-card[data-usage-tone="kitchen"] {
+  --usage-tint: #f7eddb;
+  --usage-ink: #8a6420;
+}
+
+.rp-room-usage-card[data-usage-tone="storage"] {
+  --usage-tint: #ebe9e1;
+  --usage-ink: #5e5949;
+}
+
+.rp-room-usage-card[data-usage-tone="service"] {
+  --usage-tint: #e6edee;
+  --usage-ink: #3d6b6d;
+}
+
+.rp-room-usage-card[data-usage-tone="arrival"] {
+  --usage-tint: #eeeae2;
+  --usage-ink: #6b5b46;
+}
+
+.rp-room-usage-card[data-usage-tone="flex"] {
+  --usage-tint: #eaeaef;
+  --usage-ink: #565073;
+}
+
+.rp-questionnaire-furniture-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.rp-questionnaire-furniture-preference {
+  display: grid;
+  gap: 7px;
+  margin: 14px 0;
+}
+
+.rp-questionnaire-furniture-preference > label {
+  font-weight: 700;
+}
+
+.rp-questionnaire-furniture-preference > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.rp-questionnaire-furniture-preference textarea {
+  min-height: 68px;
+  resize: vertical;
+}
+
+.rp-questionnaire-furniture-preference .secondary-action {
+  min-width: 104px;
+}
+
+.rp-questionnaire-preference-tags {
+  display: flex !important;
+  flex-wrap: wrap;
+  grid-template-columns: none !important;
+  gap: 8px;
+}
+
+.rp-questionnaire-preference-tags button {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid #c8c3ba;
+  border-radius: 4px;
+  background: #fff;
+  color: #514b44;
+}
+
+.rp-questionnaire-preference-tags button.is-active {
+  border-color: #27715d;
+  background: #eaf5f0;
+  color: #1f6754;
+  box-shadow: inset 0 0 0 1px #27715d;
+}
+
+
+
+.rp-questionnaire-fit-risk {
+  flex-basis: 100%;
+  margin-top: 2px;
+  color: #8a4d2d;
+  line-height: 1.4;
+}
+
+/* 資訊列與操作列各自成行。橫排時中文說明只分到一百多 px,會逐字斷行。 */
+.rp-questionnaire-furniture-options > article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid #cbc7bf;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.rp-questionnaire-furniture-options > article.is-selected {
+  border-color: #27715d;
+  box-shadow: inset 0 0 0 2px #27715d;
+  background: #f1f8f5;
+}
+
+.rp-questionnaire-furniture-select {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 22px 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.rp-questionnaire-furniture-options input {
+  width: 18px;
+  height: 18px;
+  accent-color: #27715d;
+}
+
+.rp-questionnaire-furniture-options span,
+.rp-questionnaire-furniture-options strong,
+.rp-questionnaire-furniture-options small {
+  min-width: 0;
+}
+
+
+.rp-questionnaire-furniture-options strong,
+.rp-questionnaire-furniture-options small {
+  display: block;
+}
+
+.rp-questionnaire-furniture-options small {
+  margin-top: 4px;
+  color: #6e6962;
+}
+
+.rp-questionnaire-furniture-options em {
+  padding: 4px 6px;
+  border: 1px solid #bbb5ac;
+  border-radius: 4px;
+  color: #5d5851;
+  font-size: 11px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.rp-questionnaire-furniture-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding-top: 11px;
+  border-top: 1px solid #e7e4dd;
+}
+
+.rp-questionnaire-furniture-size {
+  flex: 1 1 240px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: #5d5851;
+  font-size: 12px;
+}
+
+.rp-questionnaire-furniture-size select {
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 28px 4px 8px;
+  border-color: #bcb6ad;
+  background-color: #fff;
+  color: #37342f;
+  font: inherit;
+}
+
+.rp-furniture-quantity {
+  display: inline-grid;
+  grid-template-columns: 28px minmax(24px, auto) 28px;
+  align-items: center;
+  border: 1px solid #bbb5ac;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rp-furniture-quantity button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #f5f3ee;
+  color: #27715d;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.rp-furniture-quantity button:disabled {
+  color: #aaa59d;
+  cursor: not-allowed;
+}
+
+.rp-furniture-quantity output {
+  min-width: 24px;
+  color: #37342f;
+  font-weight: 700;
+  text-align: center;
+}
+
+.rp-furniture-quantity-limit {
+  margin: 0;
+  color: #6e6962;
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .rp-questionnaire-furniture-preference > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rp-questionnaire-furniture-preference .secondary-action {
+    width: 100%;
+  }
+
+}
+
+.rp-questionnaire-style-grid > button {
+  min-width: 0;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+}
+
+.rp-questionnaire-style-grid .rp-style-card-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  max-height: none;
+  object-fit: contain;
+  background: #f2f0eb;
+}
+
+.rp-questionnaire-style-grid .rp-style-swatches {
+  display: none;
+}
+
+.rp-questionnaire-style-grid strong {
+  display: block;
+  padding: 12px 14px 14px;
+  font-size: 1.05rem;
+}
+
+.rp-questionnaire-material-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  padding-top: 24px;
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-material-grid fieldset:last-child {
+  grid-column: 1 / -1;
+}
+
+.rp-questionnaire-material-grid fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rp-questionnaire-material-grid legend {
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.rp-questionnaire-generative-equipment {
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid #d3ccc1;
+  border-left: 4px solid #27715d;
+  background: #fbfaf7;
+  display: grid;
+  gap: 14px;
+}
+
+.rp-questionnaire-generative-equipment > label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.rp-questionnaire-generative-equipment fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.rp-questionnaire-generative-equipment legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+
+
+
+
+
+
+.rp-ceiling-choice-visual {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.rp-ceiling-choice-visual[data-ceiling-style-visual="exposed"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="flat"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="cove"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="floating"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="linear"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="feature-pendant"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-style-visual="wood-grid"] { background-image: none; }
+
+/* 點進施工形式後的搭配卡用 data-ceiling-design-visual(每組材質＋照明一張),
+   與外層的 data-ceiling-style-visual(每種施工形式一張)是兩套鍵;只補後者會讓
+   對話框整片空白。三張 2x2 拼圖各含四組搭配,用 200% 尺寸配四個角落取用。
+   照明看得出差別是重點,所以不共用施工形式的單張照片。 */
+.rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] {
+  background-image: none;
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="scandinavian-soft"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-downlight"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="soft-cove"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="cream-cove"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] {
+  background-image: none;
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="linear-soft"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="modern-linear"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-no-main"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-downlight"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"],
+.rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] {
+  background-image: none;
+  background-size: 200% 200%;
+}
+.rp-ceiling-choice-visual[data-ceiling-design-visual="japanese-slat"] { background-position: left top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="american-slat"] { background-position: right top; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="slat-downlight"] { background-position: left bottom; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="exposed-pendant"] { background-position: right bottom; }
+
+.rp-ceiling-choice-visual[data-ceiling-design-visual="floating-pendant"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="industrial-exposed"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-pendant"] { background-image: none; }
+.rp-ceiling-choice-visual[data-ceiling-design-visual="flat-track"] { background-image: none; }
+
+
+
+
+.rp-questionnaire-material-grid label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.rp-questionnaire-material-grid input[type="color"] {
+  width: 100%;
+  height: 44px;
+  padding: 4px;
+}
+
+.rp-questionnaire-native-ceiling-control { display: none !important; }
+
+.rp-questionnaire-ceiling-quick-choices {
+  display: block;
+  margin: 12px 0 14px;
+}
+
+.rp-ceiling-design-packs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rp-ceiling-design-pack {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-ceiling-design-pack.is-active { border-color: #27715d; box-shadow: inset 0 0 0 1px #27715d; }
+.rp-ceiling-design-pack > span:last-child { display: grid; gap: 4px; padding: 10px; }
+.rp-ceiling-design-pack small { color: #67615a; line-height: 1.35; }
+.rp-ceiling-design-pack em { color: #27715d; font-size: .8rem; font-style: normal; }
+
+
+
+
+
+.rp-light-choice-visual {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-image: none;
+  background-repeat: no-repeat;
+  background-size: 500% 100%;
+}
+
+.rp-light-choice-visual[data-light-style-visual="no-main-light"] { background-position: 0 0; }
+.rp-light-choice-visual[data-light-style-visual="track"] { background-position: 25% 0; }
+.rp-light-choice-visual[data-light-style-visual="pendant"] { background-position: 50% 0; }
+.rp-light-choice-visual[data-light-style-visual="downlight"] { background-position: 75% 0; }
+.rp-light-choice-visual[data-light-style-visual="paper"] { background-position: 100% 0; }
+
+.rp-ceiling-picker-dialog { width: min(1060px, calc(100vw - 32px)); }
+
+.rp-material-catalog-search {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0 6px;
+  font-weight: 700;
+}
+
+.rp-material-catalog-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.rp-material-catalog-filters > div { display: grid; gap: 7px; font-weight: 700; }
+.rp-filter-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.rp-filter-chip { padding: 7px 10px; border: 1px solid #cbc7bf; border-radius: 4px; background: #fff; color: #37342f; }
+.rp-filter-chip.is-active { border-color: #27715d; background: #edf5f1; color: #185b48; }
+
+.rp-material-catalog-search input { width: 100%; }
+.rp-material-catalog-result-count { margin: 0 0 12px; color: #6a665e; font-size: .9rem; }
+
+.rp-ceiling-picker-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rp-ceiling-picker-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 0 12px;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-ceiling-picker-card.is-active { border-color: #27715d; box-shadow: inset 0 0 0 1px #27715d; }
+.rp-ceiling-picker-card .rp-ceiling-choice-visual { aspect-ratio: 16 / 9; }
+.rp-ceiling-picker-card .rp-light-choice-visual { aspect-ratio: 16 / 9; }
+.rp-ceiling-picker-card strong { display: block; padding: 10px 12px 0; }
+.rp-ceiling-picker-card small { display: block; padding: 4px 12px 0; color: #5f5b54; }
+
+@media (max-width: 760px) {
+  .rp-questionnaire-ceiling-quick-choices,
+  .rp-ceiling-picker-options,
+  .rp-ceiling-design-packs { grid-template-columns: 1fr; }
+}
+
+.rp-whole-house-style-editor {
+  margin: 0 0 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+
+#whole-house-style-grid > button small {
+  display: block;
+  padding: 0 14px 4px;
+  color: #52665f;
+  font-size: .9rem;
+}
+
+#whole-house-style-grid > button em {
+  display: block;
+  min-height: 34px;
+  padding: 0 14px 14px;
+  color: #6b655e;
+  font-size: .82rem;
+  font-style: normal;
+}
+
+#whole-house-style-grid > button.is-active em {
+  color: #176d58;
+  font-weight: 700;
+}
+
+#whole-house-style-grid > button.is-active {
+  border-color: var(--rp-green);
+  box-shadow: inset 0 0 0 1px var(--rp-green);
+  background: #f5faf7;
+}
+
+.rp-style-selection-status {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--rp-green);
+  background: #edf6f1;
+  color: #205746;
+  line-height: 1.5;
+}
+
+#questionnaire-finishes.is-room-needs-only > .rp-style-tabs,
+#questionnaire-finishes.is-room-needs-only > .rp-questionnaire-material-grid,
+#questionnaire-finishes.is-room-needs-only > .rp-room-finish-apply,
+#questionnaire-finishes.is-room-needs-only > .rp-room-feasibility-notices {
+  display: none;
+}
+
+#questionnaire-finishes.is-room-needs-only > .rp-questionnaire-style-grid {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 12px;
+  opacity: 1;
+}
+
+#questionnaire-finishes.is-room-needs-only > .rp-questionnaire-style-grid button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+#questionnaire-finishes.is-room-needs-only > .rp-questionnaire-style-grid > button {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#questionnaire-finishes.is-room-needs-only > .rp-questionnaire-style-grid .rp-style-card-preview {
+  display: block;
+  width: 100%;
+  max-height: none;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
+  object-fit: contain;
+  background: #f2f0eb;
+}
+
+#questionnaire-finishes.is-room-needs-only > .rp-questionnaire-style-grid strong {
+  display: block;
+  margin: 12px 14px 4px;
+  font-size: 1.1rem;
+}
+
+#questionnaire-finishes.is-room-needs-only > .rp-questionnaire-style-grid small {
+  display: block;
+  margin: 0 14px 14px;
+  line-height: 1.5;
+}
+
+/* 主機下有兩層包裝:入口列 .rp-material-catalog-entry 與推薦卡清單
+   .rp-material-option-list。卡片樣式必須限縮在清單內——否則入口按鈕會被
+   當成材質卡套上 76px 欄與 86px 固定高而被裁掉;主機也不能再固定列高,
+   否則整份清單被壓進一列,溢出蓋住底下的顏色與偏好欄位。 */
+.rp-questionnaire-material-options {
+  display: grid;
+  gap: 12px;
+}
+
+.rp-material-catalog-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 11px 13px;
+  border: 1px dashed #c7c2b8;
+  border-radius: 6px;
+  background: #faf9f6;
+}
+
+.rp-material-catalog-entry > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.rp-material-catalog-entry strong {
+  font-size: 14px;
+}
+
+.rp-material-catalog-entry small {
+  color: #6e6962;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rp-material-option-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rp-material-option-list > button {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 3px 12px;
+  height: 86px;
+  min-height: 86px;
+  padding: 8px;
+  border: 1px solid #cbc7bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-material-option-list > button.is-active {
+  border-color: #27715d;
+  box-shadow: inset 0 0 0 2px #27715d;
+}
+
+.rp-material-option-list .rp-material-preview {
+  grid-row: 1 / 3;
+  width: 76px;
+  height: 68px;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* PNG catalog previews can include transparent margins. Crop to the material centre. */
+  background-position: center;
+  background-size: cover;
+}
+
+.rp-material-option-list > button strong {
+  align-self: end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-material-option-list > button small {
+  color: #6e6962;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rp-material-option-list > button small em {
+  flex: 0 0 auto;
+  color: #27715d;
+  font-style: normal;
+}
+
+.rp-open-material-catalog {
+  flex: 0 0 auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
+
+.rp-material-pair-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.rp-material-pair-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #cbc7bf;
+  border-radius: 6px;
+  background: #fff;
+  color: #37342f;
+  text-align: left;
+}
+
+.rp-material-pair-card.is-active {
+  border-color: #27715d;
+  box-shadow: inset 0 0 0 2px #27715d;
+}
+
+.rp-material-pair-card canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background: #f1ede6;
+}
+
+.rp-material-pair-card > span {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.rp-material-pair-card strong,
+.rp-material-pair-card small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-material-pair-card small { color: #67615a; }
+
+@media (max-width: 740px) {
+  .rp-material-pair-grid { grid-template-columns: 1fr; }
+}
+
+.rp-material-catalog-dialog {
+  width: min(900px, calc(100vw - 32px));
+  max-height: min(780px, calc(100vh - 32px));
+  border: 1px solid #cfc9bf;
+  border-radius: 8px;
+  padding: 20px;
+  color: #252421;
+  background: #fbfaf7;
+}
+
+.rp-material-catalog-dialog::backdrop {
+  background: rgba(28, 33, 31, .45);
+}
+
+.rp-dialog-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rp-dialog-heading h3 { margin: 4px 0 0; }
+
+.rp-material-catalog-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rp-material-catalog-options button {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 112px;
+  padding: 8px;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid #d4cec4;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.rp-material-catalog-sample {
+  position: relative;
+  display: block;
+  width: 108px;
+  height: 94px;
+}
+
+.rp-material-catalog-options img {
+  width: 108px;
+  height: 94px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #e7e2d8;
+}
+
+.rp-material-catalog-sample i {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--material-primary);
+  box-shadow: 0 1px 3px rgba(31, 35, 32, .34);
+}
+
+.rp-material-catalog-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.rp-material-catalog-options span,
+.rp-material-catalog-options small { min-width: 0; }
+.rp-material-catalog-options small { display: block; margin-top: 5px; color: #6e6962; }
+
+.rp-material-visual-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rp-material-visual-tags em {
+  padding: 2px 5px;
+  border: 1px solid #d7d2ca;
+  border-radius: 3px;
+  background: #f7f5f0;
+  color: #53625b;
+  font-size: .72rem;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.rp-step-six-material-grid .rp-material-visual-tags {
+  min-height: 22px;
+}
+
+@media (max-width: 740px) {
+  .rp-material-catalog-options { grid-template-columns: 1fr; }
+  .rp-material-catalog-filters { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 740px) {
+  .rp-questionnaire-material-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rp-questionnaire-material-grid fieldset:last-child {
+    grid-column: auto;
+  }
+}
+
+.rp-questionnaire-summary {
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-summary > section {
+  padding: 22px 0;
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-questionnaire-summary h4 {
+  margin: 0 0 14px;
+}
+
+.rp-questionnaire-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rp-questionnaire-summary-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px 12px 0;
+}
+
+.rp-questionnaire-summary-grid span,
+.rp-questionnaire-summary li span {
+  color: #716d66;
+}
+
+.rp-questionnaire-summary ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-questionnaire-summary li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ece9e3;
+}
+
+.rp-questionnaire-summary li small {
+  grid-column: 1 / -1;
+}
+
+.rp-room-finish-editor {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid #d8d5ce;
+}
+
+.rp-circulation-style-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid #9ac7b8;
+  border-left: 4px solid #28765d;
+  background: #edf7f2;
+}
+
+.rp-circulation-style-notice strong,
+.rp-circulation-style-notice p {
+  margin: 0;
+}
+
+.rp-circulation-style-notice p {
+  margin-top: 4px;
+  color: #49665b;
+}
+
+.rp-room-finish-editor .is-locked {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+@media (max-width: 620px) {
+  .rp-circulation-style-notice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.rp-room-finish-editor > label,
+.rp-room-finish-apply > label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.rp-room-finish-editor select {
+  width: 100%;
+}
+
+.rp-inline-apply-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.rp-inline-apply-control label {
+  display: grid;
+  gap: 7px;
+}
+
+.rp-inline-apply-control .secondary-action {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .rp-inline-apply-control {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rp-room-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-bottom: 18px;
+}
+
+.rp-room-targets label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.rp-room-feasibility-notices {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.rp-room-feasibility-notices article {
+  display: grid;
+  grid-template-columns: minmax(100px, auto) 1fr;
+  gap: 4px 14px;
+  padding: 12px 14px;
+  border-left: 3px solid #27715d;
+  background: #eef4f0;
+}
+
+.rp-room-feasibility-notices article.needs-review {
+  border-left-color: #bd5c36;
+  background: #fff3ec;
+}
+
+.rp-room-feasibility-notices small {
+  grid-column: 1 / -1;
+}
+
+.rp-room-summary {
+  border-bottom: 1px solid #d8d5ce;
+}
+
+.rp-room-summary > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 0;
+  cursor: pointer;
+}
+
+.rp-room-summary-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 26px;
+  padding: 0 0 22px;
+}
+
+.rp-room-summary-body section {
+  min-width: 0;
+}
+
+.rp-layout-room-materials {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0 12px;
+}
+
+.rp-layout-room-material {
+  min-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid #d8d5ce;
+  background: #fff;
+}
+
+.rp-layout-room-material i {
+  width: 19px;
+  height: 19px;
+  border: 1px solid #a8a39b;
+  background: var(--surface-swatch);
+}
+
+@media (max-width: 900px) {
+  .rp-test2-questionnaire {
+    width: min(100% - 24px, 720px);
+  }
+
+  .rp-questionnaire-stage-nav {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .rp-questionnaire-stage-nav button {
+    flex: 0 0 132px;
+  }
+
+  .rp-questionnaire-stage-nav button span {
+    white-space: nowrap;
+  }
+
+  .rp-room-questionnaire-layout,
+  .rp-questionnaire-material-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-room-questionnaire-plan {
+    position: static;
+  }
+
+
+  .rp-visual-space-nav {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    overflow-x: auto;
+  }
+
+  .rp-questionnaire-style-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .rp-questionnaire-heading,
+  .rp-questionnaire-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rp-questionnaire-heading-actions {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column-reverse;
+  }
+
+  .rp-test2-profile-grid,
+  .rp-questionnaire-furniture-options,
+  .rp-questionnaire-style-grid,
+  .rp-questionnaire-summary-grid,
+  .rp-room-summary-body {
+    grid-template-columns: 1fr;
+  }
+
+  .rp-questionnaire-style-grid > button {
+    display: block;
+  }
+
+  .rp-test2-profile-grid > label {
+    border-right: 0;
+  }
+
+
+
+
+
+
+  .rp-visual-question-card h3 {
+    font-size: 24px;
+  }
+
+
+  .rp-questionnaire-stage .rp-action-row > button {
+    width: 100%;
+  }
+}
+
+/* Late cascade for the compact Step 5 room workflow. */
+#requirements-step .rp-test2-questionnaire { width: min(1360px, calc(100% - 40px)); }
+.rp-questionnaire-stage-nav { display: inline-flex; width: auto; margin: 18px 0 28px; border: 1px solid #ddd9d0; border-radius: 8px; overflow: hidden; }
+.rp-questionnaire-stage-nav button { min-height: 46px; padding: 8px 22px; }
+.rp-room-questionnaire-layout { grid-template-columns: 320px minmax(0, 1fr); gap: 24px; }
+.rp-room-questionnaire-plan { top: 112px; padding: 16px; border: 1px solid #ddd9d0; border-radius: 10px; background: #fff; }
+.rp-questionnaire-plan-stage { min-height: 0; aspect-ratio: 4 / 3; }
+.rp-room-questionnaire-editor { display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 0 24px; align-items: start; }
+.rp-room-questionnaire-editor > [hidden][aria-hidden="true"], .rp-room-questionnaire-editor > .rp-visual-question-card { grid-column: 1 / -1; }
+.rp-room-finish-editor { grid-column: 2; min-width: 0; padding: 18px 0 96px; }
+.rp-room-finish-editor > .rp-questionnaire-section-heading:first-child { display: none; }
+.rp-room-questionnaire-editor [data-room-section-panel] { display: none !important; }
+.rp-room-questionnaire-editor[data-room-section="usage"] [data-room-section-panel="usage"], .rp-room-questionnaire-editor[data-room-section="equipment"] [data-room-section-panel="equipment"], .rp-room-questionnaire-editor[data-room-section="furniture"] [data-room-section-panel="furniture"], .rp-room-questionnaire-editor[data-room-section="surfaces"] [data-room-section-panel="surfaces"], .rp-room-questionnaire-editor[data-room-section="review"] [data-room-section-panel="review"] { display: block !important; }
+.rp-room-questionnaire-editor[data-room-section="surfaces"] .rp-questionnaire-material-grid, .rp-room-questionnaire-editor[data-room-section="ceiling"] .rp-questionnaire-material-grid { display: grid !important; }
+.rp-room-questionnaire-editor[data-room-section="surfaces"] .rp-questionnaire-material-grid > fieldset:nth-child(3), .rp-room-questionnaire-editor[data-room-section="ceiling"] .rp-questionnaire-material-grid > fieldset:nth-child(-n + 2) { display: none; }
+.rp-questionnaire-room-action-bar { position: sticky; bottom: 0; z-index: 5; grid-column: 2; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: -80px; padding: 14px 16px; border: 1px solid #ddd9d0; border-radius: 8px; background: rgba(255, 255, 255, .96); box-shadow: 0 -8px 20px rgba(46, 48, 42, .06); }
+.rp-questionnaire-room-action-bar p { margin: 0; color: #6d716c; font-size: 14px; }.rp-questionnaire-room-action-bar > div { display: flex; gap: 10px; }.rp-questionnaire-room-action-bar button { min-height: 44px; }
+.rp-questionnaire-room-review { display: grid; gap: 18px; }.rp-room-review-list { display: grid; gap: 8px; }.rp-room-review-list button { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 58px; padding: 12px 14px; border: 1px solid #ddd9d0; border-radius: 8px; background: #fff; text-align: left; }.rp-room-review-list button span { color: #6d716c; }.rp-room-review-list button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.rp-room-review-list button em { color: #216b59; font-style: normal; }
+@media (max-width: 980px) { .rp-room-questionnaire-layout { grid-template-columns: 1fr; }.rp-room-questionnaire-plan { position: static; }.rp-room-finish-editor, .rp-questionnaire-room-action-bar { grid-column: 1; } }
+
+@media (max-width: 640px) { #requirements-step .rp-test2-questionnaire { width: min(100% - 24px, 1360px); }.rp-questionnaire-stage-nav { display: grid; width: 100%; grid-template-columns: 1fr; }.rp-questionnaire-stage-nav button { justify-content: flex-start; border-right: 0; border-bottom: 1px solid #ddd9d0; }.rp-questionnaire-room-action-bar { align-items: stretch; flex-direction: column; }.rp-questionnaire-room-action-bar > div { display: grid; grid-template-columns: 1fr 1fr; }.rp-room-review-list button { grid-template-columns: 1fr auto; }.rp-room-review-list button strong { grid-column: 1 / -1; } }
+
+/* Focus the global workflow on Step 5 while this questionnaire is open. */
+body:has(#requirements-step:not([hidden])) .rp-progress {
+  display: none;
+}
+
+.rp-questionnaire-heading-actions { position: relative; flex-wrap: wrap; justify-content: flex-end; }
+.rp-questionnaire-heading-actions > #requirements-progress { display: none; }
+.rp-room-questionnaire-plan { box-shadow: 0 10px 24px rgba(37, 49, 43, .045); }
+.rp-visual-space-nav button { position: relative; transition: background .16s ease, border-color .16s ease; }
+.rp-visual-space-nav button.is-active::before { content: "填寫中"; position: absolute; right: 4px; top: 10px; padding: 2px 6px; border-radius: 999px; background: #e7f0ec; color: #216b59; font-size: 11px; font-weight: 700; }
+.rp-room-finish-editor { padding-left: 2px; }
+.rp-questionnaire-room-action-bar { border-color: #cbd8d1; }
+
+/* Furniture cards show the catalog image, or the same GLB thumbnail fallback as the catalog drawer. */
+.rp-questionnaire-furniture-preview { position: relative; width: 100%; height: 92px; align-self: center; overflow: hidden; border: 1px solid #ddd9d0; border-radius: 5px; background: #f7f6f2; }
+.rp-questionnaire-furniture-preview img { width: 100%; height: 100%; display: block; object-fit: contain; }
+.rp-questionnaire-furniture-preview span { position: absolute; inset: 0; display: none; place-items: center; padding: 8px; color: #77746d; font-size: 12px; text-align: center; }
+.rp-questionnaire-furniture-preview img.is-loading + span { display: grid; }
+.rp-questionnaire-furniture-reason { color: #216b59 !important; line-height: 1.35; }
+
+.rp-catalog-batch {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+  color: #3f4843;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .rp-catalog-filter-controls { grid-template-columns: 1fr; }
+  .rp-catalog-batch { grid-column: auto; align-items: stretch; flex-direction: column; }
+}
+
+.rp-catalog-select-item { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; font-weight: 700; }
+
+/* 問卷中的新增家具只提供快速勾選，完整圖片與型錄資訊留在第 6 步。 */
+.rp-glb-results:has(.rp-questionnaire-catalog-option) {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.rp-glb-result.rp-questionnaire-catalog-option {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border-color: #c9c2b8;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item {
+  display: flex;
+  min-height: 46px;
+  padding: 10px 12px;
+  line-height: 1.35;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item span {
+  display: grid;
+  gap: 3px;
+  color: #2d3833;
+  font-size: 14px;
+}
+
+.rp-questionnaire-catalog-option .rp-catalog-select-item small {
+  color: #216b59;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rp-catalog-browse-prompt {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed #9daea5;
+  border-radius: 5px;
+  background: #f5faf7;
+  color: #295f4d;
+  font-weight: 700;
+  text-align: center;
+}
+
+.rp-catalog-scope button { flex: 1; padding: 8px 10px; border: 0; border-right: 1px solid #d9d5ce; border-radius: 0; background: #fff; color: #4a4b46; font-size: 13px; white-space: nowrap; }
+.rp-catalog-scope button:last-child { border-right: 0; }
+.rp-catalog-scope button.is-active { background: #216b59; color: #fff; }
+.rp-catalog-choice-groups { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rp-catalog-choice-groups > span { width: 100%; color: #5d625d; font-size: 12px; font-weight: 700; }
+.rp-catalog-choice-groups button { min-height: 36px; padding: 7px 12px; border: 1px solid #c9c5bd; border-radius: 5px; background: #fff; color: #34332f; font-weight: 700; }
+.rp-catalog-choice-groups button.is-active { border-color: #216b59; background: #e7f0ec; color: #174d3e; }
+
+
+@media (max-width: 820px) {
+  .rp-questionnaire-furniture-select { grid-template-columns: 22px 82px minmax(0, 1fr); gap: 10px; }
+  .rp-questionnaire-furniture-preview { height: 78px; }
+}
+
+@media (max-width: 740px) {
+  body:has(#requirements-step:not([hidden])) .rp-progress { padding: 0 16px; }
+  .rp-questionnaire-heading-actions { justify-content: flex-start; }
+}
+
+/* 擺放中的全畫面等待提示:agent 還在算,擋操作並明說要等 */
+.rp-placement-busy {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  display: grid;
+  place-items: center;
+  background: rgba(24, 28, 26, 0.46);
+  backdrop-filter: blur(2px);
+}
+
+.rp-placement-busy-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 34px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(15, 23, 20, 0.28);
+  max-width: min(420px, 86vw);
+  text-align: center;
+}
+
+.rp-placement-busy-card p {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2a24;
+}
+
+.rp-placement-busy-card small { color: #5f6c64; }
+
+.rp-placement-busy-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 4px solid #dbe4de;
+  border-top-color: #2f6f4f;
+  animation: rp-placement-busy-spin 0.9s linear infinite;
+}
+
+@keyframes rp-placement-busy-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 第 8 步逐房生圖：日光/夜間縮圖（小尺寸不撐破面板；點擊放大到左側 3D 疊層） */
+.rp-final-render-bulk { margin: 2px 0 8px; }
+.rp-final-render-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 8px;
+}
+.rp-final-render-thumb {
+  display: grid;
+  gap: 3px;
+  padding: 0 0 4px;
+  border: 1px solid #dbe4de;
+  border-radius: 8px;
+  background: #fff;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+.rp-final-render-thumb img {
+  display: block;
+  width: 118px;
+  height: 80px;
+  object-fit: cover;
+}
+.rp-final-render-thumb small {
+  font-size: 11px;
+  color: #5f6c64;
+  text-align: center;
+}
+.rp-final-render-thumb:hover { border-color: #2f6f4f; }
+
+/* 第 8 步:生圖完成後取代左側 3D 場景;點圖回 3D、點「查看生圖」切回 */
+.rp-render-image-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  background: #1c1e1d;
+  cursor: pointer;
+}
+
+.rp-render-image-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.rp-render-image-hint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(24, 28, 26, 0.72);
+  color: #fff;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.rp-render-image-toggle {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 12;
+}
+
+/* 放大疊層上的房名/色卡標籤(哪一張圖) */
+.rp-render-image-caption {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 13;
+  max-width: calc(100% - 170px);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(24, 28, 26, 0.78);
+  color: #fff;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+/* 隨時切回 3D 的關閉鈕 */
+.rp-render-stage-close {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 14;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(24, 28, 26, 0.85);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* 「查看已生成圖片」牆:一次呈現全部房間生圖,點一張放大 */
+.rp-render-gallery {
+  position: absolute;
+  inset: 0;
+  z-index: 13;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  align-content: start;
+  padding: 52px 16px 16px;
+  background: #1c1e1d;
+}
+
+.rp-render-gallery-item {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  cursor: zoom-in;
+}
+
+.rp-render-gallery-item img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.rp-render-gallery-item figcaption {
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* 側欄縮圖給游標提示可點放大(色卡 + 全房生圖共用此 grid) */
+.rp-render-result-grid img {
+  cursor: zoom-in;
+}

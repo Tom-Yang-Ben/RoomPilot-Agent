@@ -1,3 +1,5 @@
+from scripts.static_source_graph import scene_controller_source, scene_viewer_source
+
 import json
 from pathlib import Path
 
@@ -112,9 +114,7 @@ def test_closed_door_leaf_lies_flat_inside_the_doorway() -> None:
 
 
 def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
 
     assert 'fetch("/api/scene/validate"' in source
     assert "item: { ...item, position_cm: positionCm, rotation_y_deg: rotationDeg }" in source
@@ -123,12 +123,8 @@ def test_3d_drag_preserves_the_user_position_after_backend_validation() -> None:
 
 
 def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
-    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
-    controller = (ROOT / "backend" / "server" / "static" / "scene_v2.js").read_text(
-        encoding="utf-8"
-    )
+    viewer = scene_viewer_source(ROOT / "backend" / "server" / "static")
+    controller = scene_controller_source(ROOT / "backend" / "server" / "static")
 
     assert "{ onSceneChange = null, onObjectSelect = null } = {}" in viewer
     assert "notifySceneChange(item)" in viewer
@@ -143,9 +139,7 @@ def test_3d_drag_and_rotation_notify_the_project_autosave_boundary() -> None:
 
 
 def test_formal_3d_columns_use_confirmed_rectangular_dimensions_and_rotation() -> None:
-    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    viewer = scene_viewer_source(ROOT / "backend" / "server" / "static")
 
     assert 'import { columnGeometryDescriptor } from "./scene_structure_geometry.js' in viewer
     assert "minimumDimensionCm: 10" in viewer
@@ -219,9 +213,7 @@ def test_walk_camera_finds_a_nearby_valid_spawn_when_the_default_is_on_a_wall() 
 
 
 def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
 
     assert "function setWalkDestinationFromPointer" in source
     assert 'viewMode.mode !== "walk"' in source
@@ -240,9 +232,7 @@ def test_walk_view_supports_click_to_move_and_continuous_first_person_navigation
 
 def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
     """正式 viewer 直接建立牆段、開口補實、踢腳板與頂蓋。"""
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
     segment_walls = source.split("function buildSegmentWalls", 1)[1].split(
         "function buildConfirmedDoorLeaves", 1
     )[0]
@@ -254,9 +244,7 @@ def test_segment_walls_create_openings_trim_and_real_top_caps() -> None:
 
 def test_confirmed_step4_wall_junctions_fill_only_micro_gaps_outside_openings() -> None:
     """正式 viewer 只橋接小型共線辨識縫，且不得跨過已確認開口。"""
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
     junctions = source.split("function buildConfirmedWallJunctionFills", 1)[1].split(
         "segments.forEach", 1
     )[0]
@@ -269,9 +257,7 @@ def test_confirmed_step4_wall_junctions_fill_only_micro_gaps_outside_openings() 
 
 def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
     """正式 viewer 讓補實牆避開窗框，框件貼齊牆面避免 z-fighting。"""
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
     opening_builder = source.split("function buildOpeningAssembly", 1)[1].split(
         "function buildStandaloneOpeningAssemblies", 1
     )[0]
@@ -288,9 +274,7 @@ def test_window_frames_are_flush_and_do_not_zfight_with_wall_sections() -> None:
 
 
 def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
     wall_builder = source.split("function buildSegmentWalls", 1)[1].split(
         "function buildConfirmedDoorLeaves", 1
     )[0]
@@ -320,9 +304,7 @@ def test_all_confirmed_walls_use_room_materials_without_an_exterior_override() -
 
 
 def test_room_wall_finish_is_canonical_and_door_headers_share_wall_faces() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
     resolver = source.split("function wallMaterialResolver", 1)[1].split(
         "function wallSegmentPoint", 1
     )[0]
@@ -344,9 +326,7 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
     architecture = (ROOT / "backend" / "server" / "static" / "scene_architecture.js").read_text(
         encoding="utf-8"
     )
-    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    viewer = scene_viewer_source(ROOT / "backend" / "server" / "static")
     door_leaves = viewer.split("function buildConfirmedDoorLeaves", 1)[1].split(
         "function buildOpeningAssembly", 1
     )[0]
@@ -384,9 +364,7 @@ def test_confirmed_step4_door_gap_is_the_single_source_for_step6_wall_and_leaf()
 
 
 def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
 
     assert "function findWalkLookTarget" in source
     assert "const target = findWalkLookTarget(spawn, polygon);" in source
@@ -394,9 +372,7 @@ def test_walk_camera_looks_toward_open_walkable_space_instead_of_a_wall() -> Non
 
 
 def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
 
     assert "function buildCirculationRoute" in source
     assert "function findCirculationPath" in source
@@ -408,9 +384,7 @@ def test_circulation_route_starts_at_entrance_and_uses_walkable_grid() -> None:
 
 
 def test_dollhouse_keeps_all_walls_visible_and_orbit_controls_enabled() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
     dollhouse = source.split('} else if (mode === "dollhouse") {', 1)[1].split(
         "} else {", 1
     )[0]
@@ -445,9 +419,7 @@ def test_generic_glb_material_gets_a_safe_furniture_role_fallback() -> None:
 
 
 def test_style_pack_preserves_real_texture_color_detail_with_subtle_tint() -> None:
-    source = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
     room_creation = source.split("function createRoom(sceneData)", 1)[1].split(
         "const wallSegments", 1
     )[0]

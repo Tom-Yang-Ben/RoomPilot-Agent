@@ -1,3 +1,5 @@
+from scripts.static_source_graph import scene_controller_source, scene_viewer_source
+
 import json
 import subprocess
 from pathlib import Path
@@ -7,8 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / "backend/server/static/scene_room_requirements.js").read_text(
     encoding="utf-8"
 )
-SCENE = (ROOT / "backend/server/static/scene_v2.js").read_text(encoding="utf-8")
-VIEWER = (ROOT / "backend/server/static/scene_viewer.js").read_text(encoding="utf-8")
+SCENE = scene_controller_source(ROOT / "backend/server/static")
+VIEWER = scene_viewer_source(ROOT / "backend/server/static")
 ROOM_REQUIREMENTS = ROOT / "backend/server/static/scene_room_requirements.js"
 
 

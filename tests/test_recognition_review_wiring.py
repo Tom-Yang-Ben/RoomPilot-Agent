@@ -18,6 +18,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from backend.server.main import STATIC_DIR, app
+from scripts.static_source_graph import scene_controller_source
 
 client = TestClient(app)
 
@@ -70,7 +71,7 @@ def test_step_four_surfaces_review_items_in_the_recognition_summary() -> None:
     全確認）。伺服器閘門（下面四支測試）因此不會被觸發——它只在有房間未確認
     時才擋，而目前流程走到宣告完成時所有房間都已是 confirmed。
     """
-    scene_v2 = (STATIC_DIR / "scene_v2.js").read_text(encoding="utf-8")
+    scene_v2 = scene_controller_source(STATIC_DIR)
 
     assert "./scene_recognition_review.js?v=sha256-" in scene_v2
     assert "unresolvedReviewRooms" in scene_v2

@@ -1,3 +1,5 @@
+from scripts.static_source_graph import scene_controller_source, scene_viewer_source
+
 import re
 from pathlib import Path
 
@@ -74,9 +76,12 @@ def test_unresolvable_external_furniture_does_not_steal_glb_priority():
 
 def test_scene_accepts_style_card_handoff_from_styles_page():
     static = ROOT / "backend" / "server" / "static"
-    javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
+    javascript = scene_controller_source(static)
     styles = (static / "styles.js").read_text(encoding="utf-8")
-    main = (ROOT / "backend" / "server" / "main.py").read_text(encoding="utf-8")
+    main = "\n".join(
+        (ROOT / "backend" / "server" / name).read_text(encoding="utf-8")
+        for name in ("main.py", "project_routes.py", "public_routes.py")
+    )
     service = (ROOT / "backend" / "server" / "scene_service.py").read_text(encoding="utf-8")
     assert 'const STYLE_CARD_STORAGE_KEY = "roompilot:selectedStyleCard"' in styles
     assert 'new URLSearchParams({ style: group.scene_style_id, style_card: card.card_id })' in styles
@@ -91,7 +96,7 @@ def test_scene_accepts_style_card_handoff_from_styles_page():
 
 
 def test_scene_viewer_exposes_skin_lighting_and_interior_rotation_contract():
-    viewer = (ROOT / "backend" / "server" / "static" / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = scene_viewer_source(ROOT / "backend" / "server" / "static")
     assert "applyStyleSkin" in viewer
     assert "style_card" in viewer
     assert "keyLight.intensity = Math.max(1.2, Number(lighting.keyLightLux" in viewer

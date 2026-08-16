@@ -1,3 +1,5 @@
+from scripts.static_source_graph import scene_controller_source, scene_viewer_source
+
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -140,9 +142,7 @@ def test_orientation_pass_keeps_wall_anchored_sofa_and_snaps_chairs_to_axis() ->
 
 
 def test_viewer_keeps_boundary_walls_in_room_finish_and_door_inside_snapped_assembly() -> None:
-    source = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
-    ).read_text(encoding="utf-8")
+    source = scene_viewer_source(ROOT / "backend" / "server" / "static")
     resolver = source.split("function wallMaterialResolver", 1)[1].split(
         "function createFloorMaterial", 1
     )[0]
@@ -336,9 +336,7 @@ def test_manual_wall_snap_is_resolved_by_the_backend_layout_engine() -> None:
 
 
 def test_step6_drag_commits_backend_wall_snap_inside_original_room() -> None:
-    source = (
-        ROOT / "backend" / "server" / "static" / "scene_v2.js"
-    ).read_text(encoding="utf-8")
+    source = scene_controller_source(ROOT / "backend" / "server" / "static")
     finish_drag = source.split("async function finishFurnitureDrag", 1)[1].split(
         "function addFurnitureFromLibrary", 1
     )[0]

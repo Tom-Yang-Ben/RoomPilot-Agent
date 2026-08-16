@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from scripts.static_source_graph import (
+    scene_controller_source,
+    scene_stylesheet_source,
+    scene_viewer_source,
+)
+
 import json
 import re
 import subprocess
@@ -176,7 +182,7 @@ def test_visual_catalog_api_returns_planned_and_ready_questions(
 def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
     static = ROOT / "backend" / "server" / "static"
     html = (static / "scene.html").read_text(encoding="utf-8")
-    javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
+    javascript = scene_controller_source(static)
 
     for stage in ("rooms", "profile", "summary"):
         assert f'data-questionnaire-stage="{stage}"' in html
@@ -215,10 +221,7 @@ def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
 
 
 def _scene_stylesheet(static) -> str:
-    return "\n".join(
-        (static / name).read_text(encoding="utf-8")
-        for name in ("site.css", "scene.css")
-    )
+    return scene_stylesheet_source(static)
 
 
 def test_ceiling_choices_use_procedural_placeholders_without_photos() -> None:
@@ -256,7 +259,7 @@ def test_every_ceiling_design_pack_has_its_own_picker_photo() -> None:
 def test_questionnaire_ui_keeps_visual_catalog_for_rag_but_not_as_required_questions() -> None:
     static = ROOT / "backend" / "server" / "static"
     html = (static / "scene.html").read_text(encoding="utf-8")
-    javascript = (static / "scene_v2.js").read_text(encoding="utf-8")
+    javascript = scene_controller_source(static)
 
     assert "全屋設定" in html
     assert "逐房需求與材質" in html
@@ -479,9 +482,7 @@ def test_extreme_preferences_change_furniture_specs_before_layout() -> None:
 
 
 def test_viewer_consumes_questionnaire_ceiling_finish() -> None:
-    viewer = (
-        ROOT / "backend" / "server" / "static" / "scene_viewer.js"
-    ).read_text(encoding="utf-8")
+    viewer = scene_viewer_source(ROOT / "backend" / "server" / "static")
 
     assert "sceneData.design_choices?.ceiling_color_hex" in viewer
     assert "sceneData.design_choices?.ceiling_material" in viewer

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from scripts.static_source_graph import scene_controller_source
+
 import json
 import re
 
@@ -132,7 +134,7 @@ def test_room_role_and_rag_text_influence_questionnaire_catalog_ranking() -> Non
 
 
 def test_step_six_contract_requires_catalog_models_instead_of_white_fallbacks() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
     assert "catalogOffersForRoomPlans" in source
@@ -152,7 +154,7 @@ def test_appliance_catalog_is_retired_from_step_six() -> None:
 
 
 def test_frontend_no_longer_maps_questionnaire_appliances_to_an_api() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
 
     assert 'endpoint: "/api/appliances"' not in source
     assert '"/api/appliances"' not in source

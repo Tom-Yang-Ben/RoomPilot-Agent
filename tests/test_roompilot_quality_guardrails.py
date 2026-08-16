@@ -1,3 +1,5 @@
+from scripts.static_source_graph import scene_controller_source
+
 from pathlib import Path
 
 import backend.server.scene_service as scene_service
@@ -11,7 +13,7 @@ STATIC = ROOT / "backend" / "server" / "static"
 
 def test_scene_starts_with_project_creation_and_exposes_the_strict_upload_contract():
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    javascript = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    javascript = scene_controller_source(STATIC)
 
     assert 'id="project-step" class="rp-step-panel is-active"' in html
     assert 'id="upload-step"' in html
@@ -39,7 +41,7 @@ def test_dxf_parser_exposes_frontend_preview_contract():
 
 def test_scene_exposes_requirements_2d_library_and_visible_furniture_gate():
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    javascript = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    javascript = scene_controller_source(STATIC)
 
     assert 'id="whole-house-fields"' in html
     assert 'data-questionnaire-stage="rooms"' in html

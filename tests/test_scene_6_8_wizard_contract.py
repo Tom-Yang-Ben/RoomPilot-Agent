@@ -1,3 +1,5 @@
+from scripts.static_source_graph import scene_controller_source
+
 from pathlib import Path
 
 
@@ -7,7 +9,7 @@ STATIC = ROOT / "backend" / "server" / "static"
 
 def test_step_six_requires_every_room_to_choose_a_scheme_before_micro_adjustment() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
 
     assert 'id="room-scheme-selection-dialog"' in html
     assert 'id="room-scheme-complete"' in html
@@ -23,7 +25,7 @@ def test_step_six_requires_every_room_to_choose_a_scheme_before_micro_adjustment
 
 def test_render_submission_requires_a_user_visible_render_brief() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
 
     assert 'id="render-brief-dialog"' in html
     assert 'id="render-brief-confirm"' in html
@@ -41,7 +43,7 @@ def test_step_six_surface_controls_live_in_the_white_model_sidebar_tab() -> None
     # confirmStepSixRoomSurfaces / unlockStepSixRoomSurfaces 提供逐房草稿→鎖定
     # 的生命週期。此測試釘住新結構，避免退回舊的任務對話框設計。
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
 
     # 舊的任務對話框設計必須維持已拆除。
     assert 'id="surface-adjustment-dialog"' not in html
@@ -71,7 +73,7 @@ def test_step_six_surface_controls_live_in_the_white_model_sidebar_tab() -> None
 
 def test_configuration_generation_explains_catalog_unavailability_before_starting() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
 
     assert 'id="requirements-generation-help"' in html
     assert 'id="retry-configuration-catalog-check"' in html

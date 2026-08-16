@@ -1,3 +1,5 @@
+from scripts.static_source_graph import scene_controller_source, scene_viewer_source
+
 """3D 場景生命週期契約：viewer 常駐、家具增刪走增量操作、GLB 只載一次。
 
 背景：六個 viewer 只在頁面載入時建一次，但過去唯一的內容 API loadScene 每次
@@ -38,7 +40,7 @@ def test_scene_viewer_parses_as_an_es_module(tmp_path) -> None:
 
 
 def test_glb_models_load_once_and_cached_assets_survive_scene_clear() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
 
     assert "const gltfPromiseCache = new Map();" in viewer
     assert "loadGltfCached(loader, item.model_url)" in viewer
@@ -50,7 +52,7 @@ def test_glb_models_load_once_and_cached_assets_survive_scene_clear() -> None:
 
 
 def test_viewer_exposes_incremental_furniture_operations() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
 
     assert "async function addObject(item)" in viewer
     assert "function removeObject(furnitureId)" in viewer
@@ -65,8 +67,8 @@ def test_viewer_exposes_update_room_surfaces_used_by_material_flow() -> None:
     viewer 若未匯出此方法，confirmWhiteModel 會擲
     "updateRoomSurfaces is not a function" → 未捕捉的 promise → 「確認家具配置並
     調整材質」按鈕點了沒反應。回歸守門:呼叫端存在,且 viewer 公開 API 真的有它。"""
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
+    source = scene_controller_source(STATIC)
 
     assert "whiteViewer.updateRoomSurfaces(" in source
     api = viewer.split("\n  return {", 1)[-1]
@@ -82,7 +84,7 @@ def test_viewer_exposes_update_room_surfaces_used_by_material_flow() -> None:
 
 
 def test_furniture_edits_use_incremental_operations_not_full_reload() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
 
     delete_body = _function_body(source, "async function deleteSelectedSceneFurniture()")
     assert "whiteViewer.removeObject(" in delete_body
@@ -102,7 +104,7 @@ def test_furniture_edits_use_incremental_operations_not_full_reload() -> None:
 
 
 def test_load_scene_skips_unchanged_content_and_unchanged_shell() -> None:
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
 
     assert "let lastSceneKey = null;" in viewer
     assert "let lastShellKey = null;" in viewer
@@ -117,8 +119,8 @@ def test_gpu_memory_stays_bounded_against_context_loss() -> None:
     - 隱藏面板與離屏縮圖臺不每幀渲染（七個 renderer 全速跑會撐爆 GPU）。
     - 離屏縮圖 viewer 拍完 A/B 預覽即整包卸載，不滯留整棟場景。
     """
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
+    source = scene_controller_source(STATIC)
 
     assert "const GLTF_CACHE_LIMIT" in viewer
     assert "function disposeGltfResources(" in viewer
@@ -131,11 +133,11 @@ def test_gpu_memory_stays_bounded_against_context_loss() -> None:
 
 
 def test_room_scheme_previews_build_offscreen_and_get_cleaned_up() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
 
     preview_body = _function_body(source, "async function ensureRoomScheme3dPreviews()")
     assert "glbThumbnailViewer.loadScene(" in preview_body
-    assert "glbThumbnailSequence" in preview_body           # 與 GLB 縮圖共用序列佇列
+    assert "glbThumbnailQueue.sequence" in preview_body           # 與 GLB 縮圖共用序列佇列
     assert "whiteViewer.loadScene(" not in preview_body     # 前景場景不得被預覽借用
 
     sync_body = _function_body(source, "function syncFurnitureInventoryAcrossSchemes()")
@@ -150,7 +152,7 @@ def test_surface_textures_are_cached_and_survive_scene_clear() -> None:
     createImageTexture 每次都 textureLoader.load → 重新解碼並重傳 GPU 貼圖,整場卡頓。
     面材貼圖必須以快取跨場景重用,且 disposeObjectTree 清場時不得釋放快取貼圖
     (否則第一次清場就把下次要用的貼圖 dispose 掉 → 黑面)。"""
-    viewer = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = scene_viewer_source(STATIC)
 
     # 面材貼圖快取存在,且以色彩空間入鍵(colorMap SRGB / bumpMap NoColorSpace 不共用)
     assert "const surfaceTextureCache = new Map();" in viewer

@@ -6,6 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from backend.server import main
+from scripts.static_source_graph import scene_viewer_source
 from backend.server.services import cloud_models
 
 
@@ -108,6 +109,6 @@ def test_strict_cloudfront_blocks_legacy_local_model_endpoints(monkeypatch, call
 
 def test_only_the_formal_static_frontend_is_distributed():
     assert not (main.PROJECT_DIR / "frontend").exists()
-    viewer = (main.STATIC_DIR / "scene_viewer.js").read_text(encoding="utf-8")
+    viewer = scene_viewer_source(main.STATIC_DIR)
     assert "loadGltfCached(loader, item.model_url)" in viewer
     assert 'item.render_mode === "procedural_fixture"' in viewer

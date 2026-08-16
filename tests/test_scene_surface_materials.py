@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from scripts.static_source_graph import scene_controller_source, scene_viewer_source
+
 import json
 
 from test_scene_workflow import ROOT, run_workflow_script
@@ -51,7 +53,7 @@ def test_style_presets_resolve_to_procedural_catalog_surfaces() -> None:
 
 
 def test_realtime_surface_recommendations_explain_and_vary_options() -> None:
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
 
     assert "SURFACE_VARIANT_OPTIONS" in source
     assert "surfaceRecommendationScore" in source
@@ -78,7 +80,7 @@ def test_surface_preset_mapping_uses_only_public_procedural_ids() -> None:
 
 
 def test_scene_viewer_uses_image_texture_as_color_and_relief_maps() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = scene_viewer_source(STATIC)
 
     assert "map: colorMap" in source
     assert "bumpMap" in source
@@ -89,7 +91,7 @@ def test_scene_viewer_uses_image_texture_as_color_and_relief_maps() -> None:
 
 
 def test_floor_texture_repeat_uses_catalog_physical_size() -> None:
-    source = (STATIC / "scene_viewer.js").read_text(encoding="utf-8")
+    source = scene_viewer_source(STATIC)
 
     assert "surface.source_size" in source
     assert "Number(physicalSize[1])" in source

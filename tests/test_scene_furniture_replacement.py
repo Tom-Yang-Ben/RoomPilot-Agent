@@ -1,9 +1,11 @@
+from scripts.static_source_graph import scene_controller_source, scene_viewer_source
+
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "backend/server/static/scene.html").read_text(encoding="utf-8")
-SOURCE = (ROOT / "backend/server/static/scene_v2.js").read_text(encoding="utf-8")
+SOURCE = scene_controller_source(ROOT / "backend/server/static")
 
 
 def test_step6_has_a_dedicated_replacement_drawer() -> None:
@@ -68,9 +70,7 @@ def test_glb_thumbnail_mode_renders_only_the_furniture() -> None:
     search = SOURCE.split("function glbThumbnailScene", 1)[1].split(
         "async function styleFurnitureCandidate", 1
     )[0]
-    viewer = (ROOT / "backend/server/static/scene_viewer.js").read_text(
-        encoding="utf-8"
-    )
+    viewer = scene_viewer_source(ROOT / "backend/server/static")
     room_builder = viewer.split("function createRoom(sceneData)", 1)[1].split(
         "function createCeilingGeometry", 1
     )[0]
