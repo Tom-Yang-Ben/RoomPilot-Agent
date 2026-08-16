@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from backend.server import main
+from backend.server.project_schema import ProjectSchemaUpgradeRequired
+from backend.server.project_schema_migration import migrate_runtime_schema
 from backend.server.project_store import (
     MAX_WORKFLOW_BYTES,
     ProjectStore,
@@ -57,7 +59,7 @@ def test_expected_revision_rejects_stale_update_without_overwriting(tmp_path: Pa
     }
 
 
-def test_legacy_database_is_migrated_with_revision_zero(tmp_path: Path) -> None:
+def test_legacy_database_requires_explicit_project_schema_migration(tmp_path: Path) -> None:
     runtime = tmp_path / "legacy-runtime"
     runtime.mkdir()
     database = runtime / "projects.sqlite3"
@@ -90,14 +92,20 @@ def test_legacy_database_is_migrated_with_revision_zero(tmp_path: Path) -> None:
         )
 
     store = ProjectStore(runtime)
+    with pytest.raises(ProjectSchemaUpgradeRequired):
+        store.get_project("legacy-1")
+
+    migration = migrate_runtime_schema(runtime)
     restored = store.get_project("legacy-1")
 
-    assert restored["revision"] == 0
+    assert migration.migrated_count == 1
+    assert migration.backup_dir
+    assert restored["revision"] == 1
     assert restored["current_step"] == "layout_2d"
     assert restored["workflow"]["layout_2d"]["ok"] is True
     assert store.update_workflow(
-        "legacy-1", expected_revision=0, workflow={"restored": True}
-    )["revision"] == 1
+        "legacy-1", expected_revision=1, workflow={"restored": True}
+    )["revision"] == 2
 
 
 def test_workflow_payload_over_two_megabytes_is_rejected_atomically(tmp_path: Path) -> None:

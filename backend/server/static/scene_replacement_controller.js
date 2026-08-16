@@ -259,7 +259,7 @@ function scenePointCoordinates(point = {}) {
 function shiftFloorplanRegion(region, offset) {
   if (!region || !offset) return region;
   const next = { ...region };
-  ["exterior", "polygon_cm", "polygon_m", "room_polygon_cm"].forEach((key) => {
+  ["exterior", "polygon_cm", "room_polygon_cm"].forEach((key) => {
     if (Array.isArray(next[key])) next[key] = next[key].map((point) => shiftScenePoint(point, offset));
   });
   if (Array.isArray(next.holes)) {

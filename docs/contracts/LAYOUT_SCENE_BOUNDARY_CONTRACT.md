@@ -33,7 +33,7 @@ Not allowed content:
 - Render camera, export settings, or proposal copy.
 - Final style decisions.
 
-Current compatibility fields:
+Current API fields:
 
 - `/api/floorplan/analyze` returns both `analysis` and `layout_json`.
 - `/api/projects/{project_id}/floorplan/analyze` returns both `analysis` and `layout_json`.
@@ -65,10 +65,8 @@ Required inputs:
 
 Current compatibility fields:
 
-- `/api/scene/generate` returns `scene_json` beside the legacy top-level scene
-  payload.
-- The browser flow now reads `response.scene_json || response`, so new responses
-  use the explicit contract while legacy top-level responses remain a fallback.
+- `/api/scene/generate` returns the proposal under the required `scene_json`
+  field. Top-level scene payloads retired with project schema v3.
 
 ## Graph RAG Boundary
 

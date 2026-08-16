@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-325326a0b15e";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-86022d20e78b";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-7899eae4c7ba";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -6,8 +6,7 @@ import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-86c2
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-  repairLegacyWallFurnitureGaps,
-} from "./scene_unit_contracts.js?v=sha256-737745020183";
+} from "./scene_unit_contracts.js?v=sha256-65b47a2e253f";
 import {
   clipPolygonByLine,
   convexHull,
@@ -113,12 +112,10 @@ import {
 } from "./scene_style_packs.js?v=sha256-8b9ab6eaee18";
 import {
   beamDragGeometry,
-  canMarkWallForDemolition,
   dedupeDoorCandidates,
   dedupeWindowCandidates,
-  wallBoundarySide,
   windowsOverlap,
-} from "./scene_structure_utils.js?v=sha256-b84bfb98c74c";
+} from "./scene_structure_utils.js?v=sha256-5242c095ba21";
 import { createStructurePreview } from "./scene_structure_preview.js?v=sha256-9d866df171b3";
 import {
   findStructureWallCollision,
@@ -135,25 +132,22 @@ import {
   activateScheme,
   allRoomsHaveSchemeSelections,
   attachedOpenings,
-  compactDesignSchemesForSpace,
-  deleteSchemeB,
   ensureSchemeB,
-  hasRenovationChanges,
   markSchemeLayoutsStale,
   normalizeDesignSchemes,
   persistActiveScheme,
   selectSchemeForRoom,
   selectedSchemeForRoom,
   structuresForScheme,
-} from "./scene_design_schemes.js?v=sha256-218e7fe0b28e";
-import { createSceneConfigurationController } from "./scene_configuration_controller.js?v=sha256-7ee83f3d38d1";
+} from "./scene_design_schemes.js?v=sha256-5cc0b95c4b46";
+import { createSceneConfigurationController } from "./scene_configuration_controller.js?v=sha256-a1a771b297fb";
 import { createSceneProposalController } from "./scene_proposal_controller.js?v=sha256-cd23723e0e1d";
-import { createSceneStructureController } from "./scene_structure_controller.js?v=sha256-244d40edc66d";
+import { createSceneStructureController } from "./scene_structure_controller.js?v=sha256-eef52b130a83";
 import { createSceneQuestionnaireController } from "./scene_questionnaire_controller.js?v=sha256-11c58708d21f";
 import { createSceneModelingController } from "./scene_modeling_controller.js?v=sha256-4287354a26dd";
-import { createSceneEventBindings } from "./scene_event_bindings.js?v=sha256-446af43c373a";
-import { createSceneRestoreController } from "./scene_restore_controller.js?v=sha256-2f1fe48b8af2";
-import { createSceneFloorplanController } from "./scene_floorplan_controller.js?v=sha256-b1b0ab6c0101";
+import { createSceneEventBindings } from "./scene_event_bindings.js?v=sha256-a3ed0ba35620";
+import { createSceneRestoreController } from "./scene_restore_controller.js?v=sha256-23284a22f25e";
+import { createSceneFloorplanController } from "./scene_floorplan_controller.js?v=sha256-fcf5dfb95f00";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -169,6 +163,7 @@ const escapeHtml = (value) => String(value ?? "").replace(
 );
 
 const STYLE_CARD_STORAGE_KEY = "roompilot:selectedStyleCard";
+const PROJECT_SCHEMA_VERSION = 3;
 
 function readStyleCardHandoff() {
   const query = new URLSearchParams(location.search);
@@ -463,11 +458,6 @@ const element = {
   spaceImage: $("#space-plan-image"),
   spaceStage: $("#space-plan-stage"),
   spaceOverlay: $("#space-plan-overlay"),
-  schemeCompare: $("#design-scheme-compare"),
-  schemeAImage: $("#scheme-a-plan-image"),
-  schemeAOverlay: $("#scheme-a-plan-overlay"),
-  schemeBImage: $("#scheme-b-plan-image"),
-  schemeBOverlay: $("#scheme-b-plan-overlay"),
   spaceEditorWorkspace: $("#space-editor-workspace"),
   spaceDimensionReview: $("#space-dimension-review"),
   dimensionPlanStage: $("#dimensioned-plan-stage"),
@@ -770,7 +760,8 @@ async function api(url, options = {}) {
 }
 
 function sceneDataFromGenerateResponse(payload) {
-  return payload?.scene_json || payload;
+  if (!payload?.scene_json) throw new Error("scene_json_missing");
+  return payload.scene_json;
 }
 
 const RETIRED_APPLIANCE_TYPES = new Set([
@@ -1312,6 +1303,7 @@ function workflowPayload() {
         || Boolean(scheme.stale),
     );
   return {
+    project_schema_version: PROJECT_SCHEMA_VERSION,
     _flow: state.workflow?.toJSON() || null,
     floorplan_confirmation: state.workflow?.data?.floorplan_confirmation || {},
     recognition: stepIsLive("recognition") || calibrationIsLive ? state.analysis : null,
@@ -1320,11 +1312,11 @@ function workflowPayload() {
     space_confirmation: spaceIsLive
       ? {
           coordinate_unit: "cm",
+          schema_version: "2.0",
           rooms: state.rooms,
           structures: state.structures,
           confirmed_structure_snapshot: state.confirmedStructureSnapshot,
           dismissed_auto_room_ids: state.dismissedAutoRoomIds,
-          design_schemes: compactDesignSchemesForSpace(state.designSchemes),
         }
       : null,
     requirements: requirementsAreLive
@@ -1341,17 +1333,23 @@ function workflowPayload() {
       : null,
     layout_2d: layoutIsLive || hasSchemeLayoutState
       ? {
-          furniture: state.furniture2d,
+          schema_version: PROJECT_SCHEMA_VERSION,
+        }
+      : null,
+    configuration: layoutIsLive || hasSchemeLayoutState
+      ? {
+          schema_version: PROJECT_SCHEMA_VERSION,
           active_scheme_id: state.designSchemes.active_scheme_id,
+          locked_scheme_id: state.designSchemes.locked_scheme_id,
           room_selections: state.designSchemes.room_selections,
           configuration_snapshot: state.designSchemes.configuration_snapshot,
           schemes: Object.fromEntries(
             Object.entries(state.designSchemes.schemes).map(([id, scheme]) => [
               id,
               {
+                ...scheme,
                 furniture: scheme.furniture,
-                stale: scheme.stale,
-                staleReason: scheme.staleReason,
+                sceneData: scheme.sceneData,
               },
             ]),
           ),
@@ -1359,8 +1357,8 @@ function workflowPayload() {
       : null,
     white_model_3d: whiteModelIsLive && state.sceneData
       ? {
+          schema_version: PROJECT_SCHEMA_VERSION,
           sceneId: state.sceneData.scene_id,
-          sceneData: state.sceneData,
           diagnostics: whiteViewer.getDiagnostics(),
         }
       : null,
@@ -1525,22 +1523,6 @@ function invalidateDownstreamFrom(step, message = "") {
   if (message) setStatus(message);
 }
 
-function invalidateRenovationScheme(message) {
-  // 結構是所有方案共用的基準，不允許只修改方案 B。任何第 4 步結構改動
-  // 都必須讓 A、B 一起回到待重新配置狀態。
-  invalidateDownstreamFrom(
-    "space_confirmation",
-    message || "結構已修改，方案 A、B 都需要重新確認家具配置。",
-  );
-}
-
-function ensureRenovationScheme(reason = "structure_edit") {
-  // 舊版把方案 B 當成改造結構方案。保留函式名稱以相容既有事件，
-  // 但不再建立結構差異方案。
-  void reason;
-  return null;
-}
-
 function activeSchemeId() {
   return state.designSchemes.active_scheme_id || "A";
 }
@@ -1675,7 +1657,6 @@ function showStep(step) {
   element.instruction.textContent = text;
   if (step === "space_confirmation") {
     setSpaceReviewMode(state.spaceReviewMode);
-    renderSchemeComparison();
   }
   if (step === "requirements") void prepareQuestionnaireStep();
   if (step === "proposal_review") void prepareProposalReview();
@@ -1711,7 +1692,6 @@ function showStep(step) {
 
 async function renderRestoredStep() {
   renderSchemeControls();
-  renderSchemeComparison();
   if (state.rooms.length) {
     state.selectedRoomId = state.selectedRoomId || state.rooms[0].id;
     renderRooms();
@@ -1848,7 +1828,6 @@ const {
   applyCanonicalRoomLabels,
   applySelectedStructureSize,
   applySelectedWindowType,
-  applyWallDemolitionType,
   applyWindowType,
   cancelStructureInteraction,
   chooseRoomScheme,
@@ -1877,7 +1856,6 @@ const {
   mergeSelectedRooms,
   navigateRoomScheme3dPreview,
   normalizeIconInferredRoomReview,
-  normalizeWallDemolitionCandidates,
   openRoomScheme3dPreview,
   openRoomSchemeSelectionDialog,
   planGeometry,
@@ -1890,7 +1868,6 @@ const {
   renderRooms,
   renderRoomSchemeGate,
   renderRoomSchemeSelectionDialog,
-  renderSchemeComparison,
   renderSchemeControls,
   renderSelectedStructureEditor,
   renderSpaceOverlay,
@@ -1941,7 +1918,6 @@ const {
   attachedOpenings,
   beamDragGeometry,
   buildDimensionedPlanAnnotations,
-  canMarkWallForDemolition,
   clipPolygonByLine,
   configurationBlockingFurniture: (...args) => configurationBlockingFurniture(...args),
   confirmedWallGapForDoor,
@@ -1950,7 +1926,6 @@ const {
   dedupeDoorCandidates,
   dedupeWindowCandidates,
   element,
-  ensureRenovationScheme,
   ensureSchemeB,
   errorMessage,
   escapeHtml,
@@ -1961,7 +1936,6 @@ const {
   imagePoint,
   instructions,
   invalidateDownstreamFrom,
-  invalidateRenovationScheme,
   materialOptionsForStyle: (...args) => materialOptionsForStyle(...args),
   normalizedWindowType,
   pointInPolygonCm,
@@ -1995,7 +1969,6 @@ const {
   unresolvedReviewRooms,
   userFacingMaterialLabel: (...args) => userFacingMaterialLabel(...args),
   validateColumnDimensionsCm,
-  wallBoundarySide,
   whiteViewer,
   WINDOW_TYPES,
   windowsOverlap,
@@ -2452,7 +2425,6 @@ const bindEvents = createSceneEventBindings({
   applySelectedStructureSize,
   applySelectedWindowType,
   applyStylePackToScene,
-  applyWallDemolitionType,
   applyWindowType,
   autoLayoutFurniture,
   beginPlacementBusy,
@@ -2491,7 +2463,6 @@ const bindEvents = createSceneEventBindings({
   copyLivingRoomStyleToCirculation,
   createProject,
   deleteRoom,
-  deleteSchemeB,
   deleteSelectedSceneFurniture,
   deleteSelectedStructure,
   downloadDesignDeliveryJson,
@@ -2512,7 +2483,6 @@ const bindEvents = createSceneEventBindings({
   goTo,
   imagePoint,
   invalidateDownstreamFrom,
-  invalidateRenovationScheme,
   isCirculationRoom,
   layoutPointerDown,
   layoutPointerMove,
@@ -2528,7 +2498,6 @@ const bindEvents = createSceneEventBindings({
   mergeSelectedRooms,
   moveVisualQuestion,
   navigateRoomScheme3dPreview,
-  normalizeWallDemolitionCandidates,
   openFurnitureReplacement,
   openQuestionnaireCeilingDesignStyle,
   openQuestionnaireCeilingPicker,
@@ -2572,7 +2541,6 @@ const bindEvents = createSceneEventBindings({
   renderRooms,
   renderRoomSchemeSelectionDialog,
   renderSceneObjectList,
-  renderSchemeComparison,
   renderSchemeControls,
   renderSelectedStructureEditor,
   renderSpaceOverlay,
@@ -2670,14 +2638,11 @@ const {
   confirmedFloorplanEditor,
   dedupeDoorCandidates,
   dedupeWindowCandidates,
-  deleteSchemeB,
   element,
-  ensureSchemeB,
   errorMessage,
   floorplanExtension,
   furniture2dDefaultsForSceneObject,
   generateWhiteModelFromRequirements,
-  hasRenovationChanges,
   hydrateConfirmedStructureSnapshot,
   hydrateSceneWallMass,
   normalizeDesignSchemes,
@@ -2687,7 +2652,6 @@ const {
   normalizeSavedSceneWallSurfaces,
   normalizeSavedSpaceConfirmation,
   normalizeSceneDoorSegments,
-  normalizeWallDemolitionCandidates,
   pendingSaveStorageKey,
   persistActiveScheme,
   preparedAutoRoomLabels,
@@ -2695,7 +2659,6 @@ const {
   recognitionReviewSuffix,
   renderRestoredStep,
   repairFurnitureRoomPlacements,
-  repairLegacyWallFurnitureGaps,
   repairLoadedRoomPolygon,
   repairLoadedStructureWallCollisions,
   resolvedVisualPreferences,

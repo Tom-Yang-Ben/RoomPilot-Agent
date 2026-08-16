@@ -114,7 +114,7 @@ def test_floorplan_analyze_then_confirm_http_e2e() -> None:
     )
 
     assert scene.status_code == 200
-    scene_payload = scene.json()
+    scene_payload = scene.json()["scene_json"]
     assert scene_payload["floorplan"]["source"] == "dxf"
     # 引擎可擺放寬度扣除預設 18 cm 牆厚；原始確認 DXF 仍保留 600 cm。
     assert scene_payload["floorplan"]["width_cm"] == 582.0
@@ -196,7 +196,7 @@ def test_public_fixture_confirmed_geometry_reaches_scene_generation() -> None:
     assert scene.status_code == 200
 
     confirmed_floorplan = confirmed_payload["floorplan"]
-    scene_floorplan = scene.json()["floorplan"]
+    scene_floorplan = scene.json()["scene_json"]["floorplan"]
     assert 0 < scene_floorplan["width_cm"] <= confirmed_floorplan["width_cm"]
     assert 0 < scene_floorplan["depth_cm"] <= confirmed_floorplan["depth_cm"]
     assert scene_floorplan["coordinate_unit"] == "cm"

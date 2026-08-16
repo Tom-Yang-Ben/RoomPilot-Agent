@@ -3,6 +3,7 @@
 公開 runtime 的核心契約：
 
 - [layout_json／scene_json 邊界](LAYOUT_SCENE_BOUNDARY_CONTRACT.md)
+- [project schema 與可回復遷移](PROJECT_SCHEMA_CONTRACT.md)
 - [Step 4 牆體編輯](STEP4_WALL_EDITING_CONTRACT.md)
 - [家具引擎逐房需求](FURNITURE_ENGINE_ROOM_REQUIREMENTS_CONTRACT.md)
 - [家具工程規則](FURNITURE_ENGINEERING_RULES.md)

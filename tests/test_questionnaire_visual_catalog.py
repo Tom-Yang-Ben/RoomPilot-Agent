@@ -414,8 +414,9 @@ def test_scene_generate_preserves_complete_test2_questionnaire() -> None:
     )
 
     assert response.status_code == 200
-    assert response.json()["questionnaire"]["test2_questionnaire"] == test2
-    assert response.json()["questionnaire"]["occupants"]["adults"] == 1
+    questionnaire = response.json()["scene_json"]["questionnaire"]
+    assert questionnaire["test2_questionnaire"] == test2
+    assert questionnaire["occupants"]["adults"] == 1
 
 
 def test_questionnaire_summary_localizes_balanced_visual_choice() -> None:

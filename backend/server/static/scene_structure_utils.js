@@ -4,39 +4,6 @@ function finitePoint(point) {
   return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
 }
 
-export function wallBoundarySide(
-  wall,
-  {
-    widthCm,
-    depthCm,
-    toleranceCm,
-  } = {},
-) {
-  const start = finitePoint(wall?.start);
-  const end = finitePoint(wall?.end);
-  const width = Number(widthCm);
-  const depth = Number(depthCm);
-  if (!start || !end || !(width > 0) || !(depth > 0)) return null;
-  const tolerance = Number(toleranceCm) > 0
-    ? Number(toleranceCm)
-    : Math.max(8, Math.min(width, depth) * 0.02);
-  const onBoundary = (first, second, boundary) =>
-    Math.abs(first - boundary) <= tolerance
-    && Math.abs(second - boundary) <= tolerance;
-  if (onBoundary(start.x, end.x, 0)) return "left";
-  if (onBoundary(start.x, end.x, width)) return "right";
-  if (onBoundary(start.y, end.y, 0)) return "bottom";
-  if (onBoundary(start.y, end.y, depth)) return "top";
-  return null;
-}
-
-export function canMarkWallForDemolition(wall, floorplan) {
-  return wallBoundarySide(wall, {
-    widthCm: floorplan?.width_cm,
-    depthCm: floorplan?.depth_cm,
-  }) == null;
-}
-
 function windowAxis(item) {
   const start = finitePoint(item?.start);
   const end = finitePoint(item?.end);

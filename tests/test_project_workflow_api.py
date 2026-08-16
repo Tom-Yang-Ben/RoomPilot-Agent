@@ -15,6 +15,23 @@ from backend.server.runtime_paths import legacy_runtime_dirs, project_runtime_di
 client = TestClient(app)
 
 
+def _space_confirmation(*, rooms: list[dict] | None = None, structures: dict | None = None) -> dict:
+    canonical_structures = {
+        "walls": [],
+        "doors": [],
+        "windows": [],
+        "beams": [],
+        "columns": [],
+    }
+    canonical_structures.update(structures or {})
+    return {
+        "coordinate_unit": "cm",
+        "schema_version": "2.0",
+        "rooms": rooms or [],
+        "structures": canonical_structures,
+    }
+
+
 def _selection_candidate(fid: str, kind: str) -> dict:
     return {
         "furniture_id": fid,
@@ -149,23 +166,35 @@ def test_project_store_compacts_corrupted_furniture_labels(tmp_path: Path) -> No
     saved = store.update_workflow(
         project["project_id"],
         workflow={
-            "white_model_3d": {
-                "sceneData": {
-                    "scene_objects": [
-                        {
-                            "furniture_id": "bed-1",
-                            "normalized_type": "bed",
-                            "name_zh_raw": "Ã" * 10_000,
-                        }
-                    ]
-                }
+            "configuration": {
+                "schema_version": 3,
+                "active_scheme_id": "A",
+                "schemes": {
+                    "A": {
+                        "furniture": [],
+                        "sceneData": {
+                            "floorplan": {
+                                "coordinate_unit": "cm",
+                                "schema_version": "2.0",
+                            },
+                            "scene_objects": [
+                                {
+                                    "furniture_id": "bed-1",
+                                    "normalized_type": "bed",
+                                    "name_zh_raw": "Ã" * 10_000,
+                                }
+                            ],
+                        },
+                    }
+                },
             }
         },
     )
 
-    item = saved["workflow"]["white_model_3d"]["sceneData"]["scene_objects"][0]
+    scene = saved["workflow"]["configuration"]["schemes"]["A"]["sceneData"]
+    item = scene["scene_objects"][0]
     assert item["name_zh_raw"] == "bed"
-    assert len(saved["workflow"]["white_model_3d"]["sceneData"]["scene_objects"][0]["name_zh_raw"]) < 512
+    assert len(scene["scene_objects"][0]["name_zh_raw"]) < 512
 
 
 def _png_bytes() -> bytes:
@@ -204,7 +233,9 @@ def test_pending_save_replay_rejects_a_stale_server_version_atomically() -> None
         f"/api/projects/{project_id}/workflow",
         json={
             "current_step": "space_confirmation",
-            "workflow": {"space_confirmation": {"rooms": [{"id": "room-1"}]}},
+            "workflow": {
+                "space_confirmation": _space_confirmation(rooms=[{"id": "room-1"}])
+            },
         },
     ).json()["project"]
     advanced = client.put(
@@ -220,7 +251,7 @@ def test_pending_save_replay_rejects_a_stale_server_version_atomically() -> None
         f"/api/projects/{project_id}/workflow",
         json={
             "current_step": "space_confirmation",
-            "workflow": {"space_confirmation": {"rooms": []}},
+            "workflow": {"space_confirmation": _space_confirmation()},
             "base_updated_at": base["updated_at"],
             "replay_pending": True,
         },
@@ -237,7 +268,9 @@ def test_pending_save_replay_rejects_a_stale_server_version_atomically() -> None
         f"/api/projects/{project_id}/workflow",
         json={
             "current_step": "space_confirmation",
-            "workflow": {"space_confirmation": {"rooms": [{"id": "room-2"}]}},
+            "workflow": {
+                "space_confirmation": _space_confirmation(rooms=[{"id": "room-2"}])
+            },
             "base_updated_at": advanced.json()["project"]["updated_at"],
             "replay_pending": True,
         },
@@ -356,7 +389,9 @@ def test_rerunning_floorplan_analysis_invalidates_stale_structure_confirmation()
                     ]
                 },
                 "confirmed_floorplan": {"doors": [{"id": "old-door"}]},
-                "space_confirmation": {"doors": [{"id": "old-door"}]},
+                "space_confirmation": _space_confirmation(
+                    structures={"doors": [{"id": "old-door"}]}
+                ),
                 "requirements": {"rooms": [{"id": "old-room"}]},
             },
         },
@@ -451,11 +486,13 @@ def test_scene_generation_keeps_user_confirmed_furniture_when_glb_is_unavailable
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["selected_furniture"][0]["furniture_id"] == "manual-bed-1"
-    assert payload["scene_objects"][0]["furniture_id"] == "manual-bed-1"
-    assert payload["scene_objects"][0]["model_url"] is None
-    assert payload["scene_objects"][0]["position_cm"] == {"x": -50, "z": 0}
-    assert payload["scene_objects"][0]["position_locked"] is True
+    scene = payload["scene_json"]
+    assert set(payload) == {"scene_json"}
+    assert scene["selected_furniture"][0]["furniture_id"] == "manual-bed-1"
+    assert scene["scene_objects"][0]["furniture_id"] == "manual-bed-1"
+    assert scene["scene_objects"][0]["model_url"] is None
+    assert scene["scene_objects"][0]["position_cm"] == {"x": -50, "z": 0}
+    assert scene["scene_objects"][0]["position_locked"] is True
 
 
 def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometry() -> None:
@@ -552,9 +589,10 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
 
     assert response.status_code == 200
     payload = response.json()
-    floorplan = payload["floorplan"]
-    assert payload["scene_json"]["floorplan"] == floorplan
-    assert "scene_json" not in payload["scene_json"]
+    assert set(payload) == {"scene_json"}
+    scene = payload["scene_json"]
+    floorplan = scene["floorplan"]
+    assert "scene_json" not in scene
     assert floorplan["source"] == "user_confirmed"
     assert floorplan["width_cm"] == 600
     assert floorplan["depth_cm"] == 400
@@ -569,7 +607,7 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
     assert floorplan["columns"][0]["depth_cm"] == 35
     assert floorplan["columns"][0]["height_cm"] == 245
     assert floorplan["columns"][0]["rotation_deg"] == 30
-    assert payload["scene_objects"] == []
+    assert scene["scene_objects"] == []
 
     layout_response = client.post(
         "/api/scene/generate",
@@ -584,7 +622,7 @@ def test_scene_generation_uses_the_user_confirmed_floorplan_as_canonical_geometr
 
     assert layout_response.status_code == 200
     layout_payload = layout_response.json()
-    assert layout_payload["floorplan"] == floorplan
+    assert set(layout_payload) == {"scene_json"}
     assert layout_payload["scene_json"]["floorplan"] == floorplan
 
 

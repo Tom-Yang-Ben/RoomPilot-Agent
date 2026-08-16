@@ -16,18 +16,23 @@ function emptyScheme(id, kind) {
   };
 }
 
-export function normalizeDesignSchemes(saved = {}, legacy = {}) {
+export function normalizeDesignSchemes(saved = {}) {
+  if (
+    saved
+    && typeof saved === "object"
+    && !Array.isArray(saved)
+    && Object.keys(saved).length === 0
+  ) {
+    saved = { schema_version: 3 };
+  }
+  if (Number(saved.schema_version) !== 3) {
+    throw new Error("project_configuration_schema_upgrade_required");
+  }
   const savedSchemes = saved?.schemes || {};
   const schemeA = {
     ...emptyScheme("A", "baseline"),
     ...(savedSchemes.A || {}),
   };
-  if (!schemeA.furniture.length && Array.isArray(legacy.furniture)) {
-    schemeA.furniture = clone(legacy.furniture);
-  }
-  if (!schemeA.sceneData && legacy.sceneData) {
-    schemeA.sceneData = clone(legacy.sceneData);
-  }
   const schemeB = savedSchemes.B
     ? {
         ...emptyScheme("B", "alternative"),
@@ -40,7 +45,7 @@ export function normalizeDesignSchemes(saved = {}, legacy = {}) {
     ? saved.locked_scheme_id
     : null;
   return {
-    schema_version: 2,
+    schema_version: 3,
     active_scheme_id: activeId,
     locked_scheme_id: lockedId,
     room_selections: validRoomSelections(saved.room_selections),
@@ -64,28 +69,6 @@ function validRoomSelections(value) {
   );
 }
 
-export function compactDesignSchemesForSpace(designSchemes = {}) {
-  const compact = clone(designSchemes) || {};
-  compact.schemes = Object.fromEntries(
-    Object.entries(compact.schemes || {}).map(([id, scheme]) => [
-      id,
-      {
-        ...scheme,
-        furniture: [],
-        sceneData: null,
-      },
-    ]),
-  );
-  return compact;
-}
-
-export function hasRenovationChanges(structures = {}) {
-  // 方案不再承載結構改造。第 4 步確認後，牆、門、窗、樑、柱是全案共用
-  // 的基準資料；A、B 僅比較家具的選擇、位置與朝向。
-  void structures;
-  return false;
-}
-
 export function ensureSchemeB(designSchemes, { reason = "manual" } = {}) {
   if (!designSchemes.schemes.B) {
     designSchemes.schemes.B = {
@@ -94,12 +77,6 @@ export function ensureSchemeB(designSchemes, { reason = "manual" } = {}) {
     };
   }
   return designSchemes.schemes.B;
-}
-
-export function deleteSchemeB(designSchemes) {
-  delete designSchemes.schemes.B;
-  if (designSchemes.active_scheme_id === "B") designSchemes.active_scheme_id = "A";
-  if (designSchemes.locked_scheme_id === "B") designSchemes.locked_scheme_id = null;
 }
 
 export function markSchemeLayoutsStale(designSchemes, reason) {

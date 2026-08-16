@@ -459,75 +459,11 @@ body.rp-workflow-page .rp-window-type-toggle button.is-active {
   color: #fff;
 }
 
-body.rp-workflow-page .rp-wall-type-toggle button.is-active {
-  background: #343434;
-}
-
-body.rp-workflow-page .rp-wall-type-toggle button[data-wall-demolition="candidate"].is-active {
-  background: #a83f3f;
-}
-
-body.rp-workflow-page .rp-wall-type-toggle button:disabled {
-  cursor: not-allowed;
-  background: #eceae6;
-  color: #77716a;
-}
-
-body.rp-workflow-page .rp-design-scheme-compare {
-  display: grid;
-  gap: 14px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #d8d3cc;
-}
-
-body.rp-workflow-page .rp-design-scheme-compare[hidden] {
-  display: none;
-}
-
-body.rp-workflow-page .rp-design-scheme-compare > header,
-body.rp-workflow-page .rp-design-scheme-compare figcaption,
 body.rp-workflow-page .rp-scheme-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-body.rp-workflow-page .rp-design-scheme-compare h3,
-body.rp-workflow-page .rp-design-scheme-compare p {
-  margin: 0;
-}
-
-body.rp-workflow-page .rp-design-scheme-compare figure {
-  margin: 0;
-}
-
-body.rp-workflow-page .rp-design-scheme-compare figcaption {
-  padding: 8px 0;
-  color: #294d43;
-}
-
-body.rp-workflow-page .rp-scheme-plan-stage {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  border: 1px solid #cbc5bd;
-  background: #f6f5f2;
-}
-
-body.rp-workflow-page .rp-scheme-plan-stage img,
-body.rp-workflow-page .rp-scheme-plan-stage svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-body.rp-workflow-page .rp-scheme-plan-stage svg {
-  pointer-events: none;
 }
 
 body.rp-workflow-page .rp-scheme-toolbar {
@@ -542,7 +478,6 @@ body.rp-workflow-page .rp-scheme-toolbar > span {
 }
 
 @media (max-width: 760px) {
-  body.rp-workflow-page .rp-design-scheme-compare > header,
   body.rp-workflow-page .rp-scheme-toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -631,11 +566,6 @@ body.rp-workflow-page .rp-legend-line.is-door {
 
 body.rp-workflow-page .rp-legend-line.is-window {
   border-color: #2f8ba1;
-}
-
-body.rp-workflow-page .rp-legend-line.is-removable-wall {
-  border-color: #c54c4c;
-  border-top-style: dashed;
 }
 
 body.rp-workflow-page .primary-action {

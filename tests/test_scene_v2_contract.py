@@ -1104,35 +1104,42 @@ def test_scheme_variants_share_confirmed_architecture() -> None:
     assert result["b"]["doors"][0]["host_wall_id"] == "wall-1"
 
 
-def test_space_save_does_not_duplicate_furniture_or_scene_payloads() -> None:
+def test_empty_design_scheme_state_initializes_as_current_schema() -> None:
     module_uri = (STATIC / "scene_design_schemes.js").as_uri()
     result = run_workflow_script(
         f"""
-        import {{ compactDesignSchemesForSpace }} from {json.dumps(module_uri)};
-        const compact = compactDesignSchemesForSpace({{
-          schema_version: 1,
-          active_scheme_id: "A",
-          locked_scheme_id: null,
-          schemes: {{
-            A: {{
-              id: "A",
-              kind: "baseline",
-              label: "方案 A",
-              furniture: [{{ id: "chair-1" }}],
-              sceneData: {{ surface_catalog: {{ huge: true }} }},
-              stale: false,
-              staleReason: "",
-            }},
-          }},
-        }});
-        console.log(JSON.stringify(compact));
+        import {{ normalizeDesignSchemes }} from {json.dumps(module_uri)};
+        const initialized = normalizeDesignSchemes();
+        let legacyError = "";
+        try {{
+          normalizeDesignSchemes({{ schema_version: 2, schemes: {{}} }});
+        }} catch (error) {{
+          legacyError = error.message;
+        }}
+        console.log(JSON.stringify({{ initialized, legacyError }}));
         """
     )
 
-    assert result["active_scheme_id"] == "A"
-    assert result["schemes"]["A"]["kind"] == "baseline"
-    assert result["schemes"]["A"]["furniture"] == []
-    assert result["schemes"]["A"]["sceneData"] is None
+    assert result["initialized"]["schema_version"] == 3
+    assert set(result["initialized"]["schemes"]) == {"A"}
+    assert result["legacyError"] == "project_configuration_schema_upgrade_required"
+
+
+def test_space_save_does_not_duplicate_furniture_or_scene_payloads() -> None:
+    source = scene_controller_source(STATIC)
+    payload = source.split("function workflowPayload()", 1)[1].split(
+        "let saveSequence", 1
+    )[0]
+
+    assert "project_schema_version: PROJECT_SCHEMA_VERSION" in payload
+    assert "schema_version: \"2.0\"" in payload
+    assert "configuration: layoutIsLive || hasSchemeLayoutState" in payload
+    assert "furniture: scheme.furniture" in payload
+    assert "sceneData: scheme.sceneData" in payload
+    assert "design_schemes" not in payload
+    layout_block = payload.split("layout_2d:", 1)[1].split("configuration:", 1)[0]
+    assert "furniture" not in layout_block
+    assert "schemes" not in layout_block
 
 
 def test_loaded_door_candidates_drop_low_confidence_wide_and_duplicate_auto_doors() -> None:
@@ -1309,66 +1316,26 @@ def test_floor_to_ceiling_window_preset_reaches_from_floor_to_ceiling() -> None:
     }
 
 
-def test_only_internal_walls_can_be_marked_as_demolition_candidates() -> None:
-    module_uri = (STATIC / "scene_structure_utils.js").as_uri()
-    result = run_workflow_script(
-        f"""
-        import {{
-          canMarkWallForDemolition,
-          wallBoundarySide,
-        }} from {json.dumps(module_uri)};
-        const floorplan = {{ width_cm: 900, depth_cm: 600 }};
-        const exterior = {{
-          start: {{ x: 0, y: 0 }},
-          end: {{ x: 900, y: 0 }},
-        }};
-        const interior = {{
-          start: {{ x: 320, y: 120 }},
-          end: {{ x: 320, y: 520 }},
-        }};
-        console.log(JSON.stringify({{
-          exteriorSide: wallBoundarySide(exterior, {{
-            widthCm: floorplan.width_cm,
-            depthCm: floorplan.depth_cm,
-          }}),
-          exteriorAllowed: canMarkWallForDemolition(exterior, floorplan),
-          interiorSide: wallBoundarySide(interior, {{
-            widthCm: floorplan.width_cm,
-            depthCm: floorplan.depth_cm,
-          }}),
-          interiorAllowed: canMarkWallForDemolition(interior, floorplan),
-        }}));
-        """
-    )
+def test_step_four_has_no_demolition_candidate_contract() -> None:
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
+    source = scene_controller_source(STATIC)
+    structure_utils = (STATIC / "scene_structure_utils.js").read_text(encoding="utf-8")
 
-    assert result == {
-        "exteriorSide": "bottom",
-        "exteriorAllowed": False,
-        "interiorSide": None,
-        "interiorAllowed": True,
-    }
+    assert "可拆牆" not in html
+    assert "data-wall-demolition" not in source
+    assert "demolition_candidate" not in source
+    assert "canMarkWallForDemolition" not in structure_utils
+    assert "wallBoundarySide" not in structure_utils
 
 
-def test_saved_space_confirmation_migrates_legacy_meters_only_once() -> None:
+def test_saved_space_confirmation_accepts_only_current_centimeter_schema() -> None:
     module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeSavedSpaceConfirmation }} from {json.dumps(module_uri)};
-        const legacy = normalizeSavedSpaceConfirmation({{
-          rooms: [{{
-            id: "legacy-room",
-            polygon_m: [{{ x: 0, y: 0 }}, {{ x: 6, y: 0 }}, {{ x: 6, y: 4 }}],
-          }}],
-          structures: {{
-            walls: [{{
-              start: {{ x: 0, y: 0 }},
-              end: {{ x: 6, y: 0 }},
-              thickness_m: 0.18,
-            }}],
-          }},
-        }});
         const current = normalizeSavedSpaceConfirmation({{
           coordinate_unit: "cm",
+          schema_version: "2.0",
           rooms: [{{
             id: "current-room",
             polygon_cm: [{{ x: 0, y: 0 }}, {{ x: 600, y: 0 }}, {{ x: 600, y: 400 }}],
@@ -1381,104 +1348,61 @@ def test_saved_space_confirmation_migrates_legacy_meters_only_once() -> None:
             }}],
           }},
         }});
-        console.log(JSON.stringify({{ legacy, current }}));
+        let legacyError = "";
+        try {{
+          normalizeSavedSpaceConfirmation({{
+            rooms: [{{ polygon_m: [{{ x: 0, y: 0 }}] }}],
+          }});
+        }} catch (error) {{
+          legacyError = error.message;
+        }}
+        console.log(JSON.stringify({{ current, legacyError }}));
         """
     )
 
-    assert result["legacy"]["coordinate_unit"] == "cm"
-    assert result["legacy"]["rooms"][0]["polygon_cm"][1] == {"x": 600, "y": 0}
-    assert result["legacy"]["structures"]["walls"][0]["end"] == {"x": 600, "y": 0}
-    assert result["legacy"]["structures"]["walls"][0]["thickness_cm"] == 18
+    assert result["legacyError"] == "project_space_schema_upgrade_required"
+    assert result["current"]["schema_version"] == "2.0"
     assert result["current"]["rooms"][0]["polygon_cm"][1] == {"x": 600, "y": 0}
     assert result["current"]["structures"]["walls"][0]["end"] == {"x": 600, "y": 0}
 
 
-def test_saved_space_confirmation_migrates_each_field_by_its_own_unit() -> None:
+def test_saved_space_confirmation_rejects_meter_fields_inside_current_schema() -> None:
     module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeSavedSpaceConfirmation }} from {json.dumps(module_uri)};
-        const normalized = normalizeSavedSpaceConfirmation({{
-          coordinate_unit: "cm",
-          rooms: [
-            {{
-              id: "legacy-room",
-              polygon_m: [{{ x: 0, y: 0 }}, {{ x: 6, y: 0 }}, {{ x: 6, y: 4 }}],
-            }},
-            {{
-              id: "current-room",
-              polygon_cm: [{{ x: 0, y: 0 }}, {{ x: 300, y: 0 }}, {{ x: 300, y: 200 }}],
-            }},
-          ],
-          structures: {{
-            walls: [{{
-              start: {{ x: 0, y: 0 }},
-              end: {{ x: 6, y: 0 }},
-              thickness_m: 0.18,
-            }}],
-            columns: [{{
-              center: {{ x: 250, y: 180 }},
-              width_cm: 35,
-              depth_cm: 35,
-            }}],
-            doors: [{{
-              start: {{ x: 1, y: 0 }},
-              end: {{ x: 1.9, y: 0 }},
-              width_cm: 90,
-            }}],
-          }},
-        }});
-        console.log(JSON.stringify(normalized));
+        let errorMessage = "";
+        try {{
+          normalizeSavedSpaceConfirmation({{
+            coordinate_unit: "cm",
+            schema_version: "2.0",
+            rooms: [{{ polygon_m: [{{ x: 0, y: 0 }}] }}],
+            structures: {{}},
+          }});
+        }} catch (error) {{
+          errorMessage = error.message;
+        }}
+        console.log(JSON.stringify({{ errorMessage }}));
         """
     )
-
-    assert result["schema_version"] == "2.0"
-    assert result["rooms"][0]["polygon_cm"][1] == {"x": 600, "y": 0}
-    assert result["rooms"][1]["polygon_cm"][1] == {"x": 300, "y": 0}
-    assert result["structures"]["walls"][0]["end"] == {"x": 600, "y": 0}
-    assert result["structures"]["columns"][0]["center"] == {"x": 250, "y": 180}
-    assert result["structures"]["doors"][0]["end"] == {"x": 1.9, "y": 0}
-
-    legacy_with_cm_dimensions = run_workflow_script(
-        f"""
-        import {{ normalizeSavedSpaceConfirmation }} from {json.dumps(module_uri)};
-        console.log(JSON.stringify(normalizeSavedSpaceConfirmation({{
-          rooms: [{{
-            polygon_m: [{{ x: 0, y: 0 }}, {{ x: 6, y: 0 }}, {{ x: 6, y: 4 }}],
-          }}],
-          structures: {{
-            doors: [{{
-              start: {{ x: 1, y: 0 }},
-              end: {{ x: 1.9, y: 0 }},
-              width_cm: 90,
-            }}],
-          }},
-        }})));
-        """
-    )
-    assert legacy_with_cm_dimensions["structures"]["doors"][0]["end"] == {"x": 190, "y": 0}
+    assert result["errorMessage"].startswith("project_schema_upgrade_required:")
+    assert "polygon_m" in result["errorMessage"]
 
 
-def test_saved_scene_data_migrates_only_legacy_floorplan_geometry_once() -> None:
+def test_saved_scene_data_accepts_only_current_centimeter_schema() -> None:
     module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeSavedSceneData }} from {json.dumps(module_uri)};
-        const legacy = {{
+        const current = normalizeSavedSceneData({{
           floorplan: {{
+            coordinate_unit: "cm",
+            schema_version: "2.0",
             width_cm: 600,
             depth_cm: 400,
             wall_segments: [{{
-              start: {{ x: -3, z: -2 }},
-              end: {{ x: 3, z: -2 }},
-            }}],
-            wall_polys: [{{
-              exterior: [[-3, -2], [3, -2], [3, 2], [-3, 2]],
-              holes: [],
-            }}],
-            room_regions: [{{
-              exterior: [[-3, -2], [3, -2], [3, 2], [-3, 2]],
-              holes: [],
+              start: {{ x: -300, z: -200 }},
+              end: {{ x: 300, z: -200 }},
             }}],
           }},
           scene_objects: [{{
@@ -1486,80 +1410,58 @@ def test_saved_scene_data_migrates_only_legacy_floorplan_geometry_once() -> None
             position_cm: {{ x: 120, z: -80 }},
             size_cm: {{ width: 180, depth: 200, height: 90 }},
           }}],
-        }};
-        const once = normalizeSavedSceneData(legacy);
-        const twice = normalizeSavedSceneData(once);
-        console.log(JSON.stringify({{ once, twice }}));
+        }});
+        let legacyError = "";
+        try {{
+          normalizeSavedSceneData({{ floorplan: {{ width_cm: 600 }} }});
+        }} catch (error) {{
+          legacyError = error.message;
+        }}
+        console.log(JSON.stringify({{ current, legacyError }}));
         """
     )
 
-    assert result["once"]["floorplan"]["coordinate_unit"] == "cm"
-    assert result["once"]["floorplan"]["schema_version"] == "2.0"
-    assert result["once"]["floorplan"]["wall_segments"][0]["end"] == {"x": 300, "z": -200}
-    assert result["once"]["floorplan"]["wall_polys"][0]["exterior"][2] == [300, 200]
-    assert result["once"]["floorplan"]["room_regions"][0]["exterior"][2] == [300, 200]
-    assert result["once"]["scene_objects"][0]["position_cm"] == {"x": 120, "z": -80}
-    assert result["twice"] == result["once"]
+    assert result["legacyError"] == "project_scene_schema_upgrade_required"
+    assert result["current"]["floorplan"]["schema_version"] == "2.0"
+    assert result["current"]["floorplan"]["wall_segments"][0]["end"] == {
+        "x": 300,
+        "z": -200,
+    }
+    assert result["current"]["scene_objects"][0]["position_cm"] == {"x": 120, "z": -80}
 
 
-def test_saved_scene_data_migrates_mixed_floorplan_fields_independently() -> None:
+def test_saved_scene_data_rejects_meter_fields_inside_current_schema() -> None:
     module_uri = (STATIC / "scene_unit_contracts.js").as_uri()
     result = run_workflow_script(
         f"""
         import {{ normalizeSavedSceneData }} from {json.dumps(module_uri)};
-        console.log(JSON.stringify(normalizeSavedSceneData({{
-          floorplan: {{
-            coordinate_unit: "cm",
-            width_cm: 600,
-            depth_cm: 400,
-            bbox: {{ minx: -3, minz: -2, maxx: 3, maxz: 2 }},
-            wall_segments: [
-              {{
-                coordinate_unit: "cm",
-                start: {{ x: -300, z: -200 }},
-                end: {{ x: 300, z: -200 }},
-              }},
-              {{
-                coordinate_unit: "m",
-                start: {{ x: -3, z: 2 }},
-                end: {{ x: 3, z: 2 }},
-              }},
-            ],
-            wall_polys: [{{
-              exterior: [[-3, -2], [3, -2], [3, 2], [-3, 2]],
-              holes: [],
-            }}],
-            room_regions: [{{
+        let errorMessage = "";
+        try {{
+          normalizeSavedSceneData({{
+            floorplan: {{
               coordinate_unit: "cm",
-              exterior: [[-300, -200], [300, -200], [300, 200], [-300, 200]],
-              holes: [],
-            }}],
-            columns: [{{
-              coordinate_unit: "m",
-              center: {{ x: 2.5, z: 1.5 }},
-              width_cm: 35,
-              depth_cm: 35,
-            }}],
-          }},
-          scene_objects: [],
-        }})));
+              schema_version: "2.0",
+              width_cm: 600,
+              depth_cm: 400,
+            }},
+            scene_objects: [{{ position_m: {{ x: 1, z: 2 }} }}],
+          }});
+        }} catch (error) {{
+          errorMessage = error.message;
+        }}
+        console.log(JSON.stringify({{ errorMessage }}));
         """
     )
-
-    floorplan = result["floorplan"]
-    assert floorplan["bbox"] == {"minx": -300, "minz": -200, "maxx": 300, "maxz": 200}
-    assert floorplan["wall_segments"][0]["end"] == {"x": 300, "z": -200}
-    assert floorplan["wall_segments"][1]["end"] == {"x": 300, "z": 200}
-    assert floorplan["wall_polys"][0]["exterior"][2] == [300, 200]
-    assert floorplan["room_regions"][0]["exterior"][2] == [300, 200]
-    assert floorplan["columns"][0]["center"] == {"x": 250, "z": 150}
+    assert result["errorMessage"].startswith("project_schema_upgrade_required:")
+    assert "position_m" in result["errorMessage"]
 
 
-def test_scene_generate_response_prefers_scene_json_with_legacy_fallback() -> None:
+def test_scene_generate_response_requires_canonical_scene_json() -> None:
     source = scene_controller_source(STATIC)
 
     assert "function sceneDataFromGenerateResponse(payload)" in source
-    assert "return payload?.scene_json || payload;" in source
+    assert 'if (!payload?.scene_json) throw new Error("scene_json_missing");' in source
+    assert "return payload.scene_json;" in source
     assert "state.sceneData = sceneDataFromGenerateResponse(payload);" in source
     assert "state.sceneData = payload;" not in source
 
@@ -1568,11 +1470,10 @@ def test_project_restore_normalizes_saved_scene_before_loading_viewers() -> None
     controller = scene_controller_source(STATIC)
 
     assert "normalizeSavedSceneData" in controller
-    assert (
-        "const legacySceneData = normalizeSavedSceneData(serverState.white_model_3d?.sceneData);"
-        in controller
-    )
-    assert "state.sceneData = normalizeSavedSceneData(restoredScheme?.sceneData) || legacySceneData;" in controller
+    assert "serverState.configuration || { schema_version: 3 }" in controller
+    assert "scheme.sceneData = normalizeSavedSceneData(scheme.sceneData);" in controller
+    assert "state.sceneData = restoredScheme?.sceneData || null;" in controller
+    assert "serverState.white_model_3d?.sceneData" not in controller
 
 
 def test_window_editor_exposes_floor_to_ceiling_type_and_visual_asset() -> None:
@@ -2700,7 +2601,8 @@ def test_wall_review_keeps_one_fixed_structure_without_retired_preview() -> None
     # 逐面切換 UI 仍不得回來，牆一律鎖定為基準。
     assert "${wallTypeToggle}" not in source
     assert "${wallState}" not in source
-    assert "demolition_candidate = false" in source
+    assert "demolition_candidate" not in source
+    assert 'scheme_id: "B"' not in source
 
 
 def test_manual_wall_draw_uses_visible_two_point_flow_and_double_delete_confirmation() -> None:
@@ -3224,7 +3126,8 @@ def test_dxf_rooms_and_structures_are_normalized_for_the_corner_origin_editor() 
     controller = scene_controller_source(STATIC)
 
     assert "floorplan.room_regions || []" in controller
-    assert "room.polygon_cm || room.polygon_m || room.polygon || room.exterior" in controller
+    assert "room.polygon_cm || room.exterior || []" in controller
+    assert "room.polygon_m" not in controller
     assert "room.id || room.room_id" in controller
     assert "floorplan.wall_segments || floorplan.plan_segments" in controller
     assert "floorplan.door_segments || []" in controller
@@ -3881,23 +3784,24 @@ def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
     assert "furniture: state.furniture2d" in source
 
 
-def test_step_four_shows_vertical_scheme_comparison_only_when_b_exists() -> None:
+def test_step_four_does_not_expose_the_retired_structure_scheme_comparison() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = scene_controller_source(STATIC)
     css = _scene_css()
 
-    assert 'id="design-scheme-compare"' in html
-    assert html.index('id="scheme-a-plan-image"') < html.index('id="scheme-b-plan-image"')
-    assert 'id="delete-scheme-b"' in html
-    assert "hasRenovationChanges(state.structures)" in source
-    assert ".rp-design-scheme-compare" in css
-    assert "grid" in css
+    assert 'id="design-scheme-compare"' not in html
+    assert 'id="scheme-a-plan-image"' not in html
+    assert 'id="scheme-b-plan-image"' not in html
+    assert 'id="delete-scheme-b"' not in html
+    assert "renderSchemeComparison" not in source
+    assert ".rp-design-scheme-compare" not in css
 
 
-def test_scheme_b_structure_contract_cascades_added_openings_and_follows_wall() -> None:
+def test_all_structure_edits_update_the_shared_step_four_baseline() -> None:
     source = scene_controller_source(STATIC)
 
-    assert 'scheme_id: "B"' in source
+    assert 'scheme_id: "B"' not in source
+    assert "invalidateRenovationScheme" not in source
     assert "attachedOpeningUpdates" in source
     assert "applyAttachedOpeningUpdates" in source
     assert "刪除牆時會一併刪除" in source
@@ -3948,8 +3852,7 @@ def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
     assert "recoverConfirmedFloorplan" in source
     assert "await whiteViewer.loadScene(state.sceneData)" in source
     assert "await realisticViewer.loadScene(state.sceneData)" in source
-    assert 'state.proposalReview.masterView?.scheme_id === "B"' in source
-    assert 'state.workflow?.invalidateFrom?.("proposal_review")' in source
+    assert 'state.proposalReview.masterView?.scheme_id === "B"' not in source
 
 
 def test_empty_scheme_a_does_not_persist_layout_before_layout_work_exists() -> None:
@@ -3958,8 +3861,8 @@ def test_empty_scheme_a_does_not_persist_layout_before_layout_work_exists() -> N
     assert "const hasSchemeLayoutState = Boolean(state.designSchemes.schemes.B)" in source
     assert "layout_2d: layoutIsLive || hasSchemeLayoutState" in source
     assert "layoutIsLive || Object.keys(state.designSchemes.schemes).length" not in source
-    assert "const emptySchemeB = restoredSchemeB" in source
-    assert "if (emptySchemeB) deleteSchemeB(state.designSchemes)" in source
+    assert "const emptySchemeB = restoredSchemeB" not in source
+    assert "if (emptySchemeB) deleteSchemeB(state.designSchemes)" not in source
 
 
 def test_grouped_surface_cards_sync_their_material_ids_into_native_selects() -> None:

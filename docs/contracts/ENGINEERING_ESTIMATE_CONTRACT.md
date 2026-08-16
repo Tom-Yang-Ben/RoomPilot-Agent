@@ -36,7 +36,7 @@ Last updated: 2026-08-14
 | `geometry.height_m` | `confirmed_floorplan.floorplan.room_height_cm`，缺則 270 cm |
 | `geometry.opening_area_m2` | `space_confirmation.structures.doors/windows` 段長×高（缺高度用 210/120 cm） |
 | `materials[]` | `requirements.roomRequirementModel.roomRequirements[room_id].surfaces` 的 floor/wallDefault/ceiling；沒有逐房選擇才退回 `requirements.finishes` 的全屋選項（會記進 assumptions） |
-| `furniture[]` | `layout_2d.furniture[]`，依 `roomId` 分組並轉成房間座標 |
+| `furniture[]` | `configuration.schemes[locked_scheme_id ?? active_scheme_id].furniture[]`，依 `roomId` 分組並轉成房間座標 |
 | `renders[]` | `proposal_review.jobs[]`（只影響 HTML 報告插圖，XLSX 不用） |
 
 **沒有的資料**：水電點位（`mep_points` 恆為 `[]`，本產品沒有點位編輯器），因此

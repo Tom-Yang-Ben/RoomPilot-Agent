@@ -173,8 +173,6 @@ async function confirmUpload() {
     element.recognitionSummary.textContent = `辨識結果：牆 ${count.walls}、門 ${count.doors}、窗 ${count.windows}${recognitionReviewSuffix()}`;
     if (Number(state.analysis.scale?.distance_cm) > 0) {
       element.scaleInput.value = Number(state.analysis.scale.distance_cm);
-    } else if (Number(state.analysis.scale?.distance_m) > 0) {
-      element.scaleInput.value = Math.round(state.analysis.scale.distance_m * 1000) / 10;
     }
     setStatus(scaleEvidence
       ? "已標出建議端點。請拖曳確認兩端位置，再輸入實際公分尺寸。"
@@ -414,8 +412,7 @@ function applyCalibrationToAnalysis(analysis, calibration) {
   if (!analysis || typeof analysis !== "object") throw new Error("recognition_result_missing");
   const next = JSON.parse(JSON.stringify(analysis));
   const previousScale = next.scale || {};
-  const previousCmPerPx = Number(previousScale.cm_per_px)
-    || Number(previousScale.m_per_px) * 100;
+  const previousCmPerPx = Number(previousScale.cm_per_px);
   const nextCmPerPx = Number(calibration.cm_per_px);
   if (!(nextCmPerPx > 0)) throw new Error("calibration_measurement_invalid");
   const factor = previousCmPerPx > 0 ? nextCmPerPx / previousCmPerPx : 1;
@@ -438,7 +435,7 @@ function applyCalibrationToAnalysis(analysis, calibration) {
     });
   };
   const scaleLengthFields = (item) => {
-    ["width_cm", "height_cm", "depth_cm", "thickness_cm", "clearance_radius_cm", "width_m", "height_m", "depth_m", "thickness_m", "clearance_radius_m"].forEach((key) => {
+    ["width_cm", "height_cm", "depth_cm", "thickness_cm", "clearance_radius_cm"].forEach((key) => {
       if (Number.isFinite(Number(item?.[key]))) item[key] = Number(item[key]) * factor;
     });
   };
@@ -451,33 +448,21 @@ function applyCalibrationToAnalysis(analysis, calibration) {
     });
   });
   (next.rooms || []).forEach((room) => {
-    ["polygon_cm", "polygon_m", "polygon", "exterior"].forEach((key) => scalePointList(room[key]));
+    ["polygon_cm", "exterior"].forEach((key) => scalePointList(room[key]));
     scalePoint(room.centroid_cm);
-    scalePoint(room.centroid_m);
     ["area_cm2", "area_m2"].forEach((key) => {
       if (Number.isFinite(Number(room[key]))) room[key] = Number(room[key]) * factor * factor;
     });
     scaleLengthFields(room);
   });
-  const geometryUsesCentimeters = Number(previousScale.cm_per_px) > 0
-    || ["cm", "centimeter", "centimetre"].includes(String(next.coordinate_system?.unit || "").toLowerCase());
   next.scale = {
     ...previousScale,
     pixel_distance: Number(calibration.pixel_distance),
     source: "manual_confirmation",
     confidence: 1,
   };
-  if (geometryUsesCentimeters) {
-    next.scale.distance_cm = Number(calibration.distance_cm);
-    next.scale.cm_per_px = nextCmPerPx;
-    delete next.scale.distance_m;
-    delete next.scale.m_per_px;
-  } else {
-    next.scale.distance_m = Number(calibration.distance_cm) / 100;
-    next.scale.m_per_px = nextCmPerPx / 100;
-    delete next.scale.distance_cm;
-    delete next.scale.cm_per_px;
-  }
+  next.scale.distance_cm = Number(calibration.distance_cm);
+  next.scale.cm_per_px = nextCmPerPx;
   next.evidence = [{
     text: `${Number(calibration.distance_cm)} cm`,
     confidence: 1,

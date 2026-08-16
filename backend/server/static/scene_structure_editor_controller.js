@@ -20,7 +20,6 @@ export function createSceneStructureEditorController({
   beamDragGeometry,
   buildDimensionedPlanAnnotations,
   buildRoomSchemePreviewScene,
-  canMarkWallForDemolition,
   CANONICAL_ROOM_LABELS,
   captureConfirmedStructureSnapshot,
   chooseRoomScheme,
@@ -44,7 +43,6 @@ export function createSceneStructureEditorController({
   dedupeWindowCandidates,
   deleteRoom,
   element,
-  ensureRenovationScheme,
   ensureRoomScheme3dPreviews,
   ensureRoomSchemeAlternative,
   ensureSchemeB,
@@ -65,7 +63,6 @@ export function createSceneStructureEditorController({
   insertRoomNodeAt,
   instructions,
   invalidateDownstreamFrom,
-  invalidateRenovationScheme,
   isDismissedAutoRoom,
   isStructuralSnapshotPoint,
   lockedConfigurationSnapshot,
@@ -76,7 +73,6 @@ export function createSceneStructureEditorController({
   nearestPointOnRoomEdge,
   normalizedWindowType,
   normalizeIconInferredRoomReview,
-  normalizeWallDemolitionCandidates,
   openRoomScheme3dPreview,
   openRoomSchemeSelectionDialog,
   pendingRoomBaseLabel,
@@ -94,7 +90,6 @@ export function createSceneStructureEditorController({
   renderRooms,
   renderRoomSchemeGate,
   renderRoomSchemeSelectionDialog,
-  renderSchemeComparison,
   renderSchemeControls,
   renderSpaceOverlay,
   renderStepSixSurfaceProgress,
@@ -168,52 +163,10 @@ export function createSceneStructureEditorController({
   userFacingMaterialLabel,
   validateColumnDimensionsCm,
   waitForRoomSchemePreviewFrames,
-  wallBoundary,
-  wallBoundaryContext,
-  wallBoundarySide,
   whiteViewer,
   WINDOW_TYPES,
   windowsOverlap,
 }) {
-function applyWallDemolitionType(wallId, demolitionCandidate) {
-  const wall = state.structures.walls.find((item) => item.id === wallId);
-  if (!wall) return;
-  if (demolitionCandidate) {
-    setStatus("牆體已在第 4 步作為全案基準鎖定；方案 A、B 僅比較家具配置。", "warning");
-    return;
-  }
-  const floorplan = wallBoundaryContext();
-  if (
-    demolitionCandidate
-    && !canMarkWallForDemolition(wall, floorplan)
-  ) {
-    wall.demolition_candidate = false;
-    const message = "最外圍牆不可標記為可拆牆。若圖面邊界有誤，請先修正牆的位置。";
-    element.spaceError.textContent = message;
-    setStatus(message, "error");
-    renderStructureReviewList();
-    return;
-  }
-  const changed = wall.demolition_candidate !== demolitionCandidate;
-  wall.demolition_candidate = demolitionCandidate;
-  if (demolitionCandidate) ensureRenovationScheme("demolished_wall");
-  wall.confirmed = false;
-  wall.estimated = false;
-  element.spaceError.textContent = "";
-  renderSpaceOverlay();
-  renderStructureReviewList();
-  renderSelectedStructureEditor();
-  renderStructureCounts();
-  if (!changed) return;
-  invalidateRenovationScheme(
-    "方案 B 的可拆牆已修改；問卷與方案 A 保留，方案 B 家具需重新計算。",
-  );
-  scheduleSave("space_confirmation");
-  setStatus(demolitionCandidate
-    ? "已標記為可拆牆候選；這只是格局模擬，施工前仍須由專業人員確認。"
-    : "已改回一般牆，格局預覽會保留此牆。");
-}
-
 function structureGroup(item, kind, markup) {
   const active = state.selectedStructure?.id === item.id
     && state.selectedStructure?.kind === kind;
@@ -292,15 +245,13 @@ function renderStructureSvg() {
     const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
     const selected = state.selectedStructure?.kind === "wall"
       && state.selectedStructure?.id === item.id;
-    const demolitionCandidate = item.demolition_candidate === true;
     return structureGroup(
       item,
       "wall",
       `${segmentSvg(
         item,
-        demolitionCandidate ? "#c54c4c" : "#343434",
+        "#343434",
         Math.max(4, Number(item.thickness_cm || 12) / planGeometry().scale),
-        demolitionCandidate ? 'stroke-dasharray="14 9"' : "",
       )}
       ${structureNumberMarkerSvg("wall", index, midpoint, { selected })}
       ${selected ? `<circle data-wall-handle="start" cx="${start.x}" cy="${start.y}" r="17"
@@ -592,14 +543,12 @@ function finishBeamCreateDrag() {
     confirmed: false,
     estimated: true,
     source: "manual",
-    scheme_id: "B",
   };
   if (rejectStructureWallCollision(item, "beam")) {
     renderSpaceOverlay();
     return false;
   }
   state.structures.beams.push(item);
-  ensureRenovationScheme("added_structure");
   state.selectedStructure = { id: item.id, kind: "beam" };
   state.structureTool = null;
   $$('[data-structure-tool]').forEach((button) => button.classList.remove("is-active"));
@@ -607,8 +556,9 @@ function finishBeamCreateDrag() {
   renderStructureCounts();
   renderStructureReviewList();
   renderSelectedStructureEditor();
-  invalidateRenovationScheme(
-    "方案 B 已新增樑；問卷與方案 A 保留，方案 B 家具需重新計算。",
+  invalidateDownstreamFrom(
+    "space_confirmation",
+    "已新增樑，後續需求、家具與 3D 需要重新確認。",
   );
   scheduleSave("space_confirmation");
   setStatus(`已新增樑 ${state.structures.beams.length}，長度 ${Math.round(draft.geometry.lengthCm)} 公分。`);
@@ -675,8 +625,6 @@ function spacePointerDown(event) {
         confirmed: false,
         estimated: true,
         source: "manual",
-        scheme_id: "baseline",
-        demolition_candidate: false,
       };
       const lengthCm = Math.hypot(item.end.x - item.start.x, item.end.y - item.start.y);
       if (lengthCm < 25) {
@@ -685,7 +633,6 @@ function spacePointerDown(event) {
         return;
       }
       state.structures[collection].push(item);
-      ensureRenovationScheme("added_structure");
       state.selectedStructure = { id: item.id, kind };
       state.structureLineStart = null;
       state.structureLinePreviewEnd = null;
@@ -695,8 +642,9 @@ function spacePointerDown(event) {
       renderStructureCounts();
       renderStructureReviewList();
       renderSelectedStructureEditor();
-      invalidateRenovationScheme(
-        "方案 B 已新增結構；問卷與方案 A 保留，方案 B 家具需重新計算。",
+      invalidateDownstreamFrom(
+        "space_confirmation",
+        "已新增牆，後續需求、家具與 3D 需要重新確認。",
       );
       scheduleSave("space_confirmation");
       setStatus(`已新增${structureSectionMeta[kind].label} ${state.structures[collection].length}，可拖曳、調整尺寸、刪除或確認。`);
@@ -1348,27 +1296,6 @@ function renderStructureReviewList() {
             data-window-type="${WINDOW_TYPES.floorToCeiling}" data-window-id="${escapeHtml(item.id)}">落地窗</button>
         </div>`
       : "";
-    const perimeterWall = kind === "wall" && Boolean(wallBoundary(item));
-    const wallTypeToggle = kind === "wall"
-      ? `<div class="rp-window-type-toggle rp-wall-type-toggle" role="group" aria-label="牆 ${index + 1} 類型">
-          <button type="button" class="${item.demolition_candidate !== true ? "is-active" : ""}"
-            aria-pressed="${item.demolition_candidate !== true}"
-            data-wall-demolition="retained" data-wall-id="${escapeHtml(item.id)}">一般牆</button>
-          <button type="button" class="${item.demolition_candidate === true ? "is-active" : ""}"
-            aria-pressed="${item.demolition_candidate === true}"
-            data-wall-demolition="candidate" data-wall-id="${escapeHtml(item.id)}"
-            ${perimeterWall ? 'disabled title="最外圍牆不可標記為可拆牆"' : ""}>
-            ${perimeterWall ? "外圍鎖定" : "可拆牆"}
-          </button>
-        </div>`
-      : "";
-    const wallState = kind === "wall"
-      ? perimeterWall
-        ? " · 最外圍牆已鎖定"
-        : item.demolition_candidate === true
-          ? " · 可拆牆候選"
-          : " · 一般牆"
-      : "";
     return `<article class="rp-door-review-item ${selected ? "is-active" : ""}">
       <button type="button" class="rp-door-review-select"
         data-structure-review="${escapeHtml(item.id)}" data-structure-kind="${kind}">
@@ -1531,18 +1458,16 @@ function applySelectedStructureSize() {
   }
   Object.assign(item, resolution.item);
   applyAttachedOpeningUpdates(attachedUpdates);
-  if (kind === "wall") normalizeWallDemolitionCandidates();
   structureRuntimeState.structureSizeDraft = null;
   item.confirmed = false;
   item.estimated = false;
   renderSpaceOverlay();
   renderDoorReviewList();
   renderSelectedStructureEditor();
-  if (item.scheme_id === "B") {
-    invalidateRenovationScheme("方案 B 結構尺寸已修改；方案 A 與問卷保留。");
-  } else {
-    invalidateDownstreamFrom("space_confirmation", "結構尺寸已修改，後續需求、家具與 3D 需要重新確認。");
-  }
+  invalidateDownstreamFrom(
+    "space_confirmation",
+    "結構尺寸已修改，後續需求、家具與 3D 需要重新確認。",
+  );
   scheduleSave("space_confirmation");
   const shiftNote = resolution.moved
     ? `，並向室內避牆位移 ${Math.round(resolution.totalShiftCm)} 公分`
@@ -1568,14 +1493,10 @@ function applyWindowType(windowId, type) {
   renderSpaceOverlay();
   renderStructureReviewList();
   renderSelectedStructureEditor();
-  if (item.scheme_id === "B") {
-    invalidateRenovationScheme("方案 B 窗戶類型已修改；方案 A 與問卷保留。");
-  } else {
-    invalidateDownstreamFrom(
-      "space_confirmation",
-      "窗戶類型已修改，後續需求、家具與 3D 需要重新確認。",
-    );
-  }
+  invalidateDownstreamFrom(
+    "space_confirmation",
+    "窗戶類型已修改，後續需求、家具與 3D 需要重新確認。",
+  );
   scheduleSave("space_confirmation");
   setStatus(item.window_type === WINDOW_TYPES.floorToCeiling
     ? "已改為落地窗，窗台設為 0 cm，3D 會依樓高生成玻璃與框架。"
@@ -1601,7 +1522,7 @@ function setSelectedOpeningWidthCm(requestedWidthCm, persist = false) {
       )
     : Infinity;
   if (widthCm > hostLengthCm - 10) {
-    const message = `${structureSectionMeta[kind].label}寬不可超過附著牆長；請縮小開口或先調整方案 B 的牆。`;
+    const message = `${structureSectionMeta[kind].label}寬不可超過附著牆長；請縮小開口或先調整附著牆。`;
     element.spaceError.textContent = message;
     setStatus(message, "error");
     return;
@@ -1624,11 +1545,10 @@ function setSelectedOpeningWidthCm(requestedWidthCm, persist = false) {
   renderSelectedStructureEditor();
   if (persist) {
     const label = structureSectionMeta[kind].label;
-    if (item.scheme_id === "B") {
-      invalidateRenovationScheme(`方案 B 的${label}寬已調整；方案 A 與問卷保留。`);
-    } else {
-      invalidateDownstreamFrom("space_confirmation", `${label}寬已調整，後續需求、家具與 3D 需要重新確認。`);
-    }
+    invalidateDownstreamFrom(
+      "space_confirmation",
+      `${label}寬已調整，後續需求、家具與 3D 需要重新確認。`,
+    );
     scheduleSave("space_confirmation");
     setStatus(`${label}寬已調整為 ${Math.round(widthCm)} cm；請重新確認此${label}。`);
   }
@@ -1691,18 +1611,16 @@ function rotateSelectedStructure(deltaDeg) {
   item.end = nextWall.end;
   applyAttachedOpeningUpdates(attachedUpdates);
   if (state.selectedStructure?.kind === "door") delete item.swing_end;
-  if (state.selectedStructure?.kind === "wall") normalizeWallDemolitionCandidates();
   item.confirmed = false;
   item.estimated = false;
   renderSpaceOverlay();
   renderDoorReviewList();
   renderDoorReviewList();
   renderSelectedStructureEditor();
-  if (item.scheme_id === "B") {
-    invalidateRenovationScheme("方案 B 結構方向已修改；方案 A 與問卷保留。");
-  } else {
-    invalidateDownstreamFrom("space_confirmation", "結構方向已微調，後續需求、家具與 3D 需要重新確認。");
-  }
+  invalidateDownstreamFrom(
+    "space_confirmation",
+    "結構方向已微調，後續需求、家具與 3D 需要重新確認。",
+  );
   scheduleSave("space_confirmation");
 }
 
@@ -1723,7 +1641,7 @@ function deleteSelectedStructure() {
     );
     return;
   }
-  if (deletedKind === "wall" && selected?.scheme_id === "B") {
+  if (deletedKind === "wall" && selected) {
     const children = attachedOpenings(state.structures, selected.id);
     children.forEach(({ collection: childCollection, item }) => {
       state.structures[childCollection] = state.structures[childCollection].filter(
@@ -1740,11 +1658,10 @@ function deleteSelectedStructure() {
   renderSpaceOverlay();
   renderStructureCounts();
   renderSelectedStructureEditor();
-  if (selected?.scheme_id === "B") {
-    invalidateRenovationScheme("方案 B 結構已刪除；方案 A 與問卷保留。");
-  } else {
-    invalidateDownstreamFrom("space_confirmation", "結構已刪除，後續需求、家具與 3D 需要重新確認。");
-  }
+  invalidateDownstreamFrom(
+    "space_confirmation",
+    "結構已刪除，後續需求、家具與 3D 需要重新確認。",
+  );
   scheduleSave("space_confirmation");
 }
 
@@ -1927,7 +1844,6 @@ function addDroppedStructure(tool, point) {
       confirmed: false,
       estimated: true,
       source: "manual",
-      scheme_id: "B",
     };
     if (rejectStructureWallCollision(item, "column")) return;
     state.structures.columns.push(item);
@@ -1957,7 +1873,6 @@ function addDroppedStructure(tool, point) {
       window_type: tool === "window" ? WINDOW_TYPES.standard : undefined,
       host_wall_id: host?.wall.id,
       source: "manual",
-      scheme_id: "B",
       opening_direction: "right",
       confirmed: false,
       estimated: true,
@@ -1977,18 +1892,16 @@ function addDroppedStructure(tool, point) {
     }
     state.structures[tool === "door" ? "doors" : "windows"].push(item);
   }
-  if (item) {
-    ensureRenovationScheme("added_structure");
-    state.selectedStructure = { id: item.id, kind: tool };
-  }
+  if (item) state.selectedStructure = { id: item.id, kind: tool };
   state.structureTool = null;
   $$("[data-structure-tool]").forEach((button) => button.classList.remove("is-active"));
   renderSpaceOverlay();
   renderStructureCounts();
   renderStructureReviewList();
   renderSelectedStructureEditor();
-  invalidateRenovationScheme(
-    "方案 B 已新增結構；問卷與方案 A 保留，方案 B 家具需重新計算。",
+  invalidateDownstreamFrom(
+    "space_confirmation",
+    "已新增結構，後續需求、家具與 3D 需要重新確認。",
   );
   scheduleSave("space_confirmation");
   setStatus(`已新增${tool === "door" ? "門" : tool === "window" ? "窗" : "柱"}，可在右側繼續修改。`);
@@ -2042,11 +1955,10 @@ function rotateSelectedDoor180() {
   renderDoorReviewList();
   renderSelectedStructureEditor();
   renderStructureCounts();
-  if (item.scheme_id === "B") {
-    invalidateRenovationScheme("方案 B 門的鉸鏈端已翻轉；方案 A 與問卷保留。");
-  } else {
-    invalidateDownstreamFrom("space_confirmation", "門的鉸鏈端已翻轉，後續需求、家具與 3D 需要重新確認。");
-  }
+  invalidateDownstreamFrom(
+    "space_confirmation",
+    "門的鉸鏈端已翻轉，後續需求、家具與 3D 需要重新確認。",
+  );
   scheduleSave("space_confirmation");
   setStatus("已將鉸鏈端翻轉 180°；請檢查門弧後重新確認此扇門。");
 }
@@ -2199,7 +2111,6 @@ function confirmDimensionedPlan() {
     addDroppedStructure,
     applySelectedStructureSize,
     applySelectedWindowType,
-    applyWallDemolitionType,
     applyWindowType,
     beamBandSvg,
     beamSnapCandidates,

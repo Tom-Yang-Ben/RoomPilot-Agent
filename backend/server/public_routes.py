@@ -639,10 +639,7 @@ def create_public_router(dependencies: dict):
             room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
             placement_variant=placement_variant,
         )
-        return {
-            **scene_payload,
-            "scene_json": deepcopy(scene_payload),
-        }
+        return {"scene_json": deepcopy(scene_payload)}
 
 
     @router.post("/api/scene/layout")

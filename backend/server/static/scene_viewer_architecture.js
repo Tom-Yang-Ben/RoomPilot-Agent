@@ -1345,7 +1345,7 @@ export function createViewerArchitecture({
     ];
     return regions
       .map((region) => ({
-        exterior: region.exterior || region.polygon_cm || region.polygon_m || [],
+        exterior: region.exterior || region.polygon_cm || [],
         holes: region.holes || [],
       }))
       .filter((region) => Array.isArray(region.exterior) && region.exterior.length >= 3);

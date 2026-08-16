@@ -10,7 +10,7 @@ docs/engineering/EXISTING_FIELD_MAPPING.md）。UI 欄位改名時只改這個�
 - space_confirmation.structures.doors/windows        → geometry.opening_area_m2（段長×高）
 - requirements.roomRequirementModel...surfaces       → rooms[].materials（逐房為準，
   查型錄換成受控詞彙；沒有逐房選擇才退回 requirements.finishes 的全屋選項）
-- layout_2d.furniture[]（type/label/尺寸/座標）        → rooms[].furniture（轉房間座標）
+- configuration.schemes[locked/active].furniture[]   → rooms[].furniture（轉房間座標）
 - proposal_review.jobs / ProjectStore renders        → rooms[].renders
 """
 from __future__ import annotations
@@ -217,7 +217,7 @@ def _furniture_for_room(
         height = float(item.get("heightCm") or 0)
         if width <= 0 or depth <= 0:
             continue
-        # 前端 layout_2d 座標以整張平面圖中心為原點；轉回平面座標後，
+        # 前端 configuration furniture 座標以整張平面圖中心為原點；轉回平面座標後，
         # 再換成房間外接框左下角原點（與 backend.engine 一致）。
         plan_x = float(item.get("xCm") or 0) + plan_center[0]
         plan_y = float(item.get("yCm") or 0) + plan_center[1]
@@ -323,8 +323,15 @@ def snapshot_draft_from_workflow(
     requirements = workflow.get("requirements") or {}
     finishes = requirements.get("finishes") or {}
 
-    layout = workflow.get("layout_2d") or {}
-    furniture_items = list(layout.get("furniture") or [])
+    configuration = workflow.get("configuration") or {}
+    schemes = configuration.get("schemes") or {}
+    scheme_id = (
+        configuration.get("locked_scheme_id")
+        or configuration.get("active_scheme_id")
+        or "A"
+    )
+    active_scheme = schemes.get(scheme_id) or {}
+    furniture_items = list(active_scheme.get("furniture") or [])
     proposal = workflow.get("proposal_review") or {}
     jobs = list(proposal.get("jobs") or [])
     plan_center = _plan_center(rooms_raw)

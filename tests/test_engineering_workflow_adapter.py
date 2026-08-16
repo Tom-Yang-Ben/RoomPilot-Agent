@@ -71,8 +71,13 @@ def _sample_workflow() -> dict:
                 "ceilingColor": "#f4f1eb",
             }
         },
-        "layout_2d": {
-            "furniture": [
+        "configuration": {
+            "schema_version": 3,
+            "active_scheme_id": "A",
+            "locked_scheme_id": "A",
+            "schemes": {
+                "A": {
+                    "furniture": [
                 {
                     "id": "room-1-sofa-1",
                     "type": "sofa",
@@ -111,7 +116,9 @@ def _sample_workflow() -> dict:
                     "rotationDeg": 90,
                     "roomId": "room-2",
                 },
-            ]
+                    ]
+                }
+            },
         },
         "proposal_review": {
             "jobs": [

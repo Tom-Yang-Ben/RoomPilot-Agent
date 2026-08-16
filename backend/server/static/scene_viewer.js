@@ -39,7 +39,7 @@ import { normalizedPlanarUvs } from "./scene_texture_uv.js?v=sha256-1d68ae8102bc
 
 const CM_PER_METER = 100;
 
-import { createViewerArchitecture } from "./scene_viewer_architecture.js?v=sha256-0e24b3923208";
+import { createViewerArchitecture } from "./scene_viewer_architecture.js?v=sha256-5e6f7ebd6e42";
 import { createSurfaceMaterialFactory } from "./scene_viewer_materials.js?v=sha256-a26ada740ef8";
 import { createAxisLabel } from "./scene_viewer_labels.js?v=sha256-6155285a51be";
 import { cloneCachedGltfScene, loadGltfCached } from "./scene_gltf_cache.js?v=sha256-07eb284d64fb";
@@ -1679,7 +1679,7 @@ export function createSceneViewer(
     const regions = lastWorldSceneData?.floorplan?.room_regions || [];
     if (!regions.length) return true;
     return regions.some((region) => {
-      const exterior = region.exterior || region.polygon_cm || region.polygon_m || [];
+      const exterior = region.exterior || region.polygon_cm || [];
       if (!pointInRing(position, exterior)) return false;
       return !(region.holes || []).some((hole) => pointInRing(position, hole));
     });

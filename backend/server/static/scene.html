@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
   <link rel="stylesheet" href="/static/site.css?v=sha256-3895abb26a13" />
-  <link rel="stylesheet" href="/static/scene.css?v=sha256-5917edf0163e" />
+  <link rel="stylesheet" href="/static/scene.css?v=sha256-f9f1e5bbb678" />
   <link rel="stylesheet" href="/static/scene-questionnaire.css?v=sha256-11b19d1e806d" />
   <link rel="stylesheet" href="/static/scene-structure.css?v=sha256-c3f5998be655" />
   <link rel="stylesheet" href="/static/scene-workflow.css?v=sha256-3a397d998413" />
@@ -219,30 +219,6 @@
               <img id="space-plan-image" alt="辨識後的平面圖" />
               <svg id="space-plan-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
             </div>
-            <section id="design-scheme-compare" class="rp-design-scheme-compare" hidden>
-              <header>
-                <div>
-                  <span class="eyebrow">方案比較</span>
-                  <h3>保留與改造格局</h3>
-                </div>
-                <button id="delete-scheme-b" type="button" class="danger-action">刪除方案 B</button>
-              </header>
-              <p class="rp-control-hint">方案 A 保留原結構；方案 B 套用可拆牆與新增結構。可拆性仍須由專業人員確認。</p>
-              <figure>
-                <figcaption><strong>方案 A</strong><span>保留格局</span></figcaption>
-                <div class="rp-scheme-plan-stage">
-                  <img id="scheme-a-plan-image" alt="方案 A 保留格局" />
-                  <svg id="scheme-a-plan-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
-                </div>
-              </figure>
-              <figure>
-                <figcaption><strong>方案 B</strong><span>改造格局</span></figcaption>
-                <div class="rp-scheme-plan-stage">
-                  <img id="scheme-b-plan-image" alt="方案 B 改造格局" />
-                  <svg id="scheme-b-plan-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
-                </div>
-              </figure>
-            </section>
             <p id="space-plan-caption" class="rp-plan-caption">點房間框或右側名稱可定位；紫色節點可拖曳調整範圍。</p>
           </div>
           <aside class="rp-control-pane rp-space-controls">
@@ -347,7 +323,6 @@
                 <span><i class="rp-legend-line is-door"></i>橘色門弧＝系統偵測的門候選，門向需人工確認</span>
                 <span><i class="rp-legend-line is-window"></i>藍色線＝窗</span>
                 <span><i class="rp-legend-line is-wall"></i>深灰色線＝牆</span>
-                <span><i class="rp-legend-line is-removable-wall"></i>紅色虛線＝可拆牆候選</span>
               </div>
               <div class="rp-check-row"><input id="structure-confirmed" type="checkbox" /><label for="structure-confirmed">已確認牆、門、窗、樑與柱</label></div>
               <div class="rp-check-row rp-warning-check"><input id="estimated-size-ack" type="checkbox" /><label for="estimated-size-ack">我知道未標示的牆、樑、柱尺寸是依圖面估計，可能與現場實際尺寸不同</label></div>
@@ -1198,6 +1173,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-f25c7924a7da"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-fb71fe94316b"></script>
   </body>
 </html>

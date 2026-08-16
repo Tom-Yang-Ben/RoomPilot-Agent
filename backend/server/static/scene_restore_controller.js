@@ -11,14 +11,11 @@ export function createSceneRestoreController({
   confirmedFloorplanEditor,
   dedupeDoorCandidates,
   dedupeWindowCandidates,
-  deleteSchemeB,
   element,
-  ensureSchemeB,
   errorMessage,
   floorplanExtension,
   furniture2dDefaultsForSceneObject,
   generateWhiteModelFromRequirements,
-  hasRenovationChanges,
   hydrateConfirmedStructureSnapshot,
   hydrateSceneWallMass,
   normalizeDesignSchemes,
@@ -28,7 +25,6 @@ export function createSceneRestoreController({
   normalizeSavedSceneWallSurfaces,
   normalizeSavedSpaceConfirmation,
   normalizeSceneDoorSegments,
-  normalizeWallDemolitionCandidates,
   pendingSaveStorageKey,
   persistActiveScheme,
   preparedAutoRoomLabels,
@@ -36,7 +32,6 @@ export function createSceneRestoreController({
   recognitionReviewSuffix,
   renderRestoredStep,
   repairFurnitureRoomPlacements,
-  repairLegacyWallFurnitureGaps,
   repairLoadedRoomPolygon,
   repairLoadedStructureWallCollisions,
   resolvedVisualPreferences,
@@ -125,16 +120,6 @@ async function recoverSceneDataFromSavedLayout() {
   return true;
 }
 
-function repairRestoredSchemeLegacyWallGaps(scheme) {
-  if (!scheme) return 0;
-  const normalizedSceneData = normalizeSavedSceneData(scheme.sceneData);
-  if (!normalizedSceneData) return 0;
-  const repaired = repairLegacyWallFurnitureGaps(normalizedSceneData, scheme.furniture || []);
-  scheme.sceneData = repaired.sceneData;
-  scheme.furniture = repaired.furniture2d;
-  return repaired.repairedIds.length;
-}
-
 async function restoreProject() {
   if (!state.projectId) {
     state.workflow = null;
@@ -145,7 +130,6 @@ async function restoreProject() {
     let sceneRecoveryError = null;
     let furnitureRoomRepairError = null;
     let restoredFurnitureRoomRepairs = 0;
-    let restoredLegacyWallGapRepairs = 0;
     let result = await api(`/api/projects/${state.projectId}`);
     const pendingSave = localStorage.getItem(pendingSaveStorageKey());
     let pendingSaveDiscarded = false;
@@ -177,6 +161,9 @@ async function restoreProject() {
     }
     state.project = result.project;
     const serverState = state.project.workflow || {};
+    if (Number(serverState.project_schema_version) !== 3) {
+      throw new Error("project_schema_upgrade_required");
+    }
     state.workflow = restoreWorkflow({
       projectId: state.projectId,
       snapshot: serverState._flow || null,
@@ -208,8 +195,6 @@ async function restoreProject() {
       element.scaleInput.value = Number(savedCalibration.distanceCm);
     } else if (Number(state.analysis?.scale?.distance_cm) > 0) {
       element.scaleInput.value = Number(state.analysis.scale.distance_cm);
-    } else if (Number(state.analysis?.scale?.distance_m) > 0) {
-      element.scaleInput.value = Math.round(Number(state.analysis.scale.distance_m) * 1000) / 10;
     }
     if (state.analysis) {
       element.recognitionSummary.textContent = `辨識結果：牆 ${state.analysis.walls?.length || state.analysis.floorplan?.wall_count || 0}、門 ${state.analysis.doors?.length || state.analysis.floorplan?.door_count || 0}、窗 ${state.analysis.windows?.length || state.analysis.floorplan?.window_count || 0}${recognitionReviewSuffix()}`;
@@ -246,7 +231,6 @@ async function restoreProject() {
       state.structures,
     );
     state.rooms = applyCanonicalRoomLabels(preparedAutoRoomLabels(state.rooms, state.structures.walls || []));
-    const lockedWallCandidates = normalizeWallDemolitionCandidates();
     repairLoadedStructureWallCollisions();
     const normalizedDoors = dedupeDoorCandidates(state.structures.doors || []);
     state.structures.doors = normalizedDoors.doors;
@@ -290,43 +274,15 @@ async function restoreProject() {
       (pack) => pack.id === state.questionnaireFinishes.stylePackId,
     );
     if (questionnairePack) state.activeStyleId = questionnairePack.styleId;
-    const legacyFurniture = serverState.layout_2d?.furniture || [];
-    const legacySceneData = normalizeSavedSceneData(serverState.white_model_3d?.sceneData);
     state.designSchemes = normalizeDesignSchemes(
-      savedSpace.design_schemes || serverState.design_schemes || {},
-      {
-        furniture: legacyFurniture,
-        sceneData: legacySceneData,
-      },
+      serverState.configuration || { schema_version: 3 },
     );
-    if (hasRenovationChanges(state.structures) && !state.designSchemes.schemes.B) {
-      ensureSchemeB(state.designSchemes, { reason: "restored_renovation" });
-    }
-    const savedLayoutSchemes = serverState.layout_2d?.schemes || {};
-    state.designSchemes.room_selections = serverState.layout_2d?.room_selections
-      || state.designSchemes.room_selections
-      || {};
-    state.designSchemes.configuration_snapshot = serverState.layout_2d?.configuration_snapshot
-      || state.designSchemes.configuration_snapshot
-      || null;
-    Object.entries(savedLayoutSchemes).forEach(([schemeId, layout]) => {
-      const scheme = state.designSchemes.schemes[schemeId];
-      if (!scheme) return;
-      scheme.furniture = layout.furniture || scheme.furniture || [];
-      scheme.stale = layout.stale === true;
-      scheme.staleReason = layout.staleReason || "";
+    Object.values(state.designSchemes.schemes).forEach((scheme) => {
+      scheme.sceneData = normalizeSavedSceneData(scheme.sceneData);
     });
-    const restoredSchemeB = state.designSchemes.schemes.B;
-    const emptySchemeB = restoredSchemeB
-      && !hasRenovationChanges(state.structures)
-      && !(restoredSchemeB.furniture || []).length
-      && !restoredSchemeB.sceneData;
-    if (emptySchemeB) deleteSchemeB(state.designSchemes);
-    restoredLegacyWallGapRepairs = Object.values(state.designSchemes.schemes || {})
-      .reduce((total, scheme) => total + repairRestoredSchemeLegacyWallGaps(scheme), 0);
     const restoredScheme = activeScheme();
-    state.furniture2d = restoredScheme?.furniture || legacyFurniture;
-    state.sceneData = normalizeSavedSceneData(restoredScheme?.sceneData) || legacySceneData;
+    state.furniture2d = restoredScheme?.furniture || [];
+    state.sceneData = restoredScheme?.sceneData || null;
     applyWholeHouseSurfaceConsistency();
     const restoredWallSurfaceRepairs = Object.values(state.designSchemes.schemes || {})
       .reduce(
@@ -399,7 +355,6 @@ async function restoreProject() {
     if (
       sceneRecoveredFromLayout
       || restoredFurnitureRoomRepairs > 0
-      || restoredLegacyWallGapRepairs > 0
       || restoredRetiredAppliancesRemoved > 0
       || restoredWallSurfaceRepairs > 0
       || restoredDoorSwingEndpoints > 0
@@ -411,10 +366,6 @@ async function restoreProject() {
       setStatus(
         `已將 ${state.structureCollisionRepairs.moved} 個貼牆的樑柱自動移至牆體內側，請重新確認。`,
       );
-    }
-    if (lockedWallCandidates > 0) {
-      scheduleSave("space_confirmation");
-      setStatus(`已自動移除 ${lockedWallCandidates} 個位於最外圍牆的可拆候選標記。`);
     }
     if (state.windowNormalizationRemoved > 0) {
       scheduleSave(state.workflow.currentStep);
@@ -467,7 +418,6 @@ async function recoverConfirmedFloorplan() {
 
   return {
     recoverSceneDataFromSavedLayout,
-    repairRestoredSchemeLegacyWallGaps,
     restoreProject,
     recoverConfirmedFloorplan,
   };

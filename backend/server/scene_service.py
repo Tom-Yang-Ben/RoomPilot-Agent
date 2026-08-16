@@ -1048,13 +1048,11 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
         return converted
 
     def identified_segments(items: list[dict[str, Any]], kind: str) -> list[dict[str, Any]]:
-        """Preserve editor ids and create stable ids for older saved projects."""
+        """Preserve editor ids and create stable ids for current editor payloads."""
         return [
             segment({
                 **item,
                 "id": str(item.get("id") or f"{kind}-{index}"),
-                # Wall demolition is no longer a RoomPilot structure mode.
-                **({"demolition_candidate": False} if kind == "wall" else {}),
             })
             for index, item in enumerate(items or [], start=1)
         ]
@@ -1077,7 +1075,7 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
     room_regions = []
     for room_data in editor.get("rooms") or []:
         ring = []
-        for point in room_data.get("polygon_cm") or room_data.get("polygon_m") or []:
+        for point in room_data.get("polygon_cm") or []:
             centered = centered_point(point)
             ring.append([centered["x"], centered["z"]])
         if len(ring) < 3:

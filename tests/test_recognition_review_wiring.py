@@ -113,7 +113,18 @@ def _workflow(*, completed: bool, rooms: list[dict]) -> dict:
                 ]
             }
         },
-        "space_confirmation": {"rooms": rooms},
+        "space_confirmation": {
+            "coordinate_unit": "cm",
+            "schema_version": "2.0",
+            "rooms": rooms,
+            "structures": {
+                "walls": [],
+                "doors": [],
+                "windows": [],
+                "beams": [],
+                "columns": [],
+            },
+        },
     }
 
 

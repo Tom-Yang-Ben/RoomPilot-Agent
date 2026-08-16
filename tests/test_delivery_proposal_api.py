@@ -532,6 +532,8 @@ def test_delivery_proposal_also_writes_the_engineering_estimate(
         project_id,
         workflow={
             "space_confirmation": {
+                "coordinate_unit": "cm",
+                "schema_version": "2.0",
                 "rooms": [
                     {
                         "id": "room-1",
@@ -546,7 +548,13 @@ def test_delivery_proposal_also_writes_the_engineering_estimate(
                         ],
                     }
                 ],
-                "structures": {"doors": [], "windows": []},
+                "structures": {
+                    "walls": [],
+                    "doors": [],
+                    "windows": [],
+                    "beams": [],
+                    "columns": [],
+                },
             },
             # 問卷存的是型錄 ID，不是「乳膠漆」；牆與天花靠 knowledge 的
             # "paint" 關鍵字才對得上工項，拿掉就整批漏算。
@@ -585,6 +593,8 @@ def test_material_without_a_work_item_mapping_is_listed_not_dropped(tmp_path) ->
 
     workflow = {
         "space_confirmation": {
+            "coordinate_unit": "cm",
+            "schema_version": "2.0",
             "rooms": [
                 {
                     "id": "room-1",
@@ -599,7 +609,13 @@ def test_material_without_a_work_item_mapping_is_listed_not_dropped(tmp_path) ->
                     ],
                 }
             ],
-            "structures": {"doors": [], "windows": []},
+            "structures": {
+                "walls": [],
+                "doors": [],
+                "windows": [],
+                "beams": [],
+                "columns": [],
+            },
         },
         # 天花清水模在 knowledge 裡沒有對照工項，也不在面材型錄內。
         "requirements": {"finishes": {"ceilingMaterial": "exposed-concrete"}},

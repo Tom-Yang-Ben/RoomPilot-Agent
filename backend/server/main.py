@@ -57,6 +57,7 @@ from .project_store import (
     ProjectVersionConflict,
     WorkflowTooLargeError,
 )
+from .project_schema import ProjectSchemaUpgradeRequired
 from .runtime_paths import legacy_runtime_dirs, project_runtime_dir
 from .render_service import (
     RenderProviderRejected,

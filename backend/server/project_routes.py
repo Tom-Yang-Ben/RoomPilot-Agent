@@ -21,6 +21,7 @@ def create_project_router(dependencies: dict):
     PROJECT_DIR = dependencies["PROJECT_DIR"]
     Path = dependencies["Path"]
     ProjectVersionConflict = dependencies["ProjectVersionConflict"]
+    ProjectSchemaUpgradeRequired = dependencies["ProjectSchemaUpgradeRequired"]
     RenderProviderRejected = dependencies["RenderProviderRejected"]
     RenderProviderUnavailable = dependencies["RenderProviderUnavailable"]
     Response = dependencies["Response"]
@@ -90,6 +91,19 @@ def create_project_router(dependencies: dict):
                 {
                     "code": "project_not_found",
                     "message": "找不到這個專案，請返回專案列表重新選擇。",
+                },
+            ) from exc
+        except ProjectSchemaUpgradeRequired as exc:
+            raise HTTPException(
+                409,
+                {
+                    "code": "project_schema_upgrade_required",
+                    "message": (
+                        "此專案需要先執行 scripts/migrate_project_schema.py "
+                        "升級並建立備份後才能載入。"
+                    ),
+                    "found_version": exc.found_version,
+                    "required_version": 3,
                 },
             ) from exc
 
@@ -274,6 +288,17 @@ def create_project_router(dependencies: dict):
                 {
                     "code": "workflow_too_large",
                     "message": "專案草稿內容超過 2 MB，請移除大型暫存資料後再儲存。",
+                },
+            ) from exc
+        except ProjectSchemaUpgradeRequired as exc:
+            raise HTTPException(
+                409,
+                {
+                    "code": "project_schema_upgrade_required",
+                    "message": "專案資料格式已更新，請先執行一次性升級工具後再開啟。",
+                    "found_version": exc.found_version,
+                    "required_version": 3,
+                    "reason": exc.reason,
                 },
             ) from exc
         return {"project": project}

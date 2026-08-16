@@ -7,6 +7,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from .project_schema import (
+    PROJECT_SCHEMA_VERSION,
+    migrate_project_workflow,
+    new_project_workflow,
+    require_current_project_schema,
+)
+
 
 MAX_WORKFLOW_BYTES = 2 * 1024 * 1024
 
@@ -143,12 +150,15 @@ class ProjectStore:
 
     @staticmethod
     def _project(row: sqlite3.Row) -> dict:
+        workflow = ProjectStore._workflow(row["workflow_json"])
+        require_current_project_schema(workflow)
         return {
             "project_id": row["project_id"],
             "name": row["name"],
             "notes": row["notes"],
             "current_step": row["current_step"],
-            "workflow": ProjectStore._workflow(row["workflow_json"]),
+            "workflow": workflow,
+            "schema_version": PROJECT_SCHEMA_VERSION,
             "revision": int(row["revision"]),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
@@ -173,7 +183,15 @@ class ProjectStore:
                     created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (project_id, name, notes, "project", "{}", now, now),
+                (
+                    project_id,
+                    name,
+                    notes,
+                    "project",
+                    json.dumps(new_project_workflow()),
+                    now,
+                    now,
+                ),
             )
         return self.get_project(project_id)
 
@@ -220,6 +238,7 @@ class ProjectStore:
             merged_workflow = _compact_workflow_value(
                 _merge_dict(project["workflow"], workflow or {})
             )
+            require_current_project_schema(merged_workflow)
             serialized = json.dumps(merged_workflow, ensure_ascii=False)
             if len(serialized.encode("utf-8")) > MAX_WORKFLOW_BYTES:
                 raise WorkflowTooLargeError("workflow exceeds size limit")
@@ -508,7 +527,12 @@ class ProjectStore:
                         row["name"],
                         row["notes"],
                         row["current_step"],
-                        row["workflow_json"],
+                        json.dumps(
+                            migrate_project_workflow(
+                                self._workflow(row["workflow_json"])
+                            ).workflow,
+                            ensure_ascii=False,
+                        ),
                         upload_filename,
                         upload_extension,
                         upload_mime,

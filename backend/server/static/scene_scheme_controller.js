@@ -10,7 +10,6 @@ export function createSceneSchemeController({
   attachedOpenings,
   beamDragGeometry,
   buildDimensionedPlanAnnotations,
-  canMarkWallForDemolition,
   clipPolygonByLine,
   configurationBlockingFurniture,
   confirmedWallGapForDoor,
@@ -19,7 +18,6 @@ export function createSceneSchemeController({
   dedupeDoorCandidates,
   dedupeWindowCandidates,
   element,
-  ensureRenovationScheme,
   ensureSchemeB,
   errorMessage,
   escapeHtml,
@@ -30,7 +28,6 @@ export function createSceneSchemeController({
   imagePoint,
   instructions,
   invalidateDownstreamFrom,
-  invalidateRenovationScheme,
   materialOptionsForStyle,
   nearestPointOnSegment,
   normalizedWindowType,
@@ -69,7 +66,6 @@ export function createSceneSchemeController({
   unresolvedReviewRooms,
   userFacingMaterialLabel,
   validateColumnDimensionsCm,
-  wallBoundarySide,
   whiteViewer,
   WINDOW_TYPES,
   windowsOverlap,
@@ -77,9 +73,7 @@ export function createSceneSchemeController({
 function planGeometry() {
   const imageWidth = state.analysis?.image_size_px?.width || element.spaceImage.naturalWidth || 1000;
   const imageHeight = state.analysis?.image_size_px?.height || element.spaceImage.naturalHeight || 1000;
-  const scale = Number(state.analysis?.scale?.cm_per_px)
-    || Number(state.analysis?.scale?.m_per_px) * 100
-    || 1;
+  const scale = Number(state.analysis?.scale?.cm_per_px) || 1;
   const bbox = state.analysis?.plan_bbox_px || [0, 0, imageWidth, imageHeight];
   return { imageWidth, imageHeight, scale, bbox };
 }
@@ -407,8 +401,7 @@ function splitImplausibleIconRoomsByInteriorWalls(rooms, walls) {
 function roomIconCentroidCm(icon) {
   const centroid = icon?.centroid_px;
   const bbox = state.analysis?.plan_bbox_px;
-  const cmPerPx = Number(state.analysis?.scale?.cm_per_px)
-    || Number(state.analysis?.scale?.m_per_px) * 100;
+  const cmPerPx = Number(state.analysis?.scale?.cm_per_px);
   if (!Array.isArray(centroid) || centroid.length < 2 || !Array.isArray(bbox) || bbox.length < 4 || !cmPerPx) {
     return null;
   }
@@ -555,13 +548,7 @@ function initializeRoomsAndStructures() {
     : floorplan.room_regions || [];
   const widthCm = Number(floorplan.width_cm || 600);
   const depthCm = Number(floorplan.depth_cm || 400);
-  const analysisUnit = String(state.analysis?.coordinate_system?.unit || "").toLowerCase();
-  const analysisIsCm = ["cm", "centimeter", "centimetre"].includes(analysisUnit)
-    || Number(state.analysis?.scale?.cm_per_px) > 0
-    || sourceRooms.some((room) => Array.isArray(room?.polygon_cm));
-  const sourceScale = hasImageRooms
-    ? (analysisIsCm ? 1 : 100)
-    : (floorplan.coordinate_unit === "cm" ? 1 : 100);
+  const sourceScale = 1;
   const normalizePoint = (point, centered = false) => {
     const x = Number(point?.x ?? point?.[0] ?? 0) * sourceScale;
     const y = Number(point?.y ?? point?.z ?? point?.[1] ?? 0) * sourceScale;
@@ -570,30 +557,10 @@ function initializeRoomsAndStructures() {
       y: y + (centered ? depthCm / 2 : 0),
     };
   };
-  const canonicalStructure = (item = {}) => {
-    const result = Object.fromEntries(
-      Object.entries(item).filter(([key]) => !key.endsWith("_m") && key !== "size_m"),
-    );
-    const dimension = (cmKey, legacyKey, fallback) => {
-      if (Number.isFinite(Number(item[cmKey]))) return Number(item[cmKey]);
-      if (Number.isFinite(Number(item[legacyKey]))) return Number(item[legacyKey]) * 100;
-      return fallback;
-    };
-    return {
-      ...result,
-      width_cm: dimension("width_cm", "width_m", undefined),
-      thickness_cm: dimension("thickness_cm", "thickness_m", undefined),
-      height_cm: dimension("height_cm", "height_m", undefined),
-      top_cm: dimension("top_cm", "top_m", undefined),
-      depth_cm: dimension("depth_cm", "depth_m", undefined),
-      size_cm: dimension("size_cm", "size_m", undefined),
-      sill_height_cm: dimension("sill_height_cm", "sill_height_m", undefined),
-      head_height_cm: dimension("head_height_cm", "head_height_m", undefined),
-    };
-  };
+  const canonicalStructure = (item = {}) => ({ ...item, coordinate_unit: "cm" });
   let repairedRoomCount = 0;
   state.rooms = sourceRooms.map((room, index) => {
-    const polygon = room.polygon_cm || room.polygon_m || room.polygon || room.exterior || [];
+    const polygon = room.polygon_cm || room.exterior || [];
     const normalizedPolygon = polygon.map((point) => normalizePoint(point, !hasImageRooms));
     const shouldRepair = (
       room.polygon_source === "cody_wall_enclosure"
@@ -662,7 +629,6 @@ function initializeRoomsAndStructures() {
     })),
   };
   state.rooms = applyCanonicalRoomLabels(preparedAutoRoomLabels(state.rooms, state.structures.walls));
-  normalizeWallDemolitionCandidates();
   repairLoadedStructureWallCollisions();
   const normalizedDoors = dedupeDoorCandidates(state.structures.doors);
   state.structures.doors = normalizedDoors.doors;
@@ -1174,7 +1140,6 @@ function renderSpaceOverlay() {
     })()
     : "";
   element.spaceOverlay.innerHTML = `${polygons}${structures}${splitGuide}`;
-  renderSchemeComparison();
 }
 
 function segmentSvg(item, color, width = 5, dash = "") {
@@ -1294,57 +1259,6 @@ const structureSectionMeta = {
     guidance: "點左圖放置柱；可拖曳並調整柱寬與柱深，柱高會跟隨樓高。",
   },
 };
-
-function wallBoundaryContext() {
-  const floorplan = confirmedFloorplanEditor();
-  return {
-    width_cm: Number(floorplan.width_cm || 0),
-    depth_cm: Number(floorplan.depth_cm || 0),
-  };
-}
-
-function wallBoundary(item) {
-  const floorplan = wallBoundaryContext();
-  return wallBoundarySide(item, {
-    widthCm: floorplan.width_cm,
-    depthCm: floorplan.depth_cm,
-  });
-}
-
-function normalizeWallDemolitionCandidates() {
-  state.structures.walls.forEach((wall) => {
-    wall.demolition_candidate = false;
-  });
-  return 0;
-}
-
-
-
-function schemeStructureMarkup(schemeId) {
-  const structures = structuresForScheme(state.structures, schemeId);
-  const lines = (items, color, width) => items.map((item) => {
-    if (!item.start || !item.end) return "";
-    const start = cmToPixel(item.start);
-    const end = cmToPixel(item.end);
-    const uncertain = schemeId === "B"
-      && item.host_wall_relation_uncertain === true
-      && state.structures.walls.some(
-        (wall) => wall.id === item.host_wall_id && wall.demolition_candidate === true,
-      );
-    return `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}"
-      stroke="${uncertain ? "#ef9f19" : color}" stroke-width="${width}"
-      ${uncertain ? 'stroke-dasharray="12 8"' : ""}
-      vector-effect="non-scaling-stroke">
-      ${uncertain ? "<title>此門窗與可拆牆的關聯不確定，方案 B 暫時保留。</title>" : ""}
-    </line>`;
-  }).join("");
-  return [
-    lines(structures.walls, "#343434", 7),
-    lines(structures.doors, "#bd5c36", 5),
-    lines(structures.windows, "#2f8ba1", 5),
-    lines(structures.beams, "#6b4d8a", 5),
-  ].join("");
-}
 
 function schemeFurnitureForRoom(schemeId, roomId) {
   const resolvedSchemeId = String(
@@ -2371,28 +2285,6 @@ function renderSchemeControls() {
   renderRoomSchemeGate();
 }
 
-function renderSchemeComparison() {
-  if (!element.schemeCompare) return;
-  // 第 4 步只確認唯一結構基準；家具方案比較留在第 6 步。
-  const show = false;
-  element.schemeCompare.hidden = !show;
-  if (!show || !element.spaceImage?.src) return;
-  element.schemeAImage.src = element.spaceImage.src;
-  element.schemeBImage.src = element.spaceImage.src;
-  const { imageWidth, imageHeight } = planGeometry();
-  const aspectRatio = `${Math.max(1, element.spaceImage.naturalWidth || imageWidth)}
-    / ${Math.max(1, element.spaceImage.naturalHeight || imageHeight)}`;
-  [element.schemeAImage, element.schemeBImage].forEach((image) => {
-    image.closest(".rp-scheme-plan-stage").style.aspectRatio = aspectRatio;
-  });
-  [element.schemeAOverlay, element.schemeBOverlay].forEach((overlay) => {
-    overlay.setAttribute("viewBox", `0 0 ${imageWidth} ${imageHeight}`);
-    overlay.setAttribute("preserveAspectRatio", "none");
-  });
-  element.schemeAOverlay.innerHTML = schemeStructureMarkup("A");
-  element.schemeBOverlay.innerHTML = schemeStructureMarkup("B");
-}
-
   return {
     addMissedRoom,
     addRoomReviewReason,
@@ -2438,7 +2330,6 @@ function renderSchemeComparison() {
     navigateRoomScheme3dPreview,
     nearestPointOnRoomEdge,
     normalizeIconInferredRoomReview,
-    normalizeWallDemolitionCandidates,
     openRoomScheme3dPreview,
     openRoomSchemeSelectionDialog,
     pendingRoomBaseLabel,
@@ -2453,7 +2344,6 @@ function renderSchemeComparison() {
     renderRooms,
     renderRoomSchemeGate,
     renderRoomSchemeSelectionDialog,
-    renderSchemeComparison,
     renderSchemeControls,
     renderSpaceOverlay,
     renderStepSixSurfaceProgress,
@@ -2472,7 +2362,6 @@ function renderSchemeComparison() {
     roomSchemeSelectionRequired,
     schemeFurnitureForRoom,
     schemeFurnitureSceneFromShell,
-    schemeStructureMarkup,
     segmentSvg,
     selectedSchemeMismatchNotice,
     selectedStepSixRoom,
@@ -2499,7 +2388,5 @@ function renderSchemeComparison() {
     updateRoomNodeControls,
     updateShowAllRoomsButton,
     waitForRoomSchemePreviewFrames,
-    wallBoundary,
-    wallBoundaryContext,
   };
 }
