@@ -11,6 +11,17 @@ from test_scene_workflow import ROOT, run_workflow_script
 STATIC = ROOT / "backend" / "server" / "static"
 
 
+def _scene_css() -> str:
+    return "\n".join(
+        (STATIC / name).read_text(encoding="utf-8")
+        for name in ("site.css", "scene.css")
+    )
+
+
+def _questionnaire_catalog_source() -> str:
+    return (STATIC / "scene_questionnaire_catalog.js").read_text(encoding="utf-8")
+
+
 def _space_heading_html(html: str) -> str:
     heading_start = html.index('class="rp-pane-heading"', html.index('id="space-step"'))
     stage_start = html.index('id="space-plan-stage"')
@@ -20,10 +31,12 @@ def _space_heading_html(html: str) -> str:
 def test_scene_entrypoint_cache_key_matches_bundle_content() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     expected_bundle = static_content_digest(STATIC / "scene_v2.js", 12)
-    expected_css = static_content_digest(STATIC / "site.css", 12)
+    expected_site_css = static_content_digest(STATIC / "site.css", 12)
+    expected_scene_css = static_content_digest(STATIC / "scene.css", 12)
 
     assert f'src="/static/scene_v2.js?v=sha256-{expected_bundle}"' in html
-    assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
+    assert f'href="/static/site.css?v=sha256-{expected_site_css}"' in html
+    assert f'href="/static/scene.css?v=sha256-{expected_scene_css}"' in html
 
 
 def test_scene_controller_has_no_retired_parallel_implementations() -> None:
@@ -55,7 +68,7 @@ def test_room_usage_card_classes_are_styled() -> None:
     一起，所以這裡明確斷言。
     """
     bundle = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     emitted = set(re.findall(r"rp-room-usage-card[\w-]*", bundle))
     assert emitted, "renderQuestionnaireRoomUsage() 不再輸出 rp-room-usage-card,請同步本測試"
@@ -134,7 +147,7 @@ def test_proposal_color_card_stage_constrains_images_so_layout_cannot_blow_out()
     class 完全沒有樣式,型錄大圖以原生尺寸溢出固定 460px 側欄 → 整個
     .rp-3d-workspace 版面被撐爆(水平捲軸、側欄被切掉)。核心不變量:注入面板內的
     每張影像都必須被框在容器寬度內,且卡片容器可換行。"""
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     def _rule(selector: str) -> str:
         assert selector + " {" in css, f"缺少 {selector} 樣式(色卡 stage 會撐爆版面)"
@@ -231,7 +244,7 @@ def test_questionnaire_rag_uses_non_blocking_fast_retrieval() -> None:
 
 def test_legacy_weighted_answers_remain_compatible_without_forcing_a_b_ui() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     assert "PREFERENCE_WEIGHT_OPTIONS" in source
     assert "function selectPreferenceWeight" in source
@@ -257,7 +270,7 @@ def test_random_requirement_shortcut_randomizes_wall_and_floor_material_options(
 
 def test_questionnaire_material_card_keeps_the_catalog_color_and_its_own_note() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     material_option = source.split("function materialOptionForPack", 1)[1].split(
         "function questionnaireMaterialOptionsForPack", 1
@@ -292,7 +305,7 @@ def test_replacement_drawer_styles_target_the_classes_the_script_emits() -> None
     改名前的 .rp-replacement-thumb,規則打不到任何元素,圖片就以原始尺寸撐開,把
     候選列的版面擠爆(2026-08-09 回報「右側欄更換頁面排版跑掉」)。"""
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     for token in ("rp-replacement-image", "rp-replacement-image-fallback", "rp-replacement-copy"):
         assert token in source, token
@@ -360,7 +373,7 @@ def test_room_scheme_preview_viewer_is_instantiated() -> None:
 
 def test_room_scheme_plan_svg_has_visible_styling_not_default_black() -> None:
     """逐房 A/B 的 2D 平面預覽必須有明確 SVG 配色，不能退回預設黑色。"""
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
     for rule in (
         ".rp-room-scheme-plan {",
         ".rp-room-scheme-outline {",
@@ -373,7 +386,7 @@ def test_room_scheme_plan_svg_has_visible_styling_not_default_black() -> None:
 def test_room_scheme_3d_preview_container_has_height() -> None:
     """.rp-room-scheme-3d-preview 必須有高度，否則容器會塌成 0px，導致可旋轉
     3D 預覽的 canvas 0 高度 → loadScene 成功卻整片空白（點擊旋轉查看看不到場景）。"""
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
     block = css.split(".rp-room-scheme-3d-preview {", 1)
     assert len(block) == 2, "site.css 缺少 .rp-room-scheme-3d-preview 容器規則"
     rule_body = block[1].split("}", 1)[0]
@@ -383,7 +396,7 @@ def test_room_scheme_3d_preview_container_has_height() -> None:
 def test_room_scheme_preview_close_button_is_visible_on_light_dialog() -> None:
     """本分支 .rp-icon-command 只剩深底白字版；白色對話框裡 × 關閉鈕白字白底＝隱形，
     使用者關不掉視窗。.rp-room-scheme-preview-close 必須把它還原成淺底深字、可見可點。"""
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
     block = css.split(".rp-room-scheme-preview-close {", 1)
     assert len(block) == 2, "site.css 缺少 .rp-room-scheme-preview-close（× 關閉鈕會隱形）"
     body = block[1].split("}", 1)[0]
@@ -521,7 +534,8 @@ def test_whole_house_wall_finish_keeps_texture_while_avoiding_lighting_variation
 def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    catalog_source = _questionnaire_catalog_source()
+    css = _scene_css()
 
     assert 'id="questionnaire-furniture-options"' in html
     assert 'id="questionnaire-furniture-status"' in html
@@ -532,7 +546,7 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert 'id="questionnaire-floor-preference"' in html
     assert "function ensureQuestionnaireFurnitureRecommendations" in source
     assert "function renderQuestionnaireFurnitureRecommendations" in source
-    assert "const ROOM_USAGE_OPTIONS" in source
+    assert "export const ROOM_USAGE_OPTIONS" in catalog_source
     assert "function renderQuestionnaireRoomUsage" in source
     assert "data-questionnaire-room-usage" in source
     assert 'data-questionnaire-furniture-id="' in source
@@ -542,19 +556,18 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "function catalogFallbackOffersForSpec" in source
     assert "recommendation_tier: \"similar\"" in source
     assert "function applyDefaultQuestionnaireFurnitureSelections" in source
-    assert "const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in source
-    assert 'defaults: ["bed", "wardrobe"]' in source
-    assert 'bedroom: {' in source
-    assert 'defaults: ["bed", "wardrobe"]' in source
+    assert "export const QUESTIONNAIRE_ROOM_FURNITURE_PROGRAMS" in catalog_source
+    assert 'defaults: ["bed", "wardrobe"]' in catalog_source
+    assert 'bedroom: {' in catalog_source
     assert "function questionnaireFurnitureRole" in source
-    assert "QUESTIONNAIRE_FURNITURE_SHORT_LABELS" in source
+    assert "QUESTIONNAIRE_FURNITURE_SHORT_LABELS" in catalog_source
     assert "function questionnaireFurnitureDisplayLabel" in source
     assert "function questionnaireBedSizeFamily" in source
     assert "function questionnaireOffersWithSizeChoices" in source
     assert 'return "單人床"' in source
     assert 'return "標準雙人床"' in source
     assert 'return "加大雙人床"' in source
-    assert 'read: [["desk", "compact"], ["office-chair", "task"]]' in source
+    assert 'read: [["desk", "compact"], ["office-chair", "task"]]' in catalog_source
     assert "data-questionnaire-furniture-variant-type" in source
     assert "function updateQuestionnaireFurnitureVariant" in source
     assert "function updateQuestionnaireFurnitureQuantity" in source
@@ -567,7 +580,7 @@ def test_questionnaire_exposes_database_furniture_choices_for_each_room() -> Non
     assert "questionnaireOffersWithSizeChoices(spec[0], candidates)" in source
     assert "第 6 步將檢查實際 GLB、門窗與走道" in source
     assert 'id="questionnaire-furniture-preference-tags"' in html
-    assert "QUESTIONNAIRE_FURNITURE_PREFERENCE_TAGS" in source
+    assert "QUESTIONNAIRE_FURNITURE_PREFERENCE_TAGS" in catalog_source
     assert 'model_load_verification: "verified"' in source
     assert 'offer?.render_mode === "procedural_fixture"' in source
     assert ".rp-questionnaire-furniture-options" in css
@@ -579,7 +592,8 @@ def test_living_room_program_defaults_to_full_sofa_group() -> None:
     茶几/電視櫃是用途相依 specs,缺候選時 ensureQuestionnaireFurnitureRecommendations
     為每個缺候選的基礎件補建(以基礎件優先),applyDefaults 才選得到整組沙發組。"""
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    living = source.split("living_room: {", 1)[1].split("},", 1)[0]
+    catalog_source = _questionnaire_catalog_source()
+    living = catalog_source.split("living_room: {", 1)[1].split("},", 1)[0]
     assert 'defaults: ["sofa", "coffee-table", "tv-bench"]' in living
     assert 'fallbackDefaults: ["lounge-chair"]' in living
     assert "const missingDefaults = (program.defaults || []).filter" in source
@@ -590,7 +604,7 @@ def test_sofa_family_has_keyword_fallback_matching() -> None:
     isQuestionnaireFallbackTypeMatch 退回精確 normalized_type 比對,type=fabric-sofa
     查到的沙發只要命名不同就被濾光 → 客廳整組沙發撈不到,連坐砍掉茶几/電視櫃
     (選件 log:候選缺基礎家具 sofa;缺主件 sofa)。"""
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = _questionnaire_catalog_source()
     rules = source.split("QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({", 1)[1].split("});", 1)[0]
     for key in ("\n  sofa:", '"fabric-sofa":', '"leather-sofa":', '"modular-sofa":'):
         assert key in rules, key
@@ -602,7 +616,7 @@ def test_tv_bench_rule_rejects_mounting_hardware() -> None:
     (Amazon 安裝臂佔了電視櫃位置)。tv-bench 規則要 mustInclude 家具本體名詞 +
     exclude 安裝五金;isQuestionnaireFallbackTypeMatch 要支援這兩個欄位,mustInclude
     查『名稱』(分類可能被誤標)。"""
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    source = _questionnaire_catalog_source()
     rules = source.split("QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({", 1)[1].split("});", 1)[0]
     tv = rules.split('"tv-bench":', 1)[1].split("},", 1)[0]
     assert "mustInclude:" in tv and "exclude:" in tv
@@ -719,7 +733,7 @@ def test_room_requirement_round_trip_preserves_selected_and_deferred_furniture()
 
 def test_step_six_groups_failures_by_room_and_offers_explicit_resolution() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     assert "function configurationBlockingFurnitureByRoom" in source
     assert 'data-prioritize-configuration-room="' in source
@@ -742,6 +756,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_window_types.js",
             "scene_design_schemes.js",
             "scene_questionnaire_test2.js",
+            "scene_questionnaire_catalog.js",
             "scene_configuration_sync.js",
             "scene_viewer_reload.js",
         ],
@@ -768,7 +783,7 @@ def test_placement_busy_overlay_announces_waiting_during_layout() -> None:
     擺完才一次呈現最終結果(不逐步上畫面)。"""
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     assert 'id="placement-busy"' in html
     assert 'id="placement-busy-text"' in html
@@ -1552,7 +1567,7 @@ def test_accurate_floorplan_uses_confirmed_segment_walls_without_door_cutting() 
 def test_ceiling_picker_uses_procedural_visuals_not_unlicensed_photos() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
     style_packs = (STATIC / "scene_style_packs.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     picker = controller.split("function openQuestionnaireCeilingDesignStyle", 1)[1].split(
         "function selectQuestionnaireCeilingDesignPack", 1
@@ -1860,7 +1875,7 @@ def test_scene_uses_the_final_eight_step_flow_and_exact_upload_contract() -> Non
 def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     white_model = html.split('id="white-model-3d-step"', 1)[1].split(
         'id="realistic-3d-step"', 1
@@ -1898,7 +1913,7 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
 
 def test_configuration_markers_focus_3d_and_use_visible_selected_numbers() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
     handler = source.split("const selectConfigurationFurniture =", 1)[1].split(
         "element.configurationPlanLayer.addEventListener", 1
     )[0]
@@ -2173,7 +2188,7 @@ def test_2d_furniture_scale_uses_the_visible_image_content_not_css_letterboxing(
 
 
 def test_2d_furniture_normal_and_invalid_colours_are_visually_distinct() -> None:
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
     normal_rule = css.split(".rp-2d-furniture {", 1)[1].split("}", 1)[0]
     invalid_rule = css.split(".rp-2d-furniture.is-invalid {", 1)[1].split("}", 1)[0]
 
@@ -2252,9 +2267,10 @@ def test_balcony_never_gets_cabinets_from_usage_or_preference_defaults() -> None
     affinity_permits 對未列族系一律放行,擋不住,所以守在需求端。
     """
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    catalog_source = _questionnaire_catalog_source()
 
     def freeze_block(name: str) -> str:
-        return source.split(f"const {name} = Object.freeze(", 1)[1].split("\n});", 1)[0] + "\n}"
+        return catalog_source.split(f"const {name} = Object.freeze(", 1)[1].split("\n});", 1)[0] + "\n}"
 
     result = run_workflow_script(
         f"""
@@ -2509,7 +2525,7 @@ def test_space_confirmation_can_add_a_missed_room_and_invalidates_downstream() -
 
 def test_room_review_explains_django_icon_conflict_reasons() -> None:
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     assert "function roomReviewHint(room)" in source
     assert "function normalizeIconInferredRoomReview(room, polygonCm, index)" in source
@@ -2618,7 +2634,7 @@ def test_wall_review_keeps_one_fixed_structure_without_retired_preview() -> None
     """牆體是全案基準；不可達的拆牆比較 UI 與 renderer 不得復活。"""
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     assert 'id="wall-removal-preview"' not in html
     assert 'id="wall-retained-preview-svg"' not in html
@@ -2739,7 +2755,7 @@ def test_room_editor_exists_exactly_once_inside_the_plan_heading_toolbar() -> No
     `.rp-room-toolbar-editor`，引導卡不存在。
     """
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
     heading_html = _space_heading_html(html)
 
     assert 'class="rp-plan-heading-tools"' in heading_html
@@ -3092,51 +3108,6 @@ def test_manual_upstream_edits_clear_stale_3d_steps_before_saving() -> None:
     ]
     assert result["canEnter3d"] is False
     assert "invalidateDownstreamFrom(\"layout_2d\"" in source
-
-
-def test_requirements_gate_allows_explicit_keep_existing_for_unfilled_rooms() -> None:
-    module_uri = (STATIC / "scene_requirements.js").as_uri()
-    result = run_workflow_script(
-        f"""
-        import {{ requirementsGate }} from {json.dumps(module_uri)};
-        const rooms = [{{ id: "living" }}, {{ id: "bedroom" }}];
-        const blocked = requirementsGate({{
-          basic: {{ confirmed: true }},
-          rooms,
-          answers: {{ living: {{ confirmed: true, uses: ["日常休息"] }} }},
-          keepExistingRoomIds: [],
-        }});
-        const allowed = requirementsGate({{
-          basic: {{ confirmed: true }},
-          rooms,
-          answers: {{ living: {{ confirmed: true, uses: ["日常休息"] }} }},
-          keepExistingRoomIds: ["bedroom"],
-        }});
-        console.log(JSON.stringify({{ blocked, allowed }}));
-        """
-    )
-
-    assert result["blocked"]["ready"] is False
-    assert result["blocked"]["unresolvedRoomIds"] == ["bedroom"]
-    assert result["allowed"]["ready"] is True
-
-
-def test_requirements_gate_rejects_a_confirmed_room_without_a_usage_choice() -> None:
-    module_uri = (STATIC / "scene_requirements.js").as_uri()
-    result = run_workflow_script(
-        f"""
-        import {{ requirementsGate }} from {json.dumps(module_uri)};
-        const result = requirementsGate({{
-          basic: {{ confirmed: true }},
-          rooms: [{{ id: "living" }}],
-          answers: {{ living: {{ confirmed: true, uses: [], furniture: [] }} }},
-        }});
-        console.log(JSON.stringify(result));
-        """
-    )
-
-    assert result["ready"] is False
-    assert result["unresolvedRoomIds"] == ["living"]
 
 
 def test_scene_does_not_force_placeholder_furniture_for_an_empty_plan() -> None:
@@ -3700,7 +3671,7 @@ def test_realtime_style_material_choices_are_grouped_by_style_with_previews() ->
 
 def test_realtime_style_cards_show_reference_images_and_sync_full_scene_rules() -> None:
     controller = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     assert 'class="rp-style-card-preview"' in controller
     assert 'src="${escapeHtml(pack.sourceImage)}"' in controller
@@ -3788,7 +3759,7 @@ def test_step_six_gates_furniture_tuning_behind_the_room_scheme_choice() -> None
 
 
 def test_style_card_previews_preserve_the_full_reference_image() -> None:
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
     base_rule = re.search(r"\.rp-style-card-preview \{[^}]+\}", css)
     questionnaire_rule = re.search(
         r"\.rp-questionnaire-style-grid \.rp-style-card-preview \{[^}]+\}",
@@ -3857,7 +3828,7 @@ def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
 def test_step_four_shows_vertical_scheme_comparison_only_when_b_exists() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
-    css = (STATIC / "site.css").read_text(encoding="utf-8")
+    css = _scene_css()
 
     assert 'id="design-scheme-compare"' in html
     assert html.index('id="scheme-a-plan-image"') < html.index('id="scheme-b-plan-image"')

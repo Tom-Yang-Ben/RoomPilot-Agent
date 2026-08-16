@@ -460,28 +460,6 @@ def test_style_pack_preserves_real_texture_color_detail_with_subtle_tint() -> No
     assert "surfaceTint(" in source
 
 
-def test_material_schemes_explain_surface_and_furniture_changes() -> None:
-    material_module = ROOT / "backend" / "server" / "static" / "scene_material_schemes.js"
-    result = run_workflow_script(
-        f"""
-        import {{ generateMaterialSchemes }} from {json.dumps(material_module.as_uri())};
-        const schemes = generateMaterialSchemes({{
-          style: {{ style_id: "scandinavian" }},
-          style_card: {{ palette_hex: ["#ffffff", "#aa8855", "#333333"] }},
-          design_choices: {{ wall_option: "原始白牆", floor_option: "原始地板" }},
-          scene_objects: [{{ furniture_id: "bed-1", normalized_type: "bed", material_slots: ["seat_fabric", "wood_frame"] }}],
-        }}, {{ surfaces: [{{ surface_id: "oak", category: "wood" }}] }});
-        console.log(JSON.stringify(schemes.map((scheme) => scheme.changeSummary)));
-        """
-    )
-
-    assert len(result) == 3
-    assert all(item["wall"]["before"] == "原始白牆" for item in result)
-    assert all(item["floor"]["before"] == "原始地板" for item in result)
-    assert all(item["furnitureCount"] == 1 for item in result)
-    assert all(set(item["furnitureRoles"]) == {"fabric", "wood"} for item in result)
-
-
 def test_view_mode_hint_is_part_of_viewer_and_adjacent_to_canvas() -> None:
     html = SCENE_HTML.read_text(encoding="utf-8")
     viewer = html.split('id="white-model-3d-step"', 1)[1]

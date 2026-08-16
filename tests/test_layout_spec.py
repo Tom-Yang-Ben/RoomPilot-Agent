@@ -172,5 +172,3 @@ def test_outside_room_is_always_blocked():
     masks = blocked_masks(grid, ROOM)
     # 房外一點:¬room_mask 讓它必然禁放 —— 家具不會被移出自己房間的根本原因
     assert obb_blocked(masks.low, grid, Obb(cx=-5.0, cy=150.0, w=10.0, d=10.0)) is True
-
-\n

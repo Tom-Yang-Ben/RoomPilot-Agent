@@ -5,9 +5,9 @@ import {
   scrollPageTop,
   shouldUseDarkFurnitureStage,
   styleNameMap,
-} from "./common.js?v=sha256-10f8a45f5c18";
+} from "./common.js?v=sha256-7df895e56814";
 import { createViewer } from "./viewer.js?v=sha256-0dd71c0a4943";
-import { attachLibraryThumbnail } from "./library_thumbnails.js?v=sha256-84c7bd6abede";
+import { attachLibraryThumbnail } from "./library_thumbnails.js?v=sha256-73844ca91311";
 
 const LIBRARY_PROPOSAL_STORAGE_KEY = "roompilot-mode1-proposal-v1";
 const LIBRARY_FAVORITES_STORAGE_KEY = "roompilot-mode1-favorites-v1";

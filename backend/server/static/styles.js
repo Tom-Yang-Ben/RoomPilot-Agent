@@ -1,4 +1,4 @@
-import { fetchStylesData, initBackgroundFx } from "./common.js?v=sha256-10f8a45f5c18";
+import { fetchStylesData, initBackgroundFx } from "./common.js?v=sha256-7df895e56814";
 
 const data = await fetchStylesData();
 const tabRow = document.getElementById("style-tab-row");

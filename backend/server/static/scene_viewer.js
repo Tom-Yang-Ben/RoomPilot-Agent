@@ -8,7 +8,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { classifyMaterialSlot } from "./scene_material_schemes.js?v=sha256-74eb894736af";
+import { classifyMaterialSlot } from "./scene_material_schemes.js?v=sha256-e4e6b4391198";
 import {
   architecturalPbrProfile,
   furniturePbrProfile,
@@ -5164,46 +5164,6 @@ export function createSceneViewer(
     ];
   }
 
-  function snapDragPosition(item, x, z) {
-    const size = sizeCentimeters(item);
-    const radians = (Math.abs((item.rotation_y_deg || 0) % 180) * Math.PI) / 180;
-    const w = size.width;
-    const d = size.depth;
-    const halfW = (w * Math.abs(Math.cos(radians)) + d * Math.abs(Math.sin(radians))) / 2;
-    const halfD = (w * Math.abs(Math.sin(radians)) + d * Math.abs(Math.cos(radians))) / 2;
-
-    let bestX = null;
-    let bestZ = null;
-    for (const seg of wallSegmentsForSnap()) {
-      const isVertical = Math.abs(seg.start.x - seg.end.x) < 2;   // 沿 z 的牆
-      const isHorizontal = Math.abs(seg.start.z - seg.end.z) < 2; // 沿 x 的牆
-      if (isVertical) {
-        const zLo = Math.min(seg.start.z, seg.end.z);
-        const zHi = Math.max(seg.start.z, seg.end.z);
-        if (z < zLo - halfD || z > zHi + halfD) continue;  // 沒對到這段牆的側向範圍
-        for (const candidate of [seg.start.x + halfW + WALL_GAP, seg.start.x - halfW - WALL_GAP]) {
-          const dist = Math.abs(x - candidate);
-          if (dist < SNAP_RANGE && (!bestX || dist < bestX.dist)) bestX = { value: candidate, dist };
-        }
-      } else if (isHorizontal) {
-        const xLo = Math.min(seg.start.x, seg.end.x);
-        const xHi = Math.max(seg.start.x, seg.end.x);
-        if (x < xLo - halfW || x > xHi + halfW) continue;
-        for (const candidate of [seg.start.z + halfD + WALL_GAP, seg.start.z - halfD - WALL_GAP]) {
-          const dist = Math.abs(z - candidate);
-          if (dist < SNAP_RANGE && (!bestZ || dist < bestZ.dist)) bestZ = { value: candidate, dist };
-        }
-      }
-    }
-
-    const snapKind = bestX || bestZ ? "wall" : "grid";
-    return {
-      x: bestX ? bestX.value : Math.round(x / DRAG_GRID) * DRAG_GRID,
-      z: bestZ ? bestZ.value : Math.round(z / DRAG_GRID) * DRAG_GRID,
-      kind: snapKind,
-    };
-  }
-
   function snapDragPositionV2(item, x, z) {
     let bestX = null;
     let bestZ = null;
@@ -5292,8 +5252,6 @@ export function createSceneViewer(
       dragState.wrapper.rotation.y = THREE.MathUtils.degToRad(nextTransform.rotationDeg);
       if (!snapped.blocked) dragState.lastValid = { ...nextTransform };
       updateFootprintGuide(dragState.wrapper, snapped.blocked ? "blocked" : nextTransform.kind);
-      if (false)
-      setStatus(`無法移動「${label}」：${verdict.reason || "位置不符合限制"}，已復原。`);
     }
   });
 
@@ -5330,141 +5288,17 @@ export function createSceneViewer(
       wrapper.position.z = worldPosition.z;
       wrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(item.rotation_y_deg || 0));
       updateFootprintGuide(wrapper);
-      setStatus(`已移動「${label}」，靠近牆面時會自動貼齊並旋轉。`);
       item.position_locked = true;  // 之後的重排/替換不會沖掉手動位置
       notifySceneChange(item);
-      setStatus(`已移動「${label}」。`);
     } else {
       wrapper.position.copy(startPosition);
       wrapper.rotation.y = THREE.MathUtils.degToRad(startRotationDeg);
       updateFootprintGuide(wrapper);
-      setStatus(`⚠ 「${label}」無法放在那裡：${verdict.reason || "位置不合法"}，已彈回原位。`);
     }
     setStatus(verdict.ok
       ? `已移動「${label}」，靠近牆面時會自動貼齊並旋轉。`
       : `無法移動「${label}」：${verdict.reason || "位置不符合限制"}，已復原。`);
   });
-
-  async function rotateSelected(deltaDeg = 90) {
-    if (!selectedWrapper || dragState) return false;
-    const item = selectedWrapper.userData.sceneObject;
-    if (!item) return false;
-
-    const label = item.name_zh_raw || item.normalized_type || "家具";
-    const nextRotation = ((item.rotation_y_deg || 0) + deltaDeg + 360) % 360;
-    const verdict = await validatePlacement(item, item.position_cm || { x: 0, z: 0 }, nextRotation);
-    if (verdict.ok) {
-      item.rotation_y_deg = nextRotation;
-      item.position_locked = true;
-      selectedWrapper.rotation.y = THREE.MathUtils.degToRad(sceneToWorldRotationDeg(nextRotation));
-      updateFootprintGuide(selectedWrapper);
-      notifySceneChange(item);
-      setStatus(`${label} 已旋轉到 ${nextRotation} 度。`);
-      return true;
-    }
-
-    setStatus(`${label} 目前不能旋轉：${verdict.reason || "會碰撞或超出可用空間"}。`);
-    return false;
-  }
-
-  function wrapperPositionCm(wrapper) {
-    return worldToScenePosition(wrapper.position);
-  }
-
-  async function rotateSelectedManual(deltaDeg = 90) {
-    if (!selectedWrapper) {
-      setStatus("請先點選要旋轉的家具。");
-      return false;
-    }
-    if (dragState) return false;
-
-    const item = selectedWrapper.userData.sceneObject;
-    if (!item) return false;
-
-    const label = item.name_zh_raw || item.normalized_type || "家具";
-    const nextRotation = normalizedRotationDeg((item.rotation_y_deg || 0) + deltaDeg);
-    const nextWorldRotation = sceneToWorldRotationDeg(nextRotation);
-    const currentPositionCm = wrapperPositionCm(selectedWrapper);
-    const candidate = constrainTransform(item, selectedWrapper.position.x, selectedWrapper.position.z, nextWorldRotation);
-    if (candidate.blocked) {
-      setStatus(`「${label}」旋轉後會超出房間或碰到牆，已取消。`);
-      return false;
-    }
-    const precheck = await validatePlacement(item, currentPositionCm, nextRotation);
-    if (!precheck.ok) {
-      setStatus(`「${label}」不能旋轉：${precheck.reason || "會超出房間、穿牆或碰撞"}。`);
-      return false;
-    }
-
-    item.rotation_y_deg = nextRotation;
-    item.position_cm = currentPositionCm;
-    item.position_locked = true;
-    selectedWrapper.rotation.y = THREE.MathUtils.degToRad(nextWorldRotation);
-    updateFootprintGuide(selectedWrapper);
-    notifySceneChange(item);
-    setStatus(`已旋轉「${label}」到 ${nextRotation}°。`);
-
-    const verdict = await validatePlacement(item, currentPositionCm, nextRotation);
-    if (!verdict.ok) {
-      setStatus(`已旋轉「${label}」，但請注意：${verdict.reason || "目前位置可能不符合擺放限制"}。`);
-    }
-    return true;
-  }
-
-  async function moveSelectedBy(direction) {
-    if (!selectedWrapper || dragState) {
-      setStatus("請先點選一件家具。");
-      return false;
-    }
-
-    const item = selectedWrapper.userData.sceneObject;
-    if (!item) return false;
-
-    const label = item.name_zh_raw || item.normalized_type || "家具";
-    const step = 10;
-    const delta = {
-      forward: { x: 0, z: -step },
-      back: { x: 0, z: step },
-      left: { x: -step, z: 0 },
-      right: { x: step, z: 0 },
-    }[direction];
-    if (!delta) return false;
-
-    const rotationDeg = normalizedRotationDeg(item.rotation_y_deg || 0);
-    const worldRotationDeg = sceneToWorldRotationDeg(rotationDeg);
-    const candidate = constrainTransform(
-      item,
-      selectedWrapper.position.x + delta.x,
-      selectedWrapper.position.z + delta.z,
-      worldRotationDeg,
-      { x: selectedWrapper.position.x, z: selectedWrapper.position.z, rotationDeg: worldRotationDeg, kind: "blocked" }
-    );
-
-    if (candidate.blocked) {
-      setStatus(`「${label}」不能往那個方向移動，會超出房間或碰到牆。`);
-      updateFootprintGuide(selectedWrapper, "blocked");
-      return false;
-    }
-
-    const nextPositionCm = {
-      x: Math.round(candidate.x * 100) / 100,
-      z: Math.round(candidate.z * 100) / 100,
-    };
-    const verdict = await validatePlacement(item, nextPositionCm, rotationDeg);
-    if (!verdict.ok) {
-      setStatus(`「${label}」不能移到那裡：${verdict.reason || "會超出房間、穿牆或碰撞"}。`);
-      updateFootprintGuide(selectedWrapper, "blocked");
-      return false;
-    }
-
-    selectedWrapper.position.set(candidate.x, selectedWrapper.position.y, candidate.z);
-    item.position_cm = nextPositionCm;
-    item.position_locked = true;
-    updateFootprintGuide(selectedWrapper, candidate.kind);
-    notifySceneChange(item);
-    setStatus(`已微調「${label}」。`);
-    return true;
-  }
 
   function selectedObjectLabel(item) {
     return item?.name_zh_raw || item?.normalized_type || "家具";

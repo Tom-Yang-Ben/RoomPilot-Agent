@@ -30,7 +30,10 @@ def _js() -> str:
 
 
 def _css() -> str:
-    return (STATIC / "site.css").read_text(encoding="utf-8")
+    return "\n".join(
+        (STATIC / name).read_text(encoding="utf-8")
+        for name in ("site.css", "scene.css")
+    )
 
 
 def test_overlay_dom_exposes_empty_gallery_without_claiming_generated_images() -> None:
@@ -168,6 +171,8 @@ def test_entrypoint_cache_keys_are_fresh_after_this_change() -> None:
     """本變更改了 scene_v2.js 與 site.css → scene.html 的 sha256 cache key 必須同步更新。"""
     html = _html()
     expected_bundle = static_content_digest(STATIC / "scene_v2.js", 12)
-    expected_css = static_content_digest(STATIC / "site.css", 12)
+    expected_site_css = static_content_digest(STATIC / "site.css", 12)
+    expected_scene_css = static_content_digest(STATIC / "scene.css", 12)
     assert f'src="/static/scene_v2.js?v=sha256-{expected_bundle}"' in html
-    assert f'href="/static/site.css?v=sha256-{expected_css}"' in html
+    assert f'href="/static/site.css?v=sha256-{expected_site_css}"' in html
+    assert f'href="/static/scene.css?v=sha256-{expected_scene_css}"' in html

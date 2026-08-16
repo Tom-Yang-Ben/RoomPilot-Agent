@@ -117,12 +117,6 @@ export function occupantsFromBasicAnswers(basic = {}) {
   return occupants;
 }
 
-export function answeredVisualQuestionIds(answers = {}) {
-  return Object.entries(answers)
-    .filter(([, answer]) => Boolean(answer?.optionId))
-    .map(([questionId]) => questionId);
-}
-
 export function applyVisualPreferencesToSpecs(specs = [], visualPreferences = []) {
   const next = specs.map((spec) => [...spec]);
   const effects = Object.assign(

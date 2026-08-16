@@ -388,10 +388,6 @@ export const STYLE_MATERIAL_OPTIONS = Object.freeze({
   },
 });
 
-export function stylePackById(id) {
-  return STYLE_PACKS.find((pack) => pack.id === id) || null;
-}
-
 export function applyStylePack(sceneState, stylePack) {
   if (!stylePack) throw new Error("style_pack_required");
   const next = JSON.parse(JSON.stringify(sceneState || {}));

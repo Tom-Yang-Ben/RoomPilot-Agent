@@ -1,4 +1,4 @@
-import { fetchHomeData, initBackgroundFx } from "./common.js?v=sha256-10f8a45f5c18";
+import { fetchHomeData, initBackgroundFx } from "./common.js?v=sha256-7df895e56814";
 
 const workflowMeta = [
   {

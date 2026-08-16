@@ -214,8 +214,16 @@ def test_test2_questionnaire_ui_exposes_room_first_required_stages() -> None:
     assert 'data-whole-house-style-pack="${escapeHtml(family.defaultPackId)}"' in javascript
 
 
+def _scene_stylesheet(static) -> str:
+    return "\n".join(
+        (static / name).read_text(encoding="utf-8")
+        for name in ("site.css", "scene.css")
+    )
+
+
 def test_ceiling_choices_use_procedural_placeholders_without_photos() -> None:
-    stylesheet = (ROOT / "backend" / "server" / "static" / "site.css").read_text(encoding="utf-8")
+    static = ROOT / "backend" / "server" / "static"
+    stylesheet = _scene_stylesheet(static)
 
     assert 'ceiling-reference-real-homes-v1.png' not in stylesheet
     for style in ("exposed", "flat", "cove", "floating", "linear", "feature-pendant", "wood-grid"):
@@ -230,7 +238,7 @@ def test_every_ceiling_design_pack_has_its_own_picker_photo() -> None:
     (2026-08-09 實際發生:CSS 只有 7 條 style-visual、0 條 design-visual)。
     每一組 CEILING_DESIGN_PACKS 都必須有自己的規則,引用的圖檔也必須存在。"""
     static = ROOT / "backend" / "server" / "static"
-    stylesheet = (static / "site.css").read_text(encoding="utf-8")
+    stylesheet = _scene_stylesheet(static)
     packs_source = (static / "scene_style_packs.js").read_text(encoding="utf-8")
 
     block = packs_source.split("CEILING_DESIGN_PACKS = Object.freeze([", 1)[1].split("]);", 1)[0]

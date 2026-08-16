@@ -27,10 +27,6 @@ export async function fetchStylesData() {
   }
 }
 
-export async function fetchSceneBootstrap() {
-  return fetchJson("/api/scene/bootstrap");
-}
-
 export async function fetchFurniturePage(params = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -39,10 +35,6 @@ export async function fetchFurniturePage(params = {}) {
   });
   const suffix = query.toString() ? `?${query.toString()}` : "";
   return fetchJson(`/api/furniture${suffix}`);
-}
-
-export function formatList(items = []) {
-  return items.filter(Boolean).join(" / ");
 }
 
 function formatSizeBase(size) {

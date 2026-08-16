@@ -18,8 +18,8 @@ _FURNITURE_PAGE_SIZE = 80
 
 
 def _fallback_query_for(furniture_type: str) -> str:
-    """讀 scene_v2.js 的 QUESTIONNAIRE_FALLBACK_CATALOG_RULES[type].query(單一事實源)。"""
-    source = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    """讀問卷型錄設定的 fallback rule query（單一事實源）。"""
+    source = (STATIC / "scene_questionnaire_catalog.js").read_text(encoding="utf-8")
     rules = source.split("QUESTIONNAIRE_FALLBACK_CATALOG_RULES = Object.freeze({", 1)[1].split("});", 1)[0]
     block = rules.split(f'"{furniture_type}":', 1)[1].split("},", 1)[0]
     return re.search(r'query:\s*"([^"]+)"', block).group(1)
