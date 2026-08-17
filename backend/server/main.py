@@ -1071,8 +1071,7 @@ def _style_ids_for_count(item: dict) -> set[str]:
 
 @lru_cache(maxsize=1)
 def _catalog_count_summary() -> dict:
-    raw = load_style_database()
-    items = list(raw.get("furniture", []))
+    items = list(_furniture_payload_cache())
     style_counts: dict[str, int] = {}
     style_type_counts: dict[str, dict[str, int]] = {}
     styled_count = 0

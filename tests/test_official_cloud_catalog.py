@@ -43,6 +43,15 @@ def test_portable_catalog_preserves_room_and_rag_metadata() -> None:
     assert any("bedroom" in item["room_types"] for item in items)
 
 
+def test_catalog_summary_uses_the_active_furniture_provider() -> None:
+    _clear_catalog_caches()
+    items = main._furniture_payload_cache()
+    summary = main._catalog_count_summary()
+
+    assert summary["total_furniture"] == len(items)
+    assert summary["styled_furniture"] + summary["fallback_furniture"] == len(items)
+
+
 def test_style_presentation_is_metadata_only_in_full_profile(monkeypatch) -> None:
     monkeypatch.setenv("ROOMPILOT_PROFILE", "full")
     main.load_style_database.cache_clear()
