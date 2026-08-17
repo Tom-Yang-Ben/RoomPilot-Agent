@@ -45,12 +45,23 @@ CREATE TABLE IF NOT EXISTS roompilot.furniture_catalog (
     price_twd integer,
     is_active boolean NOT NULL DEFAULT true,
     source_license text NOT NULL,
+    license_status text NOT NULL DEFAULT 'verified'
+        CHECK (license_status IN ('verified', 'permission_required', 'unverified')),
     source_url text,
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE OR REPLACE VIEW roompilot.furniture_catalog_current AS
+CREATE OR REPLACE VIEW roompilot.furniture_catalog_private_current AS
 SELECT * FROM roompilot.furniture_catalog WHERE is_active;
+
+CREATE OR REPLACE VIEW roompilot.furniture_catalog_current AS
+SELECT *
+FROM roompilot.furniture_catalog_private_current
+WHERE COALESCE(
+        current_setting('roompilot.catalog_visibility', true),
+        'public'
+      ) = 'private'
+   OR license_status = 'verified';
 
 COMMENT ON TABLE roompilot.furniture_catalog IS
 'Developer-supplied, license-documented catalog for RoomPilot full profile.';

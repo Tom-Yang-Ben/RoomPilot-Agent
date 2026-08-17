@@ -62,6 +62,7 @@ COLUMNS = (
     "price_twd",
     "is_active",
     "source_license",
+    "license_status",
     "source_url",
 )
 
@@ -268,6 +269,7 @@ def normalize_catalog(
     items: list[dict[str, Any]], metadata: dict[str, Any]
 ) -> list[dict[str, Any]]:
     root_license = _text(metadata.get("source_license") or metadata.get("license"))
+    root_license_status = _text(metadata.get("license_status")) or "verified"
     root_source_url = _text(metadata.get("source_url"))
     normalized: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
@@ -293,6 +295,17 @@ def normalize_catalog(
             source_license = _text(item.get("source_license")) or root_license
             if not source_license:
                 raise ValueError("source_license is required")
+            license_status = (
+                _text(item.get("license_status")) or root_license_status
+            ).casefold()
+            if license_status not in {
+                "verified",
+                "permission_required",
+                "unverified",
+            }:
+                raise ValueError(
+                    "license_status must be verified, permission_required, or unverified"
+                )
 
             styles, style_confidences, style_confidence = _style_values(item)
             room_codes = _text_list(item.get("room_codes") or item.get("room_types"))
@@ -367,6 +380,7 @@ def normalize_catalog(
                     "price_twd": int(price_value) if price_value is not None else None,
                     "is_active": _boolean(item.get("is_active"), True),
                     "source_license": source_license,
+                    "license_status": license_status,
                     "source_url": _url(
                         item.get("source_url") or root_source_url, "source_url"
                     ),
@@ -415,6 +429,9 @@ def main(argv: list[str] | None = None) -> int:
         "count": len(rows),
         "active_count": sum(row["is_active"] for row in rows),
         "licensed_count": sum(bool(row["source_license"]) for row in rows),
+        "public_count": sum(
+            row["is_active"] and row["license_status"] == "verified" for row in rows
+        ),
         "dry_run": bool(args.dry_run),
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))

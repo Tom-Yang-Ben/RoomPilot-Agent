@@ -13,6 +13,7 @@ from ..runtime_profile import current_profile
 
 # The public full-profile schema publishes this stable compatibility view.
 _VIEW = "roompilot.furniture_catalog_current"
+_VISIBILITY_VALUES = {"public", "private"}
 
 _STYLE_ID_MAP = {
     "american": "american",
@@ -107,6 +108,20 @@ def catalog_provider_mode(project_dir: Path) -> str:
     )
 
 
+def catalog_visibility_mode(project_dir: Path) -> str:
+    """Return the catalog visibility boundary applied to every DB checkout.
+
+    Public is intentionally the default so an omitted setting can never expose
+    operator-private or permission-pending rows.
+    """
+    value = _setting(project_dir, "ROOMPILOT_CATALOG_VISIBILITY", "public").casefold()
+    if value in _VISIBILITY_VALUES:
+        return value
+    raise RuntimeError(
+        "invalid ROOMPILOT_CATALOG_VISIBILITY; expected public or private"
+    )
+
+
 def _database_config(project_dir: Path) -> dict[str, Any]:
     return {
         "host": _setting(project_dir, "DB_HOST", "localhost"),
@@ -150,6 +165,12 @@ def _borrow_connection(project_dir: Path) -> Iterator[Any]:
     connection = pool.getconn()
     try:
         connection.autocommit = True
+        visibility = catalog_visibility_mode(project_dir)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT set_config('roompilot.catalog_visibility', %s, false)",
+                (visibility,),
+            )
         yield connection
     except Exception:
         if not getattr(connection, "closed", True):
@@ -395,6 +416,7 @@ def load_price_index(project_dir: Path) -> dict[str, int]:
 def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
     """Probe the selected provider without exposing any connection settings."""
     mode = catalog_provider_mode(project_dir)
+    visibility = catalog_visibility_mode(project_dir)
     if mode == "fixture":
         from .fixture_repository import load_fixture_catalog
 
@@ -406,6 +428,7 @@ def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
             "source_of_truth": "project_authored_fixture",
             "reason": "portable_profile",
             "strict": False,
+            "visibility": visibility,
         }
     try:
         with _borrow_connection(project_dir) as connection:
@@ -477,6 +500,7 @@ def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
             "count": count,
             "assets": assets,
             "strict": mode == "postgres",
+            "visibility": visibility,
             "source_of_truth": "postgresql",
             "api_view": "roompilot.furniture_catalog_current",
             "data_revision": database[4].isoformat() if database[4] else None,
@@ -496,5 +520,6 @@ def catalog_provider_status(project_dir: Path) -> dict[str, Any]:
             "ready": False,
             "reason": type(exc).__name__,
             "strict": True,
+            "visibility": visibility,
             "source_of_truth": "postgresql",
         }

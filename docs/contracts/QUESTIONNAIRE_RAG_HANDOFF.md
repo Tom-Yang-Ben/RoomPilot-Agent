@@ -24,15 +24,26 @@ full profile 的第 5 步問卷以 operator 提供的 PostgreSQL catalog 為唯�
 
 ```dotenv
 ROOMPILOT_CATALOG_PROVIDER=postgres
+ROOMPILOT_CATALOG_VISIBILITY=public
 ROOMPILOT_RAG_ENABLED=true
 ROOMPILOT_RAG_PARSER_PROVIDER=openai
 OPENAI_API_KEY=...
 ```
 
-並執行 `uv sync --extra portable --extra postgres --extra rag --group dev`。首次執行會下載設定的 embedding／reranker 模型到 `ROOMPILOT_RAG_MODEL_CACHE` 或模型供應方的預設快取；這不是 portable CI 的一部分。
+並執行 `uv sync --extra portable --extra postgres --extra rag --group dev`。Embedding／reranker 權重須由 operator 依模型供應方授權與操作方式預先放入 `ROOMPILOT_RAG_MODEL_CACHE` 或 Hugging Face 本機快取；RoomPilot runtime 與同步工具只做離線載入，不會在請求中靜默下載。這不是 portable CI 的一部分。
+
+公開 full profile 從空資料庫建立時，catalog dry-run／UPSERT 完成後執行：
+
+```powershell
+uv run python scripts/sql/sync_catalog_embeddings_to_postgres.py --create-schema --dry-run
+uv run python scripts/sql/sync_catalog_embeddings_to_postgres.py --create-schema
+```
+
+第一個命令會在可回復 transaction 內驗證通用 RAG schema，不留下 DDL 或資料；第二個命令只 UPSERT 缺少或 `text_hash` 已更新的向量，不刪除既有資料。模型權重必須已在本機 cache。
 
 ## 驗證端點
 
-- `GET /api/catalog/status`：`catalog_provider.ready=true` 且 `count` 等於 operator 實際匯入並啟用的家具數。
+- `GET /api/catalog/status`：`catalog_provider.ready=true` 且 `count` 等於目前 visibility 可見的 active 家具數。
+- `catalog_provider.visibility` 必須回報 `public` 或 `private`；未明確設定時一律為 `public`。同一個 PostgreSQL session setting 同時限制 catalog API 與 RAG source view。
 - `GET /api/rag/status`：`current_embeddings` 必須與目前可檢索 catalog 範圍一致，且 `search_function_available=true`；所有 blockers 消失後 `ready=true`。公開契約不固定資料筆數。
 - `POST /api/rag/search/jobs`：可建立工作；問卷即使收到失敗狀態也能前往下一個房間與第 6 步。

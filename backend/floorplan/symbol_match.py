@@ -13,9 +13,11 @@ import numpy as np
 CANVAS = 48
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_DIR = os.path.dirname(os.path.dirname(_PKG_DIR))
-LIB_PATH = os.environ.get(
-    "ROOMPILOT_SYMBOL_LIBRARY",
-    os.path.join(_PROJECT_DIR, ".runtime", "floorplan", "symbol_lib.npz"),
+_DEFAULT_LIB_PATH = os.path.join(
+    _PROJECT_DIR, ".runtime", "floorplan", "symbol_lib.npz"
+)
+LIB_PATH = (
+    os.environ.get("ROOMPILOT_SYMBOL_LIBRARY", "").strip() or _DEFAULT_LIB_PATH
 )
 # 推論資產不進公開版控；預設從 .runtime/floorplan 讀取，也可用環境變數覆寫。
 # 找不到資產時管線會誠實停用這條選配證據路徑。

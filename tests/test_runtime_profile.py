@@ -4,7 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from backend.catalog.postgres_repository import catalog_provider_mode
+from backend.catalog.postgres_repository import (
+    catalog_provider_mode,
+    catalog_visibility_mode,
+)
 from backend.runtime_profile import current_profile, portable_profile
 
 
@@ -48,3 +51,28 @@ def test_invalid_catalog_provider_fails_fast(monkeypatch, tmp_path: Path) -> Non
 
     with pytest.raises(RuntimeError, match="expected fixture or postgres"):
         catalog_provider_mode(tmp_path)
+
+
+def test_catalog_visibility_fails_closed_to_public(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("ROOMPILOT_CATALOG_VISIBILITY", raising=False)
+
+    assert catalog_visibility_mode(tmp_path) == "public"
+
+
+def test_private_catalog_visibility_requires_explicit_opt_in(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("ROOMPILOT_CATALOG_VISIBILITY", "private")
+
+    assert catalog_visibility_mode(tmp_path) == "private"
+
+
+def test_invalid_catalog_visibility_fails_fast(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("ROOMPILOT_CATALOG_VISIBILITY", "all")
+
+    with pytest.raises(RuntimeError, match="expected public or private"):
+        catalog_visibility_mode(tmp_path)

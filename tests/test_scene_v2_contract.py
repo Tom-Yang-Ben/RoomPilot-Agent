@@ -834,6 +834,28 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             ), f"{importer_name} has a stale cache key for {dependency_name}"
 
 
+def test_room_center_dependency_is_available_when_step_three_initializes_rooms() -> None:
+    main = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    geometry = (STATIC / "scene_room_geometry.js").read_text(encoding="utf-8")
+    scheme = (STATIC / "scene_scheme_controller.js").read_text(encoding="utf-8")
+    questionnaire_furniture = (
+        STATIC / "scene_questionnaire_furniture_controller.js"
+    ).read_text(encoding="utf-8")
+
+    structure_runtime = main.split("createSceneStructureController({", 1)[1].split(
+        "});", 1
+    )[0]
+    configuration_runtime = main.split(
+        "createSceneConfigurationController({", 1
+    )[1].split("});", 1)[0]
+
+    assert "export function roomCenter(room)" in geometry
+    assert "  roomCenter," in scheme.split("}) {", 1)[0]
+    assert "  roomCenter," in structure_runtime
+    assert "  roomCenter," in configuration_runtime
+    assert "function roomCenter(room)" not in questionnaire_furniture
+
+
 def test_placement_busy_overlay_announces_waiting_during_layout() -> None:
     """agent 還在擺放時,畫面必須明確顯示「請稍候」並擋住操作;
     擺完才一次呈現最終結果(不逐步上畫面)。"""

@@ -13,9 +13,10 @@ import {
   pointInPolygonCm,
   polygonArea,
   repairLoadedRoomPolygon,
+  roomCenter,
   roomDimensions,
   roomPolygonsDiffer,
-} from "./scene_room_geometry.js?v=sha256-638cde8ed352";
+} from "./scene_room_geometry.js?v=sha256-53ea68c5106d";
 import {
   reviewItemsFromAnalysis,
   reviewReasonLabel,
@@ -140,9 +141,9 @@ import {
   selectedSchemeForRoom,
   structuresForScheme,
 } from "./scene_design_schemes.js?v=sha256-5cc0b95c4b46";
-import { createSceneConfigurationController } from "./scene_configuration_controller.js?v=sha256-a1a771b297fb";
+import { createSceneConfigurationController } from "./scene_configuration_controller.js?v=sha256-7270e214ad40";
 import { createSceneProposalController } from "./scene_proposal_controller.js?v=sha256-cd23723e0e1d";
-import { createSceneStructureController } from "./scene_structure_controller.js?v=sha256-eef52b130a83";
+import { createSceneStructureController } from "./scene_structure_controller.js?v=sha256-0a22e5c65260";
 import { createSceneQuestionnaireController } from "./scene_questionnaire_controller.js?v=sha256-11c58708d21f";
 import { createSceneModelingController } from "./scene_modeling_controller.js?v=sha256-4287354a26dd";
 import { createSceneEventBindings } from "./scene_event_bindings.js?v=sha256-a3ed0ba35620";
@@ -1949,6 +1950,7 @@ const {
   resolveSurfaceOption,
   reviewItemsFromAnalysis,
   ROOM_NAME_OPTIONS,
+  roomCenter,
   roomDimensions,
   roomNameOptionFor,
   roomPolygonsDiffer,
@@ -2120,7 +2122,6 @@ const {
   replacementFurnitureName,
   replacementRoomBounds,
   replaceSelectedLayoutFurniture,
-  roomCenter,
   roomFurnitureRequirement,
   roomIdForScenePosition,
   roomSurfaceAssignments,
@@ -2207,6 +2208,7 @@ const {
   ROOM_TYPE_EXCLUDED_FURNITURE_TYPES,
   ROOM_USAGE_FURNITURE_SPECS,
   ROOM_USAGE_OPTIONS,
+  roomCenter,
   roomDimensions,
   roomPolygonSvg,
   roomUsageVisual,

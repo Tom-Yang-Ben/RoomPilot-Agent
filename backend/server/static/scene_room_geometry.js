@@ -33,6 +33,15 @@ export function pointInPolygonCm(point, polygon) {
   return inside;
 }
 
+export function roomCenter(room) {
+  const polygon = room?.polygon_cm || [];
+  if (!polygon.length) return { x: 0, y: 0 };
+  return polygon.reduce((sum, point) => ({
+    x: sum.x + Number(point.x || 0) / polygon.length,
+    y: sum.y + Number(point.y || 0) / polygon.length,
+  }), { x: 0, y: 0 });
+}
+
 export function convexHull(points) {
   const unique = [...new Map(
     points.map((point) => [`${point.x.toFixed(5)}:${point.y.toFixed(5)}`, point]),

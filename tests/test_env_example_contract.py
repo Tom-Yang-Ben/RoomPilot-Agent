@@ -22,6 +22,7 @@ def test_env_example_documents_openrouter_and_postgres_catalog_defaults() -> Non
 
     assert env["ROOMPILOT_PROFILE"] == "portable"
     assert env["ROOMPILOT_CATALOG_PROVIDER"] == ""
+    assert env["ROOMPILOT_CATALOG_VISIBILITY"] == "public"
     assert env["ROOMPILOT_HOST"] == "127.0.0.1"
     assert env["OPENROUTER_API_KEY"] == ""
     assert env["OPENROUTER_SITE_URL"] == "http://127.0.0.1:8002"

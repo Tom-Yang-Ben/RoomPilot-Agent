@@ -107,12 +107,10 @@ def load_group_price_stats(
                         percentile_cont(0.50) WITHIN GROUP (ORDER BY price_value) AS median,
                         percentile_cont(0.67) WITHIN GROUP (ORDER BY price_value) AS p67
                     FROM (
-                        SELECT NULLIF(item.raw_data->'chroma_metadata'->>'price_twd', '')::NUMERIC
+                        SELECT NULLIF(source.chroma_metadata->>'price_twd', '')::NUMERIC
                             AS price_value
-                        FROM roompilot.furniture_items AS item
-                        WHERE item.kind = 'furniture'
-                          AND item.is_active
-                          AND item.raw_data->'chroma_metadata'->>'category' = ANY(%s::TEXT[])
+                        FROM roompilot.furniture_embedding_source_current AS source
+                        WHERE source.chroma_metadata->>'category' = ANY(%s::TEXT[])
                     ) AS prices
                     WHERE price_value IS NOT NULL
                     """,

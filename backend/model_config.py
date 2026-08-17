@@ -5,8 +5,8 @@
 
 | 功能（哪一步／哪個能力） | `.env` 變數（由左至右取第一個有值的） | 內建預設 |
 | :--- | :--- | :--- |
-| 第 1 步 問卷需求抽取（`intake_service`） | `ROOMPILOT_INTAKE_MODEL` → `OPENROUTER_MODELS` → `OPENROUTER_MODEL` | `qwen/qwen3-32b:free` |
-| 第 6 步 LLM 場景規劃（`scene_service`，預設關閉） | `ROOMPILOT_SCENE_MODEL` → `OPENROUTER_MODELS` → `OPENROUTER_MODEL` | `qwen/qwen3-32b:free` |
+| 第 1 步 問卷需求抽取（`intake_service`） | `ROOMPILOT_INTAKE_MODEL` → `OPENROUTER_MODELS` → `OPENROUTER_MODEL` | `openrouter/free` |
+| 第 6 步 LLM 場景規劃（`scene_service`，預設關閉） | `ROOMPILOT_SCENE_MODEL` → `OPENROUTER_MODELS` → `OPENROUTER_MODEL` | `openrouter/free` |
 | Agent 通用文字（選件、修復意圖、說明） | `ROOMPILOT_AGENT_TEXT_MODEL` → `OPENROUTER_MODEL` → `OPENROUTER_MODELS` | `openrouter/auto` |
 | 第 8 步 設計手冊／交付提案文案 | `ROOMPILOT_REPORT_MODEL` | `openai/gpt-5.6-luna` |
 | 第 7 步 代表房三色卡比較圖（主） | `ROOMPILOT_GENPIC_PALETTE_MODEL` | `google/gemini-3-pro-image-preview` |
@@ -40,12 +40,12 @@ PROJECT_DIR = Path(__file__).resolve().parents[1]
 REGISTRY: dict[str, tuple[tuple[str, ...], str, str]] = {
     "intake": (
         ("ROOMPILOT_INTAKE_MODEL", "OPENROUTER_MODELS", "OPENROUTER_MODEL"),
-        "qwen/qwen3-32b:free",
+        "openrouter/free",
         "第 1 步 問卷需求抽取",
     ),
     "scene_planning": (
         ("ROOMPILOT_SCENE_MODEL", "OPENROUTER_MODELS", "OPENROUTER_MODEL"),
-        "qwen/qwen3-32b:free",
+        "openrouter/free",
         "第 6 步 LLM 場景規劃（預設關閉）",
     ),
     "agent_text": (
@@ -92,7 +92,7 @@ REGISTRY: dict[str, tuple[tuple[str, ...], str, str]] = {
     ),
     "rag_parser_openrouter": (
         ("OPENROUTER_MODEL", "OPENROUTER_MODELS"),
-        "qwen/qwen3-32b:free",
+        "openrouter/free",
         "家具檢索 query parser（provider=openrouter）",
     ),
 }

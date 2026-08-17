@@ -22,10 +22,10 @@ import numpy as np
 
 _PKG_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_DIR = os.path.dirname(os.path.dirname(_PKG_DIR))
-HEAD_PATH = os.environ.get(
-    "ROOM_HEAD",
-    os.path.join(_PROJECT_DIR, ".runtime", "floorplan", "room_head.npz"),
+_DEFAULT_HEAD_PATH = os.path.join(
+    _PROJECT_DIR, ".runtime", "floorplan", "room_head.npz"
 )
+HEAD_PATH = os.environ.get("ROOM_HEAD", "").strip() or _DEFAULT_HEAD_PATH
 SIZE = 224
 MEAN = np.array([0.485, 0.456, 0.406], np.float32)
 STD = np.array([0.229, 0.224, 0.225], np.float32)

@@ -46,6 +46,7 @@ export function createSceneSchemeController({
   resolveSurfaceOption,
   reviewItemsFromAnalysis,
   ROOM_NAME_OPTIONS,
+  roomCenter,
   roomDimensions,
   roomNameOptionFor,
   roomPolygonsDiffer,

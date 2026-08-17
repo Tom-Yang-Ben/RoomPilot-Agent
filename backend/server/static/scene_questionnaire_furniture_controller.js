@@ -66,6 +66,7 @@ export function createQuestionnaireFurnitureController({
   ROOM_TYPE_EXCLUDED_FURNITURE_TYPES,
   ROOM_USAGE_FURNITURE_SPECS,
   ROOM_USAGE_OPTIONS,
+  roomCenter,
   roomDimensions,
   roomPolygonSvg,
   roomUsageVisual,
@@ -88,13 +89,6 @@ export function createQuestionnaireFurnitureController({
   visualPreferencesForRoom,
   whiteViewer,
 }) {
-function roomCenter(room) {
-  return room.polygon_cm.reduce((sum, point) => ({
-    x: sum.x + point.x / room.polygon_cm.length,
-    y: sum.y + point.y / room.polygon_cm.length,
-  }), { x: 0, y: 0 });
-}
-
 function roomIdForScenePosition(positionCm = {}) {
   const center = planCenterCm();
   const planPoint = {
@@ -1207,7 +1201,6 @@ function specsAllowedByRoomFeasibility(requirement, specs) {
     renderQuestionnaireFurniturePreferenceTags,
     renderQuestionnaireFurnitureRecommendations,
     renderQuestionnaireRoomUsage,
-    roomCenter,
     roomFurnitureRequirement,
     roomIdForScenePosition,
     roomSurfaceAssignments,

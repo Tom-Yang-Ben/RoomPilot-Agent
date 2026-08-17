@@ -39,7 +39,7 @@ def _settings(
         openrouter_api_key=api_key if provider == "openrouter" else "",
         parser_model=(
             "claude-sonnet-4-6" if provider == "anthropic"
-            else "qwen/qwen3-32b:free" if provider == "openrouter"
+            else "openrouter/free" if provider == "openrouter"
             else "gpt-5.6-sol"
         ),
         parser_reasoning_effort="low",
@@ -117,7 +117,7 @@ def test_controlled_schema_preserves_nulls_and_rejects_unknown_values() -> None:
     [
         ("openai", "OPENAI_API_KEY", "gpt-5.6-sol"),
         ("anthropic", "ANTHROPIC_API_KEY", "claude-sonnet-4-6"),
-        ("openrouter", "OPENROUTER_API_KEY", "qwen/qwen3-32b:free"),
+        ("openrouter", "OPENROUTER_API_KEY", "openrouter/free"),
     ],
 )
 def test_settings_select_only_the_configured_rag_parser(
