@@ -15,7 +15,7 @@ The upstream MIT license text is included at `backend/server/static/vendor/three
 - License: Apache-2.0
 - Bundled paths: `backend/server/static/vendor/draco/`
 
-The Apache-2.0 license text is included at `LICENSES/Apache-2.0.txt`. RoomPilot's GPL-3.0-only license does not replace the license notices of bundled third-party components.
+The Apache-2.0 license text is included at `LICENSES/Apache-2.0.txt`. RoomPilot's GPL-3.0-or-later license does not replace the license notices of bundled third-party components.
 
 ## Optional Amazon Berkeley Objects full-profile data
 

@@ -14,7 +14,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["scandinavian", "japanese", "modern_minimal", "cream", "american"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     },
     {
@@ -28,7 +28,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["scandinavian", "japanese", "cream", "american"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     },
     {
@@ -42,7 +42,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["modern_minimal", "industrial"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     },
     {
@@ -56,7 +56,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["industrial", "modern_minimal"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     },
     {
@@ -70,7 +70,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["scandinavian", "japanese", "cream", "american"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     },
     {
@@ -84,7 +84,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["japanese", "industrial", "american"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     },
     {
@@ -98,7 +98,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["modern_minimal", "industrial"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     },
     {
@@ -112,7 +112,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["modern_minimal", "industrial"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     },
     {
@@ -126,7 +126,7 @@
       "texture_url": null,
       "preview_url": null,
       "suitable_styles": ["cream", "american"],
-      "source_license_status": "GPL-3.0-only",
+      "source_license_status": "GPL-3.0-or-later",
       "source": "AIPE03 第四組"
     }
   ],

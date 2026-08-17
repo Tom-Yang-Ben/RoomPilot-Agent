@@ -87,4 +87,4 @@ git diff --check
 
 ## 參與貢獻與授權
 
-請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)、[SECURITY.md](SECURITY.md) 與 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。程式碼以 [GPL-3.0-only](LICENSE) 授權，著作權標示為「AIPE03 第四組」。第三方元件與資產見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+請先閱讀 [CONTRIBUTING.md](CONTRIBUTING.md)、[SECURITY.md](SECURITY.md) 與 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。程式碼以 [GPL-3.0-or-later](LICENSE) 授權，著作權標示為「AIPE03 第四組」。第三方元件與資產見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

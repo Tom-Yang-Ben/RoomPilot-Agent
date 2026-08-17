@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "license": "GPL-3.0-only",
+  "license": "GPL-3.0-or-later",
   "copyright": "AIPE03 第四組",
   "purpose": "Small project-authored fixture for local development; not a retail catalog.",
   "items": [

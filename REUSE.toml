@@ -22,7 +22,7 @@ path = [
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "AIPE03 第四組"
-SPDX-License-Identifier = "GPL-3.0-only"
+SPDX-License-Identifier = "GPL-3.0-or-later"
 
 [[annotations]]
 path = ["backend/server/static/vendor/three/**"]

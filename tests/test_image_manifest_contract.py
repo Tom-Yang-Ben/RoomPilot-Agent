@@ -19,7 +19,7 @@ def test_portable_fixture_declares_procedural_rendering_only() -> None:
     )
     items = payload["items"]
 
-    assert payload["license"] == "GPL-3.0-only"
+    assert payload["license"] == "GPL-3.0-or-later"
     assert payload["copyright"] == "AIPE03 第四組"
     assert len(items) == 16
     assert all(item["render_mode"] == "procedural_fixture" for item in items)

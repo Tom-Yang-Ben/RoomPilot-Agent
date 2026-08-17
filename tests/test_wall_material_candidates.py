@@ -25,7 +25,7 @@ def test_public_wall_surfaces_are_project_authored_solid_colours() -> None:
     assert all(surface["texture_url"] is None for surface in walls)
     assert all(surface["preview_url"] is None for surface in walls)
     assert all(surface["color_hex"].startswith("#") for surface in walls)
-    assert all(surface["source_license_status"] == "GPL-3.0-only" for surface in walls)
+    assert all(surface["source_license_status"] == "GPL-3.0-or-later" for surface in walls)
 
 
 def test_every_style_card_has_a_palette_instead_of_an_image_path() -> None:

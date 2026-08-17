@@ -20,7 +20,7 @@
 ## Verification
 
 ```powershell
-uv run pytest -q tests/test_runtime_profile.py tests/test_official_catalog_sql.py
+uv run pytest -q tests/test_runtime_profile.py tests/test_postgres_catalog_contract.py
 # disposable PostgreSQL only
 $env:ROOMPILOT_POSTGRES_TEST="1"
 uv run pytest -q -m postgres tests/test_postgres_profile_integration.py

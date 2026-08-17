@@ -19,7 +19,7 @@ def test_project_authored_fixture_passes_generic_import_validation() -> None:
 
     assert len(rows) == 16
     assert len({row["item_id"] for row in rows}) == 16
-    assert all(row["source_license"] == "GPL-3.0-only" for row in rows)
+    assert all(row["source_license"] == "GPL-3.0-or-later" for row in rows)
     assert all(row["license_status"] == "verified" for row in rows)
     assert all(row["width_cm"] > 0 and row["depth_cm"] > 0 for row in rows)
 

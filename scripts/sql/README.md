@@ -15,6 +15,29 @@ Each developer-supplied furniture row must include a stable `item_id`, positive 
 
 `import_public_catalog_to_postgres.py` 是唯一現行公開 importer。它會先驗證授權、ID、家具種類、公分尺寸與 URL，再以單一 transaction UPSERT；不會刪除未列在輸入檔的既有資料。
 
+需要查看、備份或重建本機 catalog 時，先將 PostgreSQL 匯出成可由同一個 importer
+讀回的 JSON。預設 `public` 只輸出 active 且 `license_status=verified` 的列；
+`private` 會包含所有 active operator 資料，因此只能留在 Git ignored 的
+`.runtime/exports/`，不可提交公開 repository：
+
+```powershell
+uv run python scripts/sql/export_catalog_from_postgres.py --visibility public --dry-run
+uv run python scripts/sql/export_catalog_from_postgres.py --visibility public
+uv run python scripts/sql/export_catalog_from_postgres.py --visibility private --dry-run
+uv run python scripts/sql/export_catalog_from_postgres.py --visibility private
+
+# 在新的 PostgreSQL 驗證並匯入匯出檔
+uv run python scripts/sql/import_public_catalog_to_postgres.py --catalog .runtime/exports/furniture_catalog_public.json --dry-run
+uv run python scripts/sql/import_public_catalog_to_postgres.py --catalog .runtime/exports/furniture_catalog_public.json --create-schema
+```
+
+Exporter 使用 read-only transaction、依 `item_id` 穩定排序並以 atomic replace
+寫檔；摘要會輸出筆數、各授權狀態數量與 SHA-256。它不包含 embedding、密碼或
+PostgreSQL dump。工具同時支援現行 normalized catalog views 與新的 generic
+`roompilot.furniture_catalog` schema。normalized catalog 中尚待授權的 private
+列會保留 `license_status=permission_required`，並以同名明確值填入 generic
+schema 必要的 `source_license`；這不代表已取得授權，public export 會排除這些列。
+
 Catalog 匯入完成後，先以可回復 transaction 驗證通用 pgvector schema 與待建向量數，再正式建立 schema／同步缺少或文字已更新的向量：
 
 ```powershell

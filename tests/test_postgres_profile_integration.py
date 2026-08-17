@@ -63,7 +63,7 @@ def test_full_profile_reads_a_developer_supplied_postgres_catalog() -> None:
                     82,
                     ["scandinavian"],
                     ["dining_room"],
-                    "GPL-3.0-only; generated test record",
+                    "GPL-3.0-or-later; generated test record",
                 ),
             )
 

@@ -23,6 +23,12 @@ uv run python scripts/sql/sync_catalog_embeddings_to_postgres.py --create-schema
 
 匯入採單一 transaction UPSERT，不會刪除資料庫內未出現在輸入檔的既有列。非家具項目、缺少授權、重複 ID、非正數公分尺寸或非 HTTP(S) 資產 URL 會在連線資料庫前被拒絕。
 
+若 catalog 已存在 PostgreSQL，可用
+`scripts/sql/export_catalog_from_postgres.py` 匯出可讀、可由 importer 重建的 JSON。
+公開交付只使用 `--visibility public`；完整 operator catalog 使用
+`--visibility private` 並只保存在 Git ignored 的 `.runtime/exports/`。公開
+repository 仍不提交商品 catalog 或私有 URL manifest。
+
 本機 GLB 不會自動掃描 repository、`Downloads` 或其他使用者目錄。需要本機模型時，透過 `ROOMPILOT_LOCAL_GLB_ROOTS` 指定允許的根目錄；需要 zip 時則明確設定 `ROOMPILOT_EXTERNAL_GLB_ZIP_DIRS`。多個路徑使用作業系統的 path separator 分隔。
 
 需要遠端模型交付時，必須同時明確設定 `ROOMPILOT_MODEL_DELIVERY_MODE=cloudfront`、`ROOMPILOT_GLB_MANIFEST_PATH`，以及 manifest 只有 object key 時所需的 `ROOMPILOT_CLOUDFRONT_BASE_URL`。遠端縮圖另設定 `ROOMPILOT_IMAGE_MANIFEST_PATH`。repository 沒有預設 CDN、bucket 或私有 manifest 路徑；缺少任一必要設定時會回報 unavailable，不會猜測舊環境。
