@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,7 +8,6 @@ from uuid import uuid4
 
 from .project_schema import (
     PROJECT_SCHEMA_VERSION,
-    migrate_project_workflow,
     new_project_workflow,
     require_current_project_schema,
 )
@@ -448,138 +446,3 @@ class ProjectStore:
         record = self._render(row)
         record["path"] = Path(row["file_path"])
         return record
-
-    def import_runtime(self, legacy_runtime_dir: Path) -> int:
-        """將舊 worktree 的專案與原圖合併到目前的共用資料庫。"""
-        legacy_database = legacy_runtime_dir / "projects.sqlite3"
-        if (
-            not legacy_database.is_file()
-            or legacy_database.resolve() == self.database_path.resolve()
-        ):
-            return 0
-
-        with sqlite3.connect(legacy_database) as legacy_connection:
-            legacy_connection.row_factory = sqlite3.Row
-            try:
-                rows = legacy_connection.execute("SELECT * FROM projects").fetchall()
-            except sqlite3.DatabaseError:
-                return 0
-            try:
-                render_rows = legacy_connection.execute(
-                    "SELECT * FROM render_outputs"
-                ).fetchall()
-            except sqlite3.DatabaseError:
-                render_rows = []
-
-        imported = 0
-        with self._connect() as connection:
-            for row in rows:
-                current = connection.execute(
-                    """
-                    SELECT updated_at, revision, upload_filename, upload_extension,
-                           upload_mime, upload_path
-                    FROM projects WHERE project_id = ?
-                    """,
-                    (row["project_id"],),
-                ).fetchone()
-                if current is not None and current["updated_at"] >= row["updated_at"]:
-                    continue
-
-                upload_filename = row["upload_filename"]
-                upload_extension = row["upload_extension"]
-                upload_mime = row["upload_mime"]
-                upload_path = row["upload_path"]
-                source_upload = Path(upload_path) if upload_path else None
-                if source_upload and source_upload.is_file():
-                    target_dir = self.upload_dir / row["project_id"]
-                    target_dir.mkdir(parents=True, exist_ok=True)
-                    target_upload = target_dir / f"floorplan{row['upload_extension']}"
-                    shutil.copy2(source_upload, target_upload)
-                    upload_path = str(target_upload)
-                elif source_upload:
-                    upload_filename = current["upload_filename"] if current else None
-                    upload_extension = current["upload_extension"] if current else None
-                    upload_mime = current["upload_mime"] if current else None
-                    upload_path = current["upload_path"] if current else None
-
-                connection.execute(
-                    """
-                    INSERT INTO projects (
-                        project_id, name, notes, current_step, workflow_json,
-                        upload_filename, upload_extension, upload_mime, upload_path,
-                        revision, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(project_id) DO UPDATE SET
-                        name = excluded.name,
-                        notes = excluded.notes,
-                        current_step = excluded.current_step,
-                        workflow_json = excluded.workflow_json,
-                        upload_filename = excluded.upload_filename,
-                        upload_extension = excluded.upload_extension,
-                        upload_mime = excluded.upload_mime,
-                        upload_path = excluded.upload_path,
-                        revision = excluded.revision,
-                        created_at = excluded.created_at,
-                        updated_at = excluded.updated_at
-                    """,
-                    (
-                        row["project_id"],
-                        row["name"],
-                        row["notes"],
-                        row["current_step"],
-                        json.dumps(
-                            migrate_project_workflow(
-                                self._workflow(row["workflow_json"])
-                            ).workflow,
-                            ensure_ascii=False,
-                        ),
-                        upload_filename,
-                        upload_extension,
-                        upload_mime,
-                        upload_path,
-                        int(row["revision"]) if "revision" in row.keys() else 0,
-                        row["created_at"],
-                        row["updated_at"],
-                    ),
-                )
-                imported += 1
-
-            for render in render_rows:
-                project_exists = connection.execute(
-                    "SELECT 1 FROM projects WHERE project_id = ?",
-                    (render["project_id"],),
-                ).fetchone()
-                if project_exists is None:
-                    continue
-                source_render = Path(render["file_path"])
-                if not source_render.is_file():
-                    continue
-                target_dir = self.render_dir / render["project_id"]
-                target_dir.mkdir(parents=True, exist_ok=True)
-                target_render = target_dir / render["filename"]
-                if source_render.resolve() != target_render.resolve():
-                    shutil.copy2(source_render, target_render)
-                connection.execute(
-                    """
-                    INSERT OR IGNORE INTO render_outputs (
-                        render_id, project_id, white_model_version,
-                        viewpoint_version, style_version, style_card_id,
-                        provider, mime_type, filename, file_path, byte_size, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        render["render_id"],
-                        render["project_id"],
-                        render["white_model_version"],
-                        render["viewpoint_version"],
-                        render["style_version"],
-                        render["style_card_id"],
-                        render["provider"],
-                        render["mime_type"],
-                        render["filename"],
-                        str(target_render),
-                        render["byte_size"],
-                        render["created_at"],
-                    ),
-                )
-        return imported

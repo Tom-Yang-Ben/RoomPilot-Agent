@@ -58,7 +58,7 @@ from .project_store import (
     WorkflowTooLargeError,
 )
 from .project_schema import ProjectSchemaUpgradeRequired
-from .runtime_paths import legacy_runtime_dirs, project_runtime_dir
+from .runtime_paths import project_runtime_dir
 from .render_service import (
     RenderProviderRejected,
     RenderProviderUnavailable,
@@ -133,8 +133,6 @@ SURFACE_DB_PATH = BASE_DIR.parent / "catalog" / "data" / "surface_catalog.json"
 PUBLIC_FIXTURE_DIR = PROJECT_DIR / "examples" / "fixtures"
 SAMPLE_FLOORPLAN = PUBLIC_FIXTURE_DIR / "public_floorplan.png"
 PROJECT_STORE = ProjectStore(project_runtime_dir(PROJECT_DIR))
-for legacy_runtime in legacy_runtime_dirs(PROJECT_DIR):
-    PROJECT_STORE.import_runtime(legacy_runtime)
 QUESTIONNAIRE_VISUAL_CATALOG = load_questionnaire_visual_catalog()
 QUESTIONNAIRE_VISUAL_STORE: QuestionnaireVisualStore | None = None
 _QUESTIONNAIRE_VISUAL_STORE_LOCK = Lock()

@@ -135,22 +135,22 @@ function emptyRoomRequirement(room = {}) {
   };
 }
 
-function migrateLegacyFinishes(target, legacyFinishes = {}) {
-  if (!legacyFinishes || typeof legacyFinishes !== "object") return target;
-  target.surfaces.paletteId = legacyFinishes.stylePackId || null;
+function applyInitialFinishes(target, initialFinishes = {}) {
+  if (!initialFinishes || typeof initialFinishes !== "object") return target;
+  target.surfaces.paletteId = initialFinishes.stylePackId || null;
   target.surfaces.wallDefault = {
-    materialId: legacyFinishes.wallMaterial || null,
-    color: legacyFinishes.wallColor || null,
+    materialId: initialFinishes.wallMaterial || null,
+    color: initialFinishes.wallColor || null,
   };
   target.surfaces.floor = {
-    materialId: legacyFinishes.floorMaterial || null,
-    color: legacyFinishes.floorColor || null,
+    materialId: initialFinishes.floorMaterial || null,
+    color: initialFinishes.floorColor || null,
   };
   target.surfaces.ceiling = {
-    materialId: legacyFinishes.ceilingMaterial || null,
-    styleId: legacyFinishes.ceilingStyle || null,
-    lightingId: legacyFinishes.lightStyle || null,
-    color: legacyFinishes.ceilingColor || null,
+    materialId: initialFinishes.ceilingMaterial || null,
+    styleId: initialFinishes.ceilingStyle || null,
+    lightingId: initialFinishes.lightStyle || null,
+    color: initialFinishes.ceilingColor || null,
   };
   return target;
 }
@@ -158,7 +158,7 @@ function migrateLegacyFinishes(target, legacyFinishes = {}) {
 export function normalizeRoomRequirements(
   saved = {},
   rooms = [],
-  legacy = {},
+  initialState = {},
 ) {
   const savedRooms = saved.roomRequirements || saved.rooms || {};
   const roomRequirements = {};
@@ -166,45 +166,45 @@ export function normalizeRoomRequirements(
     const base = emptyRoomRequirement(room);
     const roomId = base.roomId;
     const restored = savedRooms[roomId] || {};
-    const migrated = migrateLegacyFinishes(base, legacy.finishes);
+    const initialized = applyInitialFinishes(base, initialState.finishes);
     roomRequirements[roomId] = {
-      ...migrated,
+      ...initialized,
       ...clone(restored),
       roomId,
       roomType: room.type || room.room_type || restored.roomType || "other",
       roomLabel: room.name || room.label || restored.roomLabel || "未命名空間",
       usage: clone(restored.usage || []),
       furniture: {
-        ...migrated.furniture,
+        ...initialized.furniture,
         ...(restored.furniture || {}),
         selected: clone(restored.furniture?.selected || []),
         deferred: clone(restored.furniture?.deferred || []),
       },
       climate: {
-        ...migrated.climate,
+        ...initialized.climate,
         ...(restored.climate || {}),
       },
       generativeEquipment: {
-        ...migrated.generativeEquipment,
+        ...initialized.generativeEquipment,
         ...(restored.generativeEquipment || {}),
         equipmentDirection: clone(restored.generativeEquipment?.equipmentDirection || []),
         mustNotHave: clone(restored.generativeEquipment?.mustNotHave || []),
       },
       surfaces: {
-        ...migrated.surfaces,
+        ...initialized.surfaces,
         ...(restored.surfaces || {}),
         wallDefault: {
-          ...migrated.surfaces.wallDefault,
+          ...initialized.surfaces.wallDefault,
           ...(restored.surfaces?.wallDefault || {}),
         },
         wallOverrides: clone(restored.surfaces?.wallOverrides || {}),
         wallSurfaceIds: clone(restored.surfaces?.wallSurfaceIds || []),
         floor: {
-          ...migrated.surfaces.floor,
+          ...initialized.surfaces.floor,
           ...(restored.surfaces?.floor || {}),
         },
         ceiling: {
-          ...migrated.surfaces.ceiling,
+          ...initialized.surfaces.ceiling,
           ...(restored.surfaces?.ceiling || {}),
         },
       },
@@ -215,8 +215,8 @@ export function normalizeRoomRequirements(
     activeRoomId: saved.activeRoomId || rooms[0]?.id || null,
     roomRequirements,
     unassignedDeferredFurniture: clone(saved.unassignedDeferredFurniture || []),
-    globalProfile: clone(saved.globalProfile || legacy.basic || {}),
-    globalConfirmed: saved.globalConfirmed === true || legacy.basicConfirmed === true,
+    globalProfile: clone(saved.globalProfile || initialState.basic || {}),
+    globalConfirmed: saved.globalConfirmed === true || initialState.basicConfirmed === true,
   };
 }
 

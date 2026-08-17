@@ -3988,14 +3988,14 @@ def test_questionnaire_material_pairs_supports_the_legacy_page_shell() -> None:
     assert "if (!host) return pairs;" in pairs
 
 
-def test_questionnaire_finishes_skips_missing_legacy_only_controls() -> None:
+def test_questionnaire_finishes_skips_when_required_controls_are_missing() -> None:
     source = scene_controller_source(STATIC)
     finishes = source.split("function renderQuestionnaireFinishes()", 1)[1].split(
         "function renderQuestionnaireSummary", 1
     )[0]
 
-    assert "const legacyFinishShell = [" in finishes
-    assert "if (legacyFinishShell.some((control) => !control)) return;" in finishes
+    assert "const requiredFinishControls = [" in finishes
+    assert "if (requiredFinishControls.some((control) => !control)) return;" in finishes
 
 
 def test_step_seven_accepts_confirmed_room_requirements_after_default_fill() -> None:

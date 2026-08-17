@@ -23,31 +23,3 @@ def project_runtime_dir(project_dir: Path) -> Path:
     if configured:
         return Path(configured).expanduser().resolve()
     return _repository_root(project_dir) / ".runtime"
-
-
-def legacy_runtime_dirs(project_dir: Path) -> list[Path]:
-    """找出需要合併至共用資料庫的舊 worktree 執行資料目錄。"""
-    repository = _repository_root(project_dir)
-    candidates = [project_dir / ".runtime"]
-    worktrees_dir = repository / ".worktrees"
-    if worktrees_dir.is_dir():
-        candidates.extend(path / ".runtime" for path in worktrees_dir.iterdir() if path.is_dir())
-    git_worktrees_dir = repository / ".git" / "worktrees"
-    if git_worktrees_dir.is_dir():
-        for registration in git_worktrees_dir.iterdir():
-            gitdir_file = registration / "gitdir"
-            if not gitdir_file.is_file():
-                continue
-            registered_git_marker = Path(
-                gitdir_file.read_text(encoding="utf-8").strip()
-            )
-            if registered_git_marker.name == ".git":
-                candidates.append(registered_git_marker.parent / ".runtime")
-    shared = project_runtime_dir(project_dir).resolve()
-    return list(
-        dict.fromkeys(
-            path.resolve()
-            for path in candidates
-            if path.is_dir() and path.resolve() != shared
-        )
-    )

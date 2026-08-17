@@ -100,7 +100,7 @@ import {
   conditionalOptionId,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-cdfcb598c9e7";
+} from "./scene_room_requirements.js?v=sha256-b9eff9144dcc";
 import {
   applyStylePack,
   CEILING_DESIGN_PACKS,
@@ -144,7 +144,7 @@ import {
 import { createSceneConfigurationController } from "./scene_configuration_controller.js?v=sha256-7270e214ad40";
 import { createSceneProposalController } from "./scene_proposal_controller.js?v=sha256-cd23723e0e1d";
 import { createSceneStructureController } from "./scene_structure_controller.js?v=sha256-0a22e5c65260";
-import { createSceneQuestionnaireController } from "./scene_questionnaire_controller.js?v=sha256-11c58708d21f";
+import { createSceneQuestionnaireController } from "./scene_questionnaire_controller.js?v=sha256-98be033a14c2";
 import { createSceneModelingController } from "./scene_modeling_controller.js?v=sha256-4287354a26dd";
 import { createSceneEventBindings } from "./scene_event_bindings.js?v=sha256-a3ed0ba35620";
 import { createSceneRestoreController } from "./scene_restore_controller.js?v=sha256-23284a22f25e";

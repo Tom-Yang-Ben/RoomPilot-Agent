@@ -1612,7 +1612,7 @@ function renderQuestionnaireFinishes() {
   if (room && isCirculationRoom(room)) copyLivingRoomStyleToCirculation(room);
   const draft = activeRoomFinishDraft();
   if (!room || !draft) return;
-  const legacyFinishShell = [
+  const requiredFinishControls = [
     $("#questionnaire-finishes"),
     $("#room-finish-title"),
     $("#confirm-questionnaire-finishes"),
@@ -1632,7 +1632,7 @@ function renderQuestionnaireFinishes() {
     element.questionnaireFinishRoomTargets,
     element.selectedWallSurface,
   ];
-  if (legacyFinishShell.some((control) => !control)) return;
+  if (requiredFinishControls.some((control) => !control)) return;
   const pack = activeQuestionnairePack();
   if (repairAutomaticMaterialRecommendation(room, draft, pack)) {
     scheduleSave("requirements");

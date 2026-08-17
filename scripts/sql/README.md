@@ -31,6 +31,10 @@ uv run python scripts/sql/migrate_catalog_visibility.py
 uv run python scripts/sql/migrate_catalog_visibility.py --rollback
 ```
 
+Catalog visibility rollback 是離線 recovery 工具，不在 production request
+path。至少保留到新 public repository 完成切換並驗證備份後，再另案決定是否封存；
+不可為了減少檔案數而提前失去回復能力。
+
 `sync_catalog_embeddings_to_postgres.py` 只 UPSERT 目前 `item_id + model + text_hash` 尚未存在的向量，不刪除 catalog 或舊向量。模型權重必須已存在 `ROOMPILOT_RAG_MODEL_CACHE` 或 Hugging Face 本機快取；工具不會靜默下載。
 
 向量同步預設沿用 `.env` 的 catalog visibility；可用 `--visibility public` 做公開邊界驗收，或在明確的本機 private 模式使用 `--visibility private`。兩種模式共用向量表，但 source view 只讓當前模式可見的家具參與同步與檢索。

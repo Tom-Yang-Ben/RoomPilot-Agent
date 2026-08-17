@@ -58,6 +58,10 @@ Restore validates the backup checksum and creates a second pre-restore safety
 backup before replacing the database. Stop the RoomPilot server before upgrade
 or restore operations.
 
+Production startup never scans old worktrees or imports their SQLite files.
+`scripts/migrate_project_schema.py` is the only legacy project conversion
+boundary and remains available solely for explicit offline recovery.
+
 ## Producer and consumer
 
 - Producer: `backend/server/static/scene_v2.js::workflowPayload()`.

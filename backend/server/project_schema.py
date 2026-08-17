@@ -1,8 +1,8 @@
 """Versioned persistence contract for RoomPilot browser projects.
 
 The live application only reads the current schema. Older workflow payloads are
-converted by ``scripts/migrate_project_schema.py`` (or while explicitly
-importing an old runtime), keeping compatibility code out of the browser path.
+converted by the explicit, reversible ``scripts/migrate_project_schema.py``
+command; production startup never scans or imports legacy worktree runtimes.
 """
 
 from __future__ import annotations

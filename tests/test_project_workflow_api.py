@@ -9,7 +9,7 @@ from PIL import Image
 
 from backend.server.main import app
 from backend.server.project_store import ProjectStore
-from backend.server.runtime_paths import legacy_runtime_dirs, project_runtime_dir
+from backend.server.runtime_paths import project_runtime_dir
 
 
 client = TestClient(app)
@@ -93,7 +93,11 @@ def test_agent_furniture_selection_uses_server_side_local_rules_without_llm() ->
     ] == ["bed-1", "nightstand-1"]
 
 
-def test_worktree_uses_the_main_repository_runtime_directory(tmp_path: Path) -> None:
+def test_worktree_uses_the_main_repository_runtime_directory(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("ROOMPILOT_RUNTIME_DIR")
     repository = tmp_path / "RoomPilot-Agent"
     worktree = repository / ".worktrees" / "feature-branch"
     worktree.mkdir(parents=True)
@@ -103,60 +107,6 @@ def test_worktree_uses_the_main_repository_runtime_directory(tmp_path: Path) -> 
     )
 
     assert project_runtime_dir(worktree) == repository / ".runtime"
-
-    (worktree / ".runtime").mkdir()
-    sibling_runtime = repository / ".worktrees" / "cody" / ".runtime"
-    sibling_runtime.mkdir(parents=True)
-    external_runtime = tmp_path / "external-worktree" / ".runtime"
-    external_runtime.mkdir(parents=True)
-    registration = repository / ".git" / "worktrees" / "external"
-    registration.mkdir(parents=True)
-    (registration / "gitdir").write_text(
-        str(external_runtime.parent / ".git"),
-        encoding="utf-8",
-    )
-    assert legacy_runtime_dirs(worktree) == [
-        worktree / ".runtime",
-        sibling_runtime,
-        external_runtime,
-    ]
-
-
-def test_legacy_worktree_projects_are_migrated_with_their_uploads(tmp_path: Path) -> None:
-    legacy = ProjectStore(tmp_path / "worktree-runtime")
-    project = legacy.create_project(name="舊分支專案")
-    legacy.update_workflow(
-        project["project_id"],
-        current_step="realistic_3d",
-        workflow={"realistic_3d": {"activeStylePackId": "scandinavian-01"}},
-    )
-    legacy.save_upload(
-        project["project_id"],
-        filename="plan.png",
-        extension=".png",
-        mime_type="image/png",
-        content=_png_bytes(),
-    )
-
-    shared = ProjectStore(tmp_path / "shared-runtime")
-    assert shared.import_runtime(legacy.runtime_dir) == 1
-
-    restored = ProjectStore(tmp_path / "shared-runtime")
-    loaded = restored.get_project(project["project_id"])
-    upload = restored.get_upload(project["project_id"])
-    assert loaded["current_step"] == "realistic_3d"
-    assert loaded["workflow"]["realistic_3d"]["activeStylePackId"] == "scandinavian-01"
-    assert upload["path"].is_file()
-    assert upload["path"].parent == restored.upload_dir / project["project_id"]
-
-    legacy_upload = legacy.get_upload(project["project_id"])["path"]
-    legacy_upload.unlink()
-    legacy.update_workflow(
-        project["project_id"],
-        workflow={"realistic_3d": {"activeStylePackId": "scandinavian-02"}},
-    )
-    assert restored.import_runtime(legacy.runtime_dir) == 1
-    assert restored.get_upload(project["project_id"])["path"].is_file()
 
 
 def test_project_store_compacts_corrupted_furniture_labels(tmp_path: Path) -> None:
