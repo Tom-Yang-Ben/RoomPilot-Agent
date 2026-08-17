@@ -1,5 +1,5 @@
-import { createSceneSchemeController } from "./scene_scheme_controller.js?v=sha256-799802c1e344";
-import { createSceneStructureEditorController } from "./scene_structure_editor_controller.js?v=sha256-7f48efa7b172";
+import { createSceneSchemeController } from "./scene_scheme_controller.js?v=sha256-569a5c9d029c";
+import { createSceneStructureEditorController } from "./scene_structure_editor_controller.js?v=sha256-8cb7e968d492";
 
 export function createSceneStructureController(runtime) {
   let editorController;

@@ -61,23 +61,24 @@ def _sample_workflow() -> dict:
             },
         },
         "requirements": {
-            "finishes": {
-                "stylePackId": "japandi-a",
-                "wallMaterial": "乳膠漆",
-                "wallColor": "米白",
-                "floorMaterial": "SPC 石塑地板",
-                "floorColor": "淺橡木",
-                "ceilingMaterial": "平釘天花",
-                "ceilingColor": "#f4f1eb",
+            "roomRequirementModel": {
+                "schemaVersion": 3,
+                "roomRequirements": {},
+                "globalFinishes": {
+                    "stylePackId": "japandi-a",
+                    "wallMaterial": "乳膠漆",
+                    "wallColor": "米白",
+                    "floorMaterial": "SPC 石塑地板",
+                    "floorColor": "淺橡木",
+                    "ceilingMaterial": "平釘天花",
+                    "ceilingColor": "#f4f1eb",
+                },
             }
         },
         "configuration": {
-            "schema_version": 3,
-            "active_scheme_id": "A",
-            "locked_scheme_id": "A",
-            "schemes": {
-                "A": {
-                    "furniture": [
+            "schema_version": 4,
+            "locked": True,
+            "furniture": [
                 {
                     "id": "room-1-sofa-1",
                     "type": "sofa",
@@ -116,9 +117,7 @@ def _sample_workflow() -> dict:
                     "rotationDeg": 90,
                     "roomId": "room-2",
                 },
-                    ]
-                }
-            },
+            ],
         },
         "proposal_review": {
             "jobs": [

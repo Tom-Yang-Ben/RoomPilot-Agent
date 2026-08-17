@@ -8,7 +8,6 @@ export function createSceneEventBindings({
   activeQuestionnaireRoom,
   activeRoomFinishDraft,
   activeRoomRequirement,
-  activeSchemeId,
   addDroppedStructure,
   addFurnitureFromLibrary,
   addMissedRoom,
@@ -29,15 +28,12 @@ export function createSceneEventBindings({
   cancelWhiteModelBeamPlacement,
   capturePendingSave,
   catalogRuntimeState,
-  chooseRoomScheme,
   clearRequirementsGenerationHelp,
   closeDesignDelivery,
   closeProposalPaletteImageStage,
   closeRenderBriefDialog,
   closeRenderImageStage,
-  closeRoomSchemeSelectionDialog,
   completedOpenrouterRows,
-  completeRoomSchemeSelection,
   configurationFurnitureNumber,
   confirmAllRooms,
   confirmBasicQuestionnaire,
@@ -63,7 +59,6 @@ export function createSceneEventBindings({
   element,
   endPlacementBusy,
   ensureQuestionnaireFurnitureRecommendations,
-  ensureRoomScheme3dPreviews,
   ensureRoomUsage,
   errorMessage,
   evaluateCeilingConflicts,
@@ -91,14 +86,11 @@ export function createSceneEventBindings({
   mergeSelectedRoomNodes,
   mergeSelectedRooms,
   moveVisualQuestion,
-  navigateRoomScheme3dPreview,
   openFurnitureReplacement,
   openQuestionnaireCeilingDesignStyle,
   openQuestionnaireCeilingPicker,
   openQuestionnaireFurnitureCatalog,
   openRenderBriefDialog,
-  openRoomScheme3dPreview,
-  openRoomSchemeSelectionDialog,
   pendingSaveCount,
   pendingSaveStorageKey,
   previewReplacementCandidate,
@@ -116,7 +108,6 @@ export function createSceneEventBindings({
   realisticViewer,
   reflowSingleConfigurationFurniture,
   refreshQuestionnaireFurnitureRecommendations,
-  relayoutFurnitureForScheme,
   removeMaterialBoundary,
   renderCalibration,
   renderConfigurationPlan,
@@ -133,7 +124,6 @@ export function createSceneEventBindings({
   renderQuestionnaireRoomSections,
   renderQuestionnaireRoomUsage,
   renderRooms,
-  renderRoomSchemeSelectionDialog,
   renderSceneObjectList,
   renderSchemeControls,
   renderSelectedStructureEditor,
@@ -178,7 +168,6 @@ export function createSceneEventBindings({
   setStatus,
   setStepSixSurfaceKind,
   setStepSixSurfaceStatus,
-  setTaskDialogOpen,
   SHOW_ALL_ROOMS_BUTTONS,
   showQuestionnaireStage,
   showRenderImageEnlarged,
@@ -194,7 +183,6 @@ export function createSceneEventBindings({
   structureSectionMeta,
   structureWallCollision,
   STYLE_PACKS,
-  switchDesignScheme,
   syncAllOverlays,
   syncFurnitureInventoryAcrossSchemes,
   syncFurnitureNumberVisibility,
@@ -935,43 +923,12 @@ function bindEvents() {
     clearRequirementsGenerationHelp();
     showQuestionnaireStage("rooms");
   });
-  $$("[data-design-scheme]").forEach((button) => {
-    button.addEventListener("click", () => {
-      // 流程規範:方案 A/B 在第 6 步選定;第 7 步只依選定方案比較色卡、
-      // 第 8 步依選定色卡逐房生圖 —— 進入第 7 步後不再切換方案。
-      const currentStep = state.workflow?.currentStep;
-      if (currentStep === "proposal_review" || currentStep === "ai_render") {
-        setStatus("方案已於第 6 步選定；要更換 A/B 請先返回第 6 步。", "error");
-        return;
-      }
-      if (!switchDesignScheme(button.dataset.designScheme)) return;
-      setStatus(`已切換至方案 ${button.dataset.designScheme}；家具座標與 3D 場景彼此獨立。`);
-    });
-  });
   $("#auto-layout-furniture")?.addEventListener("click", async () => {
     element.layoutError.textContent = "";
     beginPlacementBusy("AI 正在重新擺放家具，請稍候…");
     try {
       setStatus("正在由家具引擎重新配置合法位置…");
-      if (activeSchemeId() === "B" && state.designSchemes.schemes.A.furniture.length) {
-        const furniture = await relayoutFurnitureForScheme(
-          state.designSchemes.schemes.A.furniture,
-          "B",
-        );
-        if (!furniture) {
-          throw new Error("方案 B 無法在保留問卷家具需求下產生合法配置。");
-        }
-        state.furniture2d = furniture;
-        const schemeB = state.designSchemes.schemes.B;
-        schemeB.furniture = JSON.parse(JSON.stringify(furniture));
-        schemeB.stale = false;
-        schemeB.staleReason = "";
-        renderLayoutRoomFilter();
-        renderLayoutFurniture();
-        scheduleSave("layout_2d");
-      } else {
-        await autoLayoutFurniture();
-      }
+      await autoLayoutFurniture();
       setStatus(`家具引擎已重新配置 ${state.furniture2d.length} 件家具。`);
     } catch (error) {
       element.layoutError.textContent = errorMessage(error);
@@ -1212,41 +1169,6 @@ function bindEvents() {
     });
   });
   $("#open-furniture-catalog")?.addEventListener("click", () => setFurnitureCatalogOpen(true));
-  element.openRoomSchemeSelection?.addEventListener("click", openRoomSchemeSelectionDialog);
-  $("#close-room-scheme-selection")?.addEventListener("click", closeRoomSchemeSelectionDialog);
-  $("#room-scheme-cancel")?.addEventListener("click", closeRoomSchemeSelectionDialog);
-  element.roomSchemeList?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-room-scheme-room]");
-    if (!button) return;
-    state.selectedRoomSchemeId = button.dataset.roomSchemeRoom;
-    renderRoomSchemeSelectionDialog();
-    void ensureRoomScheme3dPreviews();   // 換房時補拍該房的 A/B 視角
-  });
-  element.roomSchemeChoiceGrid?.addEventListener("click", (event) => {
-    const preview = event.target.closest("[data-room-scheme-preview-3d]");
-    if (preview) {
-      // HTML dataset cannot expose a hyphen followed by a digit as a dot property.
-      // Read the attribute directly so clicking B never falls back to the selected A.
-      void openRoomScheme3dPreview(preview.getAttribute("data-room-scheme-preview-3d"));
-      return;
-    }
-    const button = event.target.closest("[data-room-scheme-choice]");
-    if (!button) return;
-    chooseRoomScheme(button.dataset.roomSchemeChoice);
-  });
-  $("#close-room-scheme-3d-preview")?.addEventListener("click", () => {
-    setTaskDialogOpen(element.roomScheme3dPreviewDialog, false);
-  });
-  $("#room-scheme-preview-prev")?.addEventListener("click", () => navigateRoomScheme3dPreview(-1));
-  $("#room-scheme-preview-next")?.addEventListener("click", () => navigateRoomScheme3dPreview(1));
-  element.roomSchemeStructureFix?.addEventListener("click", () => {
-    setTaskDialogOpen(element.roomScheme3dPreviewDialog, false);
-    closeRoomSchemeSelectionDialog();
-    goTo("space_confirmation");
-  });
-  element.roomSchemeComplete?.addEventListener("click", () => {
-    void completeRoomSchemeSelection();
-  });
   $("#close-furniture-catalog")?.addEventListener("click", () => setFurnitureCatalogOpen(false));
   $("#search-glb-furniture")?.addEventListener("click", searchGlbFurniture);
   $("#glb-furniture-search")?.addEventListener("keydown", (event) => {

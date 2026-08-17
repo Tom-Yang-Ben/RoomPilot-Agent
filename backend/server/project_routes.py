@@ -480,7 +480,7 @@ def create_project_router(dependencies: dict):
         except ValueError as exc:
             raise HTTPException(
                 422,
-                {"code": str(exc), "message": "渲染資料不完整，請回到第 9 步重新確認。"},
+                {"code": str(exc), "message": "渲染資料不完整，請回到第 7 步重新確認。"},
             ) from exc
         except RenderProviderUnavailable as exc:
             raise HTTPException(

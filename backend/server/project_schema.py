@@ -15,8 +15,9 @@ from typing import Any, Mapping
 from backend.floorplan.vision.units import canonicalize_analysis_cm
 
 
-PROJECT_SCHEMA_VERSION = 3
-CONFIGURATION_SCHEMA_VERSION = 3
+PROJECT_SCHEMA_VERSION = 4
+CONFIGURATION_SCHEMA_VERSION = 4
+ROOM_REQUIREMENTS_SCHEMA_VERSION = 3
 GEOMETRY_SCHEMA_VERSION = "2.0"
 STRUCTURE_COLLECTIONS = ("walls", "doors", "windows", "beams", "columns")
 RETIRED_STRUCTURE_FIELDS = (
@@ -96,6 +97,22 @@ def require_current_project_schema(workflow: Mapping[str, Any] | None) -> None:
         for key in ("sceneData", "scene_json"):
             if key in white_model:
                 retired_paths.append(f"white_model_3d.{key}")
+    requirements = workflow.get("requirements")
+    if isinstance(requirements, Mapping):
+        for key in ("basic", "basicConfirmed", "finishes"):
+            if key in requirements:
+                retired_paths.append(f"requirements.{key}")
+        requirement_model = requirements.get("roomRequirementModel")
+        if not isinstance(requirement_model, Mapping):
+            retired_paths.append("requirements.roomRequirementModel")
+        else:
+            try:
+                requirement_version = int(requirement_model.get("schemaVersion") or 0)
+            except (TypeError, ValueError):
+                requirement_version = 0
+            if requirement_version != ROOM_REQUIREMENTS_SCHEMA_VERSION:
+                retired_paths.append("requirements.roomRequirementModel.schemaVersion")
+
     configuration = workflow.get("configuration")
     if isinstance(configuration, Mapping):
         try:
@@ -104,25 +121,18 @@ def require_current_project_schema(workflow: Mapping[str, Any] | None) -> None:
             configuration_version = 0
         if configuration_version != CONFIGURATION_SCHEMA_VERSION:
             retired_paths.append("configuration.schema_version")
-
-        schemes = configuration.get("schemes")
-        if isinstance(schemes, Mapping):
-            for scheme_id, scheme in schemes.items():
-                if not isinstance(scheme, Mapping):
-                    continue
-                scene_data = scheme.get("sceneData")
-                if not isinstance(scene_data, Mapping):
-                    continue
-                floorplan = scene_data.get("floorplan")
-                if (
-                    not isinstance(floorplan, Mapping)
-                    or floorplan.get("coordinate_unit") != "cm"
-                    or str(floorplan.get("schema_version")) != GEOMETRY_SCHEMA_VERSION
-                ):
-                    retired_paths.append(
-                        f"configuration.schemes.{scheme_id}.sceneData.floorplan"
-                    )
-                    break
+        for key in ("schemes", "active_scheme_id", "locked_scheme_id", "room_selections"):
+            if key in configuration:
+                retired_paths.append(f"configuration.{key}")
+        scene_data = configuration.get("sceneData")
+        if isinstance(scene_data, Mapping):
+            floorplan = scene_data.get("floorplan")
+            if (
+                not isinstance(floorplan, Mapping)
+                or floorplan.get("coordinate_unit") != "cm"
+                or str(floorplan.get("schema_version")) != GEOMETRY_SCHEMA_VERSION
+            ):
+                retired_paths.append("configuration.sceneData.floorplan")
 
     if isinstance(space, Mapping) and space:
         if (
@@ -613,6 +623,111 @@ def repair_legacy_wall_furniture_gaps(
     return result, repaired_furniture, len(repaired_positions)
 
 
+def _room_requirement_surfaces(finishes: Mapping[str, Any] | None) -> dict[str, Any]:
+    finishes = dict(finishes or {})
+    return {
+        "paletteId": finishes.get("stylePackId"),
+        "wallPreference": "",
+        "floorPreference": "",
+        "wallDefault": {
+            "materialId": finishes.get("wallMaterial"),
+            "color": finishes.get("wallColor"),
+        },
+        "wallSurfaceIds": [],
+        "wallOverrides": {},
+        "floor": {
+            "materialId": finishes.get("floorMaterial"),
+            "color": finishes.get("floorColor"),
+        },
+        "ceiling": {
+            "materialId": finishes.get("ceilingMaterial"),
+            "styleId": finishes.get("ceilingStyle"),
+            "lightingId": finishes.get("lightStyle"),
+            "color": finishes.get("ceilingColor"),
+        },
+    }
+
+
+def _empty_room_requirement(
+    room: Mapping[str, Any],
+    finishes: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    room_id = str(room.get("id") or room.get("room_id") or "")
+    return {
+        "roomId": room_id,
+        "roomType": room.get("type") or room.get("room_type") or "other",
+        "roomLabel": room.get("name") or room.get("label") or "未命名空間",
+        "usage": [],
+        "axisAnswers": {},
+        "furniture": {"required": [], "optional": [], "selected": [], "deferred": []},
+        "climate": {"airConditioning": None},
+        "generativeEquipment": {
+            "required": (room.get("type") or room.get("room_type"))
+            in {"kitchen", "bathroom", "balcony"},
+            "primaryUse": None,
+            "equipmentDirection": [],
+            "mustNotHave": [],
+            "priority": None,
+            "fitStatus": "pending",
+            "generationNotes": "",
+            "structuralIntentAcknowledged": False,
+        },
+        "surfaces": _room_requirement_surfaces(finishes),
+        "feasibility": [],
+        "specialRequests": [],
+        "confirmed": False,
+    }
+
+
+def _canonical_requirements(
+    requirements: Mapping[str, Any] | None,
+    rooms: list[Any],
+) -> dict[str, Any] | None:
+    if not isinstance(requirements, Mapping):
+        return None
+    source = deepcopy(dict(requirements))
+    saved_model = source.get("roomRequirementModel")
+    model = deepcopy(dict(saved_model)) if isinstance(saved_model, Mapping) else {}
+    legacy_finishes = source.get("finishes")
+    global_finishes = model.get("globalFinishes")
+    if not isinstance(global_finishes, Mapping):
+        global_finishes = legacy_finishes if isinstance(legacy_finishes, Mapping) else {}
+    saved_rooms = model.get("roomRequirements")
+    room_requirements = (
+        deepcopy(dict(saved_rooms)) if isinstance(saved_rooms, Mapping) else {}
+    )
+    for room in rooms:
+        if not isinstance(room, Mapping):
+            continue
+        room_id = str(room.get("id") or room.get("room_id") or "")
+        if room_id and room_id not in room_requirements:
+            room_requirements[room_id] = _empty_room_requirement(room, global_finishes)
+
+    canonical_model = {
+        **model,
+        "schemaVersion": ROOM_REQUIREMENTS_SCHEMA_VERSION,
+        "activeRoomId": model.get("activeRoomId")
+        or next(iter(room_requirements), None),
+        "roomRequirements": room_requirements,
+        "unassignedDeferredFurniture": deepcopy(
+            list(model.get("unassignedDeferredFurniture") or [])
+        ),
+        "globalProfile": deepcopy(
+            dict(model.get("globalProfile") or source.get("basic") or {})
+        ),
+        "globalConfirmed": model.get("globalConfirmed") is True
+        or source.get("basicConfirmed") is True,
+        "globalFinishes": deepcopy(dict(global_finishes)),
+    }
+    result = {
+        key: deepcopy(value)
+        for key, value in source.items()
+        if key not in {"basic", "basicConfirmed", "finishes", "roomRequirementModel"}
+    }
+    result["roomRequirementModel"] = canonical_model
+    return result
+
+
 def _empty_scheme(scheme_id: str) -> dict[str, Any]:
     return {
         "id": scheme_id,
@@ -754,6 +869,60 @@ def _canonical_configuration(
     }
 
 
+def _canonical_single_configuration(
+    configuration: Mapping[str, Any] | None,
+    space_schemes: Mapping[str, Any] | None,
+    root_schemes: Mapping[str, Any] | None,
+    layout: Mapping[str, Any] | None,
+    white_model: Mapping[str, Any] | None,
+    root: Mapping[str, Any],
+) -> dict[str, Any]:
+    try:
+        configuration_version = int((configuration or {}).get("schema_version") or 0)
+    except (AttributeError, TypeError, ValueError):
+        configuration_version = 0
+    if isinstance(configuration, Mapping) and configuration_version == 4:
+        scene_data = canonicalize_scene_data(configuration.get("sceneData"))
+        scene_data, furniture, _ = repair_legacy_wall_furniture_gaps(
+            scene_data,
+            list(configuration.get("furniture") or []),
+        )
+        return {
+            "schema_version": CONFIGURATION_SCHEMA_VERSION,
+            "furniture": furniture,
+            "sceneData": scene_data,
+            "stale": configuration.get("stale") is True,
+            "staleReason": str(configuration.get("staleReason") or ""),
+            "locked": configuration.get("locked") is True,
+            "configuration_snapshot": deepcopy(configuration.get("configuration_snapshot"))
+            if isinstance(configuration.get("configuration_snapshot"), Mapping)
+            else None,
+        }
+
+    legacy = _canonical_configuration(
+        configuration,
+        space_schemes,
+        root_schemes,
+        layout,
+        white_model,
+        root,
+    )
+    schemes = legacy.get("schemes") or {}
+    selected_id = legacy.get("locked_scheme_id") or legacy.get("active_scheme_id") or "A"
+    selected = schemes.get(selected_id) or schemes.get("A") or _empty_scheme("A")
+    return {
+        "schema_version": CONFIGURATION_SCHEMA_VERSION,
+        "furniture": deepcopy(list(selected.get("furniture") or [])),
+        "sceneData": deepcopy(selected.get("sceneData")),
+        "stale": selected.get("stale") is True,
+        "staleReason": str(selected.get("staleReason") or ""),
+        "locked": legacy.get("locked_scheme_id") is not None,
+        "configuration_snapshot": deepcopy(legacy.get("configuration_snapshot"))
+        if isinstance(legacy.get("configuration_snapshot"), Mapping)
+        else None,
+    }
+
+
 def migrate_project_workflow(
     workflow: Mapping[str, Any] | None,
 ) -> ProjectWorkflowMigration:
@@ -774,9 +943,16 @@ def migrate_project_workflow(
     if isinstance(space, Mapping):
         result["space_confirmation"] = canonicalize_space_confirmation(space)
 
+    requirements = _canonical_requirements(
+        result.get("requirements") if isinstance(result.get("requirements"), Mapping) else None,
+        list((result.get("space_confirmation") or {}).get("rooms") or []),
+    )
+    if requirements is not None:
+        result["requirements"] = requirements
+
     layout = result.get("layout_2d")
     white_model = result.get("white_model_3d")
-    configuration = _canonical_configuration(
+    configuration = _canonical_single_configuration(
         result.get("configuration") if isinstance(result.get("configuration"), Mapping) else None,
         space_schemes if isinstance(space_schemes, Mapping) else None,
         result.get("design_schemes") if isinstance(result.get("design_schemes"), Mapping) else None,

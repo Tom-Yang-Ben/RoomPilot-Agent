@@ -67,6 +67,16 @@ def _legacy_workflow() -> dict:
                 },
             },
         },
+        "requirements": {
+            "basic": {"overallStyle": "北歐風"},
+            "basicConfirmed": True,
+            "finishes": {
+                "confirmed": True,
+                "stylePackId": "scandinavian-light",
+                "wallMaterial": "paint",
+                "wallColor": "#f4f1eb",
+            },
+        },
         "layout_2d": {
             "active_scheme_id": "B",
             "room_selections": {"living": "B"},
@@ -163,7 +173,7 @@ def _stored_workflow(database: Path) -> tuple[dict, int]:
     return json.loads(raw), int(revision)
 
 
-def test_legacy_project_is_migrated_to_one_v3_configuration() -> None:
+def test_legacy_project_is_migrated_to_one_v4_configuration() -> None:
     migrated = migrate_project_workflow(_legacy_workflow()).workflow
 
     assert migrated["project_schema_version"] == PROJECT_SCHEMA_VERSION
@@ -179,15 +189,31 @@ def test_legacy_project_is_migrated_to_one_v3_configuration() -> None:
     assert "scheme_id" not in migrated["space_confirmation"]["structures"]["walls"][0]
     assert "demolition_candidate" not in migrated["space_confirmation"]["structures"]["walls"][0]
     assert "design_schemes" not in migrated["space_confirmation"]
-    assert migrated["configuration"]["active_scheme_id"] == "B"
-    assert migrated["configuration"]["room_selections"] == {"living": "B"}
-    assert migrated["configuration"]["schemes"]["A"]["furniture"][0]["id"] == "sofa-a"
-    assert migrated["configuration"]["schemes"]["B"]["furniture"][0]["id"] == "sofa-b"
-    scene = migrated["configuration"]["schemes"]["B"]["sceneData"]
+    requirements = migrated["requirements"]
+    model = requirements["roomRequirementModel"]
+    assert model["schemaVersion"] == 3
+    assert model["globalProfile"] == {"overallStyle": "北歐風"}
+    assert model["globalConfirmed"] is True
+    assert model["globalFinishes"]["stylePackId"] == "scandinavian-light"
+    assert "basic" not in requirements
+    assert "basicConfirmed" not in requirements
+    assert "finishes" not in requirements
+    assert model["roomRequirements"]["living"]["surfaces"]["wallDefault"] == {
+        "materialId": "paint",
+        "color": "#f4f1eb",
+    }
+    configuration = migrated["configuration"]
+    assert configuration["schema_version"] == PROJECT_SCHEMA_VERSION
+    assert configuration["locked"] is False
+    assert configuration["furniture"][0]["id"] == "sofa-b"
+    assert "schemes" not in configuration
+    assert "active_scheme_id" not in configuration
+    assert "room_selections" not in configuration
+    scene = configuration["sceneData"]
     assert scene["floorplan"]["coordinate_unit"] == "cm"
     assert scene["floorplan"]["wall_segments"][0]["end"] == {"x": 300, "z": -200}
     assert scene["scene_objects"][0]["position_cm"]["x"] == -200
-    assert migrated["configuration"]["schemes"]["B"]["furniture"][0]["xCm"] == -200
+    assert configuration["furniture"][0]["xCm"] == -200
     assert "furniture" not in migrated["layout_2d"]
     assert "schemes" not in migrated["layout_2d"]
     assert "sceneData" not in migrated["white_model_3d"]

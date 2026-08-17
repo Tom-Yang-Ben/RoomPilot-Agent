@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RoomPilot 空間規劃</title>
   <link rel="stylesheet" href="/static/site.css?v=sha256-3895abb26a13" />
-  <link rel="stylesheet" href="/static/scene.css?v=sha256-f9f1e5bbb678" />
+  <link rel="stylesheet" href="/static/scene.css?v=sha256-1dfc3132ec67" />
   <link rel="stylesheet" href="/static/scene-questionnaire.css?v=sha256-11b19d1e806d" />
   <link rel="stylesheet" href="/static/scene-structure.css?v=sha256-c3f5998be655" />
-  <link rel="stylesheet" href="/static/scene-workflow.css?v=sha256-3a397d998413" />
-  <link rel="stylesheet" href="/static/scene-polish.css?v=sha256-5782c151ea7d" />
+  <link rel="stylesheet" href="/static/scene-workflow.css?v=sha256-9980d6acf441" />
   </head>
   <body data-page="scene" class="rp-workflow-page">
     <header class="topbar app-topbar">
@@ -538,7 +537,7 @@
 
           <section id="questionnaire-summary" class="rp-questionnaire-stage" data-questionnaire-panel="summary" hidden>
             <div class="rp-questionnaire-section-heading">
-              <div><span class="eyebrow">確認摘要</span><h3>確認需求後，建立兩組平面與立體配置</h3></div>
+              <div><span class="eyebrow">確認摘要</span><h3>確認需求後，建立平面與立體配置</h3></div>
               <p>可返回修改，已填內容會保留。</p>
             </div>
             <div id="questionnaire-summary-content" class="rp-questionnaire-summary"></div>
@@ -562,15 +561,6 @@
       </section>
 
       <section id="layout-2d-step" class="rp-step-panel" data-panel="layout-2d" hidden>
-        <!-- 方案 A/B 於第 6 步逐房比較視窗中選定；工具列保留 DOM 供既有
-             renderSchemeControls 與契約測試（恰 3 對按鈕）使用，但不再顯示。 -->
-        <div id="layout-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true">
-          <div class="rp-segmented" role="tablist" aria-label="家具配置方案">
-            <button type="button" data-design-scheme="A" class="is-active">方案 A</button>
-            <button type="button" data-design-scheme="B" hidden>方案 B</button>
-          </div>
-          <span id="layout-scheme-status">目前編輯方案 A</span>
-        </div>
         <div class="rp-split-workspace rp-layout-workspace">
           <div class="rp-plan-pane">
             <div class="rp-pane-heading">
@@ -619,13 +609,6 @@
       </section>
 
       <section id="white-model-3d-step" class="rp-step-panel rp-step-panel--white-model" data-panel="white-model-3d" hidden>
-        <div id="white-model-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true">
-          <div class="rp-segmented" role="tablist" aria-label="3D 家具配置方案">
-            <button type="button" data-design-scheme="A" class="is-active">方案 A</button>
-            <button type="button" data-design-scheme="B" hidden>方案 B</button>
-          </div>
-          <span>各方案使用各自的家具座標與結構</span>
-        </div>
         <div class="rp-3d-workspace">
           <div class="rp-viewer-pane">
             <div class="rp-viewer-toolbar">
@@ -689,11 +672,6 @@
                   <div id="configuration-pending-list" aria-live="polite"></div>
                 </section>
               </div>
-            </section>
-            <section id="room-scheme-gate" class="rp-editor-box" aria-labelledby="room-scheme-gate-title" hidden aria-hidden="true">
-              <h3 id="room-scheme-gate-title">逐房確認方案</h3>
-              <p id="room-scheme-gate-status" class="rp-field-hint" aria-live="polite">請逐房比較 A/B 的 2D 與 3D 配置後，再開始微調。</p>
-              <button id="open-room-scheme-selection" type="button" class="secondary-action">逐房比較方案</button>
             </section>
             <section class="rp-editor-box rp-white-beam-editor" aria-labelledby="white-model-beam-title">
               <h3 id="white-model-beam-title">天花板樑</h3>
@@ -815,13 +793,6 @@
       </section>
 
       <section id="realistic-3d-step" class="rp-step-panel rp-step-panel--realistic" data-panel="realistic-3d" hidden>
-        <div id="realistic-scheme-bar" class="rp-scheme-toolbar" hidden aria-hidden="true">
-          <div class="rp-segmented" role="tablist" aria-label="3D 材質配置方案">
-            <button type="button" data-design-scheme="A" class="is-active">方案 A</button>
-            <button type="button" data-design-scheme="B" hidden>方案 B</button>
-          </div>
-          <span>材質偏好共用，場景結果分開保存</span>
-        </div>
         <div class="rp-3d-workspace">
           <div class="rp-viewer-pane">
             <div class="rp-viewer-toolbar">
@@ -990,52 +961,6 @@
       </dialog>
 
 
-      <dialog id="room-scheme-selection-dialog" class="rp-task-dialog" aria-labelledby="room-scheme-dialog-title">
-        <div class="rp-task-dialog-shell">
-          <header class="rp-task-dialog-header">
-            <div>
-              <p class="eyebrow">第 6 步 · 逐房配置確認</p>
-              <h2 id="room-scheme-dialog-title">選擇每個房間的配置方案</h2>
-              <p id="room-scheme-status" aria-live="polite"></p>
-            </div>
-            <p id="room-scheme-progress" class="rp-room-scheme-progress" aria-live="polite"></p>
-            <button id="close-room-scheme-selection" type="button" class="rp-icon-command" aria-label="關閉">×</button>
-          </header>
-          <section class="rp-room-scheme-guide" aria-label="選擇方式">
-            <ol>
-              <li><strong>1. 選房間</strong><span>從下方房間清單切換。</span></li>
-              <li><strong>2. 看兩種配置</strong><span>比較家具平面位置與可旋轉的 3D 視圖。</span></li>
-              <li><strong>3. 選定方案</strong><span>選擇 A 或 B，作為後續微調與生圖的配置基礎。</span></li>
-            </ol>
-          </section>
-          <div id="room-scheme-list" class="rp-room-scheme-list" aria-label="房間列表"></div>
-          <div id="room-scheme-choice-grid" class="rp-scheme-choice-grid" aria-live="polite"></div>
-          <p id="room-scheme-warning" class="rp-task-dialog-warning" aria-live="polite"></p>
-          <footer class="rp-task-dialog-actions">
-            <button id="room-scheme-cancel" type="button" class="secondary-action">稍後選擇</button>
-            <button id="room-scheme-complete" type="button" class="primary-action">完成選擇並開始微調</button>
-          </footer>
-        </div>
-      </dialog>
-      <dialog id="room-scheme-3d-preview-dialog" class="rp-task-dialog rp-room-scheme-preview-dialog" aria-labelledby="room-scheme-3d-preview-title">
-        <div class="rp-task-dialog-shell">
-          <header class="rp-task-dialog-header">
-            <div>
-              <p class="eyebrow">方案 3D 預覽</p>
-              <h2 id="room-scheme-3d-preview-title">查看房間配置</h2>
-              <p id="room-scheme-3d-status" aria-live="polite">拖曳可旋轉，滾輪可縮放。</p>
-              <button id="room-scheme-structure-fix" type="button" class="secondary-action" hidden>前往第 4 步確認結構</button>
-            </div>
-            <button id="close-room-scheme-3d-preview" type="button" class="rp-icon-command rp-room-scheme-preview-close" aria-label="關閉預覽" title="關閉預覽">×</button>
-          </header>
-          <div id="room-scheme-3d-preview" class="rp-room-scheme-3d-preview" aria-label="可旋轉的房間 3D 預覽"></div>
-          <footer class="rp-room-scheme-preview-nav">
-            <button id="room-scheme-preview-prev" type="button" class="secondary-action">← 上一房</button>
-            <span id="room-scheme-preview-position" aria-live="polite"></span>
-            <button id="room-scheme-preview-next" type="button" class="secondary-action">下一房 →</button>
-          </footer>
-        </div>
-      </dialog>
     </main>
 
     <dialog id="furniture-replacement-drawer" class="rp-replacement-drawer">
@@ -1173,6 +1098,6 @@
         }
       }
     </script>
-<script type="module" src="/static/scene_v2.js?v=sha256-93d9e3e268ea"></script>
+<script type="module" src="/static/scene_v2.js?v=sha256-a9914f95592d"></script>
   </body>
 </html>

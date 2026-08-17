@@ -1,9 +1,7 @@
 // Step 7 proposal review and Step 8 render/delivery workflow controller.
 export function createSceneProposalController({
   activeScheme,
-  activeSchemeId,
   aiRenderViewer,
-  allRoomsHaveSchemeSelections,
   api,
   beginPlacementBusy,
   composeSelectedRoomFurniture,
@@ -21,7 +19,6 @@ export function createSceneProposalController({
   proposalViewer,
   refreshConfigurationSnapshot,
   renderSchemeControls,
-  roomSchemeSelectionRequired,
   scheduleSave,
   setStatus,
   showQuestionnaireStage,
@@ -33,7 +30,6 @@ export function createSceneProposalController({
 function currentSceneVersion() {
   return [
     state.sceneData?.scene_id || "scene",
-    `scheme-${activeSchemeId()}`,
     `revision-${Number(state.project?.revision || 0)}`,
     state.activeStylePackId || "no-style",
   ].join(":");
@@ -81,7 +77,7 @@ function renderProposalSummary() {
     (answer) => String(answer?.custom || "").trim(),
   ).length;
   const rows = [
-    ["方案", `方案 ${activeSchemeId()}`],
+    ["配置", "已確認家具配置"],
     ["色卡", selectedPalette ? `${selectedPalette.styleLabel}／${selectedPalette.name}` : (pack ? `${pack.styleLabel}／尚未選擇色卡` : "尚未選擇")],
     ["家具", `${furniture.filter((item) => !item.placement_failed).length} 件已配置`],
     ["結構", `牆 ${state.structures.walls.length}、門 ${state.structures.doors.length}、窗 ${state.structures.windows.length}`],
@@ -102,7 +98,7 @@ function lockMasterRenderView() {
   }
   if (activeScheme()?.stale || !activeScheme()?.sceneData) {
     element.masterViewStatus.textContent =
-      `方案 ${activeSchemeId()} 尚未完成最新的 2D／3D 重算，不能鎖定。`;
+      "家具配置尚未完成最新的 2D／3D 重算，不能鎖定。";
     return;
   }
   const visualProgress = visualQuestionnaireProgress({
@@ -133,10 +129,6 @@ function lockMasterRenderView() {
     element.masterViewStatus.textContent = "請先選擇一張同風格色卡，作為遠端生圖的色彩基準。";
     return;
   }
-  if (roomSchemeSelectionRequired() && !allRoomsHaveSchemeSelections(state.designSchemes, state.rooms)) {
-    element.masterViewStatus.textContent = "請先回第 6 步完成每個房間的 A/B 方案選擇。";
-    return;
-  }
   const configurationSnapshotData = refreshConfigurationSnapshot();
   const camera = proposalViewer.getCameraState();
   if (camera.camera_type !== "perspective") {
@@ -146,13 +138,12 @@ function lockMasterRenderView() {
   const lockedAt = new Date().toISOString();
   state.proposalReview.masterView = {
     camera,
-    scheme_id: activeSchemeId(),
     scene_version: currentSceneVersion(),
     style_card_id: state.proposalReview.confirmedStyleCardId,
     configuration_snapshot_id: configurationSnapshotData.snapshot_id,
     locked_at: lockedAt,
   };
-  state.designSchemes.locked_scheme_id = activeSchemeId();
+  state.configurationState.locked = true;
   state.proposalReview.roomViews = {};
   proposalRoomPreviewCache.clear();
   state.proposalReview.jobs = [];
@@ -762,9 +753,7 @@ function renderProposalStyleStage() {
     : "\u8acb\u5148\u7522\u751f\u4ee3\u8868\u623f\u7684 3 \u5f35\u8272\u5361\u6bd4\u8f03\u5716\uff0c\u518d\u9078\u4e00\u5f35\u78ba\u5b9a\u3002";
 }
 
-// Steps 7 and 8 deliberately have different responsibilities.  The legacy
-// A/B fields stay in persisted projects for backwards compatibility, but are
-// never used as a user decision in the current flow.
+// Steps 7 and 8 deliberately have different responsibilities.
 
 
 
@@ -1029,10 +1018,8 @@ function applyPaletteRenderResults(result, cards, roomId) {
 
 
 /*
- * The former Step 7 implementation mixed the retired A/B review with the
- * render workflow.  Keep persisted A/B data readable, but make the live
- * experience a single path: room views -> representative-room palette ->
- * one-at-a-time final renders.
+ * The live experience follows one path: room views -> representative-room
+ * palette -> one-at-a-time final renders.
  */
 async function prepareProposalReview() {
   if (!state.sceneData) {
@@ -1838,9 +1825,9 @@ async function generateDesignDelivery() {
   const trigger = $("#design-delivery-generate");
   if (trigger) trigger.disabled = true;
   if (element.aiRenderStatus) element.aiRenderStatus.textContent = "正在建立裝潢簡報、工程報告、資安審核與預算明細…";
-  state.designSchemes.configuration_snapshot = state.designSchemes.configuration_snapshot
+  state.configurationState.configuration_snapshot = state.configurationState.configuration_snapshot
     || configurationSnapshot();
-  const baseSnapshot = state.designSchemes.configuration_snapshot;
+  const baseSnapshot = state.configurationState.configuration_snapshot;
   const configuration = {
     ...baseSnapshot,
     snapshot_id: baseSnapshot.snapshot_id || baseSnapshot.created_at,

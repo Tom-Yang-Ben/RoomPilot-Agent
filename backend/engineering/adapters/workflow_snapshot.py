@@ -9,8 +9,8 @@ docs/engineering/EXISTING_FIELD_MAPPING.md）。UI 欄位改名時只改這個�
 - confirmed_floorplan.floorplan.room_height_cm       → geometry.height_m
 - space_confirmation.structures.doors/windows        → geometry.opening_area_m2（段長×高）
 - requirements.roomRequirementModel...surfaces       → rooms[].materials（逐房為準，
-  查型錄換成受控詞彙；沒有逐房選擇才退回 requirements.finishes 的全屋選項）
-- configuration.schemes[locked/active].furniture[]   → rooms[].furniture（轉房間座標）
+  查型錄換成受控詞彙；沒有逐房選擇才退回 globalFinishes）
+- configuration.furniture[]                         → rooms[].furniture（轉房間座標）
 - proposal_review.jobs / ProjectStore renders        → rooms[].renders
 """
 from __future__ import annotations
@@ -321,17 +321,11 @@ def snapshot_draft_from_workflow(
         assumptions.append("尚未確認樓高，暫以 270 cm 計算；現場複丈後請更新。")
 
     requirements = workflow.get("requirements") or {}
-    finishes = requirements.get("finishes") or {}
+    requirement_model = requirements.get("roomRequirementModel") or {}
+    finishes = requirement_model.get("globalFinishes") or {}
 
     configuration = workflow.get("configuration") or {}
-    schemes = configuration.get("schemes") or {}
-    scheme_id = (
-        configuration.get("locked_scheme_id")
-        or configuration.get("active_scheme_id")
-        or "A"
-    )
-    active_scheme = schemes.get(scheme_id) or {}
-    furniture_items = list(active_scheme.get("furniture") or [])
+    furniture_items = list(configuration.get("furniture") or [])
     proposal = workflow.get("proposal_review") or {}
     jobs = list(proposal.get("jobs") or [])
     plan_center = _plan_center(rooms_raw)

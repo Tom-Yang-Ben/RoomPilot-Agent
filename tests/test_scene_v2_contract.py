@@ -387,7 +387,7 @@ def test_material_cards_use_image_derived_visual_profiles() -> None:
 def test_step_six_surface_constants_are_defined_not_just_referenced() -> None:
     """帶拼接曾掉了 const STEP_SIX_SURFACE_MATERIAL_LIMIT/SWATCH_LIMIT 的定義，
     renderGroupedMaterialOptions 一執行就 ReferenceError，前端初始化在
-    renderStyleControls 就中斷（連帶第 6 步 A/B 預覽等全壞）。原始碼字串測與
+    renderStyleControls 就中斷（連帶第 6 步預覽等全壞）。原始碼字串測與
     node --check 都抓不到執行期未定義；此測強制所有被引用的 STEP_SIX_* 常數都有定義。"""
     import re
 
@@ -398,113 +398,16 @@ def test_step_six_surface_constants_are_defined_not_just_referenced() -> None:
     assert not missing, f"STEP_SIX_* 常數被引用卻未定義（執行期 ReferenceError）：{missing}"
 
 
-def test_room_scheme_preview_viewer_is_instantiated() -> None:
-    """roomSchemePreviewViewer 必須建立，否則逐房 A/B 的 3D 預覽會 ReferenceError。"""
+def test_retired_room_scheme_ui_assets_are_removed() -> None:
     source = scene_controller_source(STATIC)
-    assert "const roomSchemePreviewViewer = createSceneViewer(" in source
-    assert "prepareRoomSchemePreviewViewer(roomSchemePreviewViewer" in source
-
-
-def test_room_scheme_plan_svg_has_visible_styling_not_default_black() -> None:
-    """逐房 A/B 的 2D 平面預覽必須有明確 SVG 配色，不能退回預設黑色。"""
-    css = _scene_css()
-    for rule in (
-        ".rp-room-scheme-plan {",
-        ".rp-room-scheme-outline {",
-        ".rp-room-scheme-furniture rect {",
-        ".rp-room-scheme-empty {",
-    ):
-        assert rule in css, f"site.css 缺少 {rule}（SVG 形狀會退回黑色填色）"
-
-
-def test_room_scheme_3d_preview_container_has_height() -> None:
-    """.rp-room-scheme-3d-preview 必須有高度，否則容器會塌成 0px，導致可旋轉
-    3D 預覽的 canvas 0 高度 → loadScene 成功卻整片空白（點擊旋轉查看看不到場景）。"""
-    css = _scene_css()
-    block = css.split(".rp-room-scheme-3d-preview {", 1)
-    assert len(block) == 2, "site.css 缺少 .rp-room-scheme-3d-preview 容器規則"
-    rule_body = block[1].split("}", 1)[0]
-    assert "min-height" in rule_body
-
-
-def test_room_scheme_preview_close_button_is_visible_on_light_dialog() -> None:
-    """本分支 .rp-icon-command 只剩深底白字版；白色對話框裡 × 關閉鈕白字白底＝隱形，
-    使用者關不掉視窗。.rp-room-scheme-preview-close 必須把它還原成淺底深字、可見可點。"""
-    css = _scene_css()
-    block = css.split(".rp-room-scheme-preview-close {", 1)
-    assert len(block) == 2, "site.css 缺少 .rp-room-scheme-preview-close（× 關閉鈕會隱形）"
-    body = block[1].split("}", 1)[0]
-    assert "background: #fffdfa" in body  # 淺底
-    assert "color: #302d29" in body  # 深字
-
-
-def test_room_scheme_3d_preview_has_room_navigation() -> None:
-    """放大的可旋轉 3D 預覽要能逐房翻頁（上一房/下一房、循環），使用者才能不必關掉
-    重開就逐一確認每個房型的門窗與家具。"""
-    source = scene_controller_source(STATIC)
-    assert "function navigateRoomScheme3dPreview" in source
-    assert "navigateRoomScheme3dPreview(-1)" in source
-    assert "navigateRoomScheme3dPreview(1)" in source
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
-    assert 'id="room-scheme-preview-prev"' in html
-    assert 'id="room-scheme-preview-next"' in html
-    assert 'id="room-scheme-preview-position"' in html
+    css = _scene_css()
 
-
-def test_room_scheme_3d_preview_falls_back_to_live_full_house_scene() -> None:
-    """per-scheme sceneData 不進存檔（只存 furniture/stale），重載後 schemes.sceneData
-    為 null → A/B 3D 預覽永遠空白。ensureRoomScheme3dPreviews 缺 scheme 自身 sceneData
-    時要回退用已還原的全屋 state.sceneData（作用中方案），也達成「從全房 3D 擷取」。"""
-    source = scene_controller_source(STATIC)
-    fn = source.split("async function ensureRoomScheme3dPreviews", 1)[1].split(
-        "\nfunction chooseRoomScheme", 1
-    )[0]
-    assert "activeSchemeId()" in fn
-    assert "state.sceneData" in fn
-    # 非作用中方案重載後無自身場景：用全屋 shell + 該方案家具座標重建（不重跑生成）。
-    assert "function schemeFurnitureSceneFromShell" in source
-    assert "schemeFurnitureSceneFromShell(" in fn
-
-
-def test_room_scheme_3d_preview_loads_each_scheme_once_and_captures_all_rooms() -> None:
-    """優化：每個方案的全屋場景只 loadScene 一次，一次拍完該方案「所有房間」（迴圈
-    job.rooms）再 unloadScene，換房直接讀快取——不再每換房重載整棟。"""
-    source = scene_controller_source(STATIC)
-    fn = source.split("async function ensureRoomScheme3dPreviews", 1)[1].split(
-        "\nfunction chooseRoomScheme", 1
-    )[0]
-    assert "loadScene(job.scene)" in fn
-    assert "for (const room of job.rooms)" in fn
-    # 一次載入內拍完所有房間，載入次數不隨房數增加（每個方案一次）。
-    assert fn.count("glbThumbnailViewer.loadScene(") == 1
-    assert fn.count("glbThumbnailViewer.unloadScene()") == 1
-
-
-def test_room_scheme_3d_preview_key_and_lifecycle_are_correct() -> None:
-    """對抗式審查抓到的三個執行期缺陷（字串契約測抓不到，特此鎖定）：
-    1) 快取鍵讀寫兩端都要用 room.id——傳 room 物件會變 "[object Object]" 永不命中，
-       預覽恆卡占位；2) unloadScene 必須在 finally，中途 throw 也卸載，避免離屏 GPU
-       洩漏／context loss；3) 完成後自我補觸發，涵蓋方案 B 稍後才就緒的情形。"""
-    import re
-
-    source = scene_controller_source(STATIC)
-    fn = source.split("async function ensureRoomScheme3dPreviews", 1)[1].split(
-        "\nfunction chooseRoomScheme", 1
-    )[0]
-    # (1) 讀寫鍵都用 room.id；且沒有殘留傳 room 物件的寫法
-    assert "roomSchemePreviewKey(job.schemeId, room.id)" in fn
-    assert "roomSchemePreviewKey(schemeId, room.id)" in fn
-    assert not re.search(r"roomSchemePreviewKey\([^,]+,\s*room\)", fn), "cache key 傳了 room 物件"
-    render = source.split("function renderRoomSchemeSelectionDialog", 1)[1].split(
-        "\nfunction ", 1
-    )[0]
-    assert "roomSchemePreviewKey(schemeId, room.id)" in render  # 讀取端亦用 room.id
-    # (2) unloadScene 在 finally 內（保證卸載）：per-job try/finally + 外層 try/finally 共兩個
-    assert fn.count("finally {") == 2
-    assert "glbThumbnailViewer.unloadScene()" in fn
-    # (3) 自我補觸發
-    assert "void ensureRoomScheme3dPreviews();" in fn
-
+    assert "roomSchemePreviewViewer" not in source
+    assert 'id="room-scheme-selection-dialog"' not in html
+    assert 'id="room-scheme-3d-preview"' not in html
+    assert ".rp-room-scheme-3d-preview" not in css
+    assert ".rp-room-scheme-plan" not in css
 
 def test_room_surfaces_keep_one_main_wall_and_floor_with_functional_exceptions() -> None:
     source = scene_controller_source(STATIC)
@@ -699,7 +602,7 @@ def test_questionnaire_restores_visual_ceiling_selection_flow() -> None:
 def test_questionnaire_selected_catalog_furniture_drives_step_six_exactly() -> None:
     source = scene_controller_source(STATIC)
     auto_layout = source.split("async function autoLayoutFurniture()", 1)[1].split(
-        "async function relayoutFurnitureForScheme", 1
+        "async function relayoutFurnitureForRooms", 1
     )[0]
 
     assert "requirement?.furniture?.selected" in auto_layout
@@ -796,7 +699,7 @@ def test_changed_scene_module_cache_keys_match_dependency_content() -> None:
             "scene_structure_preview.js",
             "scene_structure_geometry.js",
             "scene_window_types.js",
-            "scene_design_schemes.js",
+            "scene_configuration_state.js",
             "scene_questionnaire_test2.js",
             "scene_questionnaire_catalog.js",
             "scene_configuration_sync.js",
@@ -949,7 +852,7 @@ def test_proposal_review_caches_the_scene_per_version() -> None:
     assert "sceneVersionLoaded: null" in source
     assert "sceneLoading: null" in source
     assert "場景還在準備中，請稍候…" in source
-    assert source.count("proposalRuntimeState.sceneVersionLoaded = null") >= 2
+    assert source.count("proposalRuntimeState.sceneVersionLoaded = null") >= 1
     prepare = source.split("async function prepareProposalReview")[1].split(
         "\nfunction "
     )[0]
@@ -970,17 +873,13 @@ def test_proposal_review_caches_the_scene_per_version() -> None:
     assert "尚未有可用的 3D 場景" in prepare_head.split("\nfunction ")[0]
 
 
-def test_scheme_choice_is_fixed_after_entering_step_seven() -> None:
-    """流程規範:方案 A/B 於第 6 步選定;第 7 步依選定方案比較三張色卡、
-    第 8 步依選定色卡逐房生圖 —— 第 7 步面板不再出現 A/B 切換鈕,
-    殘餘入口(其他面板的鈕)也必須被擋下並說明。"""
+def test_retired_scheme_choice_is_absent_from_the_live_workflow() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = scene_controller_source(STATIC)
 
-    proposal_panel = html.split('id="proposal-review-step"')[1].split("</section>")[0]
-    assert "data-design-scheme" not in proposal_panel
-    assert 'currentStep === "proposal_review" || currentStep === "ai_render"' in source
-    assert "方案已於第 6 步選定" in source
+    assert "data-design-scheme" not in html
+    assert "switchDesignScheme" not in source
+    assert "placement_variant" not in source
 
 
 def test_step_eight_render_image_replaces_viewer_and_toggles() -> None:
@@ -1104,37 +1003,37 @@ def test_room_layout_always_includes_essential_furniture_specs() -> None:
     assert "item.userRequired === true ? 0 : 1" in priority
 
 
-def test_scheme_variants_share_confirmed_architecture() -> None:
-    module_uri = (STATIC / "scene_design_schemes.js").as_uri()
+def test_single_configuration_clones_confirmed_architecture() -> None:
+    module_uri = (STATIC / "scene_configuration_state.js").as_uri()
     result = run_workflow_script(
         f"""
-        import {{ structuresForScheme }} from {json.dumps(module_uri)};
+        import {{ cloneStructures }} from {json.dumps(module_uri)};
         const structures = {{
           walls: [{{ id: "wall-1", demolition_candidate: true }}],
           doors: [{{ id: "door-1", host_wall_id: "wall-1" }}],
           windows: [], beams: [{{ id: "beam-1" }}], columns: [{{ id: "column-1" }}],
         }};
         console.log(JSON.stringify({{
-          a: structuresForScheme(structures, "A"),
-          b: structuresForScheme(structures, "B"),
+          first: cloneStructures(structures),
+          second: cloneStructures(structures),
         }}));
         """
     )
 
-    assert result["a"] == result["b"]
-    assert result["b"]["walls"][0]["id"] == "wall-1"
-    assert result["b"]["doors"][0]["host_wall_id"] == "wall-1"
+    assert result["first"] == result["second"]
+    assert result["second"]["walls"][0]["id"] == "wall-1"
+    assert result["second"]["doors"][0]["host_wall_id"] == "wall-1"
 
 
-def test_empty_design_scheme_state_initializes_as_current_schema() -> None:
-    module_uri = (STATIC / "scene_design_schemes.js").as_uri()
+def test_empty_configuration_state_initializes_as_current_schema() -> None:
+    module_uri = (STATIC / "scene_configuration_state.js").as_uri()
     result = run_workflow_script(
         f"""
-        import {{ normalizeDesignSchemes }} from {json.dumps(module_uri)};
-        const initialized = normalizeDesignSchemes();
+        import {{ normalizeConfigurationState }} from {json.dumps(module_uri)};
+        const initialized = normalizeConfigurationState();
         let legacyError = "";
         try {{
-          normalizeDesignSchemes({{ schema_version: 2, schemes: {{}} }});
+          normalizeConfigurationState({{ schema_version: 2 }});
         }} catch (error) {{
           legacyError = error.message;
         }}
@@ -1142,8 +1041,9 @@ def test_empty_design_scheme_state_initializes_as_current_schema() -> None:
         """
     )
 
-    assert result["initialized"]["schema_version"] == 3
-    assert set(result["initialized"]["schemes"]) == {"A"}
+    assert result["initialized"]["schema_version"] == 4
+    assert result["initialized"]["furniture"] == []
+    assert result["initialized"]["sceneData"] is None
     assert result["legacyError"] == "project_configuration_schema_upgrade_required"
 
 
@@ -1155,9 +1055,9 @@ def test_space_save_does_not_duplicate_furniture_or_scene_payloads() -> None:
 
     assert "project_schema_version: PROJECT_SCHEMA_VERSION" in payload
     assert "schema_version: \"2.0\"" in payload
-    assert "configuration: layoutIsLive || hasSchemeLayoutState" in payload
-    assert "furniture: scheme.furniture" in payload
-    assert "sceneData: scheme.sceneData" in payload
+    assert "configuration: layoutIsLive || hasConfigurationState" in payload
+    assert "furniture: currentConfiguration?.furniture" in payload
+    assert "sceneData: currentConfiguration?.sceneData" in payload
     assert "design_schemes" not in payload
     layout_block = payload.split("layout_2d:", 1)[1].split("configuration:", 1)[0]
     assert "furniture" not in layout_block
@@ -1492,8 +1392,8 @@ def test_project_restore_normalizes_saved_scene_before_loading_viewers() -> None
     controller = scene_controller_source(STATIC)
 
     assert "normalizeSavedSceneData" in controller
-    assert "serverState.configuration || { schema_version: 3 }" in controller
-    assert "scheme.sceneData = normalizeSavedSceneData(scheme.sceneData);" in controller
+    assert "serverState.configuration || { schema_version: 4 }" in controller
+    assert "state.configurationState.sceneData = normalizeSavedSceneData(" in controller
     assert "state.sceneData = restoredScheme?.sceneData || null;" in controller
     assert "serverState.white_model_3d?.sceneData" not in controller
 
@@ -1642,62 +1542,39 @@ def test_requirements_generate_the_white_model_without_an_intermediate_2d_confir
     assert "async function generateWhiteModelFromRequirements" in viewer
     assert "const generated = await generateWhiteModelFromRequirements({" in viewer
     assert 'state.workflow?.goTo("layout_2d")' in viewer
-    assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });' in viewer
-    assert viewer.count('await confirmLayout2d({ allowPendingFurniture: true });') >= 2
-    assert 'state.designSchemes.schemes.B && !state.designSchemes.schemes.B.stale' in viewer
+    generation = viewer.split("async function generateWhiteModelFromRequirements", 1)[1].split(
+        "function cancelWhiteModelBeamPlacement", 1
+    )[0]
+    assert generation.count("await confirmLayout2d({ allowPendingFurniture: true })") == 1
+    assert "方案 B" not in generation
     assert "問卷需求的 2D+3D 配置已建立，可開始調整。" in viewer
     assert 'state.workflow.currentStep === "white_model_3d"' in viewer
     assert 'state.workflow.currentStep === "layout_2d"' in viewer
     assert "returnToRequirementsOnFailure: true" in viewer
-    # 逐房 A/B 合成(strict)不因個別家具放不下/缺模型而硬擋使用者:待處理閘門只在
-    # 「非 allowPending 且非 strict」才擋;strict 合成走非阻斷,以 selectedSchemeMismatchNotice
-    # 提示告知(避免 configuration_scene_generation_failed 卡住逐房方案合成)。
-    assert "if (invalid.length && !allowPendingFurniture && !strictSelectedFurniture)" in viewer
-    assert "if (generatedInvalid.length && !allowPendingFurniture && !strictSelectedFurniture)" in viewer
-    assert "if (missingCatalogModels.length && !allowPendingFurniture && !strictSelectedFurniture)" in viewer
+    # 嚴格配置不因個別家具放不下或缺模型而硬擋使用者。
+    assert "if (invalid.length && !allowPendingFurniture)" in viewer
+    assert "if (generatedInvalid.length && !allowPendingFurniture)" in viewer
+    assert "if (missingCatalogModels.length && !allowPendingFurniture)" in viewer
     assert "const sceneFurniture = allowPendingFurniture" in viewer
     assert "selectedFurniture.filter(catalogItemRenderable)" in viewer
     assert "尚未找到可用的資料庫 GLB" in viewer
-    assert "selected_furniture_exact: strictSelectedFurniture || allowPendingFurniture" in viewer
+    assert "selected_furniture_exact: allowPendingFurniture" in viewer
     assert "完成需求，建立配置方案" in html
 
 
-def test_room_scheme_composite_locks_selected_positions_for_strict_generation() -> None:
-    """逐房 A/B 合成是最終擺位選擇。strict 路徑必須把所選座標鎖定送進後端,否則
-    引擎會重排家具,assertGeneratedSceneMatchesSelectedFurniture 會判定每件都
-    moved(feedback: selected_scheme_furniture_mismatch missing=0 unexpected=0
-    moved=9)。回歸守門:strict 合成傳 lockPositions,且 resolveCatalogFurniture
-    尊重它(使用者未手動拖曳的 A/B 選擇也要保留位置)。"""
+def test_single_configuration_generation_has_no_retired_strict_composite_path() -> None:
     source = scene_controller_source(STATIC)
-    assert (
-        "resolveCatalogFurniture(item, { lockPositions: strictSelectedFurniture })"
-        in source
-    )
-    resolver = source.split("async function resolveCatalogFurniture", 1)[1].split(
-        "\nasync function ", 1
-    )[0]
-    assert "{ lockPositions = false } = {}" in resolver
-    assert "item.locked === true || lockPositions === true" in resolver
 
-
-def test_room_scheme_composite_tolerates_furniture_mismatch_without_blocking() -> None:
-    """逐房 A/B 合成:引擎因空間/門窗淨空自動移位、換小或移除個別家具,不該擋住
-    使用者。strict 檢查改為記錄差異(describeSelectedFurnitureMismatch)＋非阻斷
-    提示(selectedSchemeMismatchNotice),不再 throw selected_scheme_furniture_mismatch。"""
-    source = scene_controller_source(STATIC)
-    assert "function describeSelectedFurnitureMismatch(" in source
-    assert "state.selectedSchemeMismatch = describeSelectedFurnitureMismatch(" in source
-    assert "selectedSchemeMismatchNotice()" in source
-    # 舊的硬性 throw 版已移除,不再阻斷合成
-    assert "selected_scheme_furniture_mismatch: missing=" not in source
-    assert "assertGeneratedSceneMatchesSelectedFurniture" not in source
-
+    assert "strictSelectedFurniture" not in source
+    assert "selectedSchemeMismatch" not in source
+    assert "describeSelectedFurnitureMismatch" not in source
+    assert "selected_furniture_exact: allowPendingFurniture" in source
 
 def test_requirement_generation_defers_a_single_failed_room_without_breaking_step_six() -> None:
     viewer = scene_controller_source(STATIC)
 
     auto_layout = viewer.split("async function autoLayoutFurniture()", 1)[1].split(
-        "async function relayoutFurnitureForScheme", 1
+        "async function relayoutFurnitureForRooms", 1
     )[0]
     assert 'console.warn("Room furniture layout deferred", room.id, error);' in auto_layout
     assert "item.placementFailed = true;" in auto_layout
@@ -1873,10 +1750,9 @@ def test_step_six_3d_workspace_has_a_collapsible_2d_review_sidebar() -> None:
     assert "function renderConfigurationPlan" in source
     assert "function configurationBlockingFurniture" in source
     assert "renderConfigurationPlan();" in source
-    # 待處理家具與逐房方案關卡共用同一顆確認鈕,由 syncConfigurationConfirmButton()
-    # 單一決定 disabled;兩邊各寫一次會互相蓋掉(見 test_step_six_gates_furniture_tuning...)。
+    # 待處理家具由同一顆確認鈕集中管理。
     assert "syncConfigurationConfirmButton();" in source
-    assert "confirmButton.disabled = schemeGated || blocking.length > 0" in source
+    assert "confirmButton.disabled = blocking.length > 0" in source
     assert "請先從 2D 待處理清單定位修正" in source
     assert "function reflowSingleConfigurationFurniture" in source
     assert "只重排此家具" in source
@@ -2472,7 +2348,7 @@ def test_step_six_prunes_retired_appliances_from_restored_projects() -> None:
     assert "function pruneRetiredAppliances" in source
     assert "state.furniture2d = removeRetiredAppliancesFromFurniture(state.furniture2d)" in source
     assert "removeRetiredAppliancesFromSceneData(state.sceneData)" in source
-    assert "Object.values(state.designSchemes?.schemes || {}).forEach" in source
+    assert "state.configurationState.furniture = removeRetiredAppliancesFromFurniture" in source
     assert "const restoredRetiredAppliancesRemoved = pruneRetiredAppliances" in source
     assert "restoredDoorSwingEndpoints > 0" in source
     assert "restoredRetiredAppliancesRemoved > 0" in source
@@ -3095,18 +2971,18 @@ def test_scene_does_not_force_placeholder_furniture_for_an_empty_plan() -> None:
 
     assert "目前沒有指定家具，先放入可刪除的雙人沙發" not in source
     # 嚴格帶使用者選件時場景只放已選家具,不硬塞佔位品
-    assert "selected_furniture_exact: strictSelectedFurniture || allowPendingFurniture" in source
+    assert "selected_furniture_exact: allowPendingFurniture" in source
 
 
 def test_confirmed_rooms_and_structures_are_the_only_3d_floorplan_source() -> None:
     controller = scene_controller_source(STATIC)
     viewer = scene_viewer_source(STATIC)
 
-    assert "function confirmedFloorplanEditor(schemeId = activeSchemeId())" in controller
+    assert "function confirmedFloorplanEditor()" in controller
     # 第 4 步完成後以確認快照為準（舊專案沒有快照才退回 state.structures），
     # 否則第 6 步會讀到使用者在第 4 步之後又動過、但未重新確認的結構。
     assert "state.confirmedStructureSnapshot || state.structures," in controller
-    assert "structures: structuresForScheme(" in controller
+    assert "structures: cloneStructures(" in controller
     assert "floorplan_editor: confirmedFloorplanEditor()" in controller
     assert "floorplan_dxf_text: state.confirmedFloorplan?.dxf_text" not in controller
     assert "floorplan.beam_segments" in viewer
@@ -3682,62 +3558,16 @@ def test_master_view_lock_reads_the_current_confirmation_control() -> None:
     assert "if (!contentConfirmed)" in lock
 
 
-def test_step_six_exposes_the_per_room_scheme_selection_workflow() -> None:
+def test_step_six_has_no_retired_ab_gate() -> None:
+    source = scene_controller_source(STATIC)
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
-    for element_id in (
-        "open-room-scheme-selection",
-        "room-scheme-gate-status",
-        "room-scheme-selection-dialog",
-        "room-scheme-list",
-        "room-scheme-status",
-        "room-scheme-choice-grid",
-        "room-scheme-warning",
-        "room-scheme-complete",
-    ):
-        assert f'id="{element_id}"' in html
-
-
-def test_room_scheme_hides_identical_b_as_no_alternative() -> None:
-    """B 與 A 在某房擺法完全相同時（例：客廳沙發+電視受幾何鎖死，variant B 找不到
-    不同的合法擺法而回退成 A），roomHasComparableSchemeB 回 false → 不顯示兩張一模
-    一樣的卡，標成「已採方案 A」，避免被誤會成 bug。"""
-    source = scene_controller_source(STATIC)
-    fn = source.split("function roomHasComparableSchemeB(room)", 1)[1].split("\nfunction ", 1)[0]
-    assert 'fingerprint("A") !== fingerprint("B")' in fn  # A、B 擺法相同就不算可比較的 B
-    assert "schemeFurnitureForRoom" in fn
-
-
-def test_step_six_gates_furniture_tuning_behind_the_room_scheme_choice() -> None:
-    """第 6 步先逐房選定 A/B 並合成唯一方案，再微調該方案的家具。"""
-    source = scene_controller_source(STATIC)
-
-    required = source.split("function roomSchemeSelectionRequired()")[1].split("\n}")[0]
-    # 關卡不得整條短路;只有真的有可比較的方案 B 時才擋
-    assert "return state.rooms.some(" in required
-    assert "roomHasComparableSchemeB" in required
-
-    # 進第 6 步工作台先開方案比較,而不是先給 3D 微調
-    show_step = source.split("function showStep(step)")[1].split("\nasync function ")[0]
-    assert "roomSchemeGateBlocking()" in show_step
-    assert "requestAnimationFrame(promptRoomSchemeSelection)" in show_step
-
-    # 建立 A、B 的過程本身會 showStep("white_model_3d"),那時不能彈窗
-    prompt = source.split("function promptRoomSchemeSelection()")[1].split("\n}")[0]
-    assert "state.autoGeneratingWhiteModel" in prompt
-
-    # 未選完:編輯家具、新增家具與確認鈕都鎖住,並說明原因
-    lock = source.split("function setRoomSchemeWorkbenchLocked(locked)")[1].split("\n}")[0]
-    for control in ('[data-white-interaction=\\"edit\\"]', "#open-furniture-catalog"):
-        assert control in lock
-    assert "請先完成逐房 A/B 方案選擇" in lock
-
-    # 待處理家具與方案關卡共用同一顆確認鈕,只能有一個地方寫 disabled
-    assert source.count('$("#confirm-white-model")') >= 1
-    confirm_sync = source.split("function syncConfigurationConfirmButton()")[1].split("\n}")[0]
-    assert "roomSchemeGateBlocking()" in confirm_sync
-    assert "configurationBlockingFurniture()" in confirm_sync
-
+    assert 'id="room-scheme-selection-dialog"' not in html
+    assert 'id="open-room-scheme-selection"' not in html
+    assert "function roomSchemeSelectionRequired" not in source
+    assert "roomSchemeGateBlocking" not in source
+    assert "function syncConfigurationConfirmButton()" in source
+    assert "configurationBlockingFurniture()" in source
 
 def test_style_card_previews_preserve_the_full_reference_image() -> None:
     css = _scene_css()
@@ -3802,8 +3632,8 @@ def test_project_resume_restores_flow_rooms_and_generated_scene() -> None:
     source = scene_controller_source(STATIC)
     assert "_flow: state.workflow?.toJSON()" in source
     assert "confirmed_floorplan: calibrationIsLive ? state.confirmedFloorplan : null" in source
-    assert "active_scheme_id: state.designSchemes.active_scheme_id" in source
-    assert "furniture: state.furniture2d" in source
+    assert "furniture: currentConfiguration?.furniture" in source
+    assert "sceneData: currentConfiguration?.sceneData" in source
 
 
 def test_step_four_does_not_expose_the_retired_structure_scheme_comparison() -> None:
@@ -3833,7 +3663,7 @@ def test_all_structure_edits_update_the_shared_step_four_baseline() -> None:
 def test_questionnaire_is_preserved_when_structure_changes_mark_layouts_stale() -> None:
     source = scene_controller_source(STATIC)
 
-    assert "markSchemeLayoutsStale(state.designSchemes, message)" in source
+    assert "markConfigurationStale(state.configurationState, message)" in source
     assert "|| state.basicConfirmed" in source
     assert "|| Object.keys(state.visualAnswers || {}).length > 0" in source
 
@@ -3856,18 +3686,16 @@ def test_wall_endpoint_edit_and_generative_space_questionnaire_contracts() -> No
     assert 'id="questionnaire-generation-notes"' in html
 
 
-def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
+def test_steps_six_to_eight_use_one_configuration_and_render_lock() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = scene_controller_source(STATIC)
 
-    # A/B 切換只存在第 6 步的三個子面板;第 7 步起不再出現(方案已選定)
-    assert html.count('data-design-scheme="A"') == 3
-    assert html.count('data-design-scheme="B"') == 3
+    assert 'data-design-scheme="A"' not in html
+    assert 'data-design-scheme="B"' not in html
     assert 'id="locked-scheme-label"' in html
-    assert "placement_variant: activeSchemeId()" in source
-    assert 'placement_variant: schemeId' in source
-    assert "state.designSchemes.locked_scheme_id = activeSchemeId()" in source
-    assert "scheme_id: activeSchemeId()" in source
+    assert "placement_variant" not in source
+    assert "state.configurationState.locked = true" in source
+    assert "scheme_id:" not in source
     assert "realistic_3d: realisticIsLive" in source
     assert "sceneData: state.sceneData" in source
     assert "renderRestoredStep()" in source
@@ -3880,11 +3708,9 @@ def test_steps_six_to_nine_expose_scheme_switching_and_render_lock() -> None:
 def test_empty_scheme_a_does_not_persist_layout_before_layout_work_exists() -> None:
     source = scene_controller_source(STATIC)
 
-    assert "const hasSchemeLayoutState = Boolean(state.designSchemes.schemes.B)" in source
-    assert "layout_2d: layoutIsLive || hasSchemeLayoutState" in source
-    assert "layoutIsLive || Object.keys(state.designSchemes.schemes).length" not in source
-    assert "const emptySchemeB = restoredSchemeB" not in source
-    assert "if (emptySchemeB) deleteSchemeB(state.designSchemes)" not in source
+    assert "const hasConfigurationState =" in source
+    assert "layout_2d: layoutIsLive || hasConfigurationState" in source
+    assert "schemes.B" not in source
 
 
 def test_grouped_surface_cards_sync_their_material_ids_into_native_selects() -> None:

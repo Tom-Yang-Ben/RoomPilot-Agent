@@ -28,6 +28,20 @@ PLAYWRIGHT_AVAILABLE = importlib.util.find_spec("playwright") is not None
 OPENPYXL_AVAILABLE = importlib.util.find_spec("openpyxl") is not None
 
 
+def _requirements(finishes: dict | None = None) -> dict:
+    return {
+        "roomRequirementModel": {
+            "schemaVersion": 3,
+            "activeRoomId": None,
+            "roomRequirements": {},
+            "unassignedDeferredFurniture": [],
+            "globalProfile": {},
+            "globalConfirmed": True,
+            "globalFinishes": finishes or {},
+        }
+    }
+
+
 def _png_b64(color=(200, 180, 150)) -> str:
     buffer = io.BytesIO()
     Image.new("RGB", (64, 64), color).save(buffer, format="PNG")
@@ -558,13 +572,13 @@ def test_delivery_proposal_also_writes_the_engineering_estimate(
             },
             # 問卷存的是型錄 ID，不是「乳膠漆」；牆與天花靠 knowledge 的
             # "paint" 關鍵字才對得上工項，拿掉就整批漏算。
-            "requirements": {
-                "finishes": {
+            "requirements": _requirements(
+                {
                     "floorMaterial": "wood_tile_ccity_wood_look_tiles_cvt212022",
                     "wallMaterial": "wall_json_ambientcg_wall_paint_concrete036",
                     "ceilingMaterial": "flat-paint",
                 }
-            },
+            ),
         },
     )
 
@@ -618,7 +632,7 @@ def test_material_without_a_work_item_mapping_is_listed_not_dropped(tmp_path) ->
             },
         },
         # 天花清水模在 knowledge 裡沒有對照工項，也不在面材型錄內。
-        "requirements": {"finishes": {"ceilingMaterial": "exposed-concrete"}},
+        "requirements": _requirements({"ceilingMaterial": "exposed-concrete"}),
     }
     record = build_engineering_estimate("proj-unmapped", "1", workflow, tmp_path)
     assert record["status"] != "skipped", record.get("reason")

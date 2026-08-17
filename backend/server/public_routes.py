@@ -627,18 +627,20 @@ def create_public_router(dependencies: dict):
             "furniture_random_seed": payload.get("furniture_random_seed"),
         }
 
-        # 方案 A/B 白模生成走各自的 variant；不帶就預設 A（單方案專案不受影響）。
-        placement_variant = str(payload.get("placement_variant") or "A").upper()
-        if placement_variant not in {"A", "B"}:
-            placement_variant = "A"
-        scene_payload = build_scene_payload(
-            site_payload=site_payload,
-            questionnaire=questionnaire,
-            floorplan_path=payload.get("floorplan_filename"),
-            room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
-            room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
-            placement_variant=placement_variant,
-        )
+        if payload.get("placement_variant") not in (None, "", "A", "a"):
+            raise HTTPException(status_code=422, detail="placement_variant_retired")
+        try:
+            scene_payload = build_scene_payload(
+                site_payload=site_payload,
+                questionnaire=questionnaire,
+                floorplan_path=payload.get("floorplan_filename"),
+                room_width_cm=float(payload.get("room_width_cm") or brief_space.get("width_cm") or 420),
+                room_depth_cm=float(payload.get("room_depth_cm") or brief_space.get("depth_cm") or 360),
+            )
+        except ValueError as error:
+            if str(error) == "floorplan_coordinate_unit_must_be_cm":
+                raise HTTPException(status_code=422, detail=str(error)) from error
+            raise
         return {"scene_json": deepcopy(scene_payload)}
 
 
@@ -651,15 +653,19 @@ def create_public_router(dependencies: dict):
         """
         objects = payload.get("scene_objects", [])
         editor_floorplan = payload.get("floorplan_editor")
-        if isinstance(editor_floorplan, dict) and editor_floorplan:
-            floorplan, room = floorplan_from_editor_payload(editor_floorplan)
-        else:
-            floorplan = payload.get("floorplan") or {}
-            room = room_from_payload(floorplan)
+        try:
+            if isinstance(editor_floorplan, dict) and editor_floorplan:
+                floorplan, room = floorplan_from_editor_payload(editor_floorplan)
+            else:
+                floorplan = payload.get("floorplan") or {}
+                room = room_from_payload(floorplan)
+        except ValueError as error:
+            if str(error) == "floorplan_coordinate_unit_must_be_cm":
+                raise HTTPException(status_code=422, detail=str(error)) from error
+            raise
         placement_room_id = payload.get("placement_room_id")
-        placement_variant = str(payload.get("placement_variant") or "A").upper()
-        if placement_variant not in {"A", "B"}:
-            placement_variant = "A"
+        if payload.get("placement_variant") not in (None, "", "A", "a"):
+            raise HTTPException(status_code=422, detail="placement_variant_retired")
         # 指定房間 → 該房邊界;整屋呼叫(最終確認驗證、全屋鎖定覆核)→ 所有房
         # 的聯集。柵格對「格外」一律視為阻擋,聯集才不會把最大房以外的家具
         # 全數誤殺;無房型資料才退回最大區域(手動矩形模式)。
@@ -694,7 +700,6 @@ def create_public_router(dependencies: dict):
                 regions_boundary=_regions_boundary(floorplan, room),
                 place_boundary=place_boundary,
                 floorplan=floorplan,
-                placement_variant=placement_variant,
                 # 重排/替換/新增/逐房操作也要有 agent 擺位紀律:沒有 hints 時
                 # generate_layout 不登記 neighbors,成組配對(電視櫃對面、茶几
                 # 沙發前)與自由座椅後置整條路是死的 —— 首次產生正確,一按
@@ -713,7 +718,12 @@ def create_public_router(dependencies: dict):
         editor_floorplan = payload.get("floorplan_editor")
         floorplan = payload.get("floorplan")
         if isinstance(editor_floorplan, dict) and editor_floorplan:
-            floorplan, _ = floorplan_from_editor_payload(editor_floorplan)
+            try:
+                floorplan, _ = floorplan_from_editor_payload(editor_floorplan)
+            except ValueError as error:
+                if str(error) == "floorplan_coordinate_unit_must_be_cm":
+                    raise HTTPException(status_code=422, detail=str(error)) from error
+                raise
         return validate_single_placement(
             floorplan,
             payload.get("item") or {},

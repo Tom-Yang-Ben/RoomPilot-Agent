@@ -1,11 +1,9 @@
-// Confirmed plan, room scheme comparison, and Step 6 surface workflow.
+// Confirmed plan and Step 6 surface workflow.
 export function createSceneSchemeController({
   $,
   $$,
   activePanelName,
   activeScheme,
-  activeSchemeId,
-  allRoomsHaveSchemeSelections,
   applyWindowTypePreset,
   attachedOpenings,
   beamDragGeometry,
@@ -14,16 +12,12 @@ export function createSceneSchemeController({
   configurationBlockingFurniture,
   confirmedWallGapForDoor,
   convexHull,
-  deactivateWhiteInteractionMode,
   dedupeDoorCandidates,
   dedupeWindowCandidates,
   element,
-  ensureSchemeB,
   errorMessage,
   escapeHtml,
   findStructureWallCollision,
-  glbThumbnailQueue,
-  glbThumbnailViewer,
   goTo,
   imagePoint,
   instructions,
@@ -50,18 +44,14 @@ export function createSceneSchemeController({
   roomDimensions,
   roomNameOptionFor,
   roomPolygonsDiffer,
-  roomSchemePreviewCache,
-  roomSchemePreviewViewer,
-  roomSchemeRuntimeState,
+  roomSurfaceAssignments,
   scheduleSave,
-  selectedSchemeForRoom,
-  selectSchemeForRoom,
   setStatus,
   showStep,
   state,
   structurePreview,
   structureRuntimeState,
-  structuresForScheme,
+  cloneStructures,
   STYLE_MATERIAL_OPTIONS,
   syncOverlayToImage,
   unresolvedReviewRooms,
@@ -79,7 +69,7 @@ function planGeometry() {
   return { imageWidth, imageHeight, scale, bbox };
 }
 
-function confirmedFloorplanEditor(schemeId = activeSchemeId()) {
+function confirmedFloorplanEditor() {
   if (
     !state.confirmedStructureSnapshot
     && state.workflow?.completed.includes("space_confirmation")
@@ -103,9 +93,8 @@ function confirmedFloorplanEditor(schemeId = activeSchemeId()) {
       state.confirmedFloorplan?.floorplan?.room_height_cm || 270,
     ),
     rooms: JSON.parse(JSON.stringify(state.rooms)),
-    structures: structuresForScheme(
+    structures: cloneStructures(
       state.confirmedStructureSnapshot || state.structures,
-      schemeId,
     ),
   };
 }
@@ -1261,78 +1250,6 @@ const structureSectionMeta = {
   },
 };
 
-function schemeFurnitureForRoom(schemeId, roomId) {
-  const resolvedSchemeId = String(
-    schemeId
-      || state.designSchemes.room_selections?.[String(roomId)]
-      || state.designSchemes.active_scheme_id
-      || "A",
-  ).toUpperCase();
-  const scheme = state.designSchemes.schemes[resolvedSchemeId] || state.designSchemes.schemes.A;
-  return (scheme?.furniture || []).filter((item) => String(item.roomId || item.room_id || "") === String(roomId));
-}
-
-function roomSchemeSelectionRequired() {
-  // 第 6 步的動線是「先逐房選定 A/B，再進工作台微調」
-  // （現行流程與保存邊界見 docs/contracts/AGENT_FRONTEND_BACKEND_CONTRACT.md）。
-  // 只有真的存在可比較的方案 B 時才擋；B 整組產不出來時直接走方案 A，
-  // 不製造無從通過的關卡。
-  if (!state.rooms.length) return false;
-  const schemeB = state.designSchemes.schemes.B;
-  if (!schemeB || schemeB.stale) return false;
-  return state.rooms.some((room) => roomHasComparableSchemeB(room));
-}
-
-function roomSchemeGateBlocking() {
-  return roomSchemeSelectionRequired()
-    && !allRoomsHaveSchemeSelections(state.designSchemes, state.rooms);
-}
-
-function promptRoomSchemeSelection() {
-  if (!roomSchemeSelectionRequired() || !state.rooms.length) return;
-  // 建立 A、B 的過程會兩度 showStep("white_model_3d")；那時方案還沒齊，不能彈窗。
-  if (state.autoGeneratingWhiteModel) return;
-  if (allRoomsHaveSchemeSelections(state.designSchemes, state.rooms)) return;
-  if (element.roomSchemeDialog?.open) return;
-  deactivateWhiteInteractionMode();
-  openRoomSchemeSelectionDialog();
-  void ensureRoomSchemeAlternative();
-}
-
-async function ensureRoomSchemeAlternative() {
-  if (roomSchemeRuntimeState.alternativeInFlight) return roomSchemeRuntimeState.alternativeInFlight;
-  const schemeA = state.designSchemes.schemes.A;
-  const schemeB = ensureSchemeB(state.designSchemes, { reason: "step_six_room_comparison" });
-  if (schemeB.stale || (schemeB.furniture || []).length || !(schemeA?.furniture || []).length) {
-    if (element.roomSchemeDialog?.open) renderRoomSchemeSelectionDialog();
-    return schemeB;
-  }
-  roomSchemeRuntimeState.alternativeInFlight = (async () => {
-    try {
-      const alternativeFurniture = await relayoutFurnitureForScheme(schemeA.furniture, "B", { allowPending: true });
-      if (!alternativeFurniture?.length) {
-        schemeB.stale = true;
-        schemeB.staleReason = "無法產生不同的家具擺設。";
-        return schemeB;
-      }
-      schemeB.furniture = alternativeFurniture;
-      schemeB.stale = false;
-      schemeB.staleReason = "";
-      roomSchemePreviewCache.clear();
-      scheduleSave("layout_2d");
-      return schemeB;
-    } catch (error) {
-      schemeB.stale = true;
-      schemeB.staleReason = `無法產生替代擺設：${errorMessage(error)}`;
-      return schemeB;
-    } finally {
-      roomSchemeRuntimeState.alternativeInFlight = null;
-      if (element.roomSchemeDialog?.open) renderRoomSchemeSelectionDialog();
-    }
-  })();
-  return roomSchemeRuntimeState.alternativeInFlight;
-}
-
 function snapshotCopy(value) {
   return JSON.parse(JSON.stringify(value ?? null));
 }
@@ -1367,10 +1284,14 @@ function snapshotFurniture(item) {
   };
 }
 
-function configurationSnapshot(previous = state.designSchemes.configuration_snapshot) {
+function configurationSnapshot(previous = state.configurationState.configuration_snapshot) {
   const now = new Date().toISOString();
   const revision = Number(previous?.revision || 0) + 1;
-  const sceneVersion = currentSceneVersion();
+  const sceneVersion = [
+    state.sceneData?.scene_id || "scene",
+    `revision-${Number(state.project?.revision || 0)}`,
+    state.activeStylePackId || "no-style",
+  ].join(":");
   const sceneObjects = state.sceneData?.scene_objects?.length
     ? state.sceneData.scene_objects
     : composeSelectedRoomFurniture();
@@ -1382,7 +1303,6 @@ function configurationSnapshot(previous = state.designSchemes.configuration_snap
     created_at: previous?.created_at || now,
     updated_at: now,
     scene_version: sceneVersion,
-    room_selections: { ...(state.designSchemes.room_selections || {}) },
     fixed_structure: {
       walls: snapshotCopy(structures.walls || []),
       doors: snapshotCopy(structures.doors || []),
@@ -1395,7 +1315,6 @@ function configurationSnapshot(previous = state.designSchemes.configuration_snap
       room_label: room.label,
       room_type: room.room_type || room.space_type || room.type || null,
       bounds: snapshotCopy(room.bounds || room.polygon || room.points || null),
-      selected_scheme_id: selectedSchemeForRoom(state.designSchemes, room.id),
       furniture_count: sceneObjects.filter(
         (item) => String(item.room_id || item.roomId || "") === String(room.id),
       ).length,
@@ -1409,7 +1328,7 @@ function configurationSnapshot(previous = state.designSchemes.configuration_snap
 
 function refreshConfigurationSnapshot() {
   const snapshot = configurationSnapshot();
-  state.designSchemes.configuration_snapshot = snapshot;
+  state.configurationState.configuration_snapshot = snapshot;
   if (state.proposalReview.masterView) {
     state.proposalReview.masterView.configuration_snapshot_id = snapshot.snapshot_id;
     state.proposalReview.masterView.scene_version = snapshot.scene_version;
@@ -1418,473 +1337,26 @@ function refreshConfigurationSnapshot() {
 }
 
 function lockedConfigurationSnapshot() {
-  const snapshot = state.designSchemes.configuration_snapshot;
+  const snapshot = state.configurationState.configuration_snapshot;
   if (!snapshot?.snapshot_id) {
-    throw new Error("找不到第 7 步已鎖定的配置快照，請返回方案鎖定重新確認。");
+    throw new Error("找不到第 7 步已鎖定的配置快照，請返回配置確認後重新鎖定。");
   }
   return snapshotCopy(snapshot);
 }
 
 function composeSelectedRoomFurniture() {
-  const baselineFurniture = state.designSchemes.schemes.A?.furniture || [];
-  const composite = [];
-  const usedFurnitureIds = new Set();
-  const furnitureInstanceKey = (item = {}, roomId = "") => [
-    String(roomId || item.roomId || item.room_id || ""),
-    String(item.id || item.furniture_id || item.catalogFurnitureId || ""),
-  ].join("::");
-  const roomIds = new Set(state.rooms.map((room) => String(room.id)));
-  state.rooms.forEach((room) => {
-    const schemeId = selectedSchemeForRoom(state.designSchemes, room.id);
-    schemeFurnitureForRoom(schemeId, room.id).forEach((item) => {
-      const key = furnitureInstanceKey(item, room.id);
-      if (key.endsWith("::") || usedFurnitureIds.has(key)) return;
-      usedFurnitureIds.add(key);
-      composite.push({ ...JSON.parse(JSON.stringify(item)), roomId: item.roomId || room.id });
-    });
-  });
-  baselineFurniture.forEach((item) => {
-    const roomId = String(item.roomId || item.room_id || "");
-    const key = furnitureInstanceKey(item, roomId);
-    if (roomIds.has(roomId) || key.endsWith("::") || usedFurnitureIds.has(key)) return;
-    usedFurnitureIds.add(key);
-    composite.push(JSON.parse(JSON.stringify(item)));
-  });
-  return composite;
-}
-
-// 未選定方案前不能微調：completeRoomSchemeSelection() 會用逐房合成的家具整包
-// 覆蓋 state.furniture2d，先做的拖曳、替換與新增都會被丟掉。
-function setRoomSchemeWorkbenchLocked(locked) {
-  const reason = locked ? "請先完成逐房 A/B 方案選擇，才能微調家具。" : "";
-  const editButton = $("[data-white-interaction=\"edit\"]");
-  if (editButton) {
-    editButton.disabled = locked;
-    editButton.title = reason;
-  }
-  const catalogButton = $("#open-furniture-catalog");
-  if (catalogButton) {
-    catalogButton.disabled = locked;
-    catalogButton.title = reason;
-  }
-  syncConfigurationConfirmButton();
+  return snapshotCopy(state.configurationState.furniture || []);
 }
 
 function syncConfigurationConfirmButton() {
   const confirmButton = $("#confirm-white-model");
   if (!confirmButton) return;
-  const schemeGated = roomSchemeGateBlocking();
-  const blocking = schemeGated ? [] : configurationBlockingFurniture();
-  confirmButton.disabled = schemeGated || blocking.length > 0;
-  confirmButton.title = schemeGated
-    ? "請先完成逐房 A/B 方案選擇，才能確認家具配置。"
-    : (blocking.length ? `尚有 ${blocking.length} 件家具位置不合法，請先修正。` : "");
+  const blocking = configurationBlockingFurniture();
+  confirmButton.disabled = blocking.length > 0;
+  confirmButton.title = blocking.length
+    ? `尚有 ${blocking.length} 件家具位置不合法，請先修正。`
+    : "";
 }
-
-function renderRoomSchemeGate() {
-  if (!element.roomSchemeGateStatus || !element.openRoomSchemeSelection) return;
-  if (!roomSchemeSelectionRequired()) {
-    element.roomSchemeGateStatus.textContent = "目前只有方案 A；可直接進行家具微調。";
-    element.openRoomSchemeSelection.hidden = true;
-    if (element.roomSchemeGate) {
-      element.roomSchemeGate.hidden = true;
-      element.roomSchemeGate.setAttribute("aria-hidden", "true");
-    }
-    setRoomSchemeWorkbenchLocked(false);
-    return;
-  }
-  if (element.roomSchemeGate) {
-    element.roomSchemeGate.hidden = false;
-    element.roomSchemeGate.setAttribute("aria-hidden", "false");
-  }
-  const autoSelected = applyUnavailableRoomSchemeDefaults();
-  const selectedCount = state.rooms.filter((room) => (
-    ["A", "B"].includes(state.designSchemes.room_selections?.[String(room.id)])
-  )).length;
-  const ready = allRoomsHaveSchemeSelections(state.designSchemes, state.rooms);
-  element.roomSchemeGateStatus.textContent = ready
-    ? `已完成 ${selectedCount}/${state.rooms.length} 間房的方案選擇；${autoSelected ? "沒有完整方案 B 的房間已自動採用方案 A。" : ""}現在可以微調。`
-    : `已選 ${selectedCount}/${state.rooms.length} 間。請先完成所有房間的 A/B 選擇，才可微調。`;
-  element.openRoomSchemeSelection.hidden = false;
-  element.openRoomSchemeSelection.textContent = ready ? "檢視逐房方案選擇" : "逐房比較並選擇方案";
-  element.roomSchemeGate?.classList.toggle("is-scheme-pending", !ready);
-  setRoomSchemeWorkbenchLocked(!ready);
-}
-
-function roomHasComparableSchemeB(room) {
-  const schemeB = state.designSchemes.schemes.B;
-  if (!room || !schemeB || schemeB.stale || !schemeFurnitureForRoom("B", room.id).length) {
-    return false;
-  }
-  // B 與 A 在此房擺法完全相同 → 視為「沒有可比較的方案 B」。有些房幾何上只有一種
-  // 合理擺法(客廳沙發+電視需兩面相對實牆+中間淨空走廊,門/窗/陽台開口多時只剩一組
-  // 相對牆),variant B 找不到不同的合法擺法而回退成 A;此時不該顯示兩張一模一樣的卡。
-  const fingerprint = (schemeId) => schemeFurnitureForRoom(schemeId, room.id)
-    .map((item) => `${item.id}|${Math.round(item.xCm)}|${Math.round(item.yCm)}|${Math.round(item.rotationDeg || 0)}`)
-    .sort()
-    .join(";");
-  return fingerprint("A") !== fingerprint("B");
-}
-
-function roomSchemePreviewKey(schemeId, roomId) {
-  // The image cache must follow the same room-local furniture list as the
-  // 2D plan.  A scheme may be regenerated while the dialog is open.
-  const furnitureFingerprint = schemeFurnitureForRoom(schemeId, roomId)
-    .map((item) => [
-      item.id || item.furniture_id || item.catalogFurnitureId || "",
-      item.xCm || 0,
-      item.yCm || 0,
-      item.rotationDeg || 0,
-      item.model_url || "",
-    ].join("|"))
-    .sort()
-    .join(";");
-  return `${schemeId}:${roomId}:${furnitureFingerprint}`;
-}
-
-function roomSchemeFurnitureLabel(item = {}) {
-  return replacementFurnitureName({
-    ...item,
-    name_zh_raw: item.label || item.name_zh_raw,
-    normalized_type: item.type || item.normalized_type,
-  });
-}
-
-function roomSchemePlanMarkup(room, furniture = []) {
-  const polygon = room?.polygon_cm || [];
-  if (polygon.length < 3) {
-    return '<span class="rp-render-placeholder">沒有可用的房間平面資料</span>';
-  }
-  const center = planCenterCm();
-  const points = polygon.map((point) => ({ x: Number(point.x || 0), y: Number(point.y || 0) }));
-  const xs = points.map((point) => point.x);
-  const ys = points.map((point) => point.y);
-  const padding = 38;
-  const minX = Math.min(...xs) - padding;
-  const maxX = Math.max(...xs) + padding;
-  const minY = Math.min(...ys) - padding;
-  const maxY = Math.max(...ys) + padding;
-  const width = Math.max(1, maxX - minX);
-  const height = Math.max(1, maxY - minY);
-  const project = (point) => ({
-    x: ((point.x - minX) / width) * 440,
-    y: 300 - ((point.y - minY) / height) * 300,
-  });
-  const roomPath = points.map((point, index) => {
-    const projected = project(point);
-    return `${index ? 'L' : 'M'} ${projected.x.toFixed(1)} ${projected.y.toFixed(1)}`;
-  }).join(' ') + ' Z';
-  const furnitureMarkup = furniture.slice(0, 12).map((item) => {
-    const location = project({ x: center.x + Number(item.xCm || 0), y: center.y + Number(item.yCm || 0) });
-    const itemWidth = Math.max(22, (Number(item.widthCm || 60) / width) * 440);
-    const itemHeight = Math.max(18, (Number(item.depthCm || 60) / height) * 300);
-    const label = roomSchemeFurnitureLabel(item);
-    return `<g class="rp-room-scheme-furniture" transform="translate(${location.x.toFixed(1)} ${location.y.toFixed(1)}) rotate(${-Number(item.rotationDeg || 0)})">
-      <rect x="${(-itemWidth / 2).toFixed(1)}" y="${(-itemHeight / 2).toFixed(1)}" width="${itemWidth.toFixed(1)}" height="${itemHeight.toFixed(1)}" rx="3" />
-      ${itemWidth > 62 && itemHeight > 30 ? `<text text-anchor="middle" dominant-baseline="middle">${escapeHtml(label.slice(0, 8))}</text>` : ''}
-    </g>`;
-  }).join('');
-  return `<svg class="rp-room-scheme-plan" viewBox="0 0 440 300" role="img" aria-label="${escapeHtml(room.label || '房間')}的家具平面配置">
-    <path class="rp-room-scheme-outline" d="${roomPath}" />
-    ${furnitureMarkup || '<text class="rp-room-scheme-empty" x="200" y="130" text-anchor="middle">尚未配置家具</text>'}
-  </svg>`;
-}
-
-function roomSchemeFurnitureLegend(furniture = []) {
-  if (!furniture.length) return '<p class="rp-room-scheme-legend-empty">尚未配置家具</p>';
-  return `<ul class="rp-room-scheme-legend">${furniture.slice(0, 6).map((item) => (
-    `<li>${escapeHtml(roomSchemeFurnitureLabel(item))}</li>`
-  )).join('')}</ul>`;
-}
-
-function hasStepFourConfirmedOpening(segment = {}) {
-  const opening = segment.confirmed_wall_opening
-    || segment.wall_opening_segment
-    || segment.closed_leaf_segment;
-  const isScenePlanPoint = (point = {}) => (
-    Number.isFinite(Number(point.x))
-    && Number.isFinite(Number(point.z ?? point.y))
-  );
-  return segment.step4_confirmed === true
-    && isScenePlanPoint(opening?.start)
-    && isScenePlanPoint(opening?.end);
-}
-
-function roomSchemePreviewFloorplan(baseScene = {}) {
-  // The active scene is produced from the Step 4 confirmation.  A/B only
-  // changes furniture placement, never the room envelope or its apertures.
-  const activeFloorplan = state.sceneData?.floorplan;
-  if (Array.isArray(activeFloorplan?.wall_segments) && activeFloorplan.wall_segments.length) {
-    return activeFloorplan;
-  }
-  return baseScene.floorplan || {};
-}
-
-function buildRoomSchemePreviewScene(baseScene, room, furniture = []) {
-  if (!room || !(baseScene?.floorplan || state.sceneData?.floorplan)) return null;
-  const bounds = replacementRoomBounds(room);
-  if (!bounds) return null;
-  const offset = { x: bounds.centerX, z: bounds.centerZ };
-  const scene = JSON.parse(JSON.stringify(baseScene));
-  const confirmedFloorplan = roomSchemePreviewFloorplan(baseScene);
-  const floorplan = scene.floorplan || {};
-  const structureIssues = [];
-  const doorDiagnostics = (() => {
-    try {
-      return JSON.parse($("#white-model-viewer")?.dataset.roompilotDoorDiagnostics || "{}");
-    } catch {
-      return {};
-    }
-  })();
-  const expectedDoors = Number(doorDiagnostics.expected) || 0;
-  const matchedDoors = (doorDiagnostics.comparisons || [])
-    .filter((item) => item.status === "matched").length;
-  if (expectedDoors && matchedDoors < expectedDoors) {
-        structureIssues.push("部分門位仍待核對，請回到第 4 步確認。");
-  }
-  const confirmedDoorSegments = (confirmedFloorplan.door_segments || []).filter(
-    hasStepFourConfirmedOpening,
-  );
-  const omittedDoors = (confirmedFloorplan.door_segments || []).filter((segment) => (
-    segmentOverlapsBounds(segment, bounds) && !hasStepFourConfirmedOpening(segment)
-  ));
-  const confirmedWindowSegments = (confirmedFloorplan.window_segments || []).filter((segment) => (
-    segment.step4_confirmed === true && segment.host_wall_confirmed === true
-  ));
-  const omittedWindows = (confirmedFloorplan.window_segments || []).filter((segment) => (
-    segmentOverlapsBounds(segment, bounds)
-    && !(segment.step4_confirmed === true && segment.host_wall_confirmed === true)
-  ));
-  if (omittedDoors.length) {
-    structureIssues.push(`已略過 ${omittedDoors.length} 扇尚未在第 4 步確認洞口的門`);
-  }
-  if (omittedWindows.length) {
-    structureIssues.push(`已略過 ${omittedWindows.length} 扇尚未在第 4 步確認牆面的窗`);
-  }
-  [
-    'wall_segments',
-    'beam_segments',
-    'column_segments',
-  ].forEach((key) => {
-    const segments = confirmedFloorplan[key];
-    if (!Array.isArray(segments)) return;
-    floorplan[key] = segments
-      .filter((segment) => segmentOverlapsBounds(segment, bounds))
-      .map((segment) => shiftSceneSegment(segment, offset));
-  });
-  floorplan.door_segments = confirmedDoorSegments
-    .filter((segment) => segmentOverlapsBounds(segment, bounds))
-    .map((segment) => shiftSceneSegment(segment, offset));
-  // Step 6 derives the physical aperture from the confirmed door segment.
-  // Keeping a second inferred opening here can create the historic double-hole bug.
-  floorplan.door_openings = [];
-  floorplan.window_segments = confirmedWindowSegments
-    .filter((segment) => segmentOverlapsBounds(segment, bounds))
-    .map((segment) => shiftSceneSegment(segment, offset));
-  if (Array.isArray(floorplan.wall_polys)) {
-    floorplan.wall_polys = (confirmedFloorplan.wall_polys || [])
-      .filter((region) => (region.exterior || region.polygon_cm || []).some((point) => {
-        const coordinates = scenePointCoordinates(point);
-        return (
-          coordinates.x >= bounds.minX - 32
-          && coordinates.x <= bounds.maxX + 32
-          && coordinates.z >= bounds.minZ - 32
-          && coordinates.z <= bounds.maxZ + 32
-        );
-      }))
-      .map((region) => shiftFloorplanRegion(region, offset));
-  }
-  if (Array.isArray(floorplan.columns)) {
-    floorplan.columns = (confirmedFloorplan.columns || [])
-      .filter((column) => segmentOverlapsBounds({ start: column.center, end: column.center }, bounds))
-      .map((column) => ({ ...column, center: shiftScenePoint(column.center, offset) }));
-  }
-  floorplan.room_regions = (confirmedFloorplan.room_regions || [])
-    .filter((region) => String(region.room_id || region.id || '') === String(room.id))
-    .map((region) => shiftFloorplanRegion(region, offset));
-  if (Array.isArray(confirmedFloorplan.rooms)) {
-    floorplan.rooms = confirmedFloorplan.rooms
-      .filter((region) => String(region.room_id || region.id || '') === String(room.id))
-      .map((region) => shiftFloorplanRegion(region, offset));
-  }
-  floorplan.width_cm = Math.max(240, (bounds.maxX - bounds.minX) + 120);
-  floorplan.depth_cm = Math.max(240, (bounds.maxZ - bounds.minZ) + 120);
-  scene.floorplan = floorplan;
-  scene.room_surface_assignments = (scene.room_surface_assignments || [])
-    .filter((assignment) => String(assignment.room_id || '') === String(room.id))
-    .map((assignment) => shiftRoomSurfaceAssignment(assignment, offset));
-  scene.surface_overrides = (scene.surface_overrides || [])
-    .filter((assignment) => String(assignment.room_id || '') === String(room.id))
-    .map((assignment) => shiftRoomSurfaceAssignment(assignment, offset));
-  const sourceObjects = scene.scene_objects || [];
-  scene.scene_objects = furniture.map((item) => {
-    const existing = sourceObjects.find((sceneObject) => sceneObjectMatchesLayoutFurniture(sceneObject, item)) || {};
-    const fallbackSize = {
-      width: Number(item.widthCm || item.size_cm?.width || 60),
-      depth: Number(item.depthCm || item.size_cm?.depth || 60),
-      height: Number(item.heightCm || item.size_cm?.height || 80),
-    };
-    return {
-      ...existing,
-      furniture_id: item.id,
-      catalog_furniture_id: item.catalogFurnitureId || item.catalog_furniture_id || existing.catalog_furniture_id,
-      name_zh_raw: item.label || existing.name_zh_raw,
-      normalized_type: item.type || existing.normalized_type,
-      model_url: item.model_url || existing.model_url,
-      size_cm: {
-        width: Number(existing.size_cm?.width || fallbackSize.width),
-        depth: Number(existing.size_cm?.depth || fallbackSize.depth),
-        height: Number(existing.size_cm?.height || fallbackSize.height),
-      },
-      position_cm: shiftScenePoint({ x: Number(item.xCm || 0), z: Number(item.yCm || 0) }, offset),
-      rotation_y_deg: Number(item.rotationDeg || 0),
-      placement_room_id: room.id,
-      position_locked: true,
-      placement_failed: item.placementFailed === true,
-    };
-  });
-  if (!floorplan.wall_segments?.length) {
-    structureIssues.push("找不到這個房間已確認的牆面");
-  }
-  return { scene, bounds, structureIssues };
-}
-
-function applyUnavailableRoomSchemeDefaults() {
-  if (!roomSchemeSelectionRequired()) return false;
-  let changed = false;
-  state.rooms.forEach((room) => {
-    if (roomHasComparableSchemeB(room)) return;
-    if (state.designSchemes.room_selections?.[String(room.id)] === "A") return;
-    changed = selectSchemeForRoom(state.designSchemes, room.id, "A") || changed;
-  });
-  return changed;
-}
-
-function openRoomSchemeSelectionDialog() {
-  if (!element.roomSchemeDialog) return;
-  if (applyUnavailableRoomSchemeDefaults()) scheduleSave("white_model_3d");
-  // A/B thumbnails are rendered by an off-screen viewer.  Rebuild them whenever
-  // the comparison opens so an earlier scene can never be shown beside a newly
-  // loaded full preview.
-  roomSchemePreviewCache.clear();
-  state.selectedRoomSchemeId = state.selectedRoomSchemeId || state.rooms.find((room) => (
-    !state.designSchemes.room_selections?.[String(room.id)]
-  ))?.id || state.rooms[0]?.id || null;
-  renderRoomSchemeSelectionDialog();
-  // 自動彈出與使用者手動點開可能同時發生；對已開啟的 dialog 呼叫 showModal 會丟例外。
-  if (!element.roomSchemeDialog.open) {
-    if (typeof element.roomSchemeDialog.showModal === "function") element.roomSchemeDialog.showModal();
-    else element.roomSchemeDialog.setAttribute("open", "");
-  }
-  void ensureRoomScheme3dPreviews();
-}
-
-function closeRoomSchemeSelectionDialog() {
-  if (!element.roomSchemeDialog) return;
-  if (typeof element.roomSchemeDialog.close === "function") element.roomSchemeDialog.close();
-  else element.roomSchemeDialog.removeAttribute("open");
-}
-
-
-
-async function openRoomScheme3dPreview(schemeId) {
-  const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId));
-  if (!room) {
-    setStatus("找不到要預覽的房間。", "warning");
-    return;
-  }
-  const resolvedSchemeId = String(
-    schemeId
-      || state.designSchemes.room_selections?.[String(room.id)]
-      || state.designSchemes.active_scheme_id
-      || "A",
-  ).toUpperCase();
-  const scheme = state.designSchemes.schemes[resolvedSchemeId] || state.designSchemes.schemes.A;
-  const baseScene = scheme?.sceneData || state.designSchemes.schemes.A?.sceneData || state.sceneData;
-  const previewScene = buildRoomSchemePreviewScene(
-    baseScene,
-    room,
-    schemeFurnitureForRoom(resolvedSchemeId, room.id),
-  );
-  if (!room || !previewScene) {
-    setStatus("無法建立此房間的 3D 預覽。", "warning");
-    return;
-  }
-  element.roomScheme3dPreviewTitle.textContent = `${room.label || "房間"}・方案 ${resolvedSchemeId}`;
-  roomSchemeRuntimeState.previewSchemeId = resolvedSchemeId;
-  const previewRoomIndex = state.rooms.findIndex((item) => String(item.id) === String(room.id));
-  const previewPosition = $("#room-scheme-preview-position");
-  if (previewPosition) {
-    previewPosition.textContent = state.rooms.length > 1
-      ? `第 ${previewRoomIndex + 1} / ${state.rooms.length} 房・${room.label || "房間"}`
-      : `${room.label || "房間"}`;
-  }
-  const onlyOneRoom = state.rooms.length <= 1;
-  const previewPrev = $("#room-scheme-preview-prev");
-  const previewNext = $("#room-scheme-preview-next");
-  if (previewPrev) previewPrev.disabled = onlyOneRoom;
-  if (previewNext) previewNext.disabled = onlyOneRoom;
-  element.roomSchemeStructureFix.hidden = previewScene.structureIssues.length === 0;
-  setTaskDialogOpen(element.roomScheme3dPreviewDialog, true);
-  try {
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await prepareRoomSchemePreviewViewer(roomSchemePreviewViewer, previewScene.scene);
-    element.roomScheme3dPreviewStatus.textContent = previewScene.structureIssues.length
-      ? `鳥瞰預覽已略過未確認結構：${previewScene.structureIssues.join("；")}。請回第 4 步確認後再看。`
-      : "預設顯示房間鳥瞰；可拖曳旋轉、滾輪縮放，查看牆、地板、門窗與家具位置。";
-  } catch (error) {
-    element.roomScheme3dPreviewStatus.textContent = `3D 預覽載入失敗：${errorMessage(error)}`;
-  }
-}
-
-// 逐房翻頁：在放大的可旋轉 3D 預覽裡直接切上一房/下一房（循環），沿用目前預覽的方案，
-// 讓使用者不必關掉再重開就能逐一確認每個房間的門窗與家具。
-function navigateRoomScheme3dPreview(delta) {
-  if (!state.rooms.length) return;
-  const index = state.rooms.findIndex(
-    (item) => String(item.id) === String(state.selectedRoomSchemeId),
-  );
-  const base = index < 0 ? 0 : index;
-  const next = state.rooms[(base + delta + state.rooms.length) % state.rooms.length];
-  if (!next) return;
-  state.selectedRoomSchemeId = next.id;
-  void openRoomScheme3dPreview(roomSchemeRuntimeState.previewSchemeId);
-}
-
-async function waitForRoomSchemePreviewFrames(frameCount = 3) {
-  for (let frame = 0; frame < frameCount; frame += 1) {
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-  }
-}
-
-async function prepareRoomSchemePreviewViewer(viewer, scene) {
-  await viewer.loadScene(scene);
-  // Number markers are optional in the editor, but never belong in an A/B
-  // comparison: the plan and the expanded preview must show the same furniture.
-  viewer.setFurnitureNumberMarkersVisible(false);
-  viewer.setCameraPreset("overview");
-  await waitForRoomSchemePreviewFrames();
-  // GLB loading may finish after the first render. Apply this once more after
-  // the viewer settles so late-created markers cannot leak into thumbnails.
-  viewer.setFurnitureNumberMarkersVisible(false);
-  await waitForRoomSchemePreviewFrames(2);
-}
-
-function setTaskDialogOpen(dialog, isOpen) {
-  if (!dialog) return;
-  if (isOpen) {
-    // 對已開啟的 <dialog> 再呼叫 showModal() 會丟 InvalidStateError（逐房翻頁會在
-    // 對話框已開時重呼 openRoomScheme3dPreview）；已開就跳過，讓後續只重載場景。
-    if (dialog.open) return;
-    if (typeof dialog.showModal === "function") dialog.showModal();
-    else dialog.setAttribute("open", "");
-  } else if (typeof dialog.close === "function") {
-    dialog.close();
-  } else {
-    dialog.removeAttribute("open");
-  }
-}
-
 function selectedStepSixRoom() {
   return state.rooms.find((room) => String(room.id) === String(state.selectedRoomId))
     || state.rooms[0]
@@ -2035,255 +1507,21 @@ function focusStepSixRoom(roomId) {
   );
 }
 
-function renderRoomSchemeSelectionDialog() {
-  applyUnavailableRoomSchemeDefaults();
-  const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId)) || state.rooms[0];
-  if (!room || !element.roomSchemeList) return;
-  const selected = selectedSchemeForRoom(state.designSchemes, room.id);
-  const selectedRooms = state.rooms.filter((item) => state.designSchemes.room_selections?.[String(item.id)]).length;
-  const roomPosition = Math.max(1, state.rooms.findIndex((item) => String(item.id) === String(room.id)) + 1);
-  const dialogTitle = $("#room-scheme-dialog-title");
-  if (dialogTitle) dialogTitle.textContent = `確認「${room.label || "此房間"}」的配置方案`;
-  if (element.roomSchemeProgress) {
-    element.roomSchemeProgress.textContent = `進度 ${selectedRooms}/${state.rooms.length} 間 · 目前第 ${roomPosition} 間`;
-  }
-  element.roomSchemeList.innerHTML = state.rooms.map((item) => {
-    const selectedScheme = state.designSchemes.room_selections?.[String(item.id)];
-    const isAutoSelected = selectedScheme === "A" && !roomHasComparableSchemeB(item);
-    return `<button type="button" data-room-scheme-room="${escapeHtml(item.id)}"
-      class="${String(item.id) === String(room.id) ? "is-active" : ""}">
-      <strong>${escapeHtml(item.label || "未命名空間")}</strong>
-      <small>${isAutoSelected ? "方案 A（此房無不同擺法可比較）" : (selectedScheme ? `已選方案 ${selectedScheme}` : "尚未選擇")}</small>
-    </button>`;
-  }).join("");
-  const hasComparableB = roomHasComparableSchemeB(room);
-  element.roomSchemeStatus.textContent = hasComparableB
-    ? `請比較兩個方案的家具位置與 3D 房間畫面，再選擇較符合需求的一個。`
-    : `此房沒有與方案 A 不同的擺法可比較（此房型幾何上僅一種合理配置，或方案 B 尚未就緒），系統已先採用方案 A；後續仍可挑選、替換與鎖定家具。`;
-  element.roomSchemeChoiceGrid.innerHTML = ["A", ...(hasComparableB ? ["B"] : [])].map((schemeId) => {
-    const scheme = state.designSchemes.schemes[schemeId];
-    const furniture = schemeFurnitureForRoom(schemeId, room.id);
-    const unavailable = !scheme || scheme.stale;
-    const preview = roomSchemePreviewCache.get(roomSchemePreviewKey(schemeId, room.id));
-    return `<article class="rp-scheme-choice-card ${selected === schemeId ? "is-selected" : ""}">
-      <header><strong>方案 ${schemeId}</strong><span>${unavailable ? "需要重新配置" : `${furniture.length} 件家具`}</span></header>
-      <div class="rp-scheme-preview-grid">
-        <section class="rp-scheme-preview">
-          <h4>2D 家具配置</h4>
-          ${roomSchemePlanMarkup(room, furniture)}
-          ${roomSchemeFurnitureLegend(furniture)}
-        </section>
-        <button type="button" class="rp-scheme-preview rp-scheme-preview--interactive" data-room-scheme-preview-3d="${schemeId}" aria-label="查看方案 ${schemeId} 的可旋轉 3D 預覽">
-          <h4>3D 房間預覽 <span>點擊旋轉查看</span></h4>
-          ${preview
-            ? `<img src="${escapeHtml(preview)}" alt="方案 ${schemeId} 的 ${escapeHtml(room.label || "房間")} 3D 預覽" />`
-            : `<span class="rp-render-placeholder">正在建立此房間的 3D 預覽…</span>`}
-        </button>
-      </div>
-      <p class="rp-task-dialog-note">${unavailable ? (escapeHtml(scheme?.staleReason || "方案尚未可用") ) : (selected === schemeId ? "目前已選用此方案" : "選擇後將保留此方案的家具位置")}</p>
-      <button type="button" class="${selected === schemeId ? "secondary-action" : "primary-action"}" data-room-scheme-choice="${schemeId}" ${unavailable ? "disabled" : ""}>${selected === schemeId ? "已選此方案" : `選擇方案 ${schemeId}`}</button>
-    </article>`;
-  }).join("");
-  const missing = state.rooms.filter((item) => !state.designSchemes.room_selections?.[String(item.id)]);
-  const ready = allRoomsHaveSchemeSelections(state.designSchemes, state.rooms);
-  element.roomSchemeComplete.disabled = !ready;
-  element.roomSchemeWarning.hidden = ready;
-  element.roomSchemeWarning.textContent = ready
-    ? ""
-    : `尚有 ${missing.map((item) => item.label || "未命名空間").join("、")} 未選擇方案；家具微調仍會保持鎖定。`;
-}
-
-// A/B 是同一批家具的不同排法（relayoutFurnitureForScheme）。重載後非作用中方案沒有
-// 自身 3D 場景（sceneData 不進存檔、又受 2MB 上限限制），就用作用中方案的全屋場景
-// （shell + 已解析 GLB）依 furniture_id 把家具搬到該方案的座標重建預覽——不落地存檔、
-// 不重跑生成、不動前景。該方案沒有或擺放失敗的家具不出現。
-function schemeFurnitureSceneFromShell(baseScene, schemeFurniture) {
-  if (!baseScene?.scene_objects?.length) return null;
-  const byId = new Map(
-    (schemeFurniture || [])
-      .filter((item) => item && !item.placementFailed)
-      .map((item) => [String(item.id || item.furniture_id), item]),
-  );
-  const sceneObjects = baseScene.scene_objects
-    .map((obj) => {
-      const item = byId.get(String(obj.furniture_id || obj.id));
-      if (!item) return null;
-      return {
-        ...obj,
-        position_cm: {
-          ...(obj.position_cm || {}),
-          x: Number(item.xCm || 0),
-          z: Number(item.yCm || 0),
-        },
-        rotation_y_deg: Number(item.rotationDeg || 0),
-        placement_room_id: item.roomId || obj.placement_room_id,
-      };
-    })
-    .filter(Boolean);
-  if (!sceneObjects.length) return null;
-  return { ...baseScene, scene_objects: sceneObjects };
-}
-
-async function ensureRoomScheme3dPreviews() {
-  if (roomSchemeRuntimeState.previewInFlight || !element.roomSchemeDialog?.open) return roomSchemeRuntimeState.previewInFlight;
-  // 缺 scheme 自身 sceneData 時：作用中方案用已還原的全屋 state.sceneData；非作用中
-  // 方案用「全屋 shell + 該方案家具座標」重建——都是從全房 3D 擷取，不重複建立。
-  const schemeSceneFor = (schemeId) => {
-    const own = state.designSchemes.schemes[schemeId]?.sceneData;
-    if (own?.scene_objects) return own;
-    if (schemeId === activeSchemeId()) return state.sceneData;
-    return schemeFurnitureSceneFromShell(
-      state.sceneData,
-      state.designSchemes.schemes[schemeId]?.furniture,
-    );
-  };
-  // 每個有場景的方案，列出還沒快取的房間。
-  const jobs = ["A", "B"]
-    .map((schemeId) => ({
-      schemeId,
-      scene: schemeSceneFor(schemeId),
-      rooms: state.rooms.filter(
-        (room) => !roomSchemePreviewCache.has(roomSchemePreviewKey(schemeId, room.id)),
-      ),
-    }))
-    .filter((job) => job.scene?.scene_objects && job.rooms.length);
-  if (!jobs.length) return null;
-  // 背景建立 A/B 逐房預覽：離屏縮圖 viewer 的序列佇列，前景 whiteViewer 完全不動。
-  // 每個方案的全屋場景「只載入一次」，一次拍完該方案所有房間再卸載——換房直接讀快取、
-  // 不再每換房重載整棟（省算力）；峰值 GPU 仍只有一棟場景（拍完即卸載）。
-  roomSchemeRuntimeState.previewInFlight = (async () => {
-    try {
-      for (const job of jobs) {
-        glbThumbnailQueue.sequence = glbThumbnailQueue.sequence
-          .catch(() => null)
-          .then(async () => {
-            try {
-              await glbThumbnailViewer.loadScene(job.scene);
-              for (const room of job.rooms) {
-                const walkPayload = roomWalkPayload(room);
-                const entered = walkPayload ? glbThumbnailViewer.setWalkRoom(walkPayload) : false;
-                if (!entered) {
-                  glbThumbnailViewer.setViewMode("orbit");
-                  glbThumbnailViewer.setCameraPreset("corner");
-                }
-                await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                roomSchemePreviewCache.set(
-                  roomSchemePreviewKey(job.schemeId, room.id),
-                  glbThumbnailViewer.capturePng(),
-                );
-              }
-            } finally {
-              // 無論成功或中途 throw 都卸載：離屏 context 不留整棟 GPU 記憶體，避免 context loss。
-              glbThumbnailViewer.unloadScene();
-            }
-          });
-        await glbThumbnailQueue.sequence;
-      }
-    } catch (error) {
-      setStatus(`無法建立候選 3D 預覽：${errorMessage(error)}`, "warning");
-    } finally {
-      roomSchemeRuntimeState.previewInFlight = null;
-      if (element.roomSchemeDialog?.open) {
-        renderRoomSchemeSelectionDialog();
-        // 拍攝期間若有新方案/房間才就緒（例：方案 B 稍後生成並清了快取），再補一輪；
-        // 全部已快取時 jobs 為空直接返回，不會無限迴圈。
-        void ensureRoomScheme3dPreviews();
-      }
-    }
-  })();
-  return roomSchemeRuntimeState.previewInFlight;
-}
-
-function chooseRoomScheme(schemeId) {
-  const room = state.rooms.find((item) => String(item.id) === String(state.selectedRoomSchemeId));
-  if (!room || !selectSchemeForRoom(state.designSchemes, room.id, schemeId)) return;
-  state.designSchemes.configuration_snapshot = null;
-  renderRoomSchemeGate();
-  renderRoomSchemeSelectionDialog();
-  scheduleSave("white_model_3d");
-}
-
-function selectedSchemeMismatchNotice() {
-  const mismatch = state.selectedSchemeMismatch;
-  if (!mismatch) return "";
-  const parts = [];
-  if (mismatch.moved?.length) parts.push(`調整 ${mismatch.moved.length} 件位置`);
-  if (mismatch.missing?.length) parts.push(`移除 ${mismatch.missing.length} 件放不下的家具`);
-  if (mismatch.unexpected?.length) parts.push(`補入 ${mismatch.unexpected.length} 件`);
-  if (!parts.length) return "";
-  return `已合成配置：系統依空間與門窗淨空自動${parts.join("、")}，可在下一步微調。`;
-}
-
-async function completeRoomSchemeSelection() {
-  applyUnavailableRoomSchemeDefaults();
-  if (!allRoomsHaveSchemeSelections(state.designSchemes, state.rooms)) return;
-  const compositeFurniture = composeSelectedRoomFurniture();
-  if (!compositeFurniture.length && state.rooms.length) {
-    element.roomSchemeWarning.hidden = false;
-    element.roomSchemeWarning.textContent = "無法組合逐房方案：選定方案沒有可用家具資料。請重新產生 A/B 配置後再試。";
-    return;
-  }
-  const schemeA = state.designSchemes.schemes.A;
-  const originalFurniture = JSON.parse(JSON.stringify(schemeA.furniture || []));
-  const originalScene = state.sceneData ? JSON.parse(JSON.stringify(state.sceneData)) : null;
-  state.designSchemes.active_scheme_id = "A";
-  state.furniture2d = compositeFurniture;
-  state.sceneData = null;
-  schemeA.furniture = JSON.parse(JSON.stringify(compositeFurniture));
-  schemeA.sceneData = null;
-  schemeA.stale = false;
-  schemeA.staleReason = "";
-  element.roomSchemeComplete.disabled = true;
-  element.roomSchemeComplete.textContent = "正在合成並驗證最終配置…";
-  try {
-    // A room-by-room A/B decision is a final placement choice. Do not let
-    // the generation endpoint drop missing models or append recommendations.
-    const generated = await confirmLayout2d({ strictSelectedFurniture: true });
-    if (!generated || !state.sceneData?.scene_objects) {
-      throw new Error(state.lastWhiteModelGenerationError || "configuration_scene_generation_failed");
-    }
-    state.designSchemes.configuration_snapshot = configurationSnapshot();
-    roomSchemePreviewCache.clear();   // 已進入下一流程，清除不再需要的逐房方案預覽快照
-    renderRoomSchemeGate();
-    closeRoomSchemeSelectionDialog();
-    scheduleSave("white_model_3d");
-    setStatus(
-      selectedSchemeMismatchNotice()
-        || "所有房間方案已合成為唯一配置，並已重新驗證 2D 與 3D 場景。",
-      "success",
-    );
-  } catch (error) {
-    schemeA.furniture = originalFurniture;
-    schemeA.sceneData = originalScene;
-    state.furniture2d = originalFurniture;
-    state.sceneData = originalScene;
-    element.roomSchemeWarning.hidden = false;
-    element.roomSchemeWarning.textContent = `無法合成最終配置：${errorMessage(error)}`;
-    element.roomSchemeComplete.disabled = false;
-    element.roomSchemeComplete.textContent = "完成選擇並開始微調";
-  }
-}
-
 function renderSchemeControls() {
-  const hasB = Boolean(state.designSchemes.schemes.B);
   $$("[data-design-scheme]").forEach((button) => {
-    const schemeId = button.dataset.designScheme;
-    button.hidden = schemeId === "B" && !hasB;
-    button.classList.toggle("is-active", schemeId === activeSchemeId());
-    button.setAttribute("aria-selected", String(schemeId === activeSchemeId()));
+    button.hidden = true;
   });
   if (element.layoutSchemeStatus) {
     const scheme = activeScheme();
     element.layoutSchemeStatus.textContent = scheme?.stale
-      ? `方案 ${activeSchemeId()} 的結構已變更，請依問卷重新配置`
-      : `目前編輯方案 ${activeSchemeId()}`;
+      ? "結構已變更，請依問卷重新配置"
+      : "目前編輯家具配置";
   }
   if (element.lockedSchemeLabel) {
-    element.lockedSchemeLabel.textContent = state.designSchemes.locked_scheme_id
-      ? `已鎖定方案 ${state.designSchemes.locked_scheme_id}`
-      : "尚未鎖定方案";
+    element.lockedSchemeLabel.textContent = state.configurationState.locked
+      ? "家具配置已鎖定"
+      : "家具配置尚未鎖定";
   }
-  renderRoomSchemeGate();
 }
 
   return {
@@ -2294,16 +1532,11 @@ function renderSchemeControls() {
     applyAttachedOpeningUpdates,
     applyCanonicalRoomLabels,
     applyDjangoZoneRoomLabels,
-    applyUnavailableRoomSchemeDefaults,
     attachedOpeningUpdates,
-    buildRoomSchemePreviewScene,
     CANONICAL_ROOM_LABELS,
     captureConfirmedStructureSnapshot,
-    chooseRoomScheme,
     CIRCLED_ROOM_ORDINALS,
-    closeRoomSchemeSelectionDialog,
     cmToPixel,
-    completeRoomSchemeSelection,
     composeSelectedRoomFurniture,
     configurationSnapshot,
     confirmAllRooms,
@@ -2313,11 +1546,8 @@ function renderSchemeControls() {
     confirmedWallOpeningForSnapshot,
     confirmRoom,
     deleteRoom,
-    ensureRoomScheme3dPreviews,
-    ensureRoomSchemeAlternative,
     focusStepSixRoom,
     genericPendingRoomLabel,
-    hasStepFourConfirmedOpening,
     hydrateConfirmedStructureSnapshot,
     hydrateSceneWallMass,
     ICON_INFERENCE_MAX_ROOM_AREA_M2,
@@ -2328,50 +1558,30 @@ function renderSchemeControls() {
     lockedConfigurationSnapshot,
     mergeSelectedRoomNodes,
     mergeSelectedRooms,
-    navigateRoomScheme3dPreview,
     nearestPointOnRoomEdge,
     normalizeIconInferredRoomReview,
-    openRoomScheme3dPreview,
-    openRoomSchemeSelectionDialog,
     pendingRoomBaseLabel,
     pixelToCm,
     planGeometry,
     populateStepSixRoomSelectors,
     preparedAutoRoomLabels,
-    prepareRoomSchemePreviewViewer,
-    promptRoomSchemeSelection,
     recognitionReviewSuffix,
     refreshConfigurationSnapshot,
     renderRooms,
-    renderRoomSchemeGate,
-    renderRoomSchemeSelectionDialog,
     renderSchemeControls,
     renderSpaceOverlay,
     renderStepSixSurfaceProgress,
     roomFinishDraftFor,
-    roomHasComparableSchemeB,
     roomIconCentroidCm,
     roomPolygonSvg,
     roomQuestionnaireSummary,
     roomReviewHint,
-    roomSchemeFurnitureLabel,
-    roomSchemeFurnitureLegend,
-    roomSchemeGateBlocking,
-    roomSchemePlanMarkup,
-    roomSchemePreviewFloorplan,
-    roomSchemePreviewKey,
-    roomSchemeSelectionRequired,
-    schemeFurnitureForRoom,
-    schemeFurnitureSceneFromShell,
     segmentSvg,
-    selectedSchemeMismatchNotice,
     selectedStepSixRoom,
     setRoomGeometryMode,
     setRoomNodeMode,
-    setRoomSchemeWorkbenchLocked,
     setStepSixSurfaceKind,
     setStepSixSurfaceStatus,
-    setTaskDialogOpen,
     SHOW_ALL_ROOMS_BUTTONS,
     snapshotCopy,
     snapshotFurniture,
@@ -2388,6 +1598,5 @@ function renderSchemeControls() {
     updateRoomGeometryControls,
     updateRoomNodeControls,
     updateShowAllRoomsButton,
-    waitForRoomSchemePreviewFrames,
   };
 }

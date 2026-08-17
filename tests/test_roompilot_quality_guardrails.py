@@ -117,13 +117,7 @@ def test_scene_payload_prioritizes_library_selected_furniture():
     assert "auto-table" in furniture_ids
 
 
-def test_scene_payload_placement_variant_b_differs_from_a():
-    """方案 B 白模生成走 variant B → 擺法要跟 A 不同。
-
-    根因：第 6 步方案 B 的 2D relayout 本來就用 variant B 算出不同座標，但白模生成
-    ``/api/scene/generate`` → ``build_scene_payload`` → ``generate_layout_by_room`` 之前
-    沒把 variant 帶下去，整場被重排成與 A 相同，覆蓋掉 B 的 relayout（A/B 擺設一樣）。
-    """
+def test_scene_payload_single_configuration_is_reproducible():
     def _f(fid, ftype, w, d):
         return {
             "furniture_id": fid,
@@ -152,14 +146,13 @@ def test_scene_payload_placement_variant_b_differs_from_a():
         "custom_colors": [],
     }
 
-    def positions(variant):
+    def positions():
         payload = build_scene_payload(
             site_payload=site_payload,
             questionnaire=dict(questionnaire),
             floorplan_path=None,
             room_width_cm=450,
             room_depth_cm=380,
-            placement_variant=variant,
         )
         return {
             obj["furniture_id"]: (
@@ -171,10 +164,10 @@ def test_scene_payload_placement_variant_b_differs_from_a():
             if obj.get("position_cm")
         }
 
-    scheme_a = positions("A")
-    scheme_b = positions("B")
-    assert scheme_a and scheme_b  # 兩案都有擺好的家具
-    assert scheme_a != scheme_b  # A/B 擺法不同（修好前 variant 沒帶下去，這裡會相等）
+    first = positions()
+    second = positions()
+    assert first
+    assert first == second
 
 
 def test_scene_payload_reports_agent_placement_resolution(monkeypatch):

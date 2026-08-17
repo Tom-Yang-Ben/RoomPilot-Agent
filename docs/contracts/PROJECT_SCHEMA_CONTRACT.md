@@ -2,8 +2,8 @@
 
 Last updated: 2026-08-17
 
-RoomPilot browser projects use `project_schema_version: 3` at the root of every
-persisted `workflow_json`. The production application reads only v3. Older
+RoomPilot browser projects use `project_schema_version: 4` at the root of every
+persisted `workflow_json`. The production application reads only v4. Older
 projects must be upgraded offline with the repository migration command before
 the application opens them.
 
@@ -13,21 +13,25 @@ the application opens them.
 |---|---|
 | Recognition/layout evidence | `recognition` (`layout_json`, centimeters) |
 | Confirmed rooms and structures | `space_confirmation` (centimeters) |
-| Requirements and finishes | `requirements` |
-| A/B state, furniture, and per-scheme scene | `configuration` |
+| Requirements and finishes | `requirements.roomRequirementModel` (schema 3) |
+| Furniture and scene | `configuration` (single configuration) |
 | Step completion metadata | `_flow`, `layout_2d`, `white_model_3d` |
 
-`configuration.schema_version` is `3`. Its `schemes.A` and optional
-`schemes.B` own both `furniture` and `sceneData`. The following retired
+`configuration.schema_version` is `4`. Its direct `furniture` and `sceneData`
+fields own the one editable configuration. Persisted A/B schemes and per-room
+scheme selections are retired. The following retired
 locations must not be written or read by production code:
 
 - `layout_2d.furniture` and `layout_2d.schemes`
 - `white_model_3d.sceneData`
 - `space_confirmation.design_schemes`
 - root-level `design_schemes`, `furniture`, or `furniture2d`
+- `configuration.schemes`, `active_scheme_id`, `locked_scheme_id`, and
+  `room_selections`
+- `requirements.basic`, `basicConfirmed`, and `finishes`
 
 Persisted geometry uses centimeters only. New fields use `_cm`; persisted
-`*_m`, `polygon_m`, `m_per_px`, and `distance_m` fields are invalid in v3.
+`*_m`, `polygon_m`, `m_per_px`, and `distance_m` fields are invalid in v4.
 
 ## Upgrade and backup
 
@@ -44,7 +48,7 @@ uv run --no-sync python scripts/migrate_project_schema.py
 ```
 
 The write command first creates a SQLite backup under
-`.runtime/backups/project-schema-v3-<UTC timestamp>/`. The manifest records a
+`.runtime/backups/project-schema-v4-<UTC timestamp>/`. The manifest records a
 SHA-256 checksum and migrated project count. Uploads and renders are not
 rewritten.
 

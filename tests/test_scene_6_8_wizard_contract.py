@@ -7,20 +7,17 @@ ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "backend" / "server" / "static"
 
 
-def test_step_six_requires_every_room_to_choose_a_scheme_before_micro_adjustment() -> None:
+def test_step_six_uses_one_configuration_without_an_ab_gate() -> None:
     html = (STATIC / "scene.html").read_text(encoding="utf-8")
     source = scene_controller_source(STATIC)
 
-    assert 'id="room-scheme-selection-dialog"' in html
-    assert 'id="room-scheme-complete"' in html
+    assert 'id="room-scheme-selection-dialog"' not in html
+    assert 'data-design-scheme="B"' not in html
     assert "function composeSelectedRoomFurniture()" in source
-    assert "allRoomsHaveSchemeSelections(state.designSchemes, state.rooms)" in source
     assert "await confirmLayout2d({ allowPendingFurniture: true })" in source
-    assert "configuration_scene_generation_failed" in source
-    assert "function ensureRoomScheme3dPreviews()" in source
-    assert "roomSchemePreviewCache" in source
-    # 預覽改走離屏縮圖 viewer 拍照（拍完卸載），前景 whiteViewer 場景與相機不動。
-    assert "glbThumbnailViewer.capturePng()" in source
+    assert "方案 B" not in source.split("async function generateWhiteModelFromRequirements", 1)[1].split(
+        "function cancelWhiteModelBeamPlacement", 1
+    )[0]
 
 
 def test_render_submission_requires_a_user_visible_render_brief() -> None:
@@ -32,7 +29,6 @@ def test_render_submission_requires_a_user_visible_render_brief() -> None:
     assert "function openRenderBriefDialog(" in source
     assert "function confirmRenderBriefAndSubmit()" in source
     assert "render_brief: renderBrief" in source
-    assert "room_selections" in source
     assert "configuration_snapshot" in source
 
 

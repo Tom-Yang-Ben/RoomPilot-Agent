@@ -233,8 +233,8 @@ available; do not replace it with a generic empty-room montage.
    recommendation constraint, not a per-room palette chooser.
 2. Step 5 confirms each room's use, furniture, wall, floor, ceiling, and
    lighting within that selected family.
-3. Step 6 compares the combined 2D+3D A/B configuration for each room, then
-   allows the user to choose and micro-adjust the final configuration.
+3. Step 6 builds one engine-validated 2D+3D configuration and allows the user
+   to micro-adjust it before locking.
 4. Step 7 shows exactly three visual palette cards from the selected style
    family next to the final configuration and view controls. The user must
    select one card before the configuration and render view can be locked.

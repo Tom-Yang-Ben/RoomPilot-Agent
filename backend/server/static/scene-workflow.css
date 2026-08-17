@@ -57,64 +57,6 @@
   grid-column: 1 / -1;
 }
 
-/* 逐房方案尚未選完時，第 6 步的工作台是鎖住的；關卡要一眼看得出來 */
-#room-scheme-gate.is-scheme-pending {
-  border-color: #c8873f;
-  background: #fdf6ec;
-}
-
-#room-scheme-gate.is-scheme-pending #room-scheme-gate-status {
-  color: #8a5418;
-  font-weight: 700;
-}
-
-.rp-room-scheme-progress {
-  flex: 0 0 auto;
-  margin: 0 0 0 auto;
-  padding: 8px 10px;
-  border: 1px solid #b9d5ca;
-  border-radius: 4px;
-  background: #edf6f1;
-  color: #1c5d4b;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.rp-room-scheme-guide {
-  padding: 12px 14px;
-  border: 1px solid #dbe5df;
-  border-radius: 6px;
-  background: #f7faf8;
-}
-
-.rp-room-scheme-guide ol {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.rp-room-scheme-guide li {
-  display: grid;
-  gap: 3px;
-  padding-left: 11px;
-  border-left: 3px solid #aacdbf;
-}
-
-.rp-room-scheme-guide strong {
-  color: #174c3e;
-  font-size: 14px;
-}
-
-.rp-room-scheme-guide span {
-  color: #625c55;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
 .rp-generation-help {
   display: grid;
   gap: 10px;
@@ -680,63 +622,6 @@
 }
 
 
-
-.rp-room-scheme-preview-dialog {
-  width: min(860px, calc(100vw - 32px));
-}
-
-/* 逐房 A/B 可旋轉 3D 預覽的對話框版面。
-   shell 用 grid：header / 3D 預覽(1fr 自適應) / 翻頁列 三段並限高 overflow:hidden——
-   容器才不塌 0px（否則 canvas 0 高度全空白）、又不溢出（否則關閉鈕被推出畫面關不掉）。 */
-.rp-room-scheme-preview-dialog .rp-task-dialog-shell {
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  max-height: min(820px, calc(100vh - 32px));
-  overflow: hidden;
-}
-
-.rp-room-scheme-3d-preview {
-  min-height: 300px;
-  overflow: hidden;
-  border: 1px solid #d8d0c8;
-  background: #f8f4ef;
-}
-
-.rp-room-scheme-3d-preview canvas {
-  display: block;
-}
-
-.rp-room-scheme-preview-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.rp-room-scheme-preview-nav span {
-  color: #4a4640;
-  font-weight: 600;
-  text-align: center;
-}
-
-/* × 關閉鈕（帶拼接遺漏；本分支 .rp-icon-command 只剩深底白字版，在白色對話框裡
-   白字白底＝隱形，使用者關不掉視窗）。還原成淺底深字、42×42 可見可點。 */
-.rp-room-scheme-preview-close {
-  flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border-color: #756d64;
-  background: #fffdfa;
-  color: #302d29;
-  font-size: 28px;
-  line-height: 1;
-}
-
-.rp-room-scheme-preview-close:hover,
-.rp-room-scheme-preview-close:focus-visible {
-  background: #f3eee8;
-  color: #1f5547;
-  transform: none;
-}
 
 
 
@@ -1508,29 +1393,4 @@
 .rp-step-panel--white-model .rp-editor-box {
   border-color: #d2c8bd;
   background: #fffdfa;
-}
-
-
-
-
-
-
-@media (max-width: 960px) {
-  .rp-scheme-toolbar {
-    width: min(100% - 28px, 920px);
-  }
-}
-
-
-
-@media (max-width: 640px) {
-
-  .rp-scheme-toolbar {
-    width: 100%;
-    margin: 0;
-    border-right: 0;
-    border-left: 0;
-  }
-
-
 }

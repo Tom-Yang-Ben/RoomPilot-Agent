@@ -4,7 +4,6 @@ export function createSceneModelingController({
   $$,
   activeQuestionnaireRoom,
   activeRoomFinishDraft,
-  allRoomsHaveSchemeSelections,
   api,
   applyStylePack,
   CATALOG_FACET_TRADITIONAL_LABELS,
@@ -34,7 +33,6 @@ export function createSceneModelingController({
   livingRoomForCirculation,
   materialPairScore,
   materialVisualTagMarkup,
-  openRoomSchemeSelectionDialog,
   planCenterCm,
   pruneAutomaticSoftDecor,
   QUESTIONNAIRE_CATALOG_EXTRA_PURPOSE_LABELS,
@@ -60,7 +58,6 @@ export function createSceneModelingController({
   roomFinishDraftFor,
   roomFurnitureRequirement,
   roomQuestionnaireSummary,
-  roomSchemeSelectionRequired,
   scheduleSave,
   selectedStepSixRoom,
   selectSceneObjectByFurnitureId,
@@ -77,7 +74,6 @@ export function createSceneModelingController({
   STYLE_PACKS,
   styleCompatibleMaterialOptionsForPack,
   styleFurnitureCache,
-  switchDesignScheme,
   syncFinalValidationToConfiguration,
   syncFurnitureInventoryAcrossSchemes,
   upsertFurniture2dFromSceneObject,
@@ -100,14 +96,14 @@ async function generateWhiteModelFromRequirements({ returnToRequirementsOnFailur
       setStatus(message, "error");
       return false;
     }
-    setStatus("正在依照問卷、色卡與指定家具建立方案 A 的 3D 場景…");
+    setStatus("正在依照問卷、色卡與指定家具建立 3D 場景…");
     // Keep the questionnaire moving: items without a usable GLB are deferred to
     // step 6, where the user can replace or reposition them. Never auto-add items.
-    const generatedAResult = await confirmLayout2d({ allowPendingFurniture: true });
-    const generatedA = generatedAResult && state.workflow.currentStep === "white_model_3d" && Boolean(state.sceneData);
-    if (!generatedA) {
+    const generatedResult = await confirmLayout2d({ allowPendingFurniture: true });
+    const generated = generatedResult && state.workflow.currentStep === "white_model_3d" && Boolean(state.sceneData);
+    if (!generated) {
       const message = element.layoutError.textContent.trim()
-        || "方案 A 無法建立 3D 場景，請檢查問卷需求或資料庫家具模型。";
+        || "無法建立 3D 場景，請檢查問卷需求或資料庫家具模型。";
       state.lastWhiteModelGenerationError = message;
       if (returnToRequirementsOnFailure) {
         state.workflow.goTo("requirements");
@@ -117,26 +113,7 @@ async function generateWhiteModelFromRequirements({ returnToRequirementsOnFailur
       }
       return false;
     }
-
-    if (state.designSchemes.schemes.B && !state.designSchemes.schemes.B.stale) {
-      setStatus("正在載入方案 B 的資料庫家具與 3D 場景…");
-      await switchDesignScheme("B");
-      const generatedBResult = await confirmLayout2d({ allowPendingFurniture: true });
-      const generatedB = generatedBResult && state.workflow.currentStep === "white_model_3d" && Boolean(state.sceneData);
-      if (!generatedB) {
-        const message = element.layoutError.textContent.trim()
-          || "方案 B 無法建立 3D 場景，請返回問卷調整需求。";
-        state.designSchemes.schemes.B.stale = true;
-        state.designSchemes.schemes.B.staleReason = message;
-        await switchDesignScheme("A");
-        setStatus("方案 A 已建立；方案 B 有待處理家具，請在第 6 步調整。", "warning");
-      } else {
-        await switchDesignScheme("A");
-        setStatus("問卷需求的 2D+3D 配置已建立，可開始調整。", "success");
-      }
-    } else if (state.designSchemes.schemes.B?.stale) {
-      setStatus("方案 A 已建立；方案 B 有待處理家具，請在第 6 步調整。", "warning");
-    }
+    setStatus("問卷需求的 2D+3D 配置已建立，可開始調整。", "success");
     return true;
   } finally {
     state.autoGeneratingWhiteModel = false;
@@ -913,12 +890,6 @@ function addSceneFurniture(furnitureId) {
 
 async function confirmWhiteModel() {
   element.whiteError.textContent = "";
-  if (roomSchemeSelectionRequired() && !allRoomsHaveSchemeSelections(state.designSchemes, state.rooms)) {
-    element.whiteError.textContent = "請先完成所有房間的 A/B 方案選擇，才能開始微調與確認最終配置。";
-    setStatus(element.whiteError.textContent, "error");
-    openRoomSchemeSelectionDialog();
-    return;
-  }
   const blockingFurniture = configurationBlockingFurniture();
   if (blockingFurniture.length) {
     element.whiteError.textContent =

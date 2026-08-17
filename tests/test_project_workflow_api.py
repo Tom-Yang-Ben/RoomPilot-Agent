@@ -32,6 +32,21 @@ def _space_confirmation(*, rooms: list[dict] | None = None, structures: dict | N
     }
 
 
+def _requirements(**extra: object) -> dict:
+    return {
+        **extra,
+        "roomRequirementModel": {
+            "schemaVersion": 3,
+            "activeRoomId": None,
+            "roomRequirements": {},
+            "unassignedDeferredFurniture": [],
+            "globalProfile": {},
+            "globalConfirmed": False,
+            "globalFinishes": {},
+        },
+    }
+
+
 def _selection_candidate(fid: str, kind: str) -> dict:
     return {
         "furniture_id": fid,
@@ -117,31 +132,26 @@ def test_project_store_compacts_corrupted_furniture_labels(tmp_path: Path) -> No
         project["project_id"],
         workflow={
             "configuration": {
-                "schema_version": 3,
-                "active_scheme_id": "A",
-                "schemes": {
-                    "A": {
-                        "furniture": [],
-                        "sceneData": {
-                            "floorplan": {
-                                "coordinate_unit": "cm",
-                                "schema_version": "2.0",
-                            },
-                            "scene_objects": [
-                                {
-                                    "furniture_id": "bed-1",
-                                    "normalized_type": "bed",
-                                    "name_zh_raw": "Ã" * 10_000,
-                                }
-                            ],
-                        },
-                    }
+                "schema_version": 4,
+                "furniture": [],
+                "sceneData": {
+                    "floorplan": {
+                        "coordinate_unit": "cm",
+                        "schema_version": "2.0",
+                    },
+                    "scene_objects": [
+                        {
+                            "furniture_id": "bed-1",
+                            "normalized_type": "bed",
+                            "name_zh_raw": "Ã" * 10_000,
+                        }
+                    ],
                 },
             }
         },
     )
 
-    scene = saved["workflow"]["configuration"]["schemes"]["A"]["sceneData"]
+    scene = saved["workflow"]["configuration"]["sceneData"]
     item = scene["scene_objects"][0]
     assert item["name_zh_raw"] == "bed"
     assert len(scene["scene_objects"][0]["name_zh_raw"]) < 512
@@ -156,7 +166,7 @@ def _png_bytes() -> bytes:
 def _create_project() -> dict:
     response = client.post(
         "/api/projects",
-        json={"name": f"驗收專案-{uuid4().hex[:8]}", "notes": "九步流程測試"},
+        json={"name": f"驗收專案-{uuid4().hex[:8]}", "notes": "八步流程測試"},
     )
     assert response.status_code == 201
     return response.json()["project"]
@@ -192,7 +202,7 @@ def test_pending_save_replay_rejects_a_stale_server_version_atomically() -> None
         f"/api/projects/{project_id}/workflow",
         json={
             "current_step": "requirements",
-            "workflow": {"requirements": {"completed": True}},
+            "workflow": {"requirements": _requirements(completed=True)},
         },
     )
     assert advanced.status_code == 200
@@ -342,7 +352,7 @@ def test_rerunning_floorplan_analysis_invalidates_stale_structure_confirmation()
                 "space_confirmation": _space_confirmation(
                     structures={"doors": [{"id": "old-door"}]}
                 ),
-                "requirements": {"rooms": [{"id": "old-room"}]},
+                "requirements": _requirements(rooms=[{"id": "old-room"}]),
             },
         },
     )

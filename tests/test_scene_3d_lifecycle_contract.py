@@ -9,7 +9,7 @@ from scripts.static_source_graph import scene_controller_source, scene_viewer_so
 - 增量 API（addObject/removeObject/updateObject）存在，且家具新增/刪除/
   替換/單件重擺四條路都改走增量，不再整包 loadScene。
 - 內容未變（lastSceneKey）與房殼未變（lastShellKey）的跳過鍵。
-- 第 6 步 A/B 方案 3D 預覽在離屏縮圖 viewer 背景建立，不得動前景
+- 第 6 步家具與材質縮圖在離屏 viewer 背景建立，不得動前景
   whiteViewer 場景；方案內容變更與完成選擇時清除預覽快取。
 """
 from pathlib import Path
@@ -117,7 +117,7 @@ def test_gpu_memory_stays_bounded_against_context_loss() -> None:
 
     - GLB 快取有 LRU 上限，淘汰時真正釋放幾何/貼圖（clone 由 three 惰性重傳）。
     - 隱藏面板與離屏縮圖臺不每幀渲染（七個 renderer 全速跑會撐爆 GPU）。
-    - 離屏縮圖 viewer 拍完 A/B 預覽即整包卸載，不滯留整棟場景。
+    - 離屏縮圖 viewer 拍完預覽即整包卸載，不滯留整棟場景。
     """
     viewer = scene_viewer_source(STATIC)
     source = scene_controller_source(STATIC)
@@ -128,23 +128,16 @@ def test_gpu_memory_stays_bounded_against_context_loss() -> None:
     assert "if (container.offsetParent === null) return;" in viewer
     assert "function unloadScene()" in viewer
 
-    preview_body = _function_body(source, "async function ensureRoomScheme3dPreviews()")
-    assert "glbThumbnailViewer.unloadScene()" in preview_body
+    assert "ensureRoomScheme3dPreviews" not in source
 
 
-def test_room_scheme_previews_build_offscreen_and_get_cleaned_up() -> None:
+def test_retired_room_scheme_preview_is_not_instantiated() -> None:
     source = scene_controller_source(STATIC)
+    entrypoint = (STATIC / "scene_v2.js").read_text(encoding="utf-8")
+    html = (STATIC / "scene.html").read_text(encoding="utf-8")
 
-    preview_body = _function_body(source, "async function ensureRoomScheme3dPreviews()")
-    assert "glbThumbnailViewer.loadScene(" in preview_body
-    assert "glbThumbnailQueue.sequence" in preview_body           # 與 GLB 縮圖共用序列佇列
-    assert "whiteViewer.loadScene(" not in preview_body     # 前景場景不得被預覽借用
-
-    sync_body = _function_body(source, "function syncFurnitureInventoryAcrossSchemes()")
-    assert "roomSchemePreviewCache.clear()" in sync_body    # 方案變更 → 舊預覽作廢
-
-    complete_body = _function_body(source, "async function completeRoomSchemeSelection()")
-    assert "roomSchemePreviewCache.clear()" in complete_body  # 進下一流程 → 清除預覽
+    assert "const roomSchemePreviewViewer = createSceneViewer(" not in entrypoint
+    assert 'id="room-scheme-3d-preview"' not in html
 
 
 def test_surface_textures_are_cached_and_survive_scene_clear() -> None:

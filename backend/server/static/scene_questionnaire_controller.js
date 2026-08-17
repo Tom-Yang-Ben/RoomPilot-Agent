@@ -15,7 +15,6 @@ export function createSceneQuestionnaireController({
   endPlacementBusy,
   ensureQuestionnaireFurnitureRecommendations,
   ensureRoomUsage,
-  ensureSchemeB,
   errorMessage,
   escapeHtml,
   evaluateConditionalOption,
@@ -26,12 +25,10 @@ export function createSceneQuestionnaireController({
   normalizeRoomRequirements,
   planGeometry,
   previewStepSixRoomSurfaces,
-  promptRoomSchemeSelection,
   questionnaireFurnitureDisplayLabel,
   questionnaireFurnitureProgram,
   questionnaireRuntimeState,
   questionnaireSummary,
-  relayoutFurnitureForScheme,
   renderFurnitureLibrary,
   renderGenerativeEquipment,
   renderMaterialPairPreviews,
@@ -49,7 +46,6 @@ export function createSceneQuestionnaireController({
   STYLE_FAMILIES,
   STYLE_PACKS,
   stylePackByIdSafe,
-  switchDesignScheme,
   syncOverlayToImage,
   WHOLE_HOUSE_QUESTIONS,
 }) {
@@ -2363,32 +2359,8 @@ async function confirmRequirementsInternal() {
     return false;
   }
   try {
-    setStatus("正在檢查空間規則並建立方案 A、B…");
-    ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" });
-    await switchDesignScheme("A");
+    setStatus("正在檢查空間規則並建立家具配置…");
     await autoLayoutFurniture();
-    const schemeAFurniture = state.designSchemes.schemes.A.furniture;
-    let schemeBFurniture = null;
-    let schemeBError = null;
-    try {
-      schemeBFurniture = await relayoutFurnitureForScheme(schemeAFurniture, "B", { allowPending: true });
-    } catch (error) {
-      schemeBError = error;
-      console.warn("Unable to create the alternative layout; continuing with scheme A.", error);
-    }
-    const schemeB = state.designSchemes.schemes.B;
-    if (!schemeBFurniture) {
-      schemeB.furniture = [];
-      schemeB.stale = true;
-      schemeB.staleReason = schemeBError
-        ? `方案 B 暫時無法建立：${errorMessage(schemeBError)}`
-        : "目前格局無法在保留問卷需求下產生方案 B 的合法配置。";
-    } else {
-      schemeB.furniture = schemeBFurniture;
-      schemeB.stale = false;
-      schemeB.staleReason = "";
-    }
-    await switchDesignScheme("A");
     state.workflow.complete("requirements", {
       basicConfirmed: true,
       roomsResolved: true,
@@ -2396,15 +2368,10 @@ async function confirmRequirementsInternal() {
       finishesConfirmed: true,
     });
     renderFurnitureLibrary();
-    setStatus("正在載入方案 A 的資料庫家具與 3D 場景…");
+    setStatus("正在載入資料庫家具與 3D 場景…");
     const generated = await generateWhiteModelFromRequirements({
       returnToRequirementsOnFailure: true,
     });
-    if (generated) {
-      // Legacy A/B projects may still call this hook; the current flow keeps
-      // compatibility data out of the user-facing Step 6 workflow.
-      promptRoomSchemeSelection();
-    }
     if (!generated && !element.requirementsError.textContent.trim()) {
       const message = state.lastWhiteModelGenerationError
         || element.layoutError.textContent.trim()

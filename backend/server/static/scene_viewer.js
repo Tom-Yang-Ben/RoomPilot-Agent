@@ -1117,11 +1117,13 @@ export function createSceneViewer(
   }
 
   async function exportGlb() {
+    if (lastSceneData?.floorplan?.coordinate_unit !== "cm") {
+      throw new Error("scene_coordinate_unit_must_be_cm");
+    }
     const exportRoot = new THREE.Group();
     exportRoot.add(roomGroup.clone(true));
     exportRoot.add(furnitureGroup.clone(true));
-    const exportScale = lastSceneData?.floorplan?.coordinate_unit === "cm" ? 0.01 : 1;
-    exportRoot.scale.setScalar(exportScale);
+    exportRoot.scale.setScalar(0.01);
     exportRoot.updateMatrixWorld(true);
     const exporter = new GLTFExporter();
     return exporter.parseAsync(exportRoot, { binary: true, onlyVisible: true });

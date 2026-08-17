@@ -6,7 +6,6 @@ export function createSceneReplacementController({
   activeRoomFinishDraft,
   activeRoomRequirement,
   activeScheme,
-  activeSchemeId,
   api,
   applianceRequirementsForRendering,
   applyVisualPreferencesToSpecs,
@@ -17,7 +16,6 @@ export function createSceneReplacementController({
   catalogIdFromModelUrl,
   catalogItemRenderable,
   catalogMaterialOptionsForPack,
-  completeRoomSchemeSelection,
   configurationReflowInFlight,
   configurationSnapshot,
   confirmedFloorplanEditor,
@@ -43,7 +41,7 @@ export function createSceneReplacementController({
   normalizedRoomSurfaces,
   occupantsFromBasicAnswers,
   openQuestionnaireFurnitureCatalog,
-  persistActiveScheme,
+  persistConfigurationState,
   planCenterCm,
   planCmToLayerPixel,
   planGeometry,
@@ -83,7 +81,6 @@ export function createSceneReplacementController({
   sceneDataFromGenerateResponse,
   sceneObjectIndexByFurnitureId,
   scheduleSave,
-  selectedSchemeMismatchNotice,
   setStatus,
   showStep,
   state,
@@ -750,12 +747,9 @@ function updateSelectedFurnitureDimensions() {
   scheduleSave("layout_2d");
 }
 
-async function resolveCatalogFurniture(item, { lockPositions = false } = {}) {
-  // A room-by-room A/B decision is a final placement choice: preserve the chosen
-  // per-room coordinates (lockPositions) so the strict composite reproduces the
-  // selected layout instead of re-placing it. Otherwise only user-pinned items
-  // (item.locked) stay put. See completeRoomSchemeSelection / confirmLayout2d.
-  const positionLocked = item.locked === true || lockPositions === true;
+async function resolveCatalogFurniture(item) {
+  // Locked items stay put while the engine validates the configuration.
+  const positionLocked = item.locked === true;
   if (catalogItemRenderable(item) && item.catalogFurnitureId) {
     return {
       ...toSceneFurniture(item),
@@ -817,58 +811,9 @@ function placementResolutionText(report = []) {
     : `${summary}；目前配置已通過檢查。`;
 }
 
-function describeSelectedFurnitureMismatch(sceneObjects = [], selectedFurniture = []) {
-  const expectedById = new Map(
-    selectedFurniture
-      .filter((item) => item?.furniture_id)
-      .map((item) => [String(item.furniture_id), item]),
-  );
-  const generatedById = new Map(
-    (sceneObjects || [])
-      .filter((item) => item?.furniture_id)
-      .map((item) => [String(item.furniture_id), item]),
-  );
-  const missing = [...expectedById.keys()].filter((id) => !generatedById.has(id));
-  const unexpected = [...generatedById.keys()].filter((id) => !expectedById.has(id));
-  const mismatched = [...expectedById.entries()].filter(([id, expected]) => {
-    const generated = generatedById.get(id);
-    if (!generated || generated.placement_failed || !generated.position_locked) return true;
-    const expectedPosition = expected.position_cm || {};
-    const generatedPosition = generated.position_cm || {};
-    const sameRoom = String(generated.placement_room_id || "")
-      === String(expected.placement_room_id || "");
-    const samePosition = Math.abs(Number(generatedPosition.x) - Number(expectedPosition.x)) < 0.1
-      && Math.abs(Number(generatedPosition.z) - Number(expectedPosition.z)) < 0.1;
-    const sameRotation = Math.abs(
-      Number(generated.rotation_y_deg || 0) - Number(expected.rotation_y_deg || 0),
-    ) < 0.1;
-    const expectedCatalogId = String(expected.catalog_furniture_id || "");
-    const generatedCatalogId = String(generated.catalog_furniture_id || "");
-    const sameCatalog = !expectedCatalogId || expectedCatalogId === generatedCatalogId;
-    const expectedType = String(expected.normalized_type || expected.type || "");
-    const generatedType = String(generated.normalized_type || generated.type || "");
-    const sameType = !expectedType || expectedType === generatedType;
-    return !sameRoom || !samePosition || !sameRotation || !sameCatalog || !sameType;
-  }).map(([id]) => id);
-  if (!missing.length && !unexpected.length && !mismatched.length) return null;
-  // 不丟例外:引擎因空間/門窗淨空把個別家具移位、換小或移除是合法化行為,由呼叫端
-  // 以非阻斷提示告知,不擋住逐房方案合成(舊 selected_scheme_furniture_mismatch)。
-  return { missing, unexpected, moved: mismatched };
-}
-
-async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFurniture = false } = {}) {
+async function confirmLayout2d({ allowPendingFurniture = false } = {}) {
   element.layoutError.textContent = "";
   let generationStage = "檢查家具位置";
-  if (
-    activeSchemeId() === "B"
-    && activeScheme()?.stale
-    && state.designSchemes.schemes.A.furniture.length
-    && !state.furniture2d.length
-  ) {
-    element.layoutError.textContent =
-      activeScheme().staleReason || "方案 B 尚未產生合法家具配置。";
-    return;
-  }
   try {
     if (state.furniture2d.length) {
       const validation = await api("/api/scene/layout", {
@@ -882,7 +827,7 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
       const invalid = (validation.scene_objects || []).filter(
         (item) => item.placement_failed || !item.position_locked,
       );
-      if (invalid.length && !allowPendingFurniture && !strictSelectedFurniture) {
+      if (invalid.length && !allowPendingFurniture) {
         element.layoutError.textContent = `${invalid
           .map((item) => item.name_zh_raw || item.normalized_type)
           .join("、")}目前位置未通過碰撞、淨空或房間邊界檢查，請移動或更換尺寸。`;
@@ -896,10 +841,10 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
     const applianceRequirements = applianceRequirementsForRendering(state.furniture2d);
     const placeableFurniture = removeRetiredAppliancesFromFurniture(state.furniture2d);
     const selectedFurniture = await Promise.all(
-      placeableFurniture.map((item) => resolveCatalogFurniture(item, { lockPositions: strictSelectedFurniture })),
+      placeableFurniture.map((item) => resolveCatalogFurniture(item)),
     );
     const missingCatalogModels = selectedFurniture.filter((item) => !catalogItemRenderable(item));
-    if (missingCatalogModels.length && !allowPendingFurniture && !strictSelectedFurniture) {
+    if (missingCatalogModels.length && !allowPendingFurniture) {
       element.layoutError.textContent =
         `有 ${missingCatalogModels.length} 件家具尚未找到可用的資料庫 GLB：${
           missingCatalogModels
@@ -921,7 +866,7 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
           : item
       ));
     }
-    const sceneFurniture = allowPendingFurniture && !strictSelectedFurniture
+    const sceneFurniture = allowPendingFurniture
       ? selectedFurniture.filter(catalogItemRenderable)
       : selectedFurniture;
     const firstRoom = state.rooms.find((room) => room.type === "living_room") || state.rooms[0];
@@ -980,42 +925,21 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
         selected_furniture: sceneFurniture,
         // When a selected item has no GLB, omit only that item from generation and
         // surface it in step 6. The generator must never add furniture the user did not select.
-        selected_furniture_exact: strictSelectedFurniture || allowPendingFurniture,
-        // 方案 B 白模生成也要用 variant B；不帶的話後端預設重排成 A，會讓 A/B 擺設一樣。
-        placement_variant: activeSchemeId(),
+        selected_furniture_exact: allowPendingFurniture,
       }),
     });
     state.sceneData = sceneDataFromGenerateResponse(payload);
-    if (strictSelectedFurniture) {
-      // 逐房方案合成後不因引擎自動調整而阻斷使用者:記錄差異、警告,照常往下走。
-      state.selectedSchemeMismatch = describeSelectedFurnitureMismatch(
-        state.sceneData.scene_objects || [],
-        sceneFurniture,
-      );
-      if (state.selectedSchemeMismatch) {
-        console.warn(
-          "selected_scheme_furniture_mismatch(tolerated):",
-          state.selectedSchemeMismatch,
-        );
-      }
-    }
     pruneRetiredAppliances({ notify: true });
     const generatedInvalid = (state.sceneData.scene_objects || []).filter(
       (item) => item.placement_failed || !item.position_cm,
     );
-    if (generatedInvalid.length && !allowPendingFurniture && !strictSelectedFurniture) {
+    if (generatedInvalid.length && !allowPendingFurniture) {
       element.layoutError.textContent =
         `系統仍有 ${generatedInvalid.length} 件家具無法合法放置，請先在上方待處理清單更換或調整家具。`;
       setStatus("配置尚未通過門窗淨空、房間邊界與家具碰撞檢查。", "error");
       renderLayoutRoomFilter();
       renderLayoutFurniture();
       return false;
-    }
-    // 逐房 A/B 合成(strict):放不下的家具已標記在待處理清單,不硬擋使用者。
-    // 差異由 completeRoomSchemeSelection 的 selectedSchemeMismatchNotice 非阻斷告知。
-    if (generatedInvalid.length && strictSelectedFurniture) {
-      renderLayoutRoomFilter();
-      renderLayoutFurniture();
     }
     state.sceneData.questionnaire = {
       catalog_version: state.visualCatalogVersion,
@@ -1100,7 +1024,6 @@ async function confirmLayout2d({ allowPendingFurniture = false, strictSelectedFu
     addFurnitureFromLibrary,
     buildReplacementRoomPreviewScene,
     confirmLayout2d,
-    describeSelectedFurnitureMismatch,
     loadReplacementCandidates,
     openFurnitureReplacement,
     placementResolutionText,

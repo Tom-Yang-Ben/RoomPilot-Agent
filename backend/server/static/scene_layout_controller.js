@@ -6,7 +6,6 @@ export function createSceneLayoutController({
   activeRoomFinishDraft,
   activeRoomRequirement,
   activeScheme,
-  activeSchemeId,
   api,
   applianceRequirementsForRendering,
   applyVisualPreferencesToSpecs,
@@ -16,7 +15,6 @@ export function createSceneLayoutController({
   catalogItemRenderable,
   catalogMaterialOptionsForPack,
   catalogOffersForRoomPlans,
-  completeRoomSchemeSelection,
   configurationReflowInFlight,
   configurationSnapshot,
   confirmedFloorplanEditor,
@@ -42,7 +40,7 @@ export function createSceneLayoutController({
   normalizedRoomSurfaces,
   occupantsFromBasicAnswers,
   openQuestionnaireFurnitureCatalog,
-  persistActiveScheme,
+  persistConfigurationState,
   planCenterCm,
   planCmToLayerPixel,
   planGeometry,
@@ -82,7 +80,6 @@ export function createSceneLayoutController({
   sceneObjectIndexByFurnitureId,
   scenePositionInsideRoom,
   scheduleSave,
-  selectedSchemeMismatchNotice,
   setStatus,
   showStep,
   specsAllowedByRoomFeasibility,
@@ -233,7 +230,6 @@ async function autoLayoutFurniture() {
         body: JSON.stringify({
           floorplan_editor: confirmedFloorplanEditor(),
           placement_room_id: room.id,
-          placement_variant: activeSchemeId(),
           placement_preferences: placementPreferences,
           scene_objects: roomItems.map((item) =>
             toSceneFurniture(item, { positionLocked: false })
@@ -275,10 +271,9 @@ async function autoLayoutFurniture() {
   scheduleSave("layout_2d");
 }
 
-async function relayoutFurnitureForScheme(sourceFurniture, schemeId, {
+async function relayoutFurnitureForRooms(sourceFurniture, {
   roomIds = null,
   movableFurnitureIds = null,
-  allowPending = false,
 } = {}) {
   const placedFurniture = [];
   const selectedRooms = roomIds
@@ -301,9 +296,8 @@ async function relayoutFurnitureForScheme(sourceFurniture, schemeId, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        floorplan_editor: confirmedFloorplanEditor(schemeId),
+        floorplan_editor: confirmedFloorplanEditor(),
         placement_room_id: room.id,
-        placement_variant: schemeId,
         scene_objects: roomItems.map((item) =>
           toSceneFurniture(item, {
             positionLocked: movableIds ? !movableIds.has(String(item.id)) : false,
@@ -325,10 +319,7 @@ async function relayoutFurnitureForScheme(sourceFurniture, schemeId, {
       placedFurniture.push(item);
     });
   }
-  // 逐房 A/B 比較用的替代排法要容忍部分待處理家具（與方案 A 的 allowPendingFurniture 對稱）：
-  // 一件擺不下就整組回 null，會讓逐房 A/B 關卡在多房真實格局幾乎永不出現。
-  // repair／手動重排維持嚴格 null-on-failure（呼叫端依賴此訊號拒絕不完整結果）。
-  if (allowPending) return placedFurniture;
+  // 手動修復維持嚴格 null-on-failure，呼叫端依賴此訊號拒絕不完整結果。
   return placedFurniture.some((item) => item.placementFailed) ? null : placedFurniture;
 }
 
@@ -359,9 +350,8 @@ async function repairFurnitureRoomPlacements() {
   const affectedFurniture = state.furniture2d.filter(
     (item) => affectedRoomIds.has(String(item.roomId)),
   );
-  const repairedFurniture = await relayoutFurnitureForScheme(
+  const repairedFurniture = await relayoutFurnitureForRooms(
     affectedFurniture,
-    activeSchemeId(),
     { roomIds: affectedRoomIds, movableFurnitureIds: misplacedIds },
   );
   if (!repairedFurniture) {
@@ -401,12 +391,12 @@ async function repairFurnitureRoomPlacements() {
       };
     });
   }
-  persistActiveScheme(state.designSchemes, {
+  persistConfigurationState(state.configurationState, {
     furniture: state.furniture2d,
     sceneData: state.sceneData,
   });
-  if (state.designSchemes.configuration_snapshot) {
-    state.designSchemes.configuration_snapshot = configurationSnapshot();
+  if (state.configurationState.configuration_snapshot) {
+    state.configurationState.configuration_snapshot = configurationSnapshot();
   }
   return misplaced.length;
 }
@@ -1183,7 +1173,6 @@ async function prioritizeConfigurationRoomFurniture(roomId) {
         body: JSON.stringify({
           floorplan_editor: confirmedFloorplanEditor(),
           placement_room_id: room.id,
-          placement_variant: activeSchemeId(),
           scene_objects: validItems.map((item) =>
             toSceneFurniture(item, { positionLocked: false })
           ),
@@ -1305,7 +1294,6 @@ async function resolveFurniturePosition(item) {
     body: JSON.stringify({
       floorplan_editor: confirmedFloorplanEditor(),
       placement_room_id: item.roomId,
-      placement_variant: activeSchemeId(),
       scene_objects: [
         ...otherObjects,
         {
@@ -1393,7 +1381,6 @@ async function finishActiveFurnitureDrag() {
     questionnaireFurniturePreviewMarkup,
     questionnaireFurniturePreviewUrl,
     reflowSingleConfigurationFurniture,
-    relayoutFurnitureForScheme,
     renderConfigurationPlan,
     renderFurnitureLibrary,
     renderGenerativeEquipment,

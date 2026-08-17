@@ -548,8 +548,12 @@ def _four_wall_room(width_cm: float, depth_cm: float) -> Room:
 
 
 def _floorplan_coordinate_scale_cm(floorplan: dict[str, Any] | None) -> float:
-    """Return the scale from stored floorplan coordinates to centimeters."""
-    return 1.0 if (floorplan or {}).get("coordinate_unit") == "cm" else 100.0
+    """Validate the live centimeter contract and return its identity scale."""
+    if not floorplan:
+        return 1.0
+    if floorplan.get("coordinate_unit") != "cm":
+        raise ValueError("floorplan_coordinate_unit_must_be_cm")
+    return 1.0
 
 
 # 窗簾本來就貼窗;沙發族系允許背靠窗牆(常見客廳格局:沙發背窗、電視對面
@@ -976,8 +980,8 @@ def orient_layout_toward_targets(
 def room_from_payload(floorplan: dict[str, Any] | None) -> Room:
     """由 payload 的 floorplan 區塊重建引擎 Room(拖曳驗證/重排都是無狀態請求)。
 
-    新資料使用公分；沒有 coordinate_unit 的舊專案視為公尺並在讀取時轉一次。
-    沒有牆段(手動模式)就退回矩形房。
+    正式 API 僅接受公分；舊專案的公尺資料必須先經離線 schema 遷移。
+    沒有牆段（手動模式）就退回矩形房。
     """
     floorplan = floorplan or {}
     width = max(float(floorplan.get("width_cm") or 420), 240)
@@ -1010,7 +1014,7 @@ def floorplan_from_editor_payload(editor: dict[str, Any]) -> tuple[dict[str, Any
     depth_cm = max(float(editor.get("depth_cm") or 360), 240)
     half_width = width_cm / 2
     half_depth = depth_cm / 2
-    editor_scale = 1.0 if editor.get("coordinate_unit") == "cm" else 100.0
+    editor_scale = _floorplan_coordinate_scale_cm(editor)
     structures = editor.get("structures") or {}
 
     def centered_point(point: dict[str, Any] | None) -> dict[str, float]:
@@ -1157,7 +1161,7 @@ def _regions_boundary(floorplan: dict[str, Any] | None, room: Room) -> Polygon |
 
 
 def _region_polygons(floorplan: dict[str, Any] | None, room: Room) -> list[Polygon]:
-    """Convert canonical centimeter or legacy meter room regions to engine polygons."""
+    """Convert canonical centimeter room regions to engine polygons."""
     polys: list[Polygon] = []
     coordinate_scale = _floorplan_coordinate_scale_cm(floorplan)
     for region in (floorplan or {}).get("room_regions") or []:
@@ -1236,7 +1240,6 @@ def generate_layout_by_room(
     floorplan: dict[str, Any] | None,
     regions_boundary: Polygon | None = None,
     preserve_existing_count: int = 0,
-    placement_variant: str = "A",
     hints: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """依 ``placement_room_id`` 分組,**每間房各自在自己的邊界內**擺位。
@@ -1257,7 +1260,7 @@ def generate_layout_by_room(
             regions_boundary=regions_boundary,
             place_boundary=_largest_region_boundary(floorplan, room) if room else None,
             floorplan=floorplan, preserve_existing_count=preserve_existing_count,
-            placement_variant=placement_variant, hints=hints,
+            hints=hints,
         )
 
     groups: dict[str, list[int]] = {}
@@ -1288,7 +1291,6 @@ def generate_layout_by_room(
             place_boundary=boundary,
             floorplan=floorplan,
             preserve_existing_count=subset_preserve,
-            placement_variant=placement_variant,
             hints=hints,
         )
         for original_index, obj in zip(indexes, placed):
@@ -1394,7 +1396,6 @@ def generate_layout(
     place_boundary: Polygon | None = None,
     floorplan: dict[str, Any] | None = None,
     preserve_existing_count: int = 0,
-    placement_variant: str = "A",
     hints: dict[str, dict[str, Any]] | None = None,
     validate_only: bool = False,
 ) -> list[dict[str, Any]]:
@@ -1766,13 +1767,6 @@ def generate_layout(
                     hint=_hint_for(item),
                     neighbors=neighbors,
                 )
-                if placement_variant == "B" and len(candidates) > 9:
-                    # 方案 B 仍走相同碰撞/淨空驗證,只反轉「類型錨點」的嘗試順序
-                    # (換一面牆開始)。3×3 網格散點維持在最後 —— 原本整串反轉會讓
-                    # B 案的靠牆家具從房間中央的網格點開始試,永遠貼不了牆。
-                    candidates = list(reversed(candidates[:-9])) + candidates[-9:]
-                elif placement_variant == "B" and len(candidates) > 1:
-                    candidates = list(reversed(candidates))
                 hinted_wall_candidate = _hinted_wall_candidate(
                     item_type,
                     width,
@@ -1942,7 +1936,6 @@ def build_scene_payload(
     floorplan_path: str | None,
     room_width_cm: float,
     room_depth_cm: float,
-    placement_variant: str = "A",
 ) -> dict[str, Any]:
     parsed_floorplan = None
     engine_room = None
@@ -1991,8 +1984,6 @@ def build_scene_payload(
         room=engine_room,
         floorplan=parsed_floorplan,
         regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
-        # 方案 B 白模生成要用 variant B,否則整場被重排成與 A 相同(A/B 擺設一樣的根因)。
-        placement_variant=placement_variant,
         # agent 的擺位紀律(主件先、成組語意)必須從第一次擺位就生效:
         # 沒有 hints 時 generate_layout 不登記 neighbors,成組候選
         # (電視櫃在沙發對面牆、茶几在沙發正前)整條路是死的,電視櫃
@@ -2020,7 +2011,6 @@ def build_scene_payload(
                 room=engine_room,
                 floorplan=parsed_floorplan,
                 regions_boundary=_regions_boundary(parsed_floorplan, engine_room) if engine_room else None,
-                placement_variant=placement_variant,
                 # 提示每次依潛規則重算,換小/移除後主副件順序仍正確
                 hints=placement_hints(working_items),
             )

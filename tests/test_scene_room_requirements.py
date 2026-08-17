@@ -176,7 +176,7 @@ def test_room_surfaces_flow_into_2d_3d_and_render_payloads() -> None:
 
 def test_agent_selection_receives_all_rooms_in_one_request() -> None:
     auto_layout = SCENE.split("async function autoLayoutFurniture()", 1)[1].split(
-        "async function relayoutFurnitureForScheme", 1
+        "async function relayoutFurnitureForRooms", 1
     )[0]
 
     assert auto_layout.count('api("/api/agent/furniture/select"') == 1
@@ -185,50 +185,24 @@ def test_agent_selection_receives_all_rooms_in_one_request() -> None:
     assert "specsAllowedByRoomFeasibility" in auto_layout
 
 
-def test_questionnaire_enters_step_six_when_scheme_b_needs_adjustment() -> None:
-    assert 'ensureSchemeB(state.designSchemes, { reason: "questionnaire_alternative" })' in SCENE
-    assert "目前格局無法在保留問卷需求下產生方案 B 的合法配置" in SCENE
+def test_questionnaire_enters_step_six_with_one_configuration() -> None:
     generation = SCENE.split("async function generateWhiteModelFromRequirements", 1)[1].split(
         "function cancelWhiteModelBeamPlacement", 1
     )[0]
-    assert generation.count("await confirmLayout2d({ allowPendingFurniture: true })") == 2
-    assert 'state.designSchemes.schemes.B.staleReason = message;' in generation
-    assert '方案 A 已建立；方案 B 有待處理家具，請在第 6 步調整。' in generation
+    assert generation.count("await confirmLayout2d({ allowPendingFurniture: true })") == 1
+    assert "方案 B" not in generation
+    assert "switchDesignScheme" not in generation
     assert "問卷需求的 2D+3D 配置已建立，可開始調整。" in generation
 
 
-def test_scheme_b_alternative_tolerates_pending_furniture_so_ab_gate_can_appear() -> None:
-    """逐房 A/B 的方案 B 是同一批家具的替代排法。舊版 relayoutFurnitureForScheme 只要
-    有一件家具擺不下就整組回 null（→ schemeB.stale），逐房 A/B 關卡因此在多房真實格局
-    下幾乎永不出現。B 生成要容忍部分待處理家具（與方案 A 的 allowPendingFurniture 對稱）；
-    repair／手動重排等嚴格情境維持 null-on-failure。"""
-    relayout = SCENE.split("async function relayoutFurnitureForScheme", 1)[1].split(
+def test_single_configuration_repair_remains_strict() -> None:
+    relayout = SCENE.split("async function relayoutFurnitureForRooms", 1)[1].split(
         "\nfunction misplacedAssignedRoomFurniture", 1
     )[0]
-    # 新增 allowPending 選項；允許時保留部分擺放，不因單件失敗整組作廢
-    assert "allowPending = false," in relayout
-    assert "if (allowPending) return placedFurniture;" in relayout
-    # 嚴格情境（repair／手動）仍維持原本的 null-on-failure
     assert (
         "placedFurniture.some((item) => item.placementFailed) ? null : placedFurniture"
         in relayout
     )
-
-    # 問卷 A/B 生成與對話框懶生成都要帶 allowPending，方案 B 才不會被整組丟掉
-    assert (
-        SCENE.count(
-            'relayoutFurnitureForScheme(schemeAFurniture, "B", { allowPending: true })'
-        )
-        == 1
-    )
-    assert (
-        SCENE.count(
-            'relayoutFurnitureForScheme(schemeA.furniture, "B", { allowPending: true })'
-        )
-        == 1
-    )
-
-    # repair 路徑仍嚴格：relayout 回 null 就丟錯，不得靜默套用失敗擺放
     repair = SCENE.split("async function repairFurnitureRoomPlacements", 1)[1].split(
         "\nasync function ", 1
     )[0]

@@ -42,7 +42,6 @@ SCENE_STYLESHEETS = (
     "scene-questionnaire.css",
     "scene-structure.css",
     "scene-workflow.css",
-    "scene-polish.css",
 )
 
 

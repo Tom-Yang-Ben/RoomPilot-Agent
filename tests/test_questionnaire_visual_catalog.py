@@ -497,8 +497,6 @@ def test_questionnaire_state_survives_project_save_and_reload() -> None:
         json={"name": f"Test2 questionnaire {uuid4().hex[:8]}"},
     ).json()["project"]
     requirements = {
-        "basic": {"household": "兩位大人"},
-        "basicConfirmed": True,
         "questionnaireStage": "summary",
         "visualCatalogVersion": "1.0.0",
         "visualAnswers": {
@@ -508,17 +506,25 @@ def test_questionnaire_state_survives_project_save_and_reload() -> None:
             }
         },
         "skippedVisualSpaceTypes": ["balcony"],
-        "finishes": {
-            "confirmed": True,
-            "stylePackId": "scandinavian-01",
-            "wallMaterial": "paint",
-            "wallColor": "#f4f1eb",
-            "floorMaterial": "wood",
-            "floorColor": "#b99b78",
-            "ceilingMaterial": "flat-paint",
-            "ceilingStyle": "flat",
-            "lightStyle": "warm",
-            "ceilingColor": "#ffffff",
+        "roomRequirementModel": {
+            "schemaVersion": 3,
+            "activeRoomId": None,
+            "roomRequirements": {},
+            "unassignedDeferredFurniture": [],
+            "globalProfile": {"household": "兩位大人"},
+            "globalConfirmed": True,
+            "globalFinishes": {
+                "confirmed": True,
+                "stylePackId": "scandinavian-01",
+                "wallMaterial": "paint",
+                "wallColor": "#f4f1eb",
+                "floorMaterial": "wood",
+                "floorColor": "#b99b78",
+                "ceilingMaterial": "flat-paint",
+                "ceilingStyle": "flat",
+                "lightStyle": "warm",
+                "ceilingColor": "#ffffff",
+            },
         },
     }
 

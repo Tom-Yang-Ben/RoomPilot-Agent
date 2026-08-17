@@ -1,4 +1,4 @@
-import { createSceneViewer } from "./scene_viewer.js?v=sha256-86022d20e78b";
+import { createSceneViewer } from "./scene_viewer.js?v=sha256-171759921b27";
 import { confirmedWallGapForDoor } from "./scene_architecture.js?v=sha256-7899eae4c7ba";
 import { renderMaterialPairPreviews } from "./scene_material_pair_preview.js?v=sha256-257a140bd340";
 import { repairMojibakeDeep } from "./scene_text_encoding.js?v=sha256-9693c47a7d4c";
@@ -6,7 +6,7 @@ import { resolveSurfaceOption } from "./scene_surface_materials.js?v=sha256-86c2
 import {
   normalizeSavedSceneData,
   normalizeSavedSpaceConfirmation,
-} from "./scene_unit_contracts.js?v=sha256-65b47a2e253f";
+} from "./scene_unit_contracts.js?v=sha256-1dbd7d7d2ad8";
 import {
   clipPolygonByLine,
   convexHull,
@@ -100,7 +100,7 @@ import {
   conditionalOptionId,
   evaluateConditionalOption,
   normalizeRoomRequirements,
-} from "./scene_room_requirements.js?v=sha256-b9eff9144dcc";
+} from "./scene_room_requirements.js?v=sha256-dd26f90e23a4";
 import {
   applyStylePack,
   CEILING_DESIGN_PACKS,
@@ -130,24 +130,19 @@ import {
   WINDOW_TYPES,
 } from "./scene_window_types.js?v=sha256-ebe4923f97c0";
 import {
-  activateScheme,
-  allRoomsHaveSchemeSelections,
   attachedOpenings,
-  ensureSchemeB,
-  markSchemeLayoutsStale,
-  normalizeDesignSchemes,
-  persistActiveScheme,
-  selectSchemeForRoom,
-  selectedSchemeForRoom,
-  structuresForScheme,
-} from "./scene_design_schemes.js?v=sha256-5cc0b95c4b46";
-import { createSceneConfigurationController } from "./scene_configuration_controller.js?v=sha256-7270e214ad40";
-import { createSceneProposalController } from "./scene_proposal_controller.js?v=sha256-cd23723e0e1d";
-import { createSceneStructureController } from "./scene_structure_controller.js?v=sha256-0a22e5c65260";
-import { createSceneQuestionnaireController } from "./scene_questionnaire_controller.js?v=sha256-98be033a14c2";
-import { createSceneModelingController } from "./scene_modeling_controller.js?v=sha256-4287354a26dd";
-import { createSceneEventBindings } from "./scene_event_bindings.js?v=sha256-a3ed0ba35620";
-import { createSceneRestoreController } from "./scene_restore_controller.js?v=sha256-23284a22f25e";
+  markConfigurationStale,
+  normalizeConfigurationState,
+  persistConfigurationState,
+  cloneStructures,
+} from "./scene_configuration_state.js?v=sha256-54c9f4981ca6";
+import { createSceneConfigurationController } from "./scene_configuration_controller.js?v=sha256-5bc59a73b482";
+import { createSceneProposalController } from "./scene_proposal_controller.js?v=sha256-7d4fd7ae21c9";
+import { createSceneStructureController } from "./scene_structure_controller.js?v=sha256-c4b5fd71c448";
+import { createSceneQuestionnaireController } from "./scene_questionnaire_controller.js?v=sha256-09097f16dda7";
+import { createSceneModelingController } from "./scene_modeling_controller.js?v=sha256-11dec11e0224";
+import { createSceneEventBindings } from "./scene_event_bindings.js?v=sha256-b55fc588b47c";
+import { createSceneRestoreController } from "./scene_restore_controller.js?v=sha256-c4f2319d7b74";
 import { createSceneFloorplanController } from "./scene_floorplan_controller.js?v=sha256-fcf5dfb95f00";
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -164,7 +159,7 @@ const escapeHtml = (value) => String(value ?? "").replace(
 );
 
 const STYLE_CARD_STORAGE_KEY = "roompilot:selectedStyleCard";
-const PROJECT_SCHEMA_VERSION = 3;
+const PROJECT_SCHEMA_VERSION = 4;
 
 function readStyleCardHandoff() {
   const query = new URLSearchParams(location.search);
@@ -241,7 +236,7 @@ const state = {
   stepSixSurfaceKind: "wall",
   stepSixSurfacesReady: false,
   structures: { walls: [], doors: [], windows: [], beams: [], columns: [] },
-  designSchemes: normalizeDesignSchemes(),
+  configurationState: normalizeConfigurationState(),
   activeStructureKind: "door",
   structureTool: null,
   structureLineStart: null,
@@ -305,7 +300,6 @@ const state = {
   selectedRenderRoomId: null,
   selectedProposalRoomId: null,
   selectedProposalRoomCandidateIndex: 0,
-  selectedRoomSchemeId: null,
 };
 
 function applyStyleCardHandoff(handoff = initialStyleCardHandoff) {
@@ -335,16 +329,10 @@ function applyStyleCardHandoff(handoff = initialStyleCardHandoff) {
 }
 let styleApplyRevision = 0;
 const proposalRoomPreviewCache = new Map();
-const roomSchemePreviewCache = new Map();
 // 第 6 步逐房材質清單顯示上限；未定義會讓
 // renderGroupedMaterialOptions 一執行就 ReferenceError，初始化在 renderStyleControls 中斷。
 const STEP_SIX_SURFACE_SWATCH_LIMIT = 6;
 const STEP_SIX_SURFACE_MATERIAL_LIMIT = 6;
-const roomSchemeRuntimeState = {
-  previewInFlight: null,
-  alternativeInFlight: null,
-  previewSchemeId: null,
-};
 // Proposal/render transient state lives together so the Step 7–8 controller can
 // own it without leaking mutable primitive bindings into the entrypoint.
 const proposalRuntimeState = {
@@ -580,9 +568,6 @@ const element = {
   whiteWalkRoom: $("#white-walk-room"),
   whiteStatus: $("#white-model-status"),
   whiteError: $("#white-model-error"),
-  roomSchemeGate: $("#room-scheme-gate"),
-  openRoomSchemeSelection: $("#open-room-scheme-selection"),
-  roomSchemeGateStatus: $("#room-scheme-gate-status"),
   configurationPlanPanel: $("#configuration-plan-panel"),
   configurationPlanToggle: $("#configuration-plan-toggle"),
   configurationPlanStage: $(".rp-configuration-plan-stage"),
@@ -591,19 +576,12 @@ const element = {
   configurationPlanFurnitureList: $("#configuration-plan-furniture-list"),
   configurationPendingCount: $("#configuration-pending-count"),
   configurationPendingList: $("#configuration-pending-list"),
-  roomSchemeDialog: $("#room-scheme-selection-dialog"),
-  roomSchemeList: $("#room-scheme-list"),
-  roomSchemeStatus: $("#room-scheme-status"),
-  roomSchemeChoiceGrid: $("#room-scheme-choice-grid"),
-  roomSchemeWarning: $("#room-scheme-warning"),
-  roomSchemeComplete: $("#room-scheme-complete"),
   renderBriefDialog: $("#render-brief-dialog"),
   renderBriefSummary: $("#render-brief-summary"),
   renderBriefNotes: $("#render-brief-notes"),
   renderBriefWarning: $("#render-brief-warning"),
   designDeliveryDialog: $("#design-delivery-dialog"),
   designDeliveryContent: $("#design-delivery-content"),
-  roomSchemeProgress: $("#room-scheme-progress"),
   objectList: $("#scene-object-list"),
   realisticObjectList: $("#realistic-scene-object-list"),
   glbResults: $("#glb-search-results"),
@@ -623,10 +601,6 @@ const element = {
   lightingRoomQuestionnaire: $("#lighting-room-questionnaire"),
   lightingRoomSelector: $("#lighting-room-selector"),
   randomizeRequirementsSummary: $("#randomize-requirements-summary"),
-  roomScheme3dPreviewDialog: $("#room-scheme-3d-preview-dialog"),
-  roomScheme3dPreviewStatus: $("#room-scheme-3d-status"),
-  roomScheme3dPreviewTitle: $("#room-scheme-3d-preview-title"),
-  roomSchemeStructureFix: $("#room-scheme-structure-fix"),
   surfacePreviewStatus: $("#surface-preview-status"),
   surfaceRoomLockState: $("#surface-room-lock-state"),
   surfaceRoomProgress: $("#surface-room-progress"),
@@ -713,12 +687,6 @@ const replacementViewer = createSceneViewer(
 const glbThumbnailViewer = createSceneViewer(
   $("#glb-thumbnail-viewer"),
   $("#glb-thumbnail-status"),
-);
-// 逐房 A/B 點擊放大的可旋轉 3D 預覽 viewer。
-// 未定義時 openRoomScheme3dPreview 在 4156 傳入即 ReferenceError。
-const roomSchemePreviewViewer = createSceneViewer(
-  $("#room-scheme-3d-preview"),
-  element.roomScheme3dPreviewStatus,
 );
 const structurePreview = createStructurePreview($("#structure-3d-preview"));
 const styleFurnitureCache = new Map();
@@ -829,12 +797,12 @@ function pruneAutomaticSoftDecor() {
   removed += beforeFurniture - state.furniture2d.length;
   removed += removeAutomaticSoftDecorFromSceneData(state.sceneData);
 
-  Object.values(state.designSchemes?.schemes || {}).forEach((scheme) => {
-    const beforeSchemeFurniture = (scheme.furniture || []).length;
-    scheme.furniture = removeAutomaticSoftDecorFromFurniture(scheme.furniture || []);
-    removed += beforeSchemeFurniture - scheme.furniture.length;
-    removed += removeAutomaticSoftDecorFromSceneData(scheme.sceneData);
-  });
+  const beforeConfigurationFurniture = (state.configurationState.furniture || []).length;
+  state.configurationState.furniture = removeAutomaticSoftDecorFromFurniture(
+    state.configurationState.furniture || [],
+  );
+  removed += beforeConfigurationFurniture - state.configurationState.furniture.length;
+  removed += removeAutomaticSoftDecorFromSceneData(state.configurationState.sceneData);
 
   if (
     state.selectedFurniture2dId
@@ -873,12 +841,12 @@ function pruneRetiredAppliances({ notify = false } = {}) {
   removed += beforeFurniture - state.furniture2d.length;
   removed += removeRetiredAppliancesFromSceneData(state.sceneData);
 
-  Object.values(state.designSchemes?.schemes || {}).forEach((scheme) => {
-    const beforeSchemeFurniture = (scheme.furniture || []).length;
-    scheme.furniture = removeRetiredAppliancesFromFurniture(scheme.furniture || []);
-    removed += beforeSchemeFurniture - scheme.furniture.length;
-    removed += removeRetiredAppliancesFromSceneData(scheme.sceneData);
-  });
+  const beforeConfigurationFurniture = (state.configurationState.furniture || []).length;
+  state.configurationState.furniture = removeRetiredAppliancesFromFurniture(
+    state.configurationState.furniture || [],
+  );
+  removed += beforeConfigurationFurniture - state.configurationState.furniture.length;
+  removed += removeRetiredAppliancesFromSceneData(state.configurationState.sceneData);
 
   if (
     state.selectedFurniture2dId
@@ -1266,7 +1234,7 @@ function syncMovedSceneFurnitureTo2d(sceneObject) {
 function workflowPayload() {
   pruneRetiredAppliances();
   applyWholeHouseSurfaceConsistency();
-  persistActiveScheme(state.designSchemes, {
+  persistConfigurationState(state.configurationState, {
     furniture: state.furniture2d,
     sceneData: state.sceneData,
   });
@@ -1297,12 +1265,10 @@ function workflowPayload() {
     || stepIsLive("proposal_review")
     || stepIsLive("ai_render");
   const proposalIsLive = stepIsLive("proposal_review") || stepIsLive("ai_render");
-  const hasSchemeLayoutState = Boolean(state.designSchemes.schemes.B)
-    || Object.values(state.designSchemes.schemes).some(
-      (scheme) => (scheme.furniture || []).length > 0
-        || Boolean(scheme.sceneData)
-        || Boolean(scheme.stale),
-    );
+  const currentConfiguration = activeScheme();
+  const hasConfigurationState = (currentConfiguration?.furniture || []).length > 0
+    || Boolean(currentConfiguration?.sceneData)
+    || Boolean(currentConfiguration?.stale);
   return {
     project_schema_version: PROJECT_SCHEMA_VERSION,
     _flow: state.workflow?.toJSON() || null,
@@ -1322,38 +1288,33 @@ function workflowPayload() {
       : null,
     requirements: requirementsAreLive
       ? {
-          basic: state.basicAnswers,
-          basicConfirmed: state.basicConfirmed,
           questionnaireStage: state.questionnaireStage,
           visualCatalogVersion: state.visualCatalogVersion,
           visualAnswers: state.visualAnswers,
           skippedVisualSpaceTypes: state.skippedVisualSpaceTypes,
-          finishes: state.questionnaireFinishes,
-          roomRequirementModel: state.roomRequirementModel,
+          roomRequirementModel: {
+            ...state.roomRequirementModel,
+            schemaVersion: 3,
+            globalProfile: state.basicAnswers,
+            globalConfirmed: state.basicConfirmed,
+            globalFinishes: state.questionnaireFinishes,
+          },
         }
       : null,
-    layout_2d: layoutIsLive || hasSchemeLayoutState
+    layout_2d: layoutIsLive || hasConfigurationState
       ? {
           schema_version: PROJECT_SCHEMA_VERSION,
         }
       : null,
-    configuration: layoutIsLive || hasSchemeLayoutState
+    configuration: layoutIsLive || hasConfigurationState
       ? {
           schema_version: PROJECT_SCHEMA_VERSION,
-          active_scheme_id: state.designSchemes.active_scheme_id,
-          locked_scheme_id: state.designSchemes.locked_scheme_id,
-          room_selections: state.designSchemes.room_selections,
-          configuration_snapshot: state.designSchemes.configuration_snapshot,
-          schemes: Object.fromEntries(
-            Object.entries(state.designSchemes.schemes).map(([id, scheme]) => [
-              id,
-              {
-                ...scheme,
-                furniture: scheme.furniture,
-                sceneData: scheme.sceneData,
-              },
-            ]),
-          ),
+          furniture: currentConfiguration?.furniture || [],
+          sceneData: currentConfiguration?.sceneData || null,
+          stale: currentConfiguration?.stale === true,
+          staleReason: currentConfiguration?.staleReason || "",
+          locked: state.configurationState.locked === true,
+          configuration_snapshot: state.configurationState.configuration_snapshot,
         }
       : null,
     white_model_3d: whiteModelIsLive && state.sceneData
@@ -1492,21 +1453,21 @@ function invalidateDownstreamFrom(step, message = "") {
   }
   if (step === "space_confirmation") {
     state.confirmedStructureSnapshot = null;
-    persistActiveScheme(state.designSchemes, {
+    persistConfigurationState(state.configurationState, {
       furniture: state.furniture2d,
       sceneData: state.sceneData,
     });
-    markSchemeLayoutsStale(state.designSchemes, message);
+    markConfigurationStale(state.configurationState, message);
     state.sceneData = null;
     state.surfaceState = { wall: {}, floor: {}, furniture: [] };
     state.activeStylePackId = null;
     state.materialBoundary = null;
   } else if (step === "requirements") {
-    persistActiveScheme(state.designSchemes, {
+    persistConfigurationState(state.configurationState, {
       furniture: state.furniture2d,
       sceneData: state.sceneData,
     });
-    markSchemeLayoutsStale(state.designSchemes, message);
+    markConfigurationStale(state.configurationState, message);
     state.sceneData = null;
     state.surfaceState = { wall: {}, floor: {}, furniture: [] };
     state.activeStylePackId = null;
@@ -1524,84 +1485,13 @@ function invalidateDownstreamFrom(step, message = "") {
   if (message) setStatus(message);
 }
 
-function activeSchemeId() {
-  return state.designSchemes.active_scheme_id || "A";
-}
-
 function activeScheme() {
-  return state.designSchemes.schemes[activeSchemeId()];
+  return state.configurationState;
 }
 
 function syncFurnitureInventoryAcrossSchemes() {
-  persistActiveScheme(state.designSchemes, { furniture: state.furniture2d });
-  const source = state.furniture2d;
-  Object.entries(state.designSchemes.schemes).forEach(([schemeId, scheme]) => {
-    if (schemeId === activeSchemeId()) return;
-    const existingById = new Map((scheme.furniture || []).map((item) => [item.id, item]));
-    scheme.furniture = source.map((item) => {
-      const existing = existingById.get(item.id);
-      if (!existing) {
-        return {
-          ...JSON.parse(JSON.stringify(item)),
-          placementFailed: true,
-          placementReason: "家具清單已同步，請由引擎重新計算此方案的位置。",
-        };
-      }
-      return {
-        ...JSON.parse(JSON.stringify(item)),
-        xCm: existing.xCm,
-        yCm: existing.yCm,
-        rotationDeg: existing.rotationDeg,
-        placementFailed: existing.placementFailed,
-        placementReason: existing.placementReason,
-      };
-    });
-    scheme.sceneData = null;
-    scheme.stale = true;
-    scheme.staleReason = "共用家具清單已變更，請重新配置此方案。";
-  });
-  roomSchemePreviewCache.clear();   // 方案內容已變，舊 3D 預覽作廢
+  persistConfigurationState(state.configurationState, { furniture: state.furniture2d });
   renderSchemeControls();
-}
-
-async function switchDesignScheme(schemeId) {
-  persistActiveScheme(state.designSchemes, {
-    furniture: state.furniture2d,
-    sceneData: state.sceneData,
-  });
-  const scheme = activateScheme(state.designSchemes, schemeId);
-  if (!scheme) return false;
-  state.furniture2d = scheme.furniture || [];
-  state.sceneData = scheme.sceneData || null;
-  proposalRuntimeState.sceneVersionLoaded = null;   // 換方案是整場重建,第 7 步快取失效
-  state.selectedFurniture2dId = state.furniture2d[0]?.id || null;
-  renderSchemeControls();
-  renderLayoutRoomFilter();
-  renderLayoutFurniture();
-  const step = state.workflow?.currentStep;
-  if (state.sceneData && step === "white_model_3d") {
-    await whiteViewer.loadScene(state.sceneData);
-    whiteViewer.setViewMode("orbit");
-    renderSceneObjectList();
-    syncSelected2dFurnitureToScene({ focus: true });
-  } else if (state.sceneData && step === "realistic_3d") {
-    await realisticViewer.loadScene(state.sceneData);
-    realisticViewer.setViewMode("orbit");
-    renderSceneObjectList();
-    syncSelected2dFurnitureToScene({ focus: true });
-  } else if (state.sceneData && step === "proposal_review") {
-    await proposalViewer.loadScene(state.sceneData);
-    proposalViewer.setViewMode("orbit");
-    proposalViewer.setCameraPreset("corner");
-    element.proposalContentConfirmed.checked = false;
-    state.proposalReview.masterView = null;
-    state.designSchemes.locked_scheme_id = null;
-    renderProposalSummary();
-  } else if (["white_model_3d", "realistic_3d"].includes(step)) {
-    setStatus(`方案 ${schemeId} 尚未產生 3D 場景，請回第 6 步確認此方案。`);
-  }
-  scheduleSave(state.workflow?.currentStep || "space_confirmation");
-  return true;
 }
 
 function markRealisticSceneEdited() {
@@ -1671,11 +1561,6 @@ function showStep(step) {
     if (confirmConfiguration) confirmConfiguration.hidden = step === "realistic_3d";
     if (step === "realistic_3d") {
       focusStepSixRoom(state.selectedRoomId || state.selectedWalkRoomId || state.rooms[0]?.id);
-    }
-    if (step === "white_model_3d") {
-      // 進第 6 步工作台的第一件事是選方案，選定後才拿該方案的擺設去微調。
-      renderRoomSchemeGate();
-      if (roomSchemeGateBlocking()) requestAnimationFrame(promptRoomSchemeSelection);
     }
   }
   const currentPublicStep = publicWorkflowStep(step);
@@ -1831,10 +1716,7 @@ const {
   applySelectedWindowType,
   applyWindowType,
   cancelStructureInteraction,
-  chooseRoomScheme,
-  closeRoomSchemeSelectionDialog,
   cmToPixel,
-  completeRoomSchemeSelection,
   composeSelectedRoomFurniture,
   configurationSnapshot,
   confirmAllRooms,
@@ -1845,7 +1727,6 @@ const {
   confirmStructure,
   deleteRoom,
   deleteSelectedStructure,
-  ensureRoomScheme3dPreviews,
   finishBeamCreateDrag,
   focusStepSixRoom,
   hydrateConfirmedStructureSnapshot,
@@ -1855,20 +1736,14 @@ const {
   lockSelectedDoorOpening,
   mergeSelectedRoomNodes,
   mergeSelectedRooms,
-  navigateRoomScheme3dPreview,
   normalizeIconInferredRoomReview,
-  openRoomScheme3dPreview,
-  openRoomSchemeSelectionDialog,
   planGeometry,
   preparedAutoRoomLabels,
   previewSelectedStructureDraft,
-  promptRoomSchemeSelection,
   recognitionReviewSuffix,
   refreshConfigurationSnapshot,
   renderDoorReviewList,
   renderRooms,
-  renderRoomSchemeGate,
-  renderRoomSchemeSelectionDialog,
   renderSchemeControls,
   renderSelectedStructureEditor,
   renderSpaceOverlay,
@@ -1879,12 +1754,9 @@ const {
   roomFinishDraftFor,
   roomPolygonSvg,
   roomQuestionnaireSummary,
-  roomSchemeGateBlocking,
-  roomSchemeSelectionRequired,
   rotateSelectedDoor180,
   rotateSelectedStructure,
   saveRoom,
-  selectedSchemeMismatchNotice,
   selectedStepSixRoom,
   selectedStructureItem,
   selectRoom,
@@ -1896,7 +1768,6 @@ const {
   setSpaceReviewMode,
   setStepSixSurfaceKind,
   setStepSixSurfaceStatus,
-  setTaskDialogOpen,
   SHOW_ALL_ROOMS_BUTTONS,
   spacePointerDown,
   spacePointerMove,
@@ -1913,8 +1784,6 @@ const {
   $$,
   activePanelName,
   activeScheme,
-  activeSchemeId,
-  allRoomsHaveSchemeSelections,
   applyWindowTypePreset,
   attachedOpenings,
   beamDragGeometry,
@@ -1927,7 +1796,6 @@ const {
   dedupeDoorCandidates,
   dedupeWindowCandidates,
   element,
-  ensureSchemeB,
   errorMessage,
   escapeHtml,
   findStructureWallCollision,
@@ -1954,18 +1822,14 @@ const {
   roomDimensions,
   roomNameOptionFor,
   roomPolygonsDiffer,
-  roomSchemePreviewCache,
-  roomSchemePreviewViewer,
-  roomSchemeRuntimeState,
+  roomSurfaceAssignments: (...args) => roomSurfaceAssignments(...args),
   scheduleSave,
-  selectedSchemeForRoom,
-  selectSchemeForRoom,
   setStatus,
   showStep,
   state,
   structurePreview,
   structureRuntimeState,
-  structuresForScheme,
+  cloneStructures,
   STYLE_MATERIAL_OPTIONS,
   syncOverlayToImage,
   unresolvedReviewRooms,
@@ -2044,7 +1908,6 @@ const {
   endPlacementBusy,
   ensureQuestionnaireFurnitureRecommendations: (...args) => ensureQuestionnaireFurnitureRecommendations(...args),
   ensureRoomUsage: (...args) => ensureRoomUsage(...args),
-  ensureSchemeB,
   errorMessage,
   escapeHtml,
   evaluateConditionalOption,
@@ -2055,12 +1918,10 @@ const {
   normalizeRoomRequirements,
   planGeometry,
   previewStepSixRoomSurfaces: (...args) => previewStepSixRoomSurfaces(...args),
-  promptRoomSchemeSelection,
   questionnaireFurnitureDisplayLabel: (...args) => questionnaireFurnitureDisplayLabel(...args),
   questionnaireFurnitureProgram: (...args) => questionnaireFurnitureProgram(...args),
   questionnaireRuntimeState,
   questionnaireSummary,
-  relayoutFurnitureForScheme: (...args) => relayoutFurnitureForScheme(...args),
   renderFurnitureLibrary: (...args) => renderFurnitureLibrary(...args),
   renderGenerativeEquipment: (...args) => renderGenerativeEquipment(...args),
   renderMaterialPairPreviews,
@@ -2078,7 +1939,6 @@ const {
   STYLE_FAMILIES,
   STYLE_PACKS,
   stylePackByIdSafe: (...args) => stylePackByIdSafe(...args),
-  switchDesignScheme,
   syncOverlayToImage,
   WHOLE_HOUSE_QUESTIONS,
 });
@@ -2110,7 +1970,6 @@ const {
   questionnaireFurnitureSelectionItem,
   reflowSingleConfigurationFurniture,
   refreshQuestionnaireFurnitureRecommendations,
-  relayoutFurnitureForScheme,
   renderConfigurationPlan,
   renderFurnitureLibrary,
   renderGenerativeEquipment,
@@ -2150,7 +2009,6 @@ const {
   activeRoomFinishDraft,
   activeRoomRequirement,
   activeScheme,
-  activeSchemeId,
   api,
   applianceRequirementsForRendering,
   applyVisualPreferencesToSpecs,
@@ -2158,7 +2016,6 @@ const {
   CATALOG_RETRIEVAL_ROUTES,
   catalogFurnitureOffer,
   catalogMaterialOptionsForPack,
-  completeRoomSchemeSelection,
   configurationReflowInFlight,
   configurationSnapshot,
   confirmedFloorplanEditor,
@@ -2182,7 +2039,7 @@ const {
   normalizedRoomSurfaces,
   occupantsFromBasicAnswers,
   openQuestionnaireFurnitureCatalog: (...args) => openQuestionnaireFurnitureCatalog(...args),
-  persistActiveScheme,
+  persistConfigurationState,
   planCmToLayerPixel,
   planGeometry,
   pointInPolygonCm,
@@ -2215,7 +2072,6 @@ const {
   sceneDataFromGenerateResponse,
   sceneObjectIndexByFurnitureId,
   scheduleSave,
-  selectedSchemeMismatchNotice,
   setStatus,
   showStep,
   state,
@@ -2270,7 +2126,6 @@ const {
   $$,
   activeQuestionnaireRoom,
   activeRoomFinishDraft,
-  allRoomsHaveSchemeSelections,
   api,
   applyStylePack,
   CATALOG_FACET_TRADITIONAL_LABELS,
@@ -2300,7 +2155,6 @@ const {
   livingRoomForCirculation,
   materialPairScore,
   materialVisualTagMarkup,
-  openRoomSchemeSelectionDialog,
   planCenterCm,
   pruneAutomaticSoftDecor,
   QUESTIONNAIRE_CATALOG_EXTRA_PURPOSE_LABELS,
@@ -2326,7 +2180,6 @@ const {
   roomFinishDraftFor,
   roomFurnitureRequirement,
   roomQuestionnaireSummary,
-  roomSchemeSelectionRequired,
   scheduleSave,
   selectedStepSixRoom,
   selectSceneObjectByFurnitureId,
@@ -2343,7 +2196,6 @@ const {
   STYLE_PACKS,
   styleCompatibleMaterialOptionsForPack,
   styleFurnitureCache,
-  switchDesignScheme,
   syncFinalValidationToConfiguration,
   syncFurnitureInventoryAcrossSchemes,
   upsertFurniture2dFromSceneObject,
@@ -2377,9 +2229,7 @@ const {
   updateAiRenderImageStage,
 } = createSceneProposalController({
   activeScheme,
-  activeSchemeId,
   aiRenderViewer,
-  allRoomsHaveSchemeSelections,
   api,
   beginPlacementBusy,
   composeSelectedRoomFurniture,
@@ -2397,7 +2247,6 @@ const {
   proposalViewer,
   refreshConfigurationSnapshot,
   renderSchemeControls,
-  roomSchemeSelectionRequired,
   scheduleSave,
   setStatus,
   showQuestionnaireStage,
@@ -2416,7 +2265,6 @@ const bindEvents = createSceneEventBindings({
   activeQuestionnaireRoom,
   activeRoomFinishDraft,
   activeRoomRequirement,
-  activeSchemeId,
   addDroppedStructure,
   addFurnitureFromLibrary,
   addMissedRoom,
@@ -2437,15 +2285,12 @@ const bindEvents = createSceneEventBindings({
   cancelWhiteModelBeamPlacement,
   capturePendingSave,
   catalogRuntimeState,
-  chooseRoomScheme,
   clearRequirementsGenerationHelp,
   closeDesignDelivery,
   closeProposalPaletteImageStage,
   closeRenderBriefDialog,
   closeRenderImageStage,
-  closeRoomSchemeSelectionDialog,
   completedOpenrouterRows,
-  completeRoomSchemeSelection,
   configurationFurnitureNumber,
   confirmAllRooms,
   confirmBasicQuestionnaire,
@@ -2471,7 +2316,6 @@ const bindEvents = createSceneEventBindings({
   element,
   endPlacementBusy,
   ensureQuestionnaireFurnitureRecommendations,
-  ensureRoomScheme3dPreviews,
   ensureRoomUsage,
   errorMessage,
   evaluateCeilingConflicts,
@@ -2499,14 +2343,11 @@ const bindEvents = createSceneEventBindings({
   mergeSelectedRoomNodes,
   mergeSelectedRooms,
   moveVisualQuestion,
-  navigateRoomScheme3dPreview,
   openFurnitureReplacement,
   openQuestionnaireCeilingDesignStyle,
   openQuestionnaireCeilingPicker,
   openQuestionnaireFurnitureCatalog,
   openRenderBriefDialog,
-  openRoomScheme3dPreview,
-  openRoomSchemeSelectionDialog,
   pendingSaveCount,
   pendingSaveStorageKey,
   previewReplacementCandidate,
@@ -2524,7 +2365,6 @@ const bindEvents = createSceneEventBindings({
   realisticViewer,
   reflowSingleConfigurationFurniture,
   refreshQuestionnaireFurnitureRecommendations,
-  relayoutFurnitureForScheme,
   removeMaterialBoundary,
   renderCalibration,
   renderConfigurationPlan,
@@ -2541,7 +2381,6 @@ const bindEvents = createSceneEventBindings({
   renderQuestionnaireRoomSections,
   renderQuestionnaireRoomUsage,
   renderRooms,
-  renderRoomSchemeSelectionDialog,
   renderSceneObjectList,
   renderSchemeControls,
   renderSelectedStructureEditor,
@@ -2586,7 +2425,6 @@ const bindEvents = createSceneEventBindings({
   setStatus,
   setStepSixSurfaceKind,
   setStepSixSurfaceStatus,
-  setTaskDialogOpen,
   SHOW_ALL_ROOMS_BUTTONS,
   showQuestionnaireStage,
   showRenderImageEnlarged,
@@ -2602,7 +2440,6 @@ const bindEvents = createSceneEventBindings({
   structureSectionMeta,
   structureWallCollision,
   STYLE_PACKS,
-  switchDesignScheme,
   syncAllOverlays,
   syncFurnitureInventoryAcrossSchemes,
   syncFurnitureNumberVisibility,
@@ -2631,7 +2468,6 @@ const {
 } = createSceneRestoreController({
   $,
   activeScheme,
-  activeSchemeId,
   api,
   applyCanonicalRoomLabels,
   applyStyleCardHandoff,
@@ -2647,7 +2483,7 @@ const {
   generateWhiteModelFromRequirements,
   hydrateConfirmedStructureSnapshot,
   hydrateSceneWallMass,
-  normalizeDesignSchemes,
+  normalizeConfigurationState,
   normalizeIconInferredRoomReview,
   normalizeRoomRequirements,
   normalizeSavedSceneData,
@@ -2655,7 +2491,7 @@ const {
   normalizeSavedSpaceConfirmation,
   normalizeSceneDoorSegments,
   pendingSaveStorageKey,
-  persistActiveScheme,
+  persistConfigurationState,
   preparedAutoRoomLabels,
   pruneRetiredAppliances,
   recognitionReviewSuffix,

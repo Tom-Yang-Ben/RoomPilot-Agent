@@ -184,34 +184,29 @@ def test_layout_variant_b_uses_a_different_engine_validated_candidate() -> None:
             "size_cm": {"width": 120, "depth": 60, "height": 200},
         }],
     }
-    scheme_a = client.post("/api/scene/layout", json={**payload, "placement_variant": "A"})
-    scheme_b = client.post("/api/scene/layout", json={**payload, "placement_variant": "B"})
+    current = client.post("/api/scene/layout", json=payload)
+    retired = client.post("/api/scene/layout", json={**payload, "placement_variant": "B"})
 
-    assert scheme_a.status_code == 200
-    assert scheme_b.status_code == 200
-    item_a = scheme_a.json()["scene_objects"][0]
-    item_b = scheme_b.json()["scene_objects"][0]
-    assert item_a.get("placement_failed") is not True
-    assert item_b.get("placement_failed") is not True
-    assert (
-        item_a["position_cm"] != item_b["position_cm"]
-        or item_a["rotation_y_deg"] != item_b["rotation_y_deg"]
-    )
+    assert current.status_code == 200
+    assert current.json()["scene_objects"][0].get("placement_failed") is not True
+    assert retired.status_code == 422
+    assert retired.json()["detail"] == "placement_variant_retired"
 
 
 def test_layout_places_furniture_in_requested_room_region() -> None:
     floorplan = {
+        "coordinate_unit": "cm",
         "width_cm": 1000,
         "depth_cm": 600,
         "room_regions": [
             {
                 "room_id": "living-room",
-                "exterior": [[-5, -3], [1, -3], [1, 3], [-5, 3]],
+                "exterior": [[-500, -300], [100, -300], [100, 300], [-500, 300]],
                 "holes": [],
             },
             {
                 "room_id": "bedroom-1",
-                "exterior": [[2, -2], [5, -2], [5, 2], [2, 2]],
+                "exterior": [[200, -200], [500, -200], [500, 200], [200, 200]],
                 "holes": [],
             },
         ],
@@ -243,6 +238,7 @@ def test_layout_places_furniture_in_requested_room_region() -> None:
 
 def test_wall_furniture_anchors_to_the_requested_room_boundary() -> None:
     floorplan = {
+        "coordinate_unit": "cm",
         "width_cm": 949.8,
         "depth_cm": 1044.43,
         "room_regions": [
@@ -250,10 +246,10 @@ def test_wall_furniture_anchors_to_the_requested_room_boundary() -> None:
                 "room_id": "storage-1",
                 "room_type": "storage",
                 "exterior": [
-                    [-4.504, -3.1492],
-                    [-0.131, -3.1492],
-                    [-0.131, 0.7178],
-                    [-4.504, 0.7178],
+                    [-450.4, -314.92],
+                    [-13.1, -314.92],
+                    [-13.1, 71.78],
+                    [-450.4, 71.78],
                 ],
                 "holes": [],
             },
@@ -293,6 +289,7 @@ def test_wall_furniture_anchors_to_the_requested_room_boundary() -> None:
 
 def test_manual_wall_snap_is_resolved_by_the_backend_layout_engine() -> None:
     floorplan = {
+        "coordinate_unit": "cm",
         "width_cm": 949.8,
         "depth_cm": 1044.43,
         "room_regions": [
@@ -300,10 +297,10 @@ def test_manual_wall_snap_is_resolved_by_the_backend_layout_engine() -> None:
                 "room_id": "storage-1",
                 "room_type": "storage",
                 "exterior": [
-                    [-4.504, -3.1492],
-                    [-0.131, -3.1492],
-                    [-0.131, 0.7178],
-                    [-4.504, 0.7178],
+                    [-450.4, -314.92],
+                    [-13.1, -314.92],
+                    [-13.1, 71.78],
+                    [-450.4, 71.78],
                 ],
                 "holes": [],
             },
@@ -398,3 +395,21 @@ def test_single_room_call_passes_other_rooms_furniture_through_verbatim() -> Non
     assert by_id["sofa-1"]["position_cm"] == {"x": 210.0, "z": 137.0}   # 原樣通過
     assert not by_id["sofa-1"].get("placement_failed")
     assert not by_id["bed-1"]["placement_failed"]
+
+
+def test_layout_rejects_retired_meter_floorplans() -> None:
+    response = client.post(
+        "/api/scene/layout",
+        json={
+            "floorplan": {
+                "coordinate_unit": "m",
+                "width_cm": 500,
+                "depth_cm": 400,
+                "room_regions": [],
+            },
+            "scene_objects": [],
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "floorplan_coordinate_unit_must_be_cm"

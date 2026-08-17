@@ -155,22 +155,20 @@ def test_wall_shelf_is_placed_and_ignores_floor_collision():
     assert not objects["shelf"]["placement_failed"]
 
 
-# ── placement_variant:A/B 是兩個可比較的方案 ────────────────────────
-def test_variant_b_is_a_valid_alternative_layout():
+# ── 單一配置必須可重現 ───────────────────────────────────────────────
+def test_layout_is_deterministic_for_the_same_input():
     items = [
         _item("sofa", "fabric-sofa", 200, 90),
         _item("cabinet", "storage-cabinet", 120, 45, h=200.0),
     ]
     room = _rect_room()
-    a = generate_layout(ROOM_W, ROOM_D, items, room=room, placement_variant="A")
-    b = generate_layout(ROOM_W, ROOM_D, items, room=room, placement_variant="B")
-    assert [o["furniture_id"] for o in a] == [o["furniture_id"] for o in b]
-    # 兩案都必須是合法配置(不重疊);是否不同座標不強制 —— 小房可能只有一組解
-    for objects in (a, b):
-        solid = [o for o in objects if not o["placement_failed"]]
-        for i, x in enumerate(solid):
-            for y in solid[i + 1:]:
-                assert not _overlaps(x, y)
+    first = generate_layout(ROOM_W, ROOM_D, items, room=room)
+    second = generate_layout(ROOM_W, ROOM_D, items, room=room)
+    assert first == second
+    solid = [item for item in first if not item["placement_failed"]]
+    for index, item in enumerate(solid):
+        for other in solid[index + 1:]:
+            assert not _overlaps(item, other)
 
 
 # ── payload 契約:順序、鍵、單位 ─────────────────────────────────────

@@ -25,6 +25,21 @@ def _png_bytes() -> bytes:
     return output.getvalue()
 
 
+def _requirements(status: str) -> dict:
+    return {
+        "status": status,
+        "roomRequirementModel": {
+            "schemaVersion": 3,
+            "activeRoomId": None,
+            "roomRequirements": {},
+            "unassignedDeferredFurniture": [],
+            "globalProfile": {},
+            "globalConfirmed": False,
+            "globalFinishes": {},
+        },
+    }
+
+
 def test_store_enables_wal_and_foreign_keys(tmp_path: Path) -> None:
     store = ProjectStore(tmp_path / "runtime")
 
@@ -43,7 +58,7 @@ def test_expected_revision_rejects_stale_update_without_overwriting(tmp_path: Pa
     saved = store.update_workflow(
         project["project_id"],
         expected_revision=0,
-        workflow={"requirements": {"status": "new"}},
+        workflow={"requirements": _requirements("new")},
     )
 
     assert saved["revision"] == 1
@@ -51,12 +66,12 @@ def test_expected_revision_rejects_stale_update_without_overwriting(tmp_path: Pa
         store.update_workflow(
             project["project_id"],
             expected_revision=0,
-            workflow={"requirements": {"status": "stale"}},
+            workflow={"requirements": _requirements("stale")},
         )
     assert conflict.value.project["revision"] == 1
-    assert store.get_project(project["project_id"])["workflow"]["requirements"] == {
-        "status": "new"
-    }
+    assert store.get_project(project["project_id"])["workflow"]["requirements"][
+        "status"
+    ] == "new"
 
 
 def test_legacy_database_requires_explicit_project_schema_migration(tmp_path: Path) -> None:
@@ -172,11 +187,17 @@ def test_workflow_api_supports_revision_and_size_guard(
 
     saved = client.put(
         f"/api/projects/{project['project_id']}/workflow",
-        json={"expected_revision": 0, "workflow": {"requirements": {"ok": True}}},
+        json={
+            "expected_revision": 0,
+            "workflow": {"requirements": _requirements("new")},
+        },
     )
     stale = client.put(
         f"/api/projects/{project['project_id']}/workflow",
-        json={"expected_revision": 0, "workflow": {"requirements": {"ok": False}}},
+        json={
+            "expected_revision": 0,
+            "workflow": {"requirements": _requirements("stale")},
+        },
     )
     too_large = client.put(
         f"/api/projects/{project['project_id']}/workflow",

@@ -4,10 +4,10 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-function legacyMeterPath(value, path = "project") {
+function nonCentimeterFieldPath(value, path = "project") {
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index += 1) {
-      const nested = legacyMeterPath(value[index], `${path}[${index}]`);
+      const nested = nonCentimeterFieldPath(value[index], `${path}[${index}]`);
       if (nested) return nested;
     }
     return "";
@@ -17,14 +17,14 @@ function legacyMeterPath(value, path = "project") {
     if (key.endsWith("_m") || key === "m_per_px" || key === "distance_m") {
       return `${path}.${key}`;
     }
-    const nested = legacyMeterPath(item, `${path}.${key}`);
+    const nested = nonCentimeterFieldPath(item, `${path}.${key}`);
     if (nested) return nested;
   }
   return "";
 }
 
 function requireCentimeterGeometry(value, label) {
-  const meterPath = legacyMeterPath(value, label);
+  const meterPath = nonCentimeterFieldPath(value, label);
   if (meterPath) throw new Error(`project_schema_upgrade_required:${meterPath}`);
 }
 

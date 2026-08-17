@@ -2,7 +2,6 @@
 export function createSceneRestoreController({
   $,
   activeScheme,
-  activeSchemeId,
   api,
   applyCanonicalRoomLabels,
   applyStyleCardHandoff,
@@ -18,7 +17,7 @@ export function createSceneRestoreController({
   generateWhiteModelFromRequirements,
   hydrateConfirmedStructureSnapshot,
   hydrateSceneWallMass,
-  normalizeDesignSchemes,
+  normalizeConfigurationState,
   normalizeIconInferredRoomReview,
   normalizeRoomRequirements,
   normalizeSavedSceneData,
@@ -26,7 +25,7 @@ export function createSceneRestoreController({
   normalizeSavedSpaceConfirmation,
   normalizeSceneDoorSegments,
   pendingSaveStorageKey,
-  persistActiveScheme,
+  persistConfigurationState,
   preparedAutoRoomLabels,
   pruneRetiredAppliances,
   recognitionReviewSuffix,
@@ -66,13 +65,12 @@ async function recoverSceneDataFromSavedLayout() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       floorplan_editor: confirmedFloorplanEditor(),
-      placement_variant: activeSchemeId(),
       scene_objects: state.furniture2d.map((item) => toSceneFurniture(item)),
     }),
   });
   const roomSurfaces = roomSurfaceAssignments();
   state.sceneData = {
-    scene_id: `${state.projectId}-restored-${activeSchemeId()}`,
+    scene_id: `${state.projectId}-restored`,
     floorplan: layout.floorplan,
     scene_objects: layout.scene_objects || [],
     questionnaire: {
@@ -113,7 +111,7 @@ async function recoverSceneDataFromSavedLayout() {
       furniture2dDefaultsForSceneObject(item),
     );
   });
-  persistActiveScheme(state.designSchemes, {
+  persistConfigurationState(state.configurationState, {
     furniture: state.furniture2d,
     sceneData: state.sceneData,
   });
@@ -161,7 +159,7 @@ async function restoreProject() {
     }
     state.project = result.project;
     const serverState = state.project.workflow || {};
-    if (Number(serverState.project_schema_version) !== 3) {
+    if (Number(serverState.project_schema_version) !== 4) {
       throw new Error("project_schema_upgrade_required");
     }
     state.workflow = restoreWorkflow({
@@ -238,8 +236,9 @@ async function restoreProject() {
     const normalizedWindows = dedupeWindowCandidates(state.structures.windows || []);
     state.structures.windows = normalizedWindows.windows;
     state.windowNormalizationRemoved = normalizedWindows.removed;
-    state.basicAnswers = serverState.requirements?.basic || {};
-    state.basicConfirmed = serverState.requirements?.basicConfirmed === true;
+    const savedRequirementModel = serverState.requirements?.roomRequirementModel || {};
+    state.basicAnswers = savedRequirementModel.globalProfile || {};
+    state.basicConfirmed = savedRequirementModel.globalConfirmed === true;
     const savedQuestionnaireStage = serverState.requirements?.questionnaireStage;
     state.questionnaireStage = (savedQuestionnaireStage === "visual"
       ? "rooms"
@@ -253,19 +252,15 @@ async function restoreProject() {
       serverState.requirements?.skippedVisualSpaceTypes || [];
     state.questionnaireFinishes = {
       ...state.questionnaireFinishes,
-      ...(serverState.requirements?.finishes || {}),
+      ...(savedRequirementModel.globalFinishes || {}),
     };
-    if (!serverState.requirements?.finishes?.stylePackId) {
+    if (!savedRequirementModel.globalFinishes?.stylePackId) {
       applyStyleCardHandoff();
     }
     state.roomRequirementModel = normalizeRoomRequirements(
-      serverState.requirements?.roomRequirementModel || {},
+      savedRequirementModel,
       state.rooms,
-      {
-        basic: state.basicAnswers,
-        basicConfirmed: state.basicConfirmed,
-        finishes: state.questionnaireFinishes,
-      },
+      {},
     );
     state.roomFinishDrafts = serverState.realistic_3d?.roomSurfaceDrafts
       || serverState.requirements?.roomFinishDrafts
@@ -274,21 +269,17 @@ async function restoreProject() {
       (pack) => pack.id === state.questionnaireFinishes.stylePackId,
     );
     if (questionnairePack) state.activeStyleId = questionnairePack.styleId;
-    state.designSchemes = normalizeDesignSchemes(
-      serverState.configuration || { schema_version: 3 },
+    state.configurationState = normalizeConfigurationState(
+      serverState.configuration || { schema_version: 4 },
     );
-    Object.values(state.designSchemes.schemes).forEach((scheme) => {
-      scheme.sceneData = normalizeSavedSceneData(scheme.sceneData);
-    });
+    state.configurationState.sceneData = normalizeSavedSceneData(
+      state.configurationState.sceneData,
+    );
     const restoredScheme = activeScheme();
     state.furniture2d = restoredScheme?.furniture || [];
     state.sceneData = restoredScheme?.sceneData || null;
     applyWholeHouseSurfaceConsistency();
-    const restoredWallSurfaceRepairs = Object.values(state.designSchemes.schemes || {})
-      .reduce(
-        (total, scheme) => total + normalizeSavedSceneWallSurfaces(scheme?.sceneData),
-        0,
-      ) + normalizeSavedSceneWallSurfaces(state.sceneData);
+    const restoredWallSurfaceRepairs = normalizeSavedSceneWallSurfaces(state.sceneData);
     const restoredRetiredAppliancesRemoved = pruneRetiredAppliances({ notify: true });
     const restoredSceneDoorsRemoved = normalizeSceneDoorSegments(state.sceneData);
     const restoredDoorSwingEndpoints = restoreDoorSwingEndpointsFromConfirmedStructures(

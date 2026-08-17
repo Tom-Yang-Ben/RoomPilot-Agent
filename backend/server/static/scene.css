@@ -1,4 +1,4 @@
-/* RoomPilot test1: final nine-step planning workflow */
+/* RoomPilot eight-step planning workflow */
 body.rp-workflow-page {
   --rp-ink: #252422;
   --rp-muted: #716d68;
@@ -9,10 +9,17 @@ body.rp-workflow-page {
   --rp-green-soft: #e3f0e9;
   --rp-orange: #bd5c36;
   --rp-blue: #2f6f87;
+  --rp-canvas: #f3f0ea;
+  --rp-surface: #fffdf9;
+  --rp-surface-muted: #f8f5ef;
+  --rp-ink-strong: #29231f;
+  --rp-accent: #2b725d;
+  --rp-accent-soft: #e3efe8;
+  --rp-border-strong: #cfc7bc;
   margin: 0;
   min-width: 320px;
-  background: #e7e9e6;
-  color: var(--rp-ink);
+  background: var(--rp-canvas);
+  color: var(--rp-ink-strong);
   letter-spacing: 0;
 }
 
@@ -459,31 +466,6 @@ body.rp-workflow-page .rp-window-type-toggle button.is-active {
   color: #fff;
 }
 
-body.rp-workflow-page .rp-scheme-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-body.rp-workflow-page .rp-scheme-toolbar {
-  padding: 10px 22px;
-  border-bottom: 1px solid #d8d3cc;
-  background: #f7f6f3;
-}
-
-body.rp-workflow-page .rp-scheme-toolbar > span {
-  color: #5f5a54;
-  font-size: 14px;
-}
-
-@media (max-width: 760px) {
-  body.rp-workflow-page .rp-scheme-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-}
-
 body.rp-workflow-page .rp-door-review-list span {
   font-size: 13px;
   color: #625d57;
@@ -621,10 +603,20 @@ body.rp-workflow-page .danger-action {
 
 .rp-control-pane {
   min-width: 0;
-  max-height: calc(100vh - 195px);
+  max-height: calc(100vh - 274px);
   overflow-y: auto;
-  padding: 22px;
-  background: #f7f7f4;
+  padding: 30px;
+  border-left: 0;
+  background: var(--rp-surface-muted);
+}
+
+.rp-window-procedural-preview {
+  min-height: 180px;
+  border: 10px solid #1f2933;
+  background:
+    linear-gradient(90deg, transparent 49%, #1f2933 49% 51%, transparent 51%),
+    linear-gradient(180deg, rgba(207, 231, 238, 0.94), rgba(149, 196, 211, 0.72));
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
 }
 
 .rp-pane-heading {
@@ -2074,111 +2066,6 @@ body.rp-workflow-page .danger-action {
   line-height: 1.55;
 }
 
-.rp-room-scheme-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.rp-room-scheme-list button {
-  min-width: 118px;
-  text-align: left;
-}
-
-.rp-room-scheme-list button small {
-  display: block;
-  margin-top: 3px;
-  color: #776d64;
-}
-
-.rp-room-scheme-list button.is-active {
-  border-color: #286f5c;
-  background: #e3f0eb;
-  color: #155444;
-}
-
-/* 逐房 A/B 的 2D 平面 SVG 配色。
-   缺這些規則時 SVG 形狀退回預設黑色填色，整張平面圖變成黑圖。 */
-.rp-room-scheme-plan {
-  display: block;
-  width: 100%;
-  height: 184px;
-  background: #fbfcfa;
-}
-
-.rp-room-scheme-outline {
-  fill: #edf5f0;
-  stroke: #2d725e;
-  stroke-width: 3;
-}
-
-.rp-room-scheme-furniture rect {
-  fill: #4d8c76;
-  stroke: #1f5a49;
-  stroke-width: 1.5;
-}
-
-.rp-room-scheme-furniture text {
-  fill: #fff;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.rp-room-scheme-empty {
-  fill: #6e786f;
-  font-size: 14px;
-}
-
-.rp-scheme-choice-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.rp-scheme-choice-card {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid #d8d0c8;
-  border-radius: 6px;
-  background: #fff;
-}
-
-.rp-scheme-choice-card.is-selected {
-  border: 2px solid #286f5c;
-  background: #f1f8f5;
-}
-
-.rp-scheme-preview-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.rp-scheme-preview {
-  min-height: 132px;
-  overflow: hidden;
-  border: 1px solid #e1d9d1;
-  border-radius: 4px;
-  background: #f5f2ee;
-}
-
-.rp-scheme-preview img {
-  display: block;
-  width: 100%;
-  height: 132px;
-  object-fit: cover;
-}
-
-.rp-scheme-preview .rp-render-placeholder {
-  display: grid;
-  min-height: 132px;
-  place-items: center;
-  padding: 12px;
-  text-align: center;
-  color: #776d64;
-}
-
 .rp-task-dialog-warning {
   padding: 12px;
   border-left: 4px solid #b06b25;
@@ -2221,7 +2108,6 @@ body.rp-workflow-page .danger-action {
 
 @media (max-width: 760px) {
   .rp-task-dialog-shell { padding: 16px; }
-  .rp-scheme-choice-grid { grid-template-columns: 1fr; }
   .rp-task-dialog-header,
   .rp-task-dialog-actions { align-items: stretch; flex-direction: column; }
   .rp-task-dialog-actions > * { width: 100%; }

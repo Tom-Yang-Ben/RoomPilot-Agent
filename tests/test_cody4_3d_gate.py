@@ -11,16 +11,18 @@ client = TestClient(app)
 
 
 CODY4_FLOORPLAN = {
+    "coordinate_unit": "cm",
+    "schema_version": "2.0",
     "width_cm": 949.8,
     "depth_cm": 1044.43,
     "room_regions": [
-        {"room_id": "room-1", "room_type": "bedroom", "exterior": [[-4.504, 0.9788], [-0.131, 0.9788], [-0.131, 4.9938], [-4.504, 4.9938]], "holes": []},
-        {"room_id": "room-2", "room_type": "kitchen", "exterior": [[0.13, 0.9788], [4.553, 0.9788], [4.553, 4.9938], [0.13, 4.9938]], "holes": []},
-        {"room_id": "room-3", "room_type": "storage", "exterior": [[-4.504, -3.1492], [-0.131, -3.1492], [-0.131, 0.7178], [-4.504, 0.7178]], "holes": []},
-        {"room_id": "room-4", "room_type": "circulation", "exterior": [[0.13, -0.8482], [1.256, -0.8482], [1.256, 0.7178], [0.13, 0.7178]], "holes": []},
-        {"room_id": "room-5", "room_type": "bathroom", "exterior": [[1.518, -0.8482], [4.504, -0.8482], [4.504, 0.7178], [1.518, 0.7178]], "holes": []},
-        {"room_id": "room-6", "room_type": "living_room", "exterior": [[0.114, -4.9772], [4.504, -4.9772], [4.504, -1.1102], [0.114, -1.1102]], "holes": []},
-        {"room_id": "room-7", "room_type": "balcony", "exterior": [[-4.667, -5.1402], [-0.114, -5.1402], [-0.114, -3.4112], [-4.667, -3.4112]], "holes": []},
+        {"room_id": "room-1", "room_type": "bedroom", "exterior": [[-450.4, 97.88], [-13.1, 97.88], [-13.1, 499.38], [-450.4, 499.38]], "holes": []},
+        {"room_id": "room-2", "room_type": "kitchen", "exterior": [[13.0, 97.88], [455.3, 97.88], [455.3, 499.38], [13.0, 499.38]], "holes": []},
+        {"room_id": "room-3", "room_type": "storage", "exterior": [[-450.4, -314.92], [-13.1, -314.92], [-13.1, 71.78], [-450.4, 71.78]], "holes": []},
+        {"room_id": "room-4", "room_type": "circulation", "exterior": [[13.0, -84.82], [125.6, -84.82], [125.6, 71.78], [13.0, 71.78]], "holes": []},
+        {"room_id": "room-5", "room_type": "bathroom", "exterior": [[151.8, -84.82], [450.4, -84.82], [450.4, 71.78], [151.8, 71.78]], "holes": []},
+        {"room_id": "room-6", "room_type": "living_room", "exterior": [[11.4, -497.72], [450.4, -497.72], [450.4, -111.02], [11.4, -111.02]], "holes": []},
+        {"room_id": "room-7", "room_type": "balcony", "exterior": [[-466.7, -514.02], [-11.4, -514.02], [-11.4, -341.12], [-466.7, -341.12]], "holes": []},
     ],
 }
 

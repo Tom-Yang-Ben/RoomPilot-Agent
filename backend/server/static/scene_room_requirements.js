@@ -1,4 +1,4 @@
-export const ROOM_REQUIREMENTS_SCHEMA_VERSION = 2;
+export const ROOM_REQUIREMENTS_SCHEMA_VERSION = 3;
 
 const clone = (value) => {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -217,6 +217,7 @@ export function normalizeRoomRequirements(
     unassignedDeferredFurniture: clone(saved.unassignedDeferredFurniture || []),
     globalProfile: clone(saved.globalProfile || initialState.basic || {}),
     globalConfirmed: saved.globalConfirmed === true || initialState.basicConfirmed === true,
+    globalFinishes: clone(saved.globalFinishes || initialState.finishes || {}),
   };
 }
 
