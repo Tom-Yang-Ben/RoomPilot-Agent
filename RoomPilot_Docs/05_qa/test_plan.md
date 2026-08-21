@@ -175,7 +175,7 @@ TC 編號與 ACPT 同號一對一（TC-0NN ↔ ACPT-0NN），分組依 [`srs.md`
 | TC-023 | ACPT-023 | FR-025 | 契約 | `tests/test_render_image_stage.py:35,49,66`（疊層 DOM、gallery／single 兩模式、縮圖點擊） | **紅**——3 筆全紅，但屬測試過時（期待舊 id `ai-openrouter-gallery`，實作為 `#ai-render-image-stage`，見 §2.2） |
 | TC-046 | ACPT-046 | FR-053、FR-054、NFR-018 | 單元 | `backend/server/tests/test_agent_pipeline_service.py:17`（旗標開關）、`:28`（側寫持久化可重載）、`:40,45`（前置與非法輸入）；`backend/server/tests/test_agent_reconcile_service.py:33`（對帳一致且合法）、`:45` | 部分——**「旗標未設時四支專案路由回 404、`/status` 仍 200」無路由層測試**（[ADR-011](../03_architecture/adr/ADR-011-agent-pipeline-flag-isolation.md) 已登記） |
 | TC-056 | ACPT-056 | FR-065、FR-067、NFR-019、NFR-020、NFR-023 | 契約＋人工 | `tests/test_env_example_contract.py:20`（`.env.example` 記載 OpenRouter 與型錄預設）；`tests/test_rag_frontend.py:25`（RAG 頁不出現在正式導覽） | 部分——`install.ps1`／`install.sh` 與 `127.0.0.1` 綁定、狀態端點不外洩金鑰皆**無自動化測試**，只能人工 |
-| TC-057 | ACPT-057 | FR-066 | 人工 | **缺口**——repo 內查無針對 `docker_postgresql/docker-compose.yml` 的測試 | 缺口 |
+| TC-057 | ACPT-057 | FR-066 | 人工 | **缺口**——repo 內查無針對 `docker-compose.yml` `db` 服務的測試；`tests/test_docker_split_contract.py` 只驗容器拆解契約（build target、RAG／PDF 的環境變數開關），不涵蓋 DB 供應與 dump 還原 | 缺口 |
 | TC-058 | ACPT-058 | NFR-022、NFR-025 | 人工 | **缺口**——無配額、輪替、備份或刪除機制可測；2026-08-12 實測 `.runtime/uploads` 115 MB、`manuals` 45 MB、`projects.sqlite3` 67 MB，`backend/server/main.py` 內查無任何 `DELETE` 路由 | 缺口（受阻於 DEC-015） |
 | TC-059 | ACPT-059 | NFR-024 | 人工 | 本文件 §2 即為該案例的執行證據；每次回歸重跑 `pytest -q` 並與 §2.1 比對 | 綠（基準線已登記） |
 

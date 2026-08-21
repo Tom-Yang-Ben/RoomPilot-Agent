@@ -6,7 +6,27 @@ RoomPilot 是 AIPE03 第四組的 AI 室內設計系統。它把平面圖辨識�
 
 ## 快速啟動
 
-需求：
+### 方式零：Docker（最少前置，推薦給新環境）
+
+只需要 Docker Desktop，不必裝 Python、Node 或 PostgreSQL：
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }   # 然後填 DB_PASSWORD
+docker compose up -d --build
+```
+
+開 [http://127.0.0.1:8002](http://127.0.0.1:8002)。首次啟動會自動還原完整資料庫
+（8,675 筆家具 + 8,076 筆向量）。改 `backend/` 的程式碼或 `static/` 的前端檔案會自動
+生效，不必 rebuild。
+
+依功能拆成五個容器：`db`（PostgreSQL + pgvector）、`web`（FastAPI + 八步前端）、
+`chromium`（第 8 步 PDF 排版）、`rag`（BGE-M3，`--profile rag`）、
+`frontend`（Vite 原型，`--profile frontend`）。拆解依據、熱重載機制與已知陷阱見
+[`docker/README.md`](docker/README.md)。
+
+以下是不用 Docker 的原生安裝方式。
+
+### 原生安裝需求：
 
 - Windows 10/11 64-bit
 - Python 3.12

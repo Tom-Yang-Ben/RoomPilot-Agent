@@ -71,7 +71,7 @@
 | 應用層不做身分 | 無認證 dependency、無 session；能連上該埠的行程即擁有完整權限 | `main.py:195-197` |
 | 不加 CORS | 前端與 API 同源，不掛 `CORSMiddleware` 等同讓瀏覽器預設同源政策生效 | `main.py:216-217` |
 | 秘密不進回應 | 金鑰只從行程 env 讀取；成果包脫敏、遠端渲染剝除 PII；狀態端點只回布林 | `agent/llm.py:133`；`main.py:2475-2491`；`render_service.py:52-61` |
-| 資料庫供應獨立於 app 邊界 | PostgreSQL 由 `docker compose` 起，密碼強制由 `.env` 提供（缺值即拒啟動），`pg_isready` 健康檢查未過不服務 | `docker_postgresql/docker-compose.yml:12,20-24` |
+| 資料庫供應獨立於 app 邊界 | PostgreSQL 由 `docker compose` 起，密碼強制由 `.env` 提供（缺值即拒啟動），`pg_isready` 健康檢查未過不服務 | `docker-compose.yml:22,34-38` |
 
 ## 4. 後果
 
@@ -82,7 +82,7 @@
 
 ### 4.2 付出什麼
 - **邊界是部署姿勢，不是程式性質**：`--host 0.0.0.0` 一個旗標即全開，repo 內無任何機制阻止，也無啟動時告警。
-- **DB 埠與 app 邊界不對稱**：compose 的 `"${DB_PORT:-5432}:5432"` 未指定繫結 IP，Docker 預設發佈於所有介面——即使 app 只在 loopback，資料庫埠仍對 LAN 可達（`docker_postgresql/docker-compose.yml:14-15`）。
+- **DB 埠與 app 邊界不對稱**：compose 的 `"${DB_HOST_PORT:-${DB_PORT:-5432}}:5432"` 未指定繫結 IP，Docker 預設發佈於所有介面——即使 app 只在 loopback，資料庫埠仍對 LAN 可達（`docker-compose.yml:27`）。
 - **無稽核**：沒有存取紀錄與操作者身分，DEC-015 要問的「誰動過客戶資料」目前無法回答；執行資料同時無配額、無輪替、無備份（NFR-022）。
 - **成本無歸屬**：任何能連到 8002 埠的行程都能呼叫生圖端點消耗金鑰額度（ADR-009 §4.2 的「無配額」前提正是由本決策承擔）。
 - **環境版本落差未收斂**：`requires-python >= 3.12`（`pyproject.toml:5`）、安裝腳本釘 3.12（`install.ps1:44,47`；`install.sh:35`），但實測 `.venv` 為 CPython 3.13.5（`.venv/pyvenv.cfg`）。「照 README 裝出來的環境」與「實際跑測試的環境」不是同一個直譯器（NFR-023）。
@@ -99,7 +99,7 @@
 | 編號 | 內容 | 目前可驗證的事實 |
 | :--- | :--- | :--- |
 | OPEN-02 | 服務邊界是「僅本機」還是「內網展示」、是否需要帳號——DEC-014 未核准前，NFR-019 只能記為現況 | `brd.md:120-121` 提案 OUT-1／OUT-2；`brd.md:195` 記為阻擋項待核准；`srs.md` NFR-019 已標「待 DEC-014 核准」 |
-| 待確認（承接 DEC-014） | 資料庫埠對 LAN 發佈是刻意（供他機執行匯入腳本）還是疏漏 | `docker_postgresql/docker-compose.yml:14-15` 未限定繫結 IP；repo 內找不到需要他機連線的證據 |
+| 待確認（承接 DEC-014） | 資料庫埠對 LAN 發佈是刻意（供他機執行匯入腳本）還是疏漏 | `docker-compose.yml:27` 未限定繫結 IP；repo 內找不到需要他機連線的證據 |
 | 待確認（承接 NFR-023） | 執行環境該釘 3.12 還是 3.13 | `pyproject.toml:5` 與安裝腳本釘 3.12；`.venv/pyvenv.cfg` 實測 3.13.5，兩者未對齊 |
 | 待確認（承接 DEC-015／OPEN-13） | 這台機器的責任人、備份頻率、保留天數與結案刪除程序 | repo 內無備份腳本、無專案刪除 API（NFR-022）；`brd.md:197` 記為承諾缺口 |
 
@@ -109,7 +109,7 @@
 
 1. 加最小身分機制（共享密鑰標頭或代理層 Basic Auth），並補一條「無憑證回 401」的負向測試（TC 待建）。
 2. 關閉互動式 API 文件（`FastAPI(docs_url=None, redoc_url=None, openapi_url=None)`，`main.py:195`）或置於認證之後。
-3. 資料庫埠改綁 `127.0.0.1:5432:5432`，或直接移除 host 發佈只走 compose 內部網路（`docker_postgresql/docker-compose.yml:14-15`）。
+3. 資料庫埠改綁 `127.0.0.1:5432:5432`，或直接移除 host 發佈只走 compose 內部網路（`docker-compose.yml:27`）。
 4. 在 HTTP 層加 rate limit（現況只有檢索佇列，`rag_api.py:30-32`），至少涵蓋生圖與上傳端點以限制金鑰額度與磁碟消耗。
 5. 補 TLS 終結與存取紀錄，並把責任人、備份頻率與保留天數寫入 [`deployment_and_operations.md`](../../06_ops/deployment_and_operations.md)（DEC-015）。
 6. 收斂 Python 版本落差（NFR-023）後回寫 §4.2 與 [`srs.md`](../../01_requirements/srs.md) §3。
@@ -124,7 +124,7 @@
 | :--- | :--- |
 | 觸發來源 | DEC-014、DEC-015（[`brd.md`](../../01_requirements/brd.md) §7、§9）；FR-065、FR-066、FR-067、NFR-019、NFR-020、NFR-022、NFR-023（[`srs.md`](../../01_requirements/srs.md) §2.9、§3） |
 | 驗收對應 | ACPT-056（一鍵安裝與啟動、狀態端點不外洩設定）、ACPT-057（Docker PostgreSQL 供應）、ACPT-058（維運政策，受阻於 DEC-015／DEC-019）；[`srs.md`](../../01_requirements/srs.md) §7 的 SX 跨步列 |
-| 影響範圍 | MOD-OPS、MOD-SRV-API、MOD-SQL（[`sad.md`](../sad.md)）；`README.md` 啟動段、`install.ps1`／`install.sh`、`docker_postgresql/docker-compose.yml`；[`deployment_topology.md`](../diagrams/deployment_topology.md) |
+| 影響範圍 | MOD-OPS、MOD-SRV-API、MOD-SQL（[`sad.md`](../sad.md)）；`README.md` 啟動段、`install.ps1`／`install.sh`、`docker-compose.yml`；[`deployment_topology.md`](../diagrams/deployment_topology.md) |
 | 維運承接 | RB-001（[`runbook-catalog-db-unavailable.md`](../../06_ops/runbook-catalog-db-unavailable.md)）、RB-009（[`runbook-runtime-storage-growth.md`](../../06_ops/runbook-runtime-storage-growth.md)）；[`deployment_and_operations.md`](../../06_ops/deployment_and_operations.md) |
 | 相關決策 | [`ADR-009`](./ADR-009-server-governed-ai-generation.md)（金鑰只在伺服器；其「無配額」前提由本決策承擔）、[`ADR-010`](./ADR-010-static-frontend-and-eight-step-collapse.md)（同源靜態單頁，故無 CORS 需求）、[`ADR-005`](./ADR-005-postgres-catalog-source-of-truth.md)（型錄 DB 由 compose 供應）、[`ADR-004`](./ADR-004-single-workflow-snapshot-sqlite.md)（客戶案件資料落在本機 `.runtime/`） |
 | 取代關係 | 無（Supersedes：無；Superseded-by：無） |

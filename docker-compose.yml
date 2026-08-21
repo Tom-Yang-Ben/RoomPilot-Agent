@@ -1,0 +1,138 @@
+# RoomPilot 全專案一鍵啟動。詳細拆解理由與邊界見 docker/README.md。
+#
+#   docker compose up -d                        → db + web + chromium（日常開發）
+#   docker compose --profile frontend up -d     → 再加 Vite dev server（React 原型）
+#   docker compose --profile rag up -d          → 再加 BGE-M3 sidecar
+#   docker compose --profile all up -d          → 全開
+#
+# 程式碼一律 bind mount，改檔即熱重載，不必 rebuild。只有動到 requirements*.txt
+# 才需要 docker compose build。
+name: roompilot
+
+services:
+  # ---------------------------------------------------------------- 資料層
+  db:
+    # pgvector/pgvector = 官方 postgres 17 + pgvector，schema 會自動啟用 furniture_embeddings
+    image: pgvector/pgvector:pg17
+    # 沿用被合併掉的 docker_postgresql/docker-compose.yml 的容器名，既有 runbook
+    # 裡的 docker exec roompilot-postgres psql … 不必改寫。
+    container_name: roompilot-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?請先在專案根目錄 .env 設定 DB_PASSWORD}
+      POSTGRES_DB: ${DB_ADMIN_DB:-postgres}
+    ports:
+      # 主機已經跑原生 PostgreSQL 時會撞埠，改用 DB_HOST_PORT=5433 之類避開。
+      # 容器之間走 db:5432，不受這行影響。
+      - "${DB_HOST_PORT:-${DB_PORT:-5432}}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 掛整個資料夾而不是單一檔案：postgres 只執行 *.sql/*.sql.gz/*.sh，
+      # 其餘（.md/.yml）自動略過，而且 dump 不存在時不會被 docker 建成空目錄。
+      # 只有空 volume（首次）才會還原；要重灌先 docker compose down -v。
+      - ./docker_postgresql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # ------------------------------------------------------------ 產品主體
+  # 唯一的 FastAPI。engine / agent / catalog / floorplan / upgrade3d 都是行程內
+  # import，硬拆成獨立容器只會變成假微服務，所以它們留在這個容器裡。
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: web
+    container_name: roompilot-web
+    ports:
+      - "${ROOMPILOT_PORT:-8002}:8002"
+    volumes:
+      # 整個 repo 掛在 /app：Python 走 uvicorn --reload；static/ 的 JS/CSS/HTML
+      # 由 FastAPI 直接從掛載點讀，存檔後重新整理瀏覽器就生效。
+      - .:/app
+    environment:
+      # 容器裡資料庫不在 localhost。DB_* 這組是「行程環境優先於 .env 檔」
+      # （backend/server/postgres_catalog.py:87），所以蓋得掉 .env 的 localhost。
+      DB_HOST: db
+      DB_PORT: "5432"
+      # 第 8 步 PDF 的排版瀏覽器跑在 chromium 容器（web 映像不含 Chromium 本體）。
+      PLAYWRIGHT_WS_ENDPOINT: ws://chromium:3000/
+      # web 映像刻意不裝 torch，本地載不了 BGE-M3，一律外包給 rag sidecar。
+      # 沒開 --profile rag 時錯誤訊息會直接說 sidecar 連不上，而不是假裝套件沒裝。
+      ROOMPILOT_RAG_REMOTE_URL: http://rag:8009
+      # requirements.txt 是純 uvicorn（非 uvicorn[standard]），沒有 watchfiles，
+      # 所以 --reload 實際走 StatReload：它比對 mtime，正好是 Windows/WSL2
+      # bind mount 唯一可靠的偵測方式（inotify 事件不會穿過掛載點）。
+      # 這行是保險：哪天有人裝了 uvicorn[standard]，watchfiles 會被優先選用，
+      # 屆時不強制輪詢就會完全收不到主機的存檔。
+      WATCHFILES_FORCE_POLLING: "true"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --------------------------------------------------- 第 8 步 PDF 排版瀏覽器
+  chromium:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: chromium
+    container_name: roompilot-chromium
+    volumes:
+      # 必須掛在跟 web 相同的絕對路徑：build_pdf.py 用 file:// 開 HTML，
+      # 遠端瀏覽器解析的是「自己這一側」的檔案系統。
+      - .:/app:ro
+    # 瀏覽器分頁需要比預設 64MB 更大的 /dev/shm，否則長報告會在 print 時崩掉。
+    shm_size: "1gb"
+    restart: unless-stopped
+
+  # ------------------------------------------------------- RAG 重依賴 sidecar
+  # torch + sentence-transformers 只裝在這個映像；web 不帶那 2.5GB。
+  rag:
+    profiles: ["rag", "all"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: rag
+    container_name: roompilot-rag
+    volumes:
+      - .:/app
+      - hfcache:/models
+    environment:
+      # BGE-M3 與 reranker 權重約 4.6GB，放具名 volume 才不會重建就重抓。
+      HF_HOME: /models
+      ROOMPILOT_RAG_MODEL_CACHE: /models
+      WATCHFILES_FORCE_POLLING: "true"
+    restart: unless-stopped
+
+  # ----------------------------------------------------- React/R3F 次要原型
+  # 正式八步流程不需要它；只有要改 frontend/ 原始碼時才開。
+  frontend:
+    profiles: ["frontend", "all"]
+    image: node:22-slim
+    container_name: roompilot-frontend
+    working_dir: /app
+    # node_modules 在具名 volume 裡，裝過就不重裝；重灌用 down -v。
+    command: sh -c "[ -d node_modules/vite ] || npm ci; npm run dev -- --port 5173"
+    ports:
+      - "${ROOMPILOT_FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      # 具名 volume 蓋住 node_modules：Linux 容器不能用 Windows 主機裝出來的
+      # 原生模組，也避免把 node_modules 寫回主機。
+      - frontend_node_modules:/app/node_modules
+    environment:
+      VITE_IN_DOCKER: "1"
+      VITE_API_TARGET: http://web:8002
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  hfcache:
+  frontend_node_modules:

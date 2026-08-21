@@ -97,7 +97,7 @@ def topology():
     # ── 容器外資料庫與外部服務 ──────────────────────────────────────────────
     c.append(node("pg", "PostgreSQL 17 + pgvector（MOD-SQL／MOD-CAT）\n"
                         "唯讀 view roompilot.furniture_catalog_current；pg_isready healthcheck\n"
-                        "postgres_repository.py:20；docker_postgresql/docker-compose.yml:5-27",
+                        "postgres_repository.py:20；docker-compose.yml:14-39",
                   24, 45, 500, 90, small(cyl("purple"), 9), parent="db"))
     c.append(node("or", "OpenRouter：LLM 與生圖唯一閘道（MOD-AGT／MOD-SRV-RENDER）\n"
                         "文字 /api/v1/chat/completions、生圖 /api/v1/images；"

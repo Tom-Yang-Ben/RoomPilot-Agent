@@ -189,7 +189,7 @@
 | ID | 需求（可觀察行為） | 上游 | 佐證 file:line | ACPT |
 | :--- | :--- | :--- | :--- | :--- |
 | FR-065 | 一鍵安裝與啟動：建虛擬環境 → 安裝相依 → Playwright chromium → npm；`uvicorn backend.server.main:app --host 127.0.0.1 --port 8002` | DEC-014 | `install.ps1:41-79`；`install.sh:33-65`；`README.md:49` | ACPT-056 |
-| FR-066 | Docker PostgreSQL 供應：`pgvector/pgvector:pg17`、`pg_isready` healthcheck、空 volume 首次自動還原 dump | DEC-007 | `docker_postgresql/docker-compose.yml:5-27` | ACPT-057 |
+| FR-066 | Docker PostgreSQL 供應：`pgvector/pgvector:pg17`、`pg_isready` healthcheck、空 volume 首次自動還原 dump | DEC-007 | `docker-compose.yml:14-39` | ACPT-057 |
 | FR-067 | 狀態端點群作為健康檢查替代（catalog／render-provider／ai-render／delivery-proposal／scene provider／agent pipeline／rag），皆不外洩金鑰、token 或伺服器檔案佈局 | DEC-014, DEC-017 | `main.py:2028,2064,2378,3144,3331,3504`；`rag_api.py:164` | ACPT-056 |
 
 ---

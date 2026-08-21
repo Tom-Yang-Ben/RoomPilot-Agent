@@ -43,7 +43,7 @@
 | :--- | :--- | :--- |
 | 啟動服務 | 根目錄執行 `.\.venv\Scripts\python.exe -m uvicorn backend.server.main:app --host 127.0.0.1 --port 8002 --reload`，瀏覽 `http://127.0.0.1:8002` | `README.md:49` |
 | 樣例平面圖 | `data/testdata/png/floor04.png`；亦可由 `GET /api/floorplan/sample/04` 取同一張 PNG | `main.py:146,3072-3080` |
-| 家具型錄 | `docker compose up -d`（`pgvector/pgvector:pg17`，空 volume 首次自動還原 dump）；以 `GET /api/catalog/status` 確認 provider 為 `kai_postgresql` 且 `available=true` | `docker_postgresql/docker-compose.yml:8,18-24`；`main.py:3095-3146,3144-3146` |
+| 家具型錄 | `docker compose up -d`（`pgvector/pgvector:pg17`，空 volume 首次自動還原 dump）；以 `GET /api/catalog/status` 確認 provider 為 `kai_postgresql` 且 `available=true` | `docker-compose.yml:16,28-33`；`main.py:3095-3146,3144-3146` |
 | 型錄來源開關 | 預設 `postgres`；只有顯式設 `ROOMPILOT_CATALOG_PROVIDER=json\|local\|fallback` 才走離線 JSON——**驗收期間不得為了讓畫面有東西而偷改此值** | `postgres_repository.py:199-205` |
 | AI 生圖金鑰 | `.env` 的 `OPENROUTER_API_KEY`；未設定時 `GET /api/ai-render/status` 回 `configured:false`，生圖端點回 503 | `ai_render_service.py:65-74`；`main.py:2064-2068` |
 | PDF 排版引擎 | `uv pip install --python .venv\Scripts\python.exe -r requirements-delivery.txt` ＋ `.venv\Scripts\playwright.exe install chromium`；狀態查 `GET /api/delivery-proposal/status` | `README.md:115-116`；`main.py:2378-2382`；`design_manual_service.py:70-73` |

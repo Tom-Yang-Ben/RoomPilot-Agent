@@ -17,6 +17,7 @@ import base64
 import html
 import json
 import mimetypes
+import os
 import re
 import subprocess
 import sys
@@ -367,7 +368,11 @@ def html_to_pdf(html_path, pdf_path, footer_text):
         '<span class="pageNumber"></span></div>'
     )
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        # 設了 PLAYWRIGHT_WS_ENDPOINT 就連遠端瀏覽器（docker-compose 的 chromium
+        # 容器），本機沒設就照舊開自己的 Chromium。遠端時 page.goto 走的是
+        # 瀏覽器端的 file://，所以兩邊必須把 repo 掛在同一個絕對路徑。
+        ws_endpoint = os.environ.get("PLAYWRIGHT_WS_ENDPOINT", "").strip()
+        browser = p.chromium.connect(ws_endpoint) if ws_endpoint else p.chromium.launch()
         page = browser.new_page()
         page.goto(html_path.resolve().as_uri(), wait_until="networkidle")
         page.pdf(

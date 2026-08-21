@@ -35,7 +35,7 @@
 | 前端 | 同行程靜態檔（`backend/server/static/`），不另起 web server | `main.py:125` |
 | 路由總數 | 60 條 `@app.*` ＋ 5 條 `@router.*`（RAG）＝ 65 | `main.py`、`rag_api.py` 實測計數 |
 | 資料庫（專案狀態） | 本機 SQLite 檔，隨行程啟動開啟 | `main.py:147-149`；`runtime_paths.py:20-25` |
-| 資料庫（家具型錄） | 外部 PostgreSQL 17 ＋ pgvector，容器或原生皆可 | `docker_postgresql/docker-compose.yml:8` |
+| 資料庫（家具型錄） | 外部 PostgreSQL 17 ＋ pgvector，容器或原生皆可 | `docker-compose.yml:16` |
 | 反向代理／負載均衡／CDN（自營） | **無** | 無設定檔；GLB 與型錄圖走第三方 CloudFront，見 §4 |
 | 網路邊界 | 僅 `--host 127.0.0.1`（回送位址），**是否為既定範圍待 DEC-014 核准** | `README.md:49`；NFR-019、OPEN-02 |
 
@@ -128,17 +128,24 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 
 ### 4.1 PostgreSQL（Docker 一鍵，FR-066／ACPT-057）
 
-`docker_postgresql/docker-compose.yml`：映像 `pgvector/pgvector:pg17`（官方 PostgreSQL 17 ＋ pgvector，`:8`）、容器名 `roompilot-postgres`（`:9`）、埠 `${DB_PORT:-5432}:5432`（`:15`）、具名 volume `roompilot_pgdata`（`:17`）、healthcheck `pg_isready -U ${DB_USER:-postgres}` 每 5 秒／逾時 3 秒／重試 10 次（`:20-24`）。`DB_PASSWORD` 未設直接失敗（`:12` 的 `:?` 語法）。
+**供應資料庫的 compose 只有一份**：根目錄 `docker-compose.yml` 的 `db` 服務（`:14-39`）。全堆疊（db／web／chromium ＋ profile `rag`／`frontend`）的拆解理由見 [`docker/README.md`](../../docker/README.md)。
 
-**空 volume 首次啟動才會還原 dump**；volume 已存在時換新 dump 不生效，須先 `docker compose down -v`（`DOCKER_ONECLICK.md:38`）。dump 約 55 MB，由 `.gitattributes` 以 Git LFS 追蹤（`*.sql.gz`），並由 `.gitignore:106` 排除 `roompilot_db_dump.sql*` 的一般提交路徑。
+> **合併紀錄（2026-08-22）**：`docker_postgresql/` 下原本另有一份只起 DB 的 compose，容器名與本份撞車導致無法同時啟動，現已合併刪除。合併前逐張比對兩份 volume 的內容：25 張表的**精確列數**與**內容 md5**（含全部 8,076 條向量）完全相同，schema DDL 差異僅 `pg_dump` 每次隨機產生的 `\restrict` nonce 與等價的 ARRAY 轉型渲染（歸一化後差異 0 行），因此無資料需要搬遷。容器名 `roompilot-postgres` 沿用至 `db` 服務（`:19`），既有 runbook 的 `docker exec roompilot-postgres …` 不受影響。舊資料留在具名 volume `roompilot-agent_roompilot_pgdata`，本份既不讀也不動。
 
-> **路徑不一致（未實跑驗證，見 §10）**：compose 掛載來源寫 `./scripts/sql/roompilot_db_dump.sql.gz`（`docker-compose.yml:19`），但工作樹中該檔實際位於 `docker_postgresql/roompilot_db_dump.sql.gz`（54.8 MB），且 `docker_postgresql/scripts/` 目錄不存在、repo 根 `scripts/sql/` 內亦無此檔。compose 的相對路徑預設以 compose 檔所在目錄解析，因此自動還原可能不會發生。
+`db` 服務：映像 `pgvector/pgvector:pg17`（官方 PostgreSQL 17 ＋ pgvector，`:16`）、埠 `${DB_HOST_PORT:-${DB_PORT:-5432}}:5432`（`:27`；`DB_HOST_PORT` 供主機已跑原生 PostgreSQL 時避開衝突，容器之間一律走 `db:5432`）、具名 volume `roompilot_pgdata`（`:29` 的 `pgdata` ＋ 專案名 `roompilot`）、healthcheck `pg_isready -U ${DB_USER:-postgres}` 每 5 秒／逾時 3 秒／重試 20 次（`:34-38`）。`DB_PASSWORD` 未設直接失敗（`:22` 的 `:?` 語法）。
 
-驗證指令（`DOCKER_ONECLICK.md:25`）：
+**空 volume 首次啟動才會還原 dump**；volume 已存在時換新 dump 不生效，須先 `docker compose down -v`（`DOCKER_ONECLICK.md:42`）。dump 約 55 MB，由 `.gitattributes` 以 Git LFS 追蹤（`*.sql.gz`），並由 `.gitignore:106` 排除 `roompilot_db_dump.sql*` 的一般提交路徑。
+
+> **路徑不一致已修正（2026-08-22，見 §10）**：原本掛載來源寫 `./scripts/sql/roompilot_db_dump.sql.gz`，但該相對路徑以 compose 檔所在的 `docker_postgresql/` 解析，而該目錄下無 `scripts/`，實檔在 `docker_postgresql/roompilot_db_dump.sql.gz`（54.8 MB）——docker 會把不存在的來源建成空目錄，自動還原靜默不發生。現改掛整個資料夾（`:33` 的 `./docker_postgresql:/docker-entrypoint-initdb.d:ro`）；postgres 只執行 `*.sql`／`*.sql.gz`／`*.sh`，同目錄的 `.md`／`.yml` 會自動略過。
+
+驗證指令（`DOCKER_ONECLICK.md:29`）——容器名與 compose 服務名兩種寫法皆可：
 
 ```powershell
 docker exec roompilot-postgres psql -U postgres -d roompilot_db -c "SELECT count(*) FROM roompilot.furniture_catalog_api_current;"  # 期望 8076
+docker compose exec -T db psql -U postgres -d roompilot_db -tAc "SELECT count(*) FROM roompilot.furniture_catalog_api_current;"     # 期望 8076
 ```
+
+**實跑證據（2026-08-22，根目錄 compose，空 volume）**：`vector` extension 已啟用；`roompilot.furniture_catalog_api_current` 與第 6 步實際讀的 view `roompilot.furniture_catalog_current` 皆回 **8076**。
 
 ### 4.2 檢索模型權重（offline-only，NFR-010）
 
@@ -258,7 +265,7 @@ docker exec roompilot-postgres psql -U postgres -d roompilot_db -c "SELECT count
 | OPEN-02（DEC-014） | Pilot 服務邊界是否即「僅本機／內網、不需帳號」；`--reload` 是否應在 Pilot 關閉；是否需要行程守護 | 全 app 無認證、無 CORS、無 rate limit，唯一邊界是 `--host 127.0.0.1`（`main.py:195-196`）；repo 內無服務單元檔 | NFR-019、ACPT-056 |
 | OPEN-13（DEC-015） | 備份頻率、保留天數、配額告警閾值、結案交還／刪除程序、責任人 | `.runtime/` 226 MB 且無配額／輪替／備份／刪除 API（§6） | NFR-022、NFR-025、ACPT-058 |
 | OPEN-25 同類 | `scripts/rag/prefetch_models.py` 在本分支不存在，README 與兩支安裝腳本仍指向它 | `scripts/` 下無 `rag/`；全 repo 無 `prefetch_models*` | FR-046、NFR-010 |
-| 本文件新增 | `docker-compose.yml:19` 的 dump 掛載來源與檔案實際位置不一致，自動還原是否仍成立**未實跑驗證** | 檔在 `docker_postgresql/roompilot_db_dump.sql.gz`；`docker_postgresql/scripts/` 不存在；`DOCKER_ONECLICK.md:12,16` 又假設在 repo 根執行 compose，但根目錄無 compose 檔 | FR-066、ACPT-057 |
+| ~~本文件新增~~ **已結（2026-08-22）** | ~~dump 掛載來源與檔案實際位置不一致，自動還原是否仍成立**未實跑驗證**~~ | 掛載改為整個 `docker_postgresql/` 資料夾；空 volume 實跑還原成功，兩個 view 皆 8076（§4.1）。「根目錄無 compose 檔」也已不成立——根目錄現有全堆疊 compose | FR-066、ACPT-057 |
 | 本文件新增 | Python 版本以哪一個為準（宣告 `>=3.12`／腳本釘 3.12／現場 3.13.5） | `pyproject.toml:5`；`install.ps1:43`；`.venv/pyvenv.cfg` | NFR-023、ACPT-056 |
 | 本文件新增 | `.runtime/engineering/`（208 KB）與 `.runtime/auth_secret.key` 的產生者與是否可刪 | `backend/` 內無任何寫入點 | NFR-022 |
 | 本文件新增 | `.env` 讀取順序兩套相反（型錄 env 優先、檢索 file 優先）是否刻意；同名變數會有不同結果 | `postgres_repository.py:194-196` vs `rag/settings.py:23-28`（後者有註解說明理由） | NFR-014 |

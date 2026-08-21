@@ -1,0 +1,9 @@
+# 映像只裝依賴，程式碼一律走 bind mount（見 docker/README.md「熱重載」）。
+# 所以 build context 只需要 requirements*.txt 與 docker/。其餘全部排除，
+# 否則 3.4GB .git + 1.3GB data/ + 347MB static/ 會讓每次 build 先傳好幾分鐘。
+*
+
+!requirements.txt
+!requirements-ocr.txt
+!requirements-delivery.txt
+!docker/

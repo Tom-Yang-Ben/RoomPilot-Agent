@@ -81,7 +81,7 @@ graph TB
 | CloudFront | 外部系統 | 交付家具 GLB 與型錄圖片；預設投遞模式即 `cloudfront` | `/model` 307 導向；`model.gltf`／`buffer.bin`／`images/{i}` 在 cloudfront 模式回 410 | `backend/server/services/cloud_models.py:32,45-52`；`main.py:4012-4018,4021-4024` | MOD-CAT、MOD-WEB |
 | 本機檢索模型權重快取 | 外部資料儲存 | 提供 embedding／reranker 權重，`local_files_only=True`，不在請求路徑下載 | 未快取 → `RagDependencyError` → 503，`/api/rag/status` 回具名 blocker | `backend/spatial_data/rag/model_runtime.py:104-105,113-127`；`rag/service.py:84-89` | MOD-RAG |
 | Chromium 排版引擎 | 外部系統 | 以子行程呼叫打包 skill 的 `build_pdf.py` 排版交付提案 PDF | 未安裝 503 `delivery_engine_not_configured`（附安裝指令）；逾時 180 秒；失敗 502 | `backend/agent/skills/delivery/__init__.py:41,50-56,273-296`；`main.py:2399-2406` | MOD-AGT、MOD-SRV-RENDER |
-| Docker PostgreSQL 供應 | 外部系統 | 供應 `pgvector/pgvector:pg17` 執行個體；compose 宣告「空 volume 首次自動還原 dump」，但**掛載路徑與實體 dump 位置對不上，首次自動還原在本分支不成立**（`docker-compose.yml:19` 掛 `./scripts/sql/roompilot_db_dump.sql.gz`，實檔在 `docker_postgresql/roompilot_db_dump.sql.gz`；`docker_postgresql/scripts/` 不存在）——見 [`../sad.md`](../sad.md) §9、[`deployment_topology.md`](deployment_topology.md) §5 第 3 項 | healthcheck 未過即不對外服務；本系統只看到「DB 不可用」 | `docker_postgresql/docker-compose.yml:5-27` | MOD-OPS |
+| Docker PostgreSQL 供應 | 外部系統 | 供應 `pgvector/pgvector:pg17` 執行個體；空 volume 首次自動還原 `docker_postgresql/roompilot_db_dump.sql.gz`。原本**掛載路徑與實體 dump 位置對不上、自動還原不成立**，已於 2026-08-22 修正為改掛整個 `docker_postgresql/` 目錄（`docker-compose.yml:33`），空 volume 實跑還原成功（8076 筆、`vector` extension 已啟用）——見 [`../sad.md`](../sad.md) §9、[`deployment_topology.md`](deployment_topology.md) §5 第 3 項 | healthcheck 未過即不對外服務；本系統只看到「DB 不可用」 | `docker-compose.yml:14-39` | MOD-OPS |
 
 ## 5. 約束與檢查
 

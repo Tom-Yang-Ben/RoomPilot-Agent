@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import os
+import urllib.request
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -14,6 +17,36 @@ from .settings import RagSettings
 EMBED_MODEL = "BAAI/bge-m3"
 RERANK_MODEL = "BAAI/bge-reranker-v2-m3"
 EMBED_DIMENSION = 1024
+
+REMOTE_URL_ENV = "ROOMPILOT_RAG_REMOTE_URL"
+REMOTE_TIMEOUT_ENV = "ROOMPILOT_RAG_REMOTE_TIMEOUT_SECONDS"
+
+
+def _remote_url() -> str:
+    """把 embed/rerank 外包給 sidecar 的位址；空字串＝維持行程內載入。
+
+    刻意只讀行程環境、不讀 `.env`：這是容器編排（docker-compose）設定的部署
+    拓樸，不是使用者的模型偏好。若走 `settings.py` 的 `_setting`，`.env` 檔會
+    蓋掉 compose 的值（那支是檔案優先），本機一份殘留設定就能讓 web 以為有
+    sidecar 可用。
+    """
+    return os.getenv(REMOTE_URL_ENV, "").strip().rstrip("/")
+
+
+def _remote_call(path: str, payload: dict[str, Any] | None) -> Any:
+    url = f"{_remote_url()}{path}"
+    timeout = float(os.getenv(REMOTE_TIMEOUT_ENV, "120"))
+    # 與 backend/agent/llm.py 一致用 stdlib urllib：業務程式碼不 import httpx。
+    request = urllib.request.Request(
+        url,
+        data=None if payload is None else json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception as exc:  # noqa: BLE001 - sidecar 任何失敗都是「依賴不可用」
+        raise RagDependencyError(f"RAG sidecar unavailable at {url}") from exc
 
 
 def _repo_cache_path(cache_dir: Path, repo_id: str) -> Path:
@@ -62,6 +95,15 @@ class RagModelRuntime:
         self._device: str | None = None
 
     def status(self, settings: RagSettings) -> dict[str, Any]:
+        if _remote_url():
+            # 狀態頁不該因為 sidecar 沒起來就整頁爆掉，回報「不可用」即可。
+            try:
+                remote = dict(_remote_call("/status", None))
+            except RagDependencyError as exc:
+                remote = {"packages": {}, "loaded": False, "error": str(exc)}
+            remote["remote_url"] = _remote_url()
+            return remote
+
         packages = {
             name: importlib.util.find_spec(module) is not None
             for name, module in (
@@ -135,6 +177,12 @@ class RagModelRuntime:
             return self._models
 
     def embed(self, texts: list[str], settings: RagSettings) -> list[list[float]]:
+        # 與同類的 rerank／rerank_pairs 一致先擋空輸入。少了這道，空清單會為了
+        # 算零個向量而去載 4.6GB 模型（遠端模式則是一次沒有意義的 HTTP 往返）。
+        if not texts:
+            return []
+        if _remote_url():
+            return list(_remote_call("/embed", {"texts": texts})["vectors"])
         embedder, _ = self._load(settings)
         with self._inference_lock:
             vectors = embedder.encode(texts, normalize_embeddings=True)
@@ -148,6 +196,8 @@ class RagModelRuntime:
     ) -> list[float]:
         if not documents:
             return []
+        if _remote_url():
+            return self.rerank_pairs([(query, document) for document in documents], settings)
         _, reranker = self._load(settings)
         with self._inference_lock:
             scores = reranker.predict([(query, document) for document in documents])
@@ -160,6 +210,9 @@ class RagModelRuntime:
     ) -> list[float]:
         if not pairs:
             return []
+        if _remote_url():
+            payload = {"pairs": [list(pair) for pair in pairs]}
+            return [float(score) for score in _remote_call("/rerank", payload)["scores"]]
         _, reranker = self._load(settings)
         with self._inference_lock:
             scores = reranker.predict(pairs)

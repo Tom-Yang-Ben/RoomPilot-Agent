@@ -66,7 +66,7 @@ FastAPI app ＋ 前端兩個 Container 的內部拆分。owner 依 `AGENTS.md:34
 | MOD-SQL | schema、dump 與交易式匯入驗證（家具與向量） | `scripts/sql/`（`roompilot_postgresql_schema.sql`、`import_official_catalog_to_postgres.py`、`import_furniture_embeddings_to_postgres.py`） | Kai | FR-043、044 |
 | MOD-RAG | 需求解析、向量檢索與決定性重排；**只排序既有候選** | `backend/spatial_data/rag/`（`service.py:62-80`、`ranking.py`、`model_runtime.py`）；HTTP 面 `rag_api.py:159-221`；SQL 面共用 MOD-CAT 連線池（`rag_repository.py:9,12`） | Django | FR-046–049 |
 | MOD-AGT | 選件閘門與潛規則、擺位提示、生圖提示詞、並存 MasterAgent 管線與對帳 | `backend/agent/`（`select.py`、`place.py`、`knowledge.py`、`subagents/`、`tools/genpic_info.py`）；`agent_pipeline_service.py:1-11`、`agent_reconcile_service.py` | Yen | FR-050–054、059 |
-| MOD-OPS | 一鍵安裝／啟動、Docker PostgreSQL 供應、執行資料目錄約定 | `install.ps1:79`、`install.sh:65`、`README.md:49`、`docker_postgresql/docker-compose.yml:5-27`、`runtime_paths.py:20-25` | Bella（整合） | FR-065、066 |
+| MOD-OPS | 一鍵安裝／啟動、Docker PostgreSQL 供應、執行資料目錄約定 | `install.ps1:79`、`install.sh:65`、`README.md:49`、`docker-compose.yml:14-39`、`runtime_paths.py:20-25` | Bella（整合） | FR-065、066 |
 | MOD-TEST | 契約與回歸測試 | `tests/`（82 檔）、`backend/server/tests/`＋`backend/agent/tests/`（合計 16 檔）；`pyproject.toml:63-64` | 各 MOD owner；Bella 維護端到端門檻 | NFR-024 |
 
 ## 2. DDD 邊界與分層
@@ -184,7 +184,7 @@ DDL、索引與 PostgreSQL view 欄位歸 [`db_design.md`](../04_design/db_desig
 | :--- | :--- | :--- |
 | 前端 Three.js 由 unpkg CDN 取得（`scene.html:1212-1213`），與「本機可跑」的部署宣稱衝突 | 離線或 CDN 故障時 3D 全步驟不可用；srs §5 外部介面表未登記此相依 | **新增待確認**（無既有 OPEN 編號）→ ADR-010、deployment_and_operations |
 | `psycopg2-binary` 只宣告在 `catalog` optional extra（`pyproject.toml:51`），但 postgres 是預設 provider（`postgres_repository.py:199-205`） | 只裝 `server` extra 者啟動即 `postgres_driver_unavailable`（`:234`） | **新增待確認** → RB-001、安裝腳本 |
-| Docker 一鍵還原路徑不成立：`docker-compose.yml:19` 掛 `./scripts/sql/roompilot_db_dump.sql.gz`，實檔在 `docker_postgresql/roompilot_db_dump.sql.gz`；`docker_postgresql/scripts/` 不存在、repo 根 `scripts/sql/` 無 `.gz` | FR-066／ACPT-057 的「首次自動還原」在本分支無法成立 | **新增待確認** → deployment_and_operations |
+| ~~Docker 一鍵還原路徑不成立~~ **已修（2026-08-22）**：掛載來源改為整個 `docker_postgresql/` 資料夾（`docker-compose.yml:33`），不再指向不存在的 `./scripts/sql/` | FR-066／ACPT-057 的「首次自動還原」已實跑驗證成立（空 volume → 8076） | 已結 → deployment_and_operations §4.1 |
 | 型錄 `lru_cache` 無失效機制（`main.py:909,924-926`）；無指標、無備份、無資料保留與刪除路徑 | 型錄更新後需重啟行程；交付與稽核無證據面 | ADR-005；OPEN-02（**本文件 §8 承接**）、NFR-022／025 |
 
 **待確認索引**（內文不重寫，只記編號與主責文件）：OPEN-02（Pilot 安全邊界是否為既定範圍 → 本文件 §8、ADR-012）｜OPEN-06（型錄筆數閘門與 503 是否實作 → ADR-005、RB-001）｜OPEN-14（前端未帶 `expected_revision` → ADR-004）｜OPEN-16（改圖額度整批 vs 逐房 → api_spec）｜OPEN-21、OPEN-22（正面朝向慣例相反、淨空常數表分歧 → ADR-003、lld）｜OPEN-39（選件規則兩套並存 → lld、ADR-011）｜OPEN-43（檢索是否該接入八步、向量筆數不一致 → ADR-008、db_design）｜OPEN-03（無前端呼叫的端點是否退役 → api_spec）｜OPEN-10（正式交付主件是誰 → prd、UAT）。
@@ -204,9 +204,9 @@ DDL、索引與 PostgreSQL view 欄位歸 [`db_design.md`](../04_design/db_desig
 | 7 | Context Map 箭頭是 Strategic Relationship | ✅ | §2 逐條標 PL／OHS／CF，非 data flow |
 | 8 | 至少一張 Sequence Diagram | ✅ | §5 唯一一張跨容器 sequence（載體分工見 §1.1 註） |
 | 9 | Deployment 圖含 Node 屬性 | ✅ | [`deployment_topology.md`](./diagrams/deployment_topology.md) 載行程、埠、檔案路徑與失敗語意 |
-| 10 | 拆新 process 先改 L2 再加 L3；架構變動同步 `lld`／`deployment_and_operations` | 📌 常設約束 | 本輪無新 process；此列為後續變更的規則，不是現況判定 |
+| 10 | 拆新 process 先改 L2 再加 L3；架構變動同步 `lld`／`deployment_and_operations` | 📌 常設約束 | 產品架構本輪無新 process。2026-08-22 新增的根目錄 compose 是**開發用容器堆疊**，非產品拓撲：`web` 仍是同一個 `backend.server.main:app`，`chromium`／`rag` 兩個外接行程由環境變數開關（未設＝維持行程內既有行為），見 [`docker/README.md`](../../docker/README.md) |
 
-**未過關但已登記**：§9 三筆「新增待確認」（unpkg CDN 相依未登記於 srs §5 外部介面表、`psycopg2-binary` extra 宣告與預設 provider 不一致、Docker 還原路徑不成立）在 owner 收編為正式 OPEN-* 前，本清單第 3、5 項的「完整」只涵蓋已登記項。
+**未過關但已登記**：§9 兩筆「新增待確認」（unpkg CDN 相依未登記於 srs §5 外部介面表、`psycopg2-binary` extra 宣告與預設 provider 不一致）在 owner 收編為正式 OPEN-* 前，本清單第 3、5 項的「完整」只涵蓋已登記項。第三筆「Docker 還原路徑不成立」已於 2026-08-22 修復並實跑驗證，見 §9 該列。
 
 ## 11. 追溯
 
